@@ -1,5 +1,6 @@
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
@@ -83,6 +84,23 @@ public abstract class NodeSubject
     public sealed class DerivedType(DerivedTypeInfo value) : NodeSubject
     {
         public DerivedTypeInfo Value { get; } = value;
+    }
+
+    /// <summary>The folder of <see cref="Module"/>'s manifest resources.</summary>
+    public sealed class Resources(LoadedModule module) : NodeSubject
+    {
+        public LoadedModule Module { get; } = module;
+    }
+
+    /// <summary>A manifest resource that holds entries: a <c>.resources</c> file, or Avalonia's asset container.</summary>
+    public sealed class ResourceContainer(ResourceContainerInfo value) : NodeSubject
+    {
+        public ResourceContainerInfo Value { get; } = value;
+    }
+
+    public sealed class ResourceEntry(ResourceEntryInfo value) : NodeSubject
+    {
+        public ResourceEntryInfo Value { get; } = value;
     }
 }
 

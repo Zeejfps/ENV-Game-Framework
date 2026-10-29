@@ -170,9 +170,12 @@ public abstract class BrowseNode
     /// <summary>Builds the children in ILSpy's order; the <see cref="BrowseSession"/> calls it once.</summary>
     internal virtual BrowseNode[] CreateChildren() => NoChildren;
 
+    /// <summary>The bytes of the resource this node stands for; null for a node of anything else.</summary>
+    internal virtual IResourceData? ResourceData => this as IResourceData;
+
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>
-    public bool HasResource => this is IResourceData;
+    public bool HasResource => ResourceData != null;
 
     /// <summary>The bytes of the resource this node stands for, as a saved copy holds them: for
     /// BAML, the XAML it was compiled from.</summary>
@@ -182,7 +185,7 @@ public abstract class BrowseNode
     public string ResourceFileName => AsResource().FileName;
 
     private IResourceData AsResource() =>
-        this as IResourceData ?? throw new InvalidOperationException($"{Text} is no resource.");
+        ResourceData ?? throw new InvalidOperationException($"{Text} is no resource.");
 
     /// <summary>The folder of a package this node lists, whose files can be extracted: the root folder
     /// for a package's own node; null for a node that lists none.</summary>

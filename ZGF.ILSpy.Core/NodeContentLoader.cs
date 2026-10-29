@@ -41,7 +41,18 @@ public static class NodeContentLoader
 
     /// <summary>Whether <see cref="LoadAsync"/> gives decompiled code, which changes with the language
     /// and options, rather than a grid, a picture or why the file failed to load, which do not.</summary>
-    public static bool DependsOnLanguage(BrowseNode node) => node is not MetadataGridNode and not FailedAssemblyNode && !IsImage(node);
+    public static bool DependsOnLanguage(BrowseNode node) => GridOf(node) == null && node is not FailedAssemblyNode && !IsImage(node);
+
+    /// <summary>The grid <paramref name="node"/> shows: a metadata header, directory, table or heap's, or a
+    /// <c>.resources</c> file's entries; null for a node that shows none.</summary>
+    private static MetadataGrid? GridOf(BrowseNode node)
+    {
+        if (node is MetadataGridNode metadata)
+            return metadata.Grid;
+        if (node is SubjectNode subject && subject.Subject is NodeSubject.ResourceContainer container)
+            return container.Value.Grid;
+        return null;
+    }
 
     /// <summary>Writes <paramref name="node"/>'s code in <paramref name="language"/> to the file at
     /// <paramref name="path"/>: for an assembly its whole module, for a namespace all its types, else
@@ -62,8 +73,9 @@ public static class NodeContentLoader
     private static NodeContent Load(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
         CancellationToken cancellationToken)
     {
-        if (node is MetadataGridNode grid)
-            return new GridContent(grid.Grid);
+        var grid = GridOf(node);
+        if (grid != null)
+            return new GridContent(grid);
         if (!IsImage(node))
             return new DocumentContent(Decompile(session, node, language, options, cancellationToken));
         try
@@ -76,7 +88,7 @@ public static class NodeContentLoader
         }
     }
 
-    private static bool IsImage(BrowseNode node) => node.Kind == NodeKind.ResourceImage && node is IResourceData;
+    private static bool IsImage(BrowseNode node) => node.Kind == NodeKind.ResourceImage && node.ResourceData != null;
 
     /// <summary>The picture, with the markup it is stored as when it is drawn from shapes.</summary>
     private static ImageContent LoadImage(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
@@ -106,13 +118,10 @@ public static class NodeContentLoader
                 return new DocumentRequest.ModulePreview(assembly.Module, node.Text, node.FullName);
             case SubjectNode subject:
                 return RequestOf(session, subject);
-            case ResourcesFolderNode or AvaloniaResourcesNode:
-                return Summary(session, node);
-            case BamlEntryNode baml:
-                return new DocumentRequest.Baml(baml.Module, baml.Data, node.Text, node.FullName);
-            case IResourceData resource:
-                return new DocumentRequest.Resource(ModuleOf(node), resource.Description, resource.ReadData, node.Text, node.FullName);
             default:
+                var resource = node.ResourceData;
+                if (resource != null)
+                    return new DocumentRequest.Resource(ModuleOf(node), resource.Description, resource.ReadData, node.Text, node.FullName);
                 return Summary(session, node);
         }
     }
@@ -125,8 +134,28 @@ public static class NodeContentLoader
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
             or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType =>
             new DocumentRequest.Summary(SummaryOf(session, node), node.Module, node.Text, node.FullName),
+        NodeSubject.Resources => new DocumentRequest.Summary(DescribeResources(session, node), node.Module, node.Text, node.FullName),
+        NodeSubject.ResourceContainer container => container.Value.Contents switch
+        {
+            ContainerContents.AvaloniaAssets => new DocumentRequest.Summary(DescribeResources(session, node), node.Module, node.Text, node.FullName),
+            ContainerContents.ResourcesFile => ResourceRequest(node, container.Value),
+            _ => throw new UnreachableException(),
+        },
+        NodeSubject.ResourceEntry entry => entry.Value.Source switch
+        {
+            ResourceSource.Baml baml => new DocumentRequest.Baml(node.Module, baml.Data, node.Text, node.FullName),
+            ResourceSource.Manifest or ResourceSource.Entry => ResourceRequest(node, entry.Value),
+            _ => throw new UnreachableException(),
+        },
         _ => throw new UnreachableException(),
     };
+
+    private static DocumentRequest.Resource ResourceRequest(BrowseNode node, IResourceData resource) =>
+        new(ModuleOf(node), resource.Description, resource.ReadData, node.Text, node.FullName);
+
+    /// <summary>A comment a resource, describing each that <paramref name="node"/> lists.</summary>
+    private static SummaryInfo.Comments DescribeResources(BrowseSession session, BrowseNode node) =>
+        new(session.ChildrenOf(node).Select(static c => c.ResourceData).OfType<IResourceData>().Select(static r => r.Description).ToList());
 
     private static DocumentRequest.Summary Summary(BrowseSession session, BrowseNode node) =>
         new(SummaryOf(session, node), ModuleOf(node), node.Text, node.FullName);
@@ -144,8 +173,6 @@ public static class NodeContentLoader
     {
         PackageNode or PackageFolderNode => new SummaryInfo.Comments(session.ChildrenOf(node).Select(DescribePackageChild).ToList()),
         NamespaceNode => new SummaryInfo.Namespace(node.Text, ListNamespaceEntries(session, node)),
-        ResourcesFolderNode or AvaloniaResourcesNode => new SummaryInfo.Comments(
-            session.ChildrenOf(node).OfType<IResourceData>().Select(static r => r.Description).ToList()),
         MetadataTextNode metadata => new SummaryInfo.Comments(metadata.Lines()),
         MetadataGridNode => new SummaryInfo.Comments([node.Text]),
         _ => throw new UnreachableException(),
@@ -168,7 +195,8 @@ public static class NodeContentLoader
         NodeSubject.BaseTypes or NodeSubject.DerivedTypes =>
             new SummaryInfo.Types(session.ChildrenOf(node).Select(static c => new SummaryLink(c.Text, c.Target)).ToList()),
         NodeSubject.BaseType or NodeSubject.DerivedType => new SummaryInfo.Types([new SummaryLink(node.Text, node.Target)]),
-        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition => throw new UnreachableException(),
+        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.Resources or NodeSubject.ResourceContainer
+            or NodeSubject.ResourceEntry => throw new UnreachableException(),
         _ => throw new UnreachableException(),
     };
 
@@ -178,7 +206,8 @@ public static class NodeContentLoader
 
     private static string DescribePackageChild(BrowseNode child)
     {
-        if (child is IResourceData file)
+        var file = child.ResourceData;
+        if (file != null)
             return file.Description;
         if (child is PackageFolderNode)
             return child.Text + "/";

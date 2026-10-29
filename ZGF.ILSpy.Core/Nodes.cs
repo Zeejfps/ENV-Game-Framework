@@ -46,7 +46,7 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
             result.Add(new MetadataFolderNode(Module, this, symbols.File, symbols.Title));
         result.Add(SubjectNode.Of(Module, this, new NodeSubject.References(Module)));
         if (!file.Resources.IsEmpty)
-            result.Add(new ResourcesFolderNode(Module, this));
+            result.Add(SubjectNode.Of(Module, this, new NodeSubject.Resources(Module)));
 
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
         foreach (var type in Module.MainModule.TopLevelTypeDefinitions)
@@ -125,20 +125,6 @@ internal sealed class FailedAssemblyNode(FailedAssembly assembly)
     public FailedAssembly Failed { get; } = assembly;
 
     public override string FullName => Assembly.FilePath.Text;
-}
-
-internal sealed class ResourcesFolderNode(LoadedModule assembly, BrowseNode parent)
-    : BrowseNode(assembly, parent, NodeKind.ResourcesFolder, "Resources"), IModuleNode
-{
-    public LoadedModule Module { get; } = assembly;
-
-    internal override bool MayHaveChildren => true;
-
-    internal override BrowseNode[] CreateChildren() =>
-        Module.File.Resources
-            .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => ResourceNodes.Create(Module, this, r))
-            .ToArray();
 }
 
 /// <summary>A namespace of an assembly: the types it defines there and those it forwards from

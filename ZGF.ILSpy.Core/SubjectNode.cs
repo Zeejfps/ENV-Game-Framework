@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.TypeSystem;
+using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
@@ -58,8 +59,15 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
                 IsPublicApi = EntityText.IsPublicApi(derived.Value.Symbol);
                 Target = derived.Value.Address.ToReference();
                 break;
+            case NodeSubject.ResourceContainer container:
+                (IsPublicApi, Accessibility) = ResourceNodes.Visibility(container.Value.Resource);
+                break;
+            case NodeSubject.ResourceEntry entry:
+                if (entry.Value.Source is ResourceSource.Manifest manifest)
+                    (IsPublicApi, Accessibility) = ResourceNodes.Visibility(manifest.Resource);
+                break;
             case NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
-                or NodeSubject.DerivedTypes:
+                or NodeSubject.DerivedTypes or NodeSubject.Resources:
                 break;
             default:
                 throw new UnreachableException();
@@ -76,6 +84,17 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
 
     public LoadedModule Module { get; }
 
+    /// <summary>The bytes of the resource the node stands for; null for a node of anything else.</summary>
+    internal override IResourceData? ResourceData => Subject switch
+    {
+        NodeSubject.ResourceContainer container => container.Value,
+        NodeSubject.ResourceEntry entry => entry.Value,
+        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
+            or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
+            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources => null,
+        _ => throw new UnreachableException(),
+    };
+
     /// <summary>The type or member the node defines; null for a node of anything else.</summary>
     public IEntity? Entity => Subject switch
     {
@@ -83,7 +102,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.MemberDefinition member => member.Definition.Symbol,
         NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
-            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType => null,
+            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
+            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry => null,
         _ => throw new UnreachableException(),
     };
 
@@ -94,7 +114,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.MemberDefinition member => member.Definition.Handle,
         NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
-            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType => null,
+            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
+            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry => null,
         _ => throw new UnreachableException(),
     };
 
@@ -108,7 +129,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.ImportedMethod import => $"{import.Value.DeclaringTypeName}.{import.Value.Label}",
         NodeSubject.ForwardedType forwarded => forwarded.Value.FullName,
         NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
-            or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType => Text,
+            or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
+            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry => Text,
         _ => throw new UnreachableException(),
     };
 
@@ -134,6 +156,9 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.BaseType => NodeKind.BaseType,
         NodeSubject.DerivedTypes => NodeKind.DerivedTypes,
         NodeSubject.DerivedType => NodeKind.DerivedType,
+        NodeSubject.Resources => NodeKind.ResourcesFolder,
+        NodeSubject.ResourceContainer => NodeKind.ResourcesFile,
+        NodeSubject.ResourceEntry entry => KindOf(entry.Value),
         _ => throw new UnreachableException(),
     };
 
@@ -153,6 +178,9 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.BaseType baseType => EntityText.TypeName(baseType.Value.Type),
         NodeSubject.DerivedTypes => "Derived Types",
         NodeSubject.DerivedType derived => EntityText.TypeName(derived.Value.Symbol),
+        NodeSubject.Resources => "Resources",
+        NodeSubject.ResourceContainer container => container.Value.Resource.Name,
+        NodeSubject.ResourceEntry entry => entry.Value.Name,
         _ => throw new UnreachableException(),
     };
 
@@ -165,9 +193,10 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.ReferencedTypes types => Module.ReferenceUsage.Uses(types.Reference.Reference.Handle),
         NodeSubject.TypeReference type => UsesAnythingOf(type.Value),
         NodeSubject.ModuleReference module => module.Value.Imports.Count > 0,
-        NodeSubject.BaseTypes or NodeSubject.DerivedTypes => true,
+        NodeSubject.BaseTypes or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.ResourceContainer => true,
         NodeSubject.DerivedType derived => !derived.Value.Symbol.IsSealed,
-        NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType => false,
+        NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
+            or NodeSubject.ResourceEntry => false,
         _ => throw new UnreachableException(),
     };
 
@@ -183,7 +212,10 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.BaseTypes baseTypes => ListBaseTypes(baseTypes.Type),
         NodeSubject.DerivedTypes derivedTypes => FindDerivedTypes(Module, this, derivedTypes.Type.Symbol),
         NodeSubject.DerivedType derived => FindDerivedTypes(Module, this, derived.Value.Symbol),
-        NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType => [],
+        NodeSubject.Resources => ListResources(),
+        NodeSubject.ResourceContainer container => ListEntries(container.Value),
+        NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
+            or NodeSubject.ResourceEntry => [],
         _ => throw new UnreachableException(),
     };
 
