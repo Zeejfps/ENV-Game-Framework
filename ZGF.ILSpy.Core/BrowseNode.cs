@@ -90,13 +90,6 @@ public sealed partial class BrowseNode
     /// compiler made up. Such nodes are usually hidden.</summary>
     public bool IsCompilerGenerated { get; private init; }
 
-    /// <summary>Whether this is a metadata table with no rows, which the tree usually hides.</summary>
-    public bool IsEmptyTable { get; private init; }
-
-    /// <summary>Whether this is a namespace the assembly puts no types in, listed only because others
-    /// nest in it, which the tree shows only when it nests namespaces.</summary>
-    public bool IsEnclosingOnly { get; private init; }
-
     /// <summary>For a namespace, the one whose name it extends by a segment, which holds it when the
     /// tree nests namespaces; null for an outermost namespace and for any other node.</summary>
     public BrowseNode? EnclosingNamespace { get; private init; }

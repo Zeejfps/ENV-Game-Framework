@@ -45,11 +45,7 @@ public sealed partial class BrowseNode
                 if (entry.Value.Source is ResourceSource.Manifest manifest)
                     (IsPublicApi, Accessibility) = ResourceNodes.Visibility(manifest.Resource);
                 break;
-            case NodeSubject.MetadataTable table:
-                IsEmptyTable = table.Value.IsEmptyTable;
-                break;
             case NodeSubject.Namespace ns:
-                IsEnclosingOnly = ns.Value.IsEnclosingOnly;
                 IsPublicApi = ns.Value.IsPublicApi;
                 IsCompilerGenerated = ns.Value.IsCompilerGenerated;
                 break;
@@ -57,7 +53,7 @@ public sealed partial class BrowseNode
                 or NodeSubject.References or NodeSubject.ReferencedTypes
                 or NodeSubject.ModuleReference or NodeSubject.BaseTypes
                 or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
-                or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly:
+                or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly or NodeSubject.MetadataTable:
                 break;
             default:
                 throw new UnreachableException();

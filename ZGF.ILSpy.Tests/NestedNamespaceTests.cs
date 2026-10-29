@@ -22,7 +22,7 @@ public sealed class NestedNamespaceTests
             .ToList();
 
         Assert.Equal(["-", "ZGF", "ZGF.ILSpy", TestsNamespace, Trees.FixturesNamespace], namespaces.Select(n => n.Text));
-        Assert.Equal([false, true, true, false, false], namespaces.Select(n => n.IsEnclosingOnly));
+        Assert.Equal([false, true, true, false, false], namespaces.Select(n => Assert.IsType<NodeSubject.Namespace>(n.Subject).Value.IsEnclosingOnly));
         Assert.Empty(root.Child("ZGF").Children);
         Assert.False(root.Child("ZGF").HasChildren);
     }
@@ -89,7 +89,7 @@ public sealed class NestedNamespaceTests
 
         Assert.Equal([new NodePathSegment(NodeKind.Namespace, "ZGF.ILSpy")], ilspy.Path.Segments);
         Assert.NotNull(found);
-        Assert.True(found!.IsEnclosingOnly);
+        Assert.True(Assert.IsType<NodeSubject.Namespace>(found!.Subject).Value.IsEnclosingOnly);
         Assert.Equal("ZGF.ILSpy", found.Text);
         Assert.StartsWith("namespace ZGF.ILSpy", ilspy.Decompile(DecompilationLanguage.CSharp).GetText());
     }

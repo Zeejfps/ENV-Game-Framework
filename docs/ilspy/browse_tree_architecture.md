@@ -182,8 +182,8 @@ Nesting namespaces must keep today's behavior: a namespace is hidden only when i
 3. **Done.** **Add `BrowseSession`.** Move the roots, the node index and child loading out of `LoadedModule` and `BrowseNode`.
 4. **Done.** **Replace subclasses with subjects**, one family at a time, each payload validated as it is built: entities, then references, resources, metadata and packages.
 5. **In progress.** **Move the consumers** (UI, analyzers, search, comparison) onto subjects, and derive icons at the UI edge.
-   - **Done:** activation; a definition's address and token; `NodeText` names, tooltips and secondary text; `BrowseNode.Target`, `Reference`, `Token`, `Namespace`, `DeclaringTypeName` and `ForwardedTo` are gone.
-   - **Left:** tree hiding; icons from subjects; search and comparison off `NodeKind`; `Accessibility` and the flags.
+   - **Done:** activation; a definition's address and token; `NodeText` names, tooltips and secondary text; tree hiding and the tree's other kind checks; `BrowseNode.Target`, `Reference`, `Token`, `Namespace`, `DeclaringTypeName`, `ForwardedTo`, `IsEmptyTable` and `IsEnclosingOnly` are gone.
+   - **Left:** icons from subjects; search and comparison off `NodeKind`; `Accessibility`, `IsPublicApi` and `IsCompilerGenerated`.
 6. **Version paths.** Add the new segments and the reader for old ones, and check bookmarks, saved tabs, expansion and `ILSpyTree.Locate`'s path-then-token lookup (`ILSpyTree.cs:64`).
 7. **Delete `NodeKind` from Core** and the compatibility members left over, and add the dependency test to CI.
 

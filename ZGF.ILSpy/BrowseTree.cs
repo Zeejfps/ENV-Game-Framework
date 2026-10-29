@@ -137,7 +137,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     /// <summary>The node's name as tabs show it: assemblies listed more than once under one name
     /// also show their version, or their folder when that is the same too.</summary>
     public string Label(BrowseNode node) =>
-        node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Title : NodeText.Name(node);
+        node.Subject is NodeSubject.Module && _rootLabels.TryGetValue(node, out var label) ? label.Title : NodeText.Name(node);
 
     /// <summary>The node's name as its row shows it, beside <see cref="NodeText.Secondary"/>: an
     /// assembly's folder is added only when the version and framework there do not tell it apart, and a
@@ -146,7 +146,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     {
         if (IsNested(node))
             return NodeText.NestedName(node);
-        return node.Kind == NodeKind.Assembly && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
+        return node.Subject is NodeSubject.Module && _rootLabels.TryGetValue(node, out var label) ? label.Row : NodeText.Name(node);
     }
 
     private bool IsNested(BrowseNode node) => _nestNamespaces && node.EnclosingNamespace != null;
@@ -241,19 +241,26 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     private bool IsHidden(BrowseNode node)
     {
-        if (node.IsEmptyTable) return !_showEmptyTables;
-        if (node.Kind == NodeKind.Namespace) return IsNamespaceHidden(node);
+        if (node.Subject is NodeSubject.MetadataTable table && table.Value.IsEmptyTable) return !_showEmptyTables;
+        if (node.Subject is NodeSubject.Namespace ns) return IsNamespaceHidden(node, ns.Value);
         return IsApiHidden(node);
     }
 
     /// <summary>Whether a namespace is left out: when it holds no type that shows and, when namespaces
     /// nest, no namespace that shows nests in it.</summary>
-    private bool IsNamespaceHidden(BrowseNode ns)
+    private bool IsNamespaceHidden(BrowseNode node, NamespaceInfo ns)
     {
-        var ownHidden = ns.IsEnclosingOnly || IsApiHidden(ns);
+        var ownHidden = ns.IsEnclosingOnly || IsApiHidden(node);
         if (!ownHidden) return false;
         if (!_nestNamespaces) return true;
-        return _session.InnerNamespaces(ns).All(IsNamespaceHidden);
+        return _session.InnerNamespaces(node).All(IsInnerNamespaceHidden);
+    }
+
+    private bool IsInnerNamespaceHidden(BrowseNode node)
+    {
+        if (node.Subject is not NodeSubject.Namespace ns)
+            throw new UnreachableException();
+        return IsNamespaceHidden(node, ns.Value);
     }
 
     private bool IsApiHidden(BrowseNode node)
@@ -319,7 +326,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     private void ExpandIfNamespace(BrowseNode node)
     {
-        if (node.Kind == NodeKind.Namespace)
+        if (node.Subject is NodeSubject.Namespace)
             View.SetExpanded(node, true);
     }
 
@@ -409,7 +416,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     {
         var labels = new Dictionary<BrowseNode, RootLabel>(ReferenceEqualityComparer.Instance);
         var byName = roots
-            .Where(static r => r.Kind == NodeKind.Assembly)
+            .Where(static r => r.Subject is NodeSubject.Module)
             .GroupBy(static r => r.Assembly.Name, StringComparer.OrdinalIgnoreCase);
         foreach (var group in byName)
         {

@@ -60,10 +60,10 @@ public sealed class MetadataTests
         var empty = Table(assembly, "FieldPtr");
 
         Assert.Equal(Enum.GetValues<TableIndex>().Length, tables.Count);
-        Assert.True(empty.IsEmptyTable);
+        Assert.True(Assert.IsType<NodeSubject.MetadataTable>(empty.Subject).Value.IsEmptyTable);
         Assert.Equal("03 FieldPtr (0)", empty.Text);
         Assert.Contains("FieldPtr: 0 rows", empty.Decompile(DecompilationLanguage.CSharp).GetText());
-        Assert.False(Table(assembly, "TypeDef").IsEmptyTable);
+        Assert.False(Assert.IsType<NodeSubject.MetadataTable>(Table(assembly, "TypeDef").Subject).Value.IsEmptyTable);
     }
 
     [Fact]
