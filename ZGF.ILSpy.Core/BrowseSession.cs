@@ -53,7 +53,7 @@ public sealed class BrowseSession
     private static BrowseNode CreateRoot(LoadedAssembly assembly) => assembly switch
     {
         FailedAssembly failed => new FailedAssemblyNode(failed),
-        LoadedPackage package => new PackageNode(package),
+        LoadedPackage package => SubjectNode.PackageRoot(package),
         _ => throw new UnreachableException(),
     };
 
@@ -85,20 +85,20 @@ public sealed class BrowseSession
             var next = FindChildFolderHolding(node, folder);
             if (next == null)
                 return node;
-            if (next.Folder.FullName == folder)
-                return next;
-            node = next;
+            if (next.Value.Folder.FullName == folder)
+                return next.Value.Node;
+            node = next.Value.Node;
         }
     }
 
-    private PackageFolderNode? FindChildFolderHolding(BrowseNode node, string folder)
+    private (BrowseNode Node, PackageFolder Folder)? FindChildFolderHolding(BrowseNode node, string folder)
     {
         foreach (var child in ChildrenOf(node))
         {
-            if (child is not PackageFolderNode folderNode)
+            if (child is not SubjectNode subject || subject.Subject is not NodeSubject.Package package)
                 continue;
-            if (IsWithin(folder, folderNode.Folder.FullName))
-                return folderNode;
+            if (IsWithin(folder, package.Value.Folder.FullName))
+                return (child, package.Value.Folder);
         }
         return null;
     }
@@ -254,8 +254,10 @@ public sealed class BrowseSession
 
     private void Register(BrowseNode node)
     {
-        if (node is SubjectNode subject && subject.DefinedHandle is EntityHandle handle)
-            IndexOf(subject.Module).TryAdd(handle, subject);
+        if (node is SubjectNode subject && subject.Subject is NodeSubject.TypeDefinition type)
+            IndexOf(type.Definition.Module).TryAdd(type.Definition.Handle, node);
+        if (node is SubjectNode about && about.Subject is NodeSubject.MemberDefinition member)
+            IndexOf(member.Definition.Module).TryAdd(member.Definition.Handle, node);
         if (node is AssemblyNode root)
             _moduleRoots.TryAdd(root.Module, root);
     }

@@ -121,6 +121,18 @@ public abstract class NodeSubject
     {
         public MetadataTableInfo Value { get; } = value;
     }
+
+    /// <summary>A listed package or bundle, standing for its root folder, or a folder in it.</summary>
+    public sealed class Package(PackageFolderInfo value) : NodeSubject
+    {
+        public PackageFolderInfo Value { get; } = value;
+    }
+
+    /// <summary>A file of a package that is no assembly.</summary>
+    public sealed class PackageFile(PackageFileInfo value) : NodeSubject
+    {
+        public PackageFileInfo Value { get; } = value;
+    }
 }
 
 /// <summary>An assembly <see cref="Module"/> references, as its metadata names it.</summary>
@@ -305,23 +317,27 @@ public abstract record BaseTypeTarget
 /// belongs to, and the address it is navigated to by.</summary>
 public sealed class DerivedTypeInfo
 {
-    private DerivedTypeInfo(ITypeDefinition symbol, NavigationAddress address)
+    private DerivedTypeInfo(LoadedModule module, ITypeDefinition symbol, NavigationAddress address)
     {
+        Module = module;
         Symbol = symbol;
         Address = address;
     }
+
+    /// <summary>The module whose tree lists the type, under a type of its own.</summary>
+    public LoadedModule Module { get; }
 
     public ITypeDefinition Symbol { get; }
 
     public NavigationAddress Address { get; }
 
     /// <summary>The derived type <paramref name="type"/>; null when it has no address to be navigated to.</summary>
-    internal static DerivedTypeInfo? Of(ITypeDefinition type)
+    internal static DerivedTypeInfo? Of(LoadedModule module, ITypeDefinition type)
     {
         var address = NavigationAddress.Of(type);
         if (address == null)
             return null;
-        return new DerivedTypeInfo(type, address);
+        return new DerivedTypeInfo(module, type, address);
     }
 }
 

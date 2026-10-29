@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.TypeSystem;
 using ZGF.ILSpy.Core.Metadata;
@@ -7,14 +6,13 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>A node made from what it stands for, its <see cref="Subject"/>: its label, flags and
-/// children all follow from that, read from <see cref="Module"/>.</summary>
-internal sealed partial class SubjectNode : BrowseNode, IModuleNode
+/// <summary>A node made from what it stands for, its <see cref="Subject"/>: the assembly it is read
+/// from, its label, flags and children all follow from that.</summary>
+internal sealed partial class SubjectNode : BrowseNode
 {
-    private SubjectNode(LoadedModule module, BrowseNode parent, NodeSubject subject)
-        : base(module, parent, KindOf(subject), TextOf(subject))
+    private SubjectNode(BrowseNode? parent, NodeSubject subject)
+        : base(AssemblyOf(subject), parent, KindOf(subject), TextOf(subject))
     {
-        Module = module;
         Subject = subject;
         switch (subject)
         {
@@ -26,15 +24,15 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
                 break;
             case NodeSubject.AssemblyReference reference:
                 var assembly = reference.Value.Reference;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Assembly, assembly.Name, module.FilePath, assembly.Handle);
+                Target = CodeReference.ToEntity(CodeReferenceKind.Assembly, assembly.Name, reference.Value.Module.FilePath, assembly.Handle);
                 break;
             case NodeSubject.TypeReference type:
                 Namespace = type.Value.Namespace;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Type, Text, module.FilePath, type.Value.Handle);
+                Target = CodeReference.ToEntity(CodeReferenceKind.Type, Text, type.Value.Module.FilePath, type.Value.Handle);
                 break;
             case NodeSubject.MemberReference member:
                 var declared = member.Value.Declared;
-                Target = CodeReference.ToEntity(CodeReference.KindOf(declared.SymbolKind), declared.Name, module.FilePath, member.Value.Handle);
+                Target = CodeReference.ToEntity(CodeReference.KindOf(declared.SymbolKind), declared.Name, member.Value.Module.FilePath, member.Value.Handle);
                 break;
             case NodeSubject.ImportedMethod import:
                 var shown = import.Value.Shown;
@@ -45,7 +43,7 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
                 break;
             case NodeSubject.ForwardedType forwarded:
                 ForwardedTo = forwarded.Value.Destination;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Type, forwarded.Value.Label, module.FilePath, forwarded.Value.Handle);
+                Target = CodeReference.ToEntity(CodeReferenceKind.Type, forwarded.Value.Label, forwarded.Value.Module.FilePath, forwarded.Value.Handle);
                 break;
             case NodeSubject.BaseType baseType:
                 if (baseType.Value.Target is BaseTypeTarget.Navigable navigable)
@@ -71,7 +69,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
                 IsEmptyTable = table.Value.IsEmptyTable;
                 break;
             case NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
-                or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables:
+                or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
+                or NodeSubject.Package or NodeSubject.PackageFile:
                 break;
             default:
                 throw new UnreachableException();
@@ -80,22 +79,68 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
 
     /// <summary>What the node of a definition says of it: its accessibility, whether it is seen outside its
     /// assembly, whether the compiler made it or what holds it up, the reference to it and its token.</summary>
-    private static (NodeAccessibility, bool, bool, CodeReference, int?) DescribeDefinition(BrowseNode parent, IEntity entity, NavigationAddress address) =>
-        (EntityText.Map(entity.Accessibility), EntityText.IsPublicApi(entity), parent.IsCompilerGenerated || Members.IsCompilerGenerated(entity),
+    private static (NodeAccessibility, bool, bool, CodeReference, int?) DescribeDefinition(BrowseNode? parent, IEntity entity, NavigationAddress address) =>
+        (EntityText.Map(entity.Accessibility), EntityText.IsPublicApi(entity),
+            (parent != null && parent.IsCompilerGenerated) || Members.IsCompilerGenerated(entity),
             address.ToReference(), MetadataTokens.GetToken(entity.MetadataToken));
 
     public NodeSubject Subject { get; }
 
-    public LoadedModule Module { get; }
+    /// <summary>The module the node is read from; null for a node of a package's folders and files.</summary>
+    public LoadedModule? SourceModule => Assembly as LoadedModule;
+
+    private static LoadedAssembly AssemblyOf(NodeSubject subject) => subject switch
+    {
+        NodeSubject.TypeDefinition type => type.Definition.Module,
+        NodeSubject.MemberDefinition member => member.Definition.Module,
+        NodeSubject.References references => references.Module,
+        NodeSubject.AssemblyReference reference => reference.Value.Module,
+        NodeSubject.ReferencedTypes types => types.Reference.Module,
+        NodeSubject.TypeReference type => type.Value.Module,
+        NodeSubject.MemberReference member => member.Value.Module,
+        NodeSubject.ModuleReference module => module.Value.Module,
+        NodeSubject.ImportedMethod import => import.Value.Shown.Module,
+        NodeSubject.ForwardedType forwarded => forwarded.Value.Module,
+        NodeSubject.BaseTypes baseTypes => baseTypes.Type.Module,
+        NodeSubject.BaseType baseType => baseType.Value.Module,
+        NodeSubject.DerivedTypes derivedTypes => derivedTypes.Type.Module,
+        NodeSubject.DerivedType derived => derived.Value.Module,
+        NodeSubject.Resources resources => resources.Module,
+        NodeSubject.ResourceContainer container => container.Value.Module,
+        NodeSubject.ResourceEntry entry => entry.Value.Module,
+        NodeSubject.Metadata metadata => metadata.Value.Module,
+        NodeSubject.MetadataTables tables => tables.Folder.Module,
+        NodeSubject.MetadataTable table => table.Value.Module,
+        NodeSubject.Package package => package.Value.Package,
+        NodeSubject.PackageFile file => file.Value.Package,
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>The bytes of the resource the node stands for; null for a node of anything else.</summary>
     internal override IResourceData? ResourceData => Subject switch
     {
         NodeSubject.ResourceContainer container => container.Value,
         NodeSubject.ResourceEntry entry => entry.Value,
-        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
-            or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
-            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable => null,
+        NodeSubject.PackageFile file => file.Value,
+        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference
+            or NodeSubject.ReferencedTypes or NodeSubject.TypeReference or NodeSubject.MemberReference or NodeSubject.ModuleReference
+            or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseTypes or NodeSubject.BaseType
+            or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.Metadata
+            or NodeSubject.MetadataTables or NodeSubject.MetadataTable or NodeSubject.Package => null,
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>The folder of a package the node lists, whose files can be extracted: the root folder for
+    /// a package's own node; null for a node that lists none.</summary>
+    public override PackageFolderPlace? FolderInPackage => Subject switch
+    {
+        NodeSubject.Package package => new PackageFolderPlace(package.Value.Package, package.Value.Folder),
+        NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference
+            or NodeSubject.ReferencedTypes or NodeSubject.TypeReference or NodeSubject.MemberReference or NodeSubject.ModuleReference
+            or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseTypes or NodeSubject.BaseType
+            or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.ResourceContainer
+            or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable
+            or NodeSubject.PackageFile => null,
         _ => throw new UnreachableException(),
     };
 
@@ -107,19 +152,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
             or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
-            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable => null,
-        _ => throw new UnreachableException(),
-    };
-
-    /// <summary>The handle the node of a definition is found by; null for a node of anything else.</summary>
-    public EntityHandle? DefinedHandle => Subject switch
-    {
-        NodeSubject.TypeDefinition type => type.Definition.Handle,
-        NodeSubject.MemberDefinition member => member.Definition.Handle,
-        NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
-            or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
-            or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
-            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable => null,
+            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables
+            or NodeSubject.MetadataTable or NodeSubject.Package or NodeSubject.PackageFile => null,
         _ => throw new UnreachableException(),
     };
 
@@ -132,9 +166,12 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.MemberReference member => member.Value.FullName,
         NodeSubject.ImportedMethod import => $"{import.Value.DeclaringTypeName}.{import.Value.Label}",
         NodeSubject.ForwardedType forwarded => forwarded.Value.FullName,
+        NodeSubject.Package package => package.Value.FullName,
+        NodeSubject.PackageFile file => file.Value.File.FullName,
         NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
             or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
-            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable => Text,
+            or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables
+            or NodeSubject.MetadataTable => Text,
         _ => throw new UnreachableException(),
     };
 
@@ -166,6 +203,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.Metadata => NodeKind.Metadata,
         NodeSubject.MetadataTables => NodeKind.MetadataTables,
         NodeSubject.MetadataTable table => KindOf(table.Value),
+        NodeSubject.Package package => KindOf(package.Value),
+        NodeSubject.PackageFile file => ResourceNodes.KindOf(file.Value.File.Name),
         _ => throw new UnreachableException(),
     };
 
@@ -191,6 +230,8 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         NodeSubject.Metadata metadata => metadata.Value.Title,
         NodeSubject.MetadataTables => "Tables",
         NodeSubject.MetadataTable table => table.Value.Title,
+        NodeSubject.Package package => package.Value.Label,
+        NodeSubject.PackageFile file => file.Value.File.Name,
         _ => throw new UnreachableException(),
     };
 
@@ -198,17 +239,17 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
     {
         NodeSubject.TypeDefinition type => MayListMembers(type.Definition),
         NodeSubject.MemberDefinition member => member.Definition.Symbol is IProperty or IEvent,
-        NodeSubject.References => HasReferences(Module),
+        NodeSubject.References references => HasReferences(references.Module),
         NodeSubject.AssemblyReference => true,
-        NodeSubject.ReferencedTypes types => Module.ReferenceUsage.Uses(types.Reference.Reference.Handle),
+        NodeSubject.ReferencedTypes types => types.Reference.Module.ReferenceUsage.Uses(types.Reference.Reference.Handle),
         NodeSubject.TypeReference type => UsesAnythingOf(type.Value),
         NodeSubject.ModuleReference module => module.Value.Imports.Count > 0,
         NodeSubject.BaseTypes or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.ResourceContainer
-            or NodeSubject.Metadata or NodeSubject.MetadataTables => true,
+            or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.Package => true,
         NodeSubject.MetadataTable table => table.Value.Part is MetadataPart.DebugDirectory,
         NodeSubject.DerivedType derived => !derived.Value.Symbol.IsSealed,
         NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
-            or NodeSubject.ResourceEntry => false,
+            or NodeSubject.ResourceEntry or NodeSubject.PackageFile => false,
         _ => throw new UnreachableException(),
     };
 
@@ -216,26 +257,27 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
     {
         NodeSubject.TypeDefinition type => ListMembers(type.Definition),
         NodeSubject.MemberDefinition member => ListAccessors(member.Definition),
-        NodeSubject.References => ListAssemblyReferences(Module, this).Concat(ListModuleReferences(Module, this)).ToArray(),
+        NodeSubject.References references => ListAssemblyReferences(references.Module, this).Concat(ListModuleReferences(references.Module, this)).ToArray(),
         NodeSubject.AssemblyReference reference => ListReferenceContents(reference.Value),
         NodeSubject.ReferencedTypes types => ListUsedTypes(types.Reference),
         NodeSubject.TypeReference type => ListUsedOf(type.Value),
         NodeSubject.ModuleReference module => ListImports(module.Value),
         NodeSubject.BaseTypes baseTypes => ListBaseTypes(baseTypes.Type),
-        NodeSubject.DerivedTypes derivedTypes => FindDerivedTypes(Module, this, derivedTypes.Type.Symbol),
-        NodeSubject.DerivedType derived => FindDerivedTypes(Module, this, derived.Value.Symbol),
-        NodeSubject.Resources => ListResources(),
+        NodeSubject.DerivedTypes derivedTypes => FindDerivedTypes(derivedTypes.Type.Module, this, derivedTypes.Type.Symbol),
+        NodeSubject.DerivedType derived => FindDerivedTypes(derived.Value.Module, this, derived.Value.Symbol),
+        NodeSubject.Resources resources => ListResources(resources.Module),
         NodeSubject.ResourceContainer container => ListEntries(container.Value),
         NodeSubject.Metadata metadata => ListMetadata(metadata.Value),
         NodeSubject.MetadataTables tables => ListTables(tables.Folder),
-        NodeSubject.MetadataTable table => table.Value.Part is MetadataPart.DebugDirectory directory ? ListDebugEntries(directory.File) : [],
+        NodeSubject.MetadataTable table => table.Value.Part is MetadataPart.DebugDirectory directory ? ListDebugEntries(table.Value.Module, directory.File) : [],
+        NodeSubject.Package package => ListPackageFolder(package.Value),
         NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
-            or NodeSubject.ResourceEntry => [],
+            or NodeSubject.ResourceEntry or NodeSubject.PackageFile => [],
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>The node of <paramref name="subject"/>, read from <paramref name="module"/>, under <paramref name="parent"/>.</summary>
-    public static SubjectNode Of(LoadedModule module, BrowseNode parent, NodeSubject subject) => new(module, parent, subject);
+    /// <summary>The node of <paramref name="subject"/>, under <paramref name="parent"/>.</summary>
+    public static SubjectNode Of(BrowseNode parent, NodeSubject subject) => new(parent, subject);
 
     /// <summary>The node of <paramref name="type"/>, under <paramref name="parent"/>; null for a type with
     /// no metadata token, which the tree does not list.</summary>
@@ -244,7 +286,7 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         var definition = DefinedType.Of(module, type);
         if (definition == null)
             return null;
-        return new SubjectNode(module, parent, new NodeSubject.TypeDefinition(definition));
+        return new SubjectNode(parent, new NodeSubject.TypeDefinition(definition));
     }
 
     /// <summary>The node of <paramref name="member"/>, under <paramref name="parent"/>; null for a member
@@ -254,7 +296,7 @@ internal sealed partial class SubjectNode : BrowseNode, IModuleNode
         var definition = DefinedMember.Of(module, member);
         if (definition == null)
             return null;
-        return new SubjectNode(module, parent, new NodeSubject.MemberDefinition(definition));
+        return new SubjectNode(parent, new NodeSubject.MemberDefinition(definition));
     }
 
     /// <summary>The type or member <paramref name="node"/> defines; null for a node of anything else.</summary>

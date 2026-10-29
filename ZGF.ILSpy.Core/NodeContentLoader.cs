@@ -135,24 +135,27 @@ public static class NodeContentLoader
         NodeSubject.References or NodeSubject.AssemblyReference or NodeSubject.ReferencedTypes or NodeSubject.TypeReference
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
             or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType =>
-            new DocumentRequest.Summary(SummaryOf(session, node), node.Module, node.Text, node.FullName),
-        NodeSubject.Resources => new DocumentRequest.Summary(DescribeResources(session, node), node.Module, node.Text, node.FullName),
+            new DocumentRequest.Summary(SummaryOf(session, node), node.SourceModule, node.Text, node.FullName),
+        NodeSubject.Resources => new DocumentRequest.Summary(DescribeResources(session, node), node.SourceModule, node.Text, node.FullName),
         NodeSubject.ResourceContainer container => container.Value.Contents switch
         {
-            ContainerContents.AvaloniaAssets => new DocumentRequest.Summary(DescribeResources(session, node), node.Module, node.Text, node.FullName),
+            ContainerContents.AvaloniaAssets => new DocumentRequest.Summary(DescribeResources(session, node), node.SourceModule, node.Text, node.FullName),
             ContainerContents.ResourcesFile => ResourceRequest(node, container.Value),
             _ => throw new UnreachableException(),
         },
         NodeSubject.ResourceEntry entry => entry.Value.Source switch
         {
-            ResourceSource.Baml baml => new DocumentRequest.Baml(node.Module, baml.Data, node.Text, node.FullName),
+            ResourceSource.Baml baml => new DocumentRequest.Baml(entry.Value.Module, baml.Data, node.Text, node.FullName),
             ResourceSource.Manifest or ResourceSource.Entry => ResourceRequest(node, entry.Value),
             _ => throw new UnreachableException(),
         },
-        NodeSubject.Metadata metadata => new DocumentRequest.Summary(new SummaryInfo.Comments(metadata.Value.Lines()), node.Module, node.Text, node.FullName),
-        NodeSubject.MetadataTables tables => new DocumentRequest.Summary(new SummaryInfo.Comments(tables.Folder.TablesLines()), node.Module, node.Text,
+        NodeSubject.Metadata metadata => new DocumentRequest.Summary(new SummaryInfo.Comments(metadata.Value.Lines()), node.SourceModule, node.Text, node.FullName),
+        NodeSubject.MetadataTables tables => new DocumentRequest.Summary(new SummaryInfo.Comments(tables.Folder.TablesLines()), node.SourceModule, node.Text,
             node.FullName),
-        NodeSubject.MetadataTable table => new DocumentRequest.Summary(new SummaryInfo.Comments(table.Value.Lines()), node.Module, node.Text, node.FullName),
+        NodeSubject.MetadataTable table => new DocumentRequest.Summary(new SummaryInfo.Comments(table.Value.Lines()), node.SourceModule, node.Text, node.FullName),
+        NodeSubject.Package => new DocumentRequest.Summary(new SummaryInfo.Comments(session.ChildrenOf(node).Select(DescribePackageChild).ToList()), null,
+            node.Text, node.FullName),
+        NodeSubject.PackageFile file => ResourceRequest(node, file.Value),
         _ => throw new UnreachableException(),
     };
 
@@ -169,6 +172,8 @@ public static class NodeContentLoader
     /// <summary>The module <paramref name="node"/> is a node of; null for one of a package or a file that failed.</summary>
     private static LoadedModule? ModuleOf(BrowseNode node)
     {
+        if (node is SubjectNode subject)
+            return subject.SourceModule;
         if (node is not IModuleNode module)
             return null;
         return module.Module;
@@ -177,7 +182,6 @@ public static class NodeContentLoader
     /// <summary>What the summary of <paramref name="node"/> lists, read from its children.</summary>
     private static SummaryInfo SummaryOf(BrowseSession session, BrowseNode node) => node switch
     {
-        PackageNode or PackageFolderNode => new SummaryInfo.Comments(session.ChildrenOf(node).Select(DescribePackageChild).ToList()),
         NamespaceNode => new SummaryInfo.Namespace(node.Text, ListNamespaceEntries(session, node)),
         _ => throw new UnreachableException(),
     };
@@ -200,7 +204,8 @@ public static class NodeContentLoader
             new SummaryInfo.Types(session.ChildrenOf(node).Select(static c => new SummaryLink(c.Text, c.Target)).ToList()),
         NodeSubject.BaseType or NodeSubject.DerivedType => new SummaryInfo.Types([new SummaryLink(node.Text, node.Target)]),
         NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.Resources or NodeSubject.ResourceContainer
-            or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable => throw new UnreachableException(),
+            or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable
+            or NodeSubject.Package or NodeSubject.PackageFile => throw new UnreachableException(),
         _ => throw new UnreachableException(),
     };
 
@@ -213,7 +218,7 @@ public static class NodeContentLoader
         var file = child.ResourceData;
         if (file != null)
             return file.Description;
-        if (child is PackageFolderNode)
+        if (child is SubjectNode subject && subject.Subject is NodeSubject.Package)
             return child.Text + "/";
         return child.Text;
     }

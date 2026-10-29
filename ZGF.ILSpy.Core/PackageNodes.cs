@@ -2,106 +2,57 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>A node that lists a folder of a package: the package's root, or a folder in it.</summary>
-internal interface IPackageFolderNode
+/// <summary>A folder of a listed package, labelled <see cref="Label"/>: the package's root, labelled with
+/// its file's name, or a folder in it, which when it holds nothing but one folder is merged with it into
+/// one, labelled with both names, <c>lib/net8.0</c>, and listing the deeper one's contents.</summary>
+public sealed class PackageFolderInfo
 {
-    LoadedPackage Package { get; }
-    PackageFolder Folder { get; }
+    internal PackageFolderInfo(LoadedPackage package, PackageFolder folder, string label)
+    {
+        Package = package;
+        Folder = folder;
+        Label = label;
+    }
+
+    public LoadedPackage Package { get; }
+
+    /// <summary>The folder whose contents it lists.</summary>
+    public PackageFolder Folder { get; }
+
+    public string Label { get; }
+
+    /// <summary>Whether this is the package's root, standing for the package itself.</summary>
+    public bool IsRoot => ReferenceEquals(Folder, Package.Package.Root);
+
+    public string FullName => IsRoot ? Package.FilePath.Text : Folder.FullName;
+
+    internal static PackageFolderInfo RootOf(LoadedPackage package) => new(package, package.Package.Root, package.FilePath.FileName);
 }
 
-/// <summary>The root of a listed package or bundle: its folders, then its files. An assembly file is
-/// the root of that assembly's tree; any other file is shown as a resource is.</summary>
-internal sealed class PackageNode(LoadedPackage package)
-    : BrowseNode(package, null, KindOf(package.Package), package.FilePath.FileName), IPackageFolderNode
+/// <summary>A file of a package that is no assembly: shown as text, a picture or its bytes, read out of
+/// the package when needed.</summary>
+public sealed class PackageFileInfo : IResourceData
 {
-    private static NodeKind KindOf(AssemblyPackage contents) => contents.IsBundle ? NodeKind.Bundle : NodeKind.Package;
+    internal PackageFileInfo(LoadedPackage package, PackageFile file)
+    {
+        Package = package;
+        File = file;
+    }
 
-    public LoadedPackage Package => package;
+    public LoadedPackage Package { get; }
 
-    public PackageFolder Folder => package.Package.Root;
+    public PackageFile File { get; }
 
-    public override string FullName => Assembly.FilePath.Text;
+    public string Description => $"{File.FullName} ({File.Length} bytes)";
 
-    internal override bool MayHaveChildren => true;
+    public string FileName => File.Name;
 
-    internal override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
-}
-
-/// <summary>A folder of a package. A folder holding nothing but one folder is merged with it into one
-/// node, labelled with both names: <c>lib/net8.0</c>.</summary>
-internal sealed class PackageFolderNode(LoadedPackage package, BrowseNode parent, PackageFolder folder, string label)
-    : BrowseNode(package, parent, NodeKind.PackageFolder, label), IPackageFolderNode
-{
-    public LoadedPackage Package => package;
-
-    /// <summary>The deepest of the folders this node stands for, whose contents it lists.</summary>
-    public PackageFolder Folder { get; } = folder;
-
-    public override string FullName => Folder.FullName;
-
-    internal override bool MayHaveChildren => true;
-
-    internal override BrowseNode[] CreateChildren() => PackageContents.ListChildren(package, this, Folder);
-}
-
-/// <summary>A file of a package that is no assembly: shown as text, a picture or its bytes, read out
-/// of the package when needed.</summary>
-internal sealed class PackageFileNode(LoadedPackage package, BrowseNode parent, PackageFile file)
-    : BrowseNode(package, parent, ResourceNodes.KindOf(file.Name), file.Name), IResourceData
-{
-    public override string FullName => file.FullName;
-
-    public string Description => $"{file.FullName} ({file.Length} bytes)";
-
-    public string FileName => file.Name;
-
-    public byte[] ReadData() => package.Package.ReadFile(file);
+    public byte[] ReadData() => Package.Package.ReadFile(File);
 }
 
 internal static class PackageContents
 {
     private static readonly string[] AssemblyExtensions = [".dll", ".exe", ".winmd"];
-
-    /// <summary>The nodes of <paramref name="folder"/>'s folders, then of its files. An assembly file
-    /// is read out of the package now, so that it shows as the assembly it is.</summary>
-    public static BrowseNode[] ListChildren(LoadedPackage package, BrowseNode parent, PackageFolder folder)
-    {
-        var children = new List<BrowseNode>();
-        foreach (var child in folder.Folders)
-            children.Add(CreateFolderNode(package, parent, child));
-        foreach (var file in folder.Files)
-            children.Add(CreateFileNode(package, parent, file));
-        return children.ToArray();
-    }
-
-    private static PackageFolderNode CreateFolderNode(LoadedPackage package, BrowseNode parent, PackageFolder folder)
-    {
-        var shown = folder;
-        var label = folder.Name;
-        while (HoldsOnlyOneFolder(shown))
-        {
-            shown = shown.Folders[0];
-            label = $"{label}/{shown.Name}";
-        }
-        return new PackageFolderNode(package, parent, shown, label);
-    }
-
-    private static bool HoldsOnlyOneFolder(PackageFolder folder)
-    {
-        if (folder.Files.Count != 0)
-            return false;
-        return folder.Folders.Count == 1;
-    }
-
-    private static BrowseNode CreateFileNode(LoadedPackage package, BrowseNode parent, PackageFile file)
-    {
-        if (!IsAssemblyName(file.Name))
-            return new PackageFileNode(package, parent, file);
-        var assembly = package.FindAssembly(file);
-        if (assembly == null)
-            return new PackageFileNode(package, parent, file);
-        return new AssemblyNode(assembly, parent);
-    }
 
     public static bool IsAssemblyName(string name)
     {

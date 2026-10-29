@@ -6,21 +6,21 @@ namespace ZGF.ILSpy.Core;
 internal sealed partial class SubjectNode
 {
     /// <summary>The module's manifest resources, sorted by name.</summary>
-    private BrowseNode[] ListResources() =>
-        Module.File.Resources
+    private BrowseNode[] ListResources(LoadedModule module) =>
+        module.File.Resources
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new SubjectNode(Module, this, SubjectOf(r)))
+            .Select(r => (BrowseNode)new SubjectNode(this, SubjectOf(module, r)))
             .ToArray();
 
     /// <summary>What a manifest resource stands for: the entries of a <c>.resources</c> file or of
     /// Avalonia's asset container, or the resource itself.</summary>
-    private NodeSubject SubjectOf(MetadataResource resource)
+    private static NodeSubject SubjectOf(LoadedModule module, MetadataResource resource)
     {
         if (AvaloniaResources.IsContainerName(resource.Name))
-            return new NodeSubject.ResourceContainer(ResourceContainerInfo.AvaloniaAssetsOf(Module, resource));
+            return new NodeSubject.ResourceContainer(ResourceContainerInfo.AvaloniaAssetsOf(module, resource));
         if (resource.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
-            return new NodeSubject.ResourceContainer(ResourceContainerInfo.ResourcesFileOf(Module, resource));
-        return new NodeSubject.ResourceEntry(new ResourceEntryInfo(Module, resource.Name, new ResourceSource.Manifest(resource)));
+            return new NodeSubject.ResourceContainer(ResourceContainerInfo.ResourcesFileOf(module, resource));
+        return new NodeSubject.ResourceEntry(new ResourceEntryInfo(module, resource.Name, new ResourceSource.Manifest(resource)));
     }
 
     /// <summary>The entries of a container: a <c>.resources</c> file's byte and stream entries, its BAML
@@ -30,23 +30,23 @@ internal sealed partial class SubjectNode
         ContainerContents.ResourcesFile file => file.Entries.Value
             .Select(e => e.Value switch
             {
-                byte[] bytes => Entry(e.Key, bytes),
-                MemoryStream stream => Entry(e.Key, stream.ToArray()),
+                byte[] bytes => Entry(container.Module, e.Key, bytes),
+                MemoryStream stream => Entry(container.Module, e.Key, stream.ToArray()),
                 _ => (BrowseNode?)null,
             })
             .OfType<BrowseNode>()
             .ToArray(),
         ContainerContents.AvaloniaAssets => AvaloniaResources.ReadEntries(container.ReadData())
             .OrderBy(e => e.Path, NaturalStringComparer.Instance)
-            .Select(e => (BrowseNode)new SubjectNode(Module, this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(Module, e.Path, new ResourceSource.Entry(e.Data)))))
+            .Select(e => (BrowseNode)new SubjectNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(container.Module, e.Path, new ResourceSource.Entry(e.Data)))))
             .ToArray(),
         _ => throw new System.Diagnostics.UnreachableException(),
     };
 
-    private BrowseNode Entry(string name, byte[] data)
+    private BrowseNode Entry(LoadedModule module, string name, byte[] data)
     {
         ResourceSource source = Baml.IsBamlName(name) ? new ResourceSource.Baml(data) : new ResourceSource.Entry(data);
-        return new SubjectNode(Module, this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(Module, name, source)));
+        return new SubjectNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(module, name, source)));
     }
 
     private static NodeKind KindOf(ResourceEntryInfo entry) => entry.Source switch

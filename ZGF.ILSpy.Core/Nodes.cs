@@ -44,9 +44,9 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
         var symbols = Module.DebugSymbols;
         if (symbols != null)
             result.Add(SubjectNode.MetadataFolder(Module, this, symbols.File, symbols.Title));
-        result.Add(SubjectNode.Of(Module, this, new NodeSubject.References(Module)));
+        result.Add(SubjectNode.Of(this, new NodeSubject.References(Module)));
         if (!file.Resources.IsEmpty)
-            result.Add(SubjectNode.Of(Module, this, new NodeSubject.Resources(Module)));
+            result.Add(SubjectNode.Of(this, new NodeSubject.Resources(Module)));
 
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
         foreach (var type in Module.MainModule.TopLevelTypeDefinitions)

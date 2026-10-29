@@ -23,9 +23,9 @@ internal sealed partial class SubjectNode
         var module = definition.Module;
         var result = new List<BrowseNode>();
         if (type.DirectBaseTypes.Any())
-            result.Add(new SubjectNode(module, this, new NodeSubject.BaseTypes(definition)));
+            result.Add(new SubjectNode(this, new NodeSubject.BaseTypes(definition)));
         if (DerivedTypes.CanHave(type))
-            result.Add(new SubjectNode(module, this, new NodeSubject.DerivedTypes(definition)));
+            result.Add(new SubjectNode(this, new NodeSubject.DerivedTypes(definition)));
 
         foreach (var nested in type.NestedTypes.OrderBy(t => t.Name, NaturalStringComparer.Instance))
             AddIfListed(result, ForType(module, this, nested));
@@ -58,7 +58,7 @@ internal sealed partial class SubjectNode
 
     private BrowseNode[] ListBaseTypes(DefinedType type) =>
         type.Symbol.DirectBaseTypes
-            .Select(t => (BrowseNode)new SubjectNode(Module, this, new NodeSubject.BaseType(BaseTypeInfo.Of(Module, t))))
+            .Select(t => (BrowseNode)new SubjectNode(this, new NodeSubject.BaseType(BaseTypeInfo.Of(type.Module, t))))
             .ToArray();
 
     /// <summary>The types in scope of <paramref name="type"/> that derive from it directly, as
@@ -68,9 +68,9 @@ internal sealed partial class SubjectNode
         var result = new List<BrowseNode>();
         foreach (var derived in DerivedTypes.Find(module.List, type, CancellationToken.None))
         {
-            var info = DerivedTypeInfo.Of(derived);
+            var info = DerivedTypeInfo.Of(module, derived);
             if (info != null)
-                result.Add(new SubjectNode(module, parent, new NodeSubject.DerivedType(info)));
+                result.Add(new SubjectNode(parent, new NodeSubject.DerivedType(info)));
         }
         return result.ToArray();
     }

@@ -23,7 +23,7 @@ internal sealed partial class SubjectNode
         module.ReadReferenceUsage();
         return module.File.AssemblyReferences
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new SubjectNode(module, parent, new NodeSubject.AssemblyReference(new AssemblyReferenceInfo(module, r))))
+            .Select(r => (BrowseNode)new SubjectNode(parent, new NodeSubject.AssemblyReference(new AssemblyReferenceInfo(module, r))))
             .ToArray();
     }
 
@@ -33,8 +33,8 @@ internal sealed partial class SubjectNode
     private BrowseNode[] ListReferenceContents(AssemblyReferenceInfo reference)
     {
         var children = new List<BrowseNode>();
-        if (Module.ReferenceUsage.Uses(reference.Reference.Handle))
-            children.Add(new SubjectNode(Module, this, new NodeSubject.ReferencedTypes(reference)));
+        if (reference.Module.ReferenceUsage.Uses(reference.Reference.Handle))
+            children.Add(new SubjectNode(this, new NodeSubject.ReferencedTypes(reference)));
         var referenced = ResolveReferenced(reference);
         if (referenced != null)
             children.AddRange(ListAssemblyReferences(referenced, this));
@@ -54,11 +54,12 @@ internal sealed partial class SubjectNode
     /// name, and after them the types it forwards there.</summary>
     private BrowseNode[] ListUsedTypes(AssemblyReferenceInfo reference)
     {
-        var usage = Module.ReferenceUsage;
-        var metadata = Module.File.Metadata;
+        var module = reference.Module;
+        var usage = module.ReferenceUsage;
+        var metadata = module.File.Metadata;
         var handle = reference.Reference.Handle;
         var used = usage.TypesIn(handle)
-            .Select(h => UsedType(h))
+            .Select(h => UsedType(module, h))
             .OrderBy(n => n.Namespace, NaturalStringComparer.Instance)
             .ThenBy(n => n.Text, NaturalStringComparer.Instance)
             .Cast<BrowseNode>();
@@ -66,7 +67,7 @@ internal sealed partial class SubjectNode
             .Select(h => ForwardedTypes.Read(metadata, h))
             .OrderBy(f => f.Namespace, NaturalStringComparer.Instance)
             .ThenBy(f => f.Label, NaturalStringComparer.Instance)
-            .Select(f => (BrowseNode)Forwarded(Module, this, f));
+            .Select(f => (BrowseNode)Forwarded(module, this, f));
         return used
             .Concat(forwarded)
             .ToArray();
@@ -74,19 +75,19 @@ internal sealed partial class SubjectNode
 
     /// <summary>The node of a type forwarded to another assembly, under <paramref name="parent"/>.</summary>
     internal static SubjectNode Forwarded(LoadedModule module, BrowseNode parent, ForwardedType type) =>
-        new(module, parent, new NodeSubject.ForwardedType(new ForwardedTypeInfo(module, type)));
+        new(parent, new NodeSubject.ForwardedType(new ForwardedTypeInfo(module, type)));
 
     /// <summary>The node of the type <paramref name="handle"/> names, used from a reference, under this node.</summary>
-    private SubjectNode UsedType(TypeReferenceHandle handle)
+    private SubjectNode UsedType(LoadedModule module, TypeReferenceHandle handle)
     {
-        var metadata = Module.File.Metadata;
+        var metadata = module.File.Metadata;
         var reference = metadata.GetTypeReference(handle);
         var name = metadata.GetString(reference.Name);
         var bare = ReflectionHelper.SplitTypeParameterCountFromReflectionName(name, out var arity);
         var label = ForwardedTypes.LabelOf(bare, arity);
         var ns = metadata.GetString(reference.Namespace);
-        var info = new TypeReferenceInfo(Module, handle, ns, label, QualifiedName(ns, label));
-        return new SubjectNode(Module, this, new NodeSubject.TypeReference(info));
+        var info = new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label));
+        return new SubjectNode(this, new NodeSubject.TypeReference(info));
     }
 
     /// <summary>The full name of a type labelled <paramref name="label"/> listed under this node: after the
@@ -100,9 +101,9 @@ internal sealed partial class SubjectNode
         return $"{ns}.{label}";
     }
 
-    private bool UsesAnythingOf(TypeReferenceInfo type)
+    private static bool UsesAnythingOf(TypeReferenceInfo type)
     {
-        var usage = Module.ReferenceUsage;
+        var usage = type.Module.ReferenceUsage;
         if (usage.TypesIn(type.Handle).Count > 0)
             return true;
         return usage.MembersOf(type.Handle).Count > 0;
@@ -112,14 +113,14 @@ internal sealed partial class SubjectNode
     /// label; a member used under several type arguments once.</summary>
     private BrowseNode[] ListUsedOf(TypeReferenceInfo type)
     {
-        var usage = Module.ReferenceUsage;
-        var module = Module.TypeSystem.MainModule;
+        var usage = type.Module.ReferenceUsage;
+        var module = type.Module.TypeSystem.MainModule;
         var nested = usage.TypesIn(type.Handle)
-            .Select(h => UsedType(h))
+            .Select(h => UsedType(type.Module, h))
             .OrderBy(n => n.Text, NaturalStringComparer.Instance)
             .Cast<BrowseNode>();
         var members = usage.MembersOf(type.Handle)
-            .Select(h => UsedMember(h, ResolveDeclared(module, h)))
+            .Select(h => UsedMember(type.Module, h, ResolveDeclared(module, h)))
             .DistinctBy(n => n.Text)
             .OrderBy(n => n.Text, NaturalStringComparer.Instance);
         return nested
@@ -127,10 +128,10 @@ internal sealed partial class SubjectNode
             .ToArray();
     }
 
-    private SubjectNode UsedMember(MemberReferenceHandle handle, IMember declared)
+    private SubjectNode UsedMember(LoadedModule module, MemberReferenceHandle handle, IMember declared)
     {
-        var info = new MemberReferenceInfo(Module, handle, declared, $"{FullName}.{EntityText.Label(declared)}");
-        return new SubjectNode(Module, this, new NodeSubject.MemberReference(info));
+        var info = new MemberReferenceInfo(module, handle, declared, $"{FullName}.{EntityText.Label(declared)}");
+        return new SubjectNode(this, new NodeSubject.MemberReference(info));
     }
 
     /// <summary>The member <paramref name="handle"/> uses as its type declares it: for an accessor, the
@@ -172,7 +173,7 @@ internal sealed partial class SubjectNode
         var metadata = module.File.Metadata;
         var name = metadata.GetString(metadata.GetModuleReference(handle).Name);
         var info = new ModuleReferenceInfo(module, name, IsModuleWithMetadata(metadata, name), ImportsFrom(imports, handle));
-        return new SubjectNode(module, parent, new NodeSubject.ModuleReference(info));
+        return new SubjectNode(parent, new NodeSubject.ModuleReference(info));
     }
 
     /// <summary>Whether the assembly's file table lists the module as one holding metadata.</summary>
@@ -217,7 +218,7 @@ internal sealed partial class SubjectNode
     /// <summary>The methods imported from the module, sorted by label, then by the type declaring each.</summary>
     private BrowseNode[] ListImports(ModuleReferenceInfo module)
     {
-        var typeSystem = Module.TypeSystem.MainModule;
+        var typeSystem = module.Module.TypeSystem.MainModule;
         var imports = new List<ImportedMethodInfo>();
         foreach (var handle in module.Imports)
         {
@@ -228,7 +229,7 @@ internal sealed partial class SubjectNode
         return imports
             .OrderBy(i => i.Label, NaturalStringComparer.Instance)
             .ThenBy(i => i.DeclaringTypeName, NaturalStringComparer.Instance)
-            .Select(i => (BrowseNode)new SubjectNode(Module, this, new NodeSubject.ImportedMethod(i)))
+            .Select(i => (BrowseNode)new SubjectNode(this, new NodeSubject.ImportedMethod(i)))
             .ToArray();
     }
 
@@ -236,15 +237,15 @@ internal sealed partial class SubjectNode
     /// type declaring it. A stub the compiler generates as a local function, as <c>[LibraryImport]</c>
     /// does, is labelled and goes as the method declaring it, with the stub's own parameters, the ones
     /// the module is called with. Null for a method no type declares or with no address.</summary>
-    private ImportedMethodInfo? ImportOf(IMethod method, ModuleReferenceInfo module)
+    private static ImportedMethodInfo? ImportOf(IMethod method, ModuleReferenceInfo module)
     {
         var declaring = method.DeclaringTypeDefinition;
         if (declaring == null)
             return null;
-        var shown = DefinedMember.Of(Module, FindEnclosingMethod(method, declaring));
+        var shown = DefinedMember.Of(module.Module, FindEnclosingMethod(method, declaring));
         if (shown == null)
             return null;
-        var entryPoint = ReadEntryPoint(Module.File.Metadata, method);
+        var entryPoint = ReadEntryPoint(module.Module.File.Metadata, method);
         return new ImportedMethodInfo(shown, ImportLabelOf(method), EntityText.FullName(declaring), entryPoint, module.Name);
     }
 
