@@ -162,6 +162,13 @@ public abstract partial class Ui
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
+    /// <summary>Locks the pointer to the window after this frame, hidden, for as long as each frame asks; the
+    /// first frame that does not ask frees it. <see cref="UiInput.PointerLocked"/> says whether it is locked, and
+    /// <see cref="UiInput.PointerMotion"/> how far it moved.</summary>
+    public void LockPointer() => PointerLockRequested = true;
+
+    internal bool PointerLockRequested { get; private set; }
+
     /// <summary>Draws a frame soon, for something that changed outside one, such as a picture arriving.
     /// Safe from any thread.</summary>
     public void RequestFrame() => Wake?.Invoke();
@@ -332,6 +339,7 @@ public abstract partial class Ui
         UpdateRequested = false;
         WakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;
+        PointerLockRequested = false;
         _activeSeen = false;
         _focusSeen = false;
         _focusClaimed = false;

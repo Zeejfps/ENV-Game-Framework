@@ -90,6 +90,10 @@ public interface IWindow : IDisposable
     void GetFrameSize(out int left, out int top, out int right, out int bottom);
     void GetCursorPosition(out double x, out double y);
     void SetCursor(MouseCursor cursor);
+    // Hides the cursor and keeps it to the window while locked, its position then moving without bound, so
+    // how far it moves is read rather than where it is: for steering by the mouse. Raw motion where the
+    // platform has it.
+    void SetPointerLocked(bool locked);
     // Lets every pointer event fall through to whatever is behind the window — for a tooltip.
     void SetMousePassThrough(bool passThrough);
     // Routes every press to this window until released, so a press outside it reaches

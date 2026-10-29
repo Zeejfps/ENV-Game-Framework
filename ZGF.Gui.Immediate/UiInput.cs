@@ -50,6 +50,15 @@ public sealed class UiInput
     private readonly List<string> _droppedFiles = new();
 
     public PointF Pointer { get; private set; } = Offscreen;
+
+    /// <summary>How far the pointer moved since the previous frame, in UI points: what steers while the pointer
+    /// is locked, when <see cref="Pointer"/> no longer says where it is on the screen.</summary>
+    public PointF PointerMotion { get; private set; }
+
+    /// <summary>Whether the pointer is locked to the window this frame, as <see cref="Ui.LockPointer"/> asks: hidden,
+    /// moving without bound, read through <see cref="PointerMotion"/>. It stays unlocked while the app is behind
+    /// another.</summary>
+    public bool PointerLocked { get; private set; }
     public float ScrollX { get; private set; }
     public float ScrollY { get; private set; }
     public KeyModifiers Modifiers { get; private set; }
@@ -139,7 +148,16 @@ public sealed class UiInput
     internal void MovePointer(PointF point)
     {
         if (Pointer == point) return;
+        if (Pointer != Offscreen && point != Offscreen)
+            PointerMotion = new PointF(PointerMotion.X + point.X - Pointer.X, PointerMotion.Y + point.Y - Pointer.Y);
         Pointer = point;
+        HasEvents = true;
+    }
+
+    internal void LockPointer(bool locked)
+    {
+        if (PointerLocked == locked) return;
+        PointerLocked = locked;
         HasEvents = true;
     }
 
@@ -262,6 +280,8 @@ public sealed class UiInput
         ClearKeysTextAndDrops();
         Composition = previous.Composition;
         Pointer = previous.Pointer;
+        PointerMotion = default;
+        PointerLocked = previous.PointerLocked;
         Modifiers = previous.Modifiers;
         IsForeground = previous.IsForeground;
         ScrollX = 0;

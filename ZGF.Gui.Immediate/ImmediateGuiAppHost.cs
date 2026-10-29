@@ -334,6 +334,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         if (_ui.QuitRequested)
             _render.App.Quit();
 
+        ApplyPointerLock();
         if (_ui.Cursor != _cursor)
         {
             _cursor = _ui.Cursor;
@@ -601,10 +602,21 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
     }
 
+    /// <summary>Locks the pointer while the frame asked for it and the app is in front, and frees it otherwise.</summary>
+    private void ApplyPointerLock()
+    {
+        var locked = _ui.PointerLockRequested && _render.App.IsForeground;
+        if (locked == _pending.PointerLocked)
+            return;
+        _window.SetPointerLocked(locked);
+        _pending.LockPointer(locked);
+        _window.RequestRedraw();
+    }
+
     private void PollPointer()
     {
         _window.GetCursorPosition(out var x, out var y);
-        var point = _pending.FollowsPointerOutside || IsPointerOverOwnWindow() ? ToUiSpace(x, y) : UiInput.Offscreen;
+        var point = _pending.PointerLocked || _pending.FollowsPointerOutside || IsPointerOverOwnWindow() ? ToUiSpace(x, y) : UiInput.Offscreen;
         if (point == _pending.Pointer) return;
         _pending.MovePointer(point);
         _window.RequestRedraw();

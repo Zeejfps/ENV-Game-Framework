@@ -212,6 +212,13 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetCursor(GlfwWindow, GlfwStandardCursors.Get(cursor));
     }
 
+    public void SetPointerLocked(bool locked)
+    {
+        GLFW.Glfw.SetInputMode(GlfwWindow, InputMode.Cursor, (int)(locked ? CursorMode.Disabled : CursorMode.Normal));
+        if (GLFW.Glfw.RawMouseMotionSupported())
+            GLFW.Glfw.SetInputMode(GlfwWindow, InputMode.RawMouseMotion, locked ? 1 : 0);
+    }
+
     public void SetTitleBarTheme(bool dark) => Platform.SetTitleBarTheme(NativeHandle, dark);
 
     public bool CanExtendIntoTitleBar => Platform.CanExtendIntoTitleBar;

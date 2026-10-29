@@ -160,6 +160,10 @@ internal sealed class FakeWindow : IWindow
     }
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
+
+    public bool PointerLocked { get; private set; }
+
+    public void SetPointerLocked(bool locked) => PointerLocked = locked;
     public void SetIcon(IReadOnlyList<WindowIconImage> icons) { }
     public void SetTitleBarTheme(bool dark) { }
     public bool CanExtendIntoTitleBar { get; set; }
