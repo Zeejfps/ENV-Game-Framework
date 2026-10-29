@@ -3,13 +3,13 @@ using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     /// <summary>The module's manifest resources, sorted by name.</summary>
     private BrowseNode[] ListResources(LoadedModule module) =>
         module.File.Resources
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new SubjectNode(this, SubjectOf(module, r)))
+            .Select(r => (BrowseNode)new BrowseNode(this, SubjectOf(module, r)))
             .ToArray();
 
     /// <summary>What a manifest resource stands for: the entries of a <c>.resources</c> file or of
@@ -38,7 +38,7 @@ internal sealed partial class SubjectNode
             .ToArray(),
         ContainerContents.AvaloniaAssets => AvaloniaResources.ReadEntries(container.ReadData())
             .OrderBy(e => e.Path, NaturalStringComparer.Instance)
-            .Select(e => (BrowseNode)new SubjectNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(container.Module, e.Path, new ResourceSource.Entry(e.Data)))))
+            .Select(e => (BrowseNode)new BrowseNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(container.Module, e.Path, new ResourceSource.Entry(e.Data)))))
             .ToArray(),
         _ => throw new System.Diagnostics.UnreachableException(),
     };
@@ -46,7 +46,7 @@ internal sealed partial class SubjectNode
     private BrowseNode Entry(LoadedModule module, string name, byte[] data)
     {
         ResourceSource source = Baml.IsBamlName(name) ? new ResourceSource.Baml(data) : new ResourceSource.Entry(data);
-        return new SubjectNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(module, name, source)));
+        return new BrowseNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(module, name, source)));
     }
 
     private static NodeKind KindOf(ResourceEntryInfo entry) => entry.Source switch

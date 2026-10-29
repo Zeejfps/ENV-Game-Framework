@@ -6,13 +6,14 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>A node made from what it stands for, its <see cref="Subject"/>: the assembly it is read
-/// from, its label, flags and children all follow from that.</summary>
-internal sealed partial class SubjectNode : BrowseNode
+public sealed partial class BrowseNode
 {
-    private SubjectNode(BrowseNode? parent, NodeSubject subject)
-        : base(AssemblyOf(subject), parent, KindOf(subject), TextOf(subject))
+    private BrowseNode(BrowseNode? parent, NodeSubject subject)
     {
+        Assembly = AssemblyOf(subject);
+        Parent = parent;
+        Kind = KindOf(subject);
+        Text = TextOf(subject);
         Subject = subject;
         switch (subject)
         {
@@ -89,10 +90,11 @@ internal sealed partial class SubjectNode : BrowseNode
             (parent != null && parent.IsCompilerGenerated) || Members.IsCompilerGenerated(entity),
             address.ToReference(), MetadataTokens.GetToken(entity.MetadataToken));
 
+    /// <summary>What the node stands for: its label, flags and children all follow from that.</summary>
     public NodeSubject Subject { get; }
 
     /// <summary>The module the node is read from; null for a node of a package's folders and files.</summary>
-    public LoadedModule? SourceModule => Assembly as LoadedModule;
+    internal LoadedModule? SourceModule => Assembly as LoadedModule;
 
     private static LoadedAssembly AssemblyOf(NodeSubject subject) => subject switch
     {
@@ -125,7 +127,7 @@ internal sealed partial class SubjectNode : BrowseNode
     };
 
     /// <summary>The bytes of the resource the node stands for; null for a node of anything else.</summary>
-    internal override IResourceData? ResourceData => Subject switch
+    internal IResourceData? ResourceData => Subject switch
     {
         NodeSubject.ResourceContainer container => container.Value,
         NodeSubject.ResourceEntry entry => entry.Value,
@@ -140,7 +142,7 @@ internal sealed partial class SubjectNode : BrowseNode
 
     /// <summary>The folder of a package the node lists, whose files can be extracted: the root folder for
     /// a package's own node; null for a node that lists none.</summary>
-    public override PackageFolderPlace? FolderInPackage => Subject switch
+    public PackageFolderPlace? FolderInPackage => Subject switch
     {
         NodeSubject.Package package => new PackageFolderPlace(package.Value.Package, package.Value.Folder),
         NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.References or NodeSubject.AssemblyReference
@@ -153,7 +155,7 @@ internal sealed partial class SubjectNode : BrowseNode
     };
 
     /// <summary>The type or member the node defines; null for a node of anything else.</summary>
-    public IEntity? Entity => Subject switch
+    internal IEntity? Entity => Subject switch
     {
         NodeSubject.TypeDefinition type => type.Definition.Symbol,
         NodeSubject.MemberDefinition member => member.Definition.Symbol,
@@ -165,7 +167,8 @@ internal sealed partial class SubjectNode : BrowseNode
         _ => throw new UnreachableException(),
     };
 
-    public override string FullName => Subject switch
+    /// <summary>A qualified name for copying, e.g. <c>System.Collections.Generic.List&lt;T&gt;.Add(T)</c>.</summary>
+    public string FullName => Subject switch
     {
         NodeSubject.TypeDefinition type => EntityText.FullName(type.Definition.Symbol),
         NodeSubject.MemberDefinition member => EntityText.FullName(member.Definition.Symbol),
@@ -252,7 +255,8 @@ internal sealed partial class SubjectNode : BrowseNode
         _ => throw new UnreachableException(),
     };
 
-    internal override bool MayHaveChildren => Subject switch
+    /// <summary>Whether this node may have children, guessed without building them.</summary>
+    internal bool MayHaveChildren => Subject switch
     {
         NodeSubject.TypeDefinition type => MayListMembers(type.Definition),
         NodeSubject.MemberDefinition member => member.Definition.Symbol is IProperty or IEvent,
@@ -271,7 +275,8 @@ internal sealed partial class SubjectNode : BrowseNode
         _ => throw new UnreachableException(),
     };
 
-    internal override BrowseNode[] CreateChildren() => Subject switch
+    /// <summary>Builds the children in ILSpy's order; the <see cref="BrowseSession"/> calls it once.</summary>
+    internal BrowseNode[] CreateChildren() => Subject switch
     {
         NodeSubject.TypeDefinition type => ListMembers(type.Definition),
         NodeSubject.MemberDefinition member => ListAccessors(member.Definition),
@@ -297,45 +302,45 @@ internal sealed partial class SubjectNode : BrowseNode
     };
 
     /// <summary>The node of <paramref name="subject"/>, under <paramref name="parent"/>.</summary>
-    public static SubjectNode Of(BrowseNode parent, NodeSubject subject) => new(parent, subject);
+    internal static BrowseNode Of(BrowseNode parent, NodeSubject subject) => new(parent, subject);
 
     /// <summary>The node of <paramref name="type"/>, under <paramref name="parent"/>; null for a type with
     /// no metadata token, which the tree does not list.</summary>
-    public static SubjectNode? ForType(LoadedModule module, BrowseNode parent, ITypeDefinition type)
+    internal static BrowseNode? ForType(LoadedModule module, BrowseNode parent, ITypeDefinition type)
     {
         var definition = DefinedType.Of(module, type);
         if (definition == null)
             return null;
-        return new SubjectNode(parent, new NodeSubject.TypeDefinition(definition));
+        return new BrowseNode(parent, new NodeSubject.TypeDefinition(definition));
     }
 
     /// <summary>The node of <paramref name="member"/>, under <paramref name="parent"/>; null for a member
     /// with no metadata token, which the tree does not list.</summary>
-    public static SubjectNode? ForMember(LoadedModule module, BrowseNode parent, IMember member)
+    internal static BrowseNode? ForMember(LoadedModule module, BrowseNode parent, IMember member)
     {
         var definition = DefinedMember.Of(module, member);
         if (definition == null)
             return null;
-        return new SubjectNode(parent, new NodeSubject.MemberDefinition(definition));
+        return new BrowseNode(parent, new NodeSubject.MemberDefinition(definition));
     }
 
     /// <summary>The type or member <paramref name="node"/> defines; null for a node of anything else.</summary>
-    public static IEntity? EntityOf(BrowseNode? node)
+    internal static IEntity? EntityOf(BrowseNode? node)
     {
-        if (node is not SubjectNode subject)
+        if (node == null)
             return null;
-        return subject.Entity;
+        return node.Entity;
     }
 
     /// <summary>Whether <paramref name="node"/> defines a member, under which only its accessors sit.</summary>
-    public static bool IsMember(BrowseNode? node)
+    internal static bool IsMember(BrowseNode? node)
     {
-        if (node is not SubjectNode subject)
+        if (node == null)
             return false;
-        return subject.Subject is NodeSubject.MemberDefinition;
+        return node.Subject is NodeSubject.MemberDefinition;
     }
 
-    private static void AddIfListed(List<BrowseNode> nodes, SubjectNode? node)
+    private static void AddIfListed(List<BrowseNode> nodes, BrowseNode? node)
     {
         if (node != null)
             nodes.Add(node);

@@ -13,7 +13,7 @@ public sealed class MetadataTests
     private static BrowseNode Metadata(LoadedAssembly assembly) => assembly.Root.Child("Metadata");
 
     private static MetadataFolderInfo FolderOf(BrowseNode node) =>
-        Assert.IsType<NodeSubject.Metadata>(Assert.IsType<SubjectNode>(node).Subject).Value;
+        Assert.IsType<NodeSubject.Metadata>(node.Subject).Value;
 
     private static BrowseNode Table(LoadedAssembly assembly, string name) => Metadata(assembly).Child("Tables").Table(name);
 

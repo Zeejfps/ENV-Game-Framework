@@ -6,13 +6,13 @@ using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     /// <summary>The node of the metadata of <paramref name="file"/>, titled <paramref name="title"/>, under <paramref name="parent"/>.</summary>
-    internal static SubjectNode MetadataFolder(LoadedModule module, BrowseNode parent, MetadataFile file, string title) =>
+    internal static BrowseNode MetadataFolder(LoadedModule module, BrowseNode parent, MetadataFile file, string title) =>
         new(parent, new NodeSubject.Metadata(new MetadataFolderInfo(module, file, title)));
 
-    private SubjectNode Part(MetadataTableInfo part) => new(this, new NodeSubject.MetadataTable(part));
+    private BrowseNode Part(MetadataTableInfo part) => new(this, new NodeSubject.MetadataTable(part));
 
     /// <summary>For a PE file its headers and debug directory, then the tables and the four heaps.</summary>
     private BrowseNode[] ListMetadata(MetadataFolderInfo folder)
@@ -27,7 +27,7 @@ internal sealed partial class SubjectNode
             result.Add(Part(MetadataTableInfo.GridOf(folder.Module, file, directories.Key, MetadataGridRole.Directory, directories)));
             result.Add(Part(MetadataTableInfo.DebugDirectoryOf(folder.Module, pe)));
         }
-        result.Add(new SubjectNode(this, new NodeSubject.MetadataTables(folder)));
+        result.Add(new BrowseNode(this, new NodeSubject.MetadataTables(folder)));
         foreach (var (title, heap) in MetadataHeaps.Create(file))
             result.Add(Part(MetadataTableInfo.GridOf(folder.Module, file, title, MetadataGridRole.Heap, heap)));
         return result.ToArray();

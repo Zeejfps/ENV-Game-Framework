@@ -321,7 +321,7 @@ public static class AssemblySearch
         /// query finds.</summary>
         private bool IsNamespaceFound(BrowseNode node)
         {
-            if (node is not SubjectNode subject || subject.Subject is not NodeSubject.Namespace ns)
+            if (node.Subject is not NodeSubject.Namespace ns)
                 return false;
             if (ns.Value.IsEnclosingOnly)
                 return false;
@@ -335,7 +335,7 @@ public static class AssemblySearch
                 return;
             if (node.IsCompilerGenerated)
                 return;
-            if (!SubjectNode.IsMember(node.Parent))
+            if (!BrowseNode.IsMember(node.Parent))
                 Add(node);
         }
 
@@ -351,7 +351,7 @@ public static class AssemblySearch
                 return;
             }
             node = SourceDeclaredAncestor(node);
-            if (node != null && SubjectNode.IsMember(node.Parent))
+            if (node != null && BrowseNode.IsMember(node.Parent))
                 node = node.Parent;
             if (node is not null)
                 Add(node);
@@ -385,13 +385,13 @@ public static class AssemblySearch
                 ns = ns.Parent;
             var name = ns?.Text ?? "";
             var type = node.Parent;
-            if (type is SubjectNode owner && owner.Subject is NodeSubject.TypeDefinition)
+            if (type != null && type.Subject is NodeSubject.TypeDefinition)
                 Add(node, name.Length == 0 ? type.Text : $"{name}.{type.Text}");
             else
                 Add(node, name.Length == 0 ? "-" : name);
         }
 
-        private static bool IsNamespace(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.Namespace;
+        private static bool IsNamespace(BrowseNode node) => node.Subject is NodeSubject.Namespace;
 
         private void Add(BrowseNode node, string location)
         {
@@ -408,7 +408,7 @@ public static class AssemblySearch
         /// <summary>The name a node is matched by: a constructor's its type's, an entity's its own, else its label.</summary>
         private static string NameOf(BrowseNode node)
         {
-            var entity = SubjectNode.EntityOf(node);
+            var entity = BrowseNode.EntityOf(node);
             if (entity == null)
                 return node.Text;
             if (entity is IMethod method && method.IsConstructor && method.DeclaringTypeDefinition != null)

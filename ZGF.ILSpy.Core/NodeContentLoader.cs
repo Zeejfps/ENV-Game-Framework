@@ -43,17 +43,15 @@ public static class NodeContentLoader
     /// and options, rather than a grid, a picture or why the file failed to load, which do not.</summary>
     public static bool DependsOnLanguage(BrowseNode node) => GridOf(node) == null && !IsFailedFile(node) && !IsImage(node);
 
-    private static bool IsFailedFile(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.FailedAssembly;
+    private static bool IsFailedFile(BrowseNode node) => node.Subject is NodeSubject.FailedAssembly;
 
     /// <summary>The grid <paramref name="node"/> shows: a metadata header, directory, table or heap's, or a
     /// <c>.resources</c> file's entries; null for a node that shows none.</summary>
     private static MetadataGrid? GridOf(BrowseNode node)
     {
-        if (node is not SubjectNode subject)
-            return null;
-        if (subject.Subject is NodeSubject.MetadataTable table)
+        if (node.Subject is NodeSubject.MetadataTable table)
             return table.Value.Grid;
-        if (subject.Subject is NodeSubject.ResourceContainer container)
+        if (node.Subject is NodeSubject.ResourceContainer container)
             return container.Value.Grid;
         return null;
     }
@@ -69,12 +67,12 @@ public static class NodeContentLoader
     /// offered under: the node's name, made safe for a file name, with the language's extension.</summary>
     public static string SuggestCodeFileName(BrowseNode node, DecompilationLanguage language)
     {
-        var name = IsModule(node) ? node.Assembly.Name : SubjectNode.EntityOf(node)?.Name ?? node.Text;
+        var name = IsModule(node) ? node.Assembly.Name : BrowseNode.EntityOf(node)?.Name ?? node.Text;
         var extension = DecompilationLanguages.IsIL(language) ? ".il" : ".cs";
         return WholeProjectDecompiler.CleanUpFileName(name, extension);
     }
 
-    private static bool IsModule(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.Module;
+    private static bool IsModule(BrowseNode node) => node.Subject is NodeSubject.Module;
 
     private static NodeContent Load(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
         CancellationToken cancellationToken)
@@ -107,28 +105,14 @@ public static class NodeContentLoader
         return new ImageContent(image, source);
     }
 
-    private static CodeExport ExportOf(BrowseSession session, BrowseNode node) => node switch
+    private static CodeExport ExportOf(BrowseSession session, BrowseNode node) => node.Subject switch
     {
-        SubjectNode subject when subject.Subject is NodeSubject.Module module => new CodeExport.WholeModule(module.Value),
-        SubjectNode subject when subject.Subject is NodeSubject.Namespace ns => new CodeExport.Namespace(ns.Value.Module, ns.Value.Name, ns.Value.Types),
+        NodeSubject.Module module => new CodeExport.WholeModule(module.Value),
+        NodeSubject.Namespace ns => new CodeExport.Namespace(ns.Value.Module, ns.Value.Name, ns.Value.Types),
         _ => new CodeExport.Document(RequestOf(session, node)),
     };
 
-    private static DocumentRequest RequestOf(BrowseSession session, BrowseNode node)
-    {
-        switch (node)
-        {
-            case SubjectNode subject:
-                return RequestOf(session, subject);
-            default:
-                var resource = node.ResourceData;
-                if (resource != null)
-                    return new DocumentRequest.Resource(ModuleOf(node), resource.Description, resource.ReadData, node.Text, node.FullName);
-                return Summary(session, node);
-        }
-    }
-
-    private static DocumentRequest RequestOf(BrowseSession session, SubjectNode node) => node.Subject switch
+    private static DocumentRequest RequestOf(BrowseSession session, BrowseNode node) => node.Subject switch
     {
         NodeSubject.TypeDefinition type => new DocumentRequest.Type(type.Definition, node.Text, node.FullName),
         NodeSubject.MemberDefinition member => new DocumentRequest.Member(member.Definition, node.Text, node.FullName),
@@ -164,31 +148,14 @@ public static class NodeContentLoader
     };
 
     private static DocumentRequest.Resource ResourceRequest(BrowseNode node, IResourceData resource) =>
-        new(ModuleOf(node), resource.Description, resource.ReadData, node.Text, node.FullName);
+        new(node.SourceModule, resource.Description, resource.ReadData, node.Text, node.FullName);
 
     /// <summary>A comment a resource, describing each that <paramref name="node"/> lists.</summary>
     private static SummaryInfo.Comments DescribeResources(BrowseSession session, BrowseNode node) =>
         new(session.ChildrenOf(node).Select(static c => c.ResourceData).OfType<IResourceData>().Select(static r => r.Description).ToList());
 
-    private static DocumentRequest.Summary Summary(BrowseSession session, BrowseNode node) =>
-        new(SummaryOf(session, node), ModuleOf(node), node.Text, node.FullName);
-
-    /// <summary>The module <paramref name="node"/> is a node of; null for one of a package or a file that failed.</summary>
-    private static LoadedModule? ModuleOf(BrowseNode node)
-    {
-        if (node is not SubjectNode subject)
-            return null;
-        return subject.SourceModule;
-    }
-
-    /// <summary>What the summary of <paramref name="node"/> lists, read from its children.</summary>
-    private static SummaryInfo SummaryOf(BrowseSession session, BrowseNode node) => node switch
-    {
-        _ => throw new UnreachableException(),
-    };
-
     /// <summary>What the summary of <paramref name="node"/>, which has no code of its own, lists.</summary>
-    private static SummaryInfo SummaryOf(BrowseSession session, SubjectNode node) => node.Subject switch
+    private static SummaryInfo SummaryOf(BrowseSession session, BrowseNode node) => node.Subject switch
     {
         NodeSubject.References => new SummaryInfo.References(
             ChildrenAbout<NodeSubject.AssemblyReference>(session, node).Select(static r => new SummaryLink(r.FullName, r.Target)).ToList(),
@@ -212,14 +179,14 @@ public static class NodeContentLoader
 
     /// <summary>The children of <paramref name="node"/> that stand for a <typeparamref name="TSubject"/>.</summary>
     private static IEnumerable<BrowseNode> ChildrenAbout<TSubject>(BrowseSession session, BrowseNode node) where TSubject : NodeSubject =>
-        session.ChildrenOf(node).Where(static c => c is SubjectNode subject && subject.Subject is TSubject);
+        session.ChildrenOf(node).Where(static c => c.Subject is TSubject);
 
     private static string DescribePackageChild(BrowseNode child)
     {
         var file = child.ResourceData;
         if (file != null)
             return file.Description;
-        if (child is SubjectNode subject && subject.Subject is NodeSubject.Package)
+        if (child.Subject is NodeSubject.Package)
             return child.Text + "/";
         return child.Text;
     }
@@ -231,9 +198,9 @@ public static class NodeContentLoader
         foreach (var child in session.ChildrenOf(ns))
         {
             if (child.IsCompilerGenerated) continue;
-            if (child is SubjectNode subject && subject.Subject is NodeSubject.TypeDefinition type)
+            if (child.Subject is NodeSubject.TypeDefinition type)
                 entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, child.Reference));
-            if (child is SubjectNode about && about.Subject is NodeSubject.ForwardedType forwarded)
+            if (child.Subject is NodeSubject.ForwardedType forwarded)
                 entries.Add(new NamespaceEntry.Forwarded(ForwardedLineOf(child, forwarded)));
         }
         return entries;
@@ -249,9 +216,7 @@ public static class NodeContentLoader
 
     private static UsedEntry UsedOf(BrowseSession session, BrowseNode node)
     {
-        if (node is not SubjectNode used)
-            throw new UnreachableException();
-        return used.Subject switch
+        return node.Subject switch
         {
             NodeSubject.ForwardedType forwarded => new UsedEntry.Forwarded(ForwardedLineOf(node, forwarded)),
             NodeSubject.TypeReference type => new UsedEntry.Type(type.Value.FullName, node.Target, ListUsed(session, node)),

@@ -1,9 +1,9 @@
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     /// <summary>The root of a listed package or bundle's tree.</summary>
-    internal static SubjectNode PackageRoot(LoadedPackage package) => new(null, new NodeSubject.Package(PackageFolderInfo.RootOf(package)));
+    internal static BrowseNode PackageRoot(LoadedPackage package) => new(null, new NodeSubject.Package(PackageFolderInfo.RootOf(package)));
 
     /// <summary>The folder's folders, then its files. An assembly file is the root of that assembly's tree,
     /// read out of the package now, so that it shows as the assembly it is; any other file is shown as a
@@ -13,7 +13,7 @@ internal sealed partial class SubjectNode
         var package = folder.Package;
         var children = new List<BrowseNode>();
         foreach (var child in folder.Folder.Folders)
-            children.Add(new SubjectNode(this, new NodeSubject.Package(MergedFolder(package, child))));
+            children.Add(new BrowseNode(this, new NodeSubject.Package(MergedFolder(package, child))));
         foreach (var file in folder.Folder.Files)
             children.Add(FileNode(package, file));
         return children.ToArray();
@@ -43,7 +43,7 @@ internal sealed partial class SubjectNode
     {
         var assembly = PackageContents.IsAssemblyName(file.Name) ? package.FindAssembly(file) : null;
         if (assembly == null)
-            return new SubjectNode(this, new NodeSubject.PackageFile(new PackageFileInfo(package, file)));
+            return new BrowseNode(this, new NodeSubject.PackageFile(new PackageFileInfo(package, file)));
         return ModuleRoot(assembly, this);
     }
 

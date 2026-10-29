@@ -12,9 +12,9 @@ public static class MicrosoftDocs
     /// visible outside its assembly. Null for any other node.</summary>
     public static string? FindPage(BrowseNode node)
     {
-        if (node is SubjectNode subject && subject.Subject is NodeSubject.Namespace ns)
+        if (node.Subject is NodeSubject.Namespace ns)
             return FindNamespacePage(ns.Value);
-        var entity = SubjectNode.EntityOf(node);
+        var entity = BrowseNode.EntityOf(node);
         if (entity != null)
             return FindPage(entity);
         return null;

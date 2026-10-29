@@ -2,14 +2,14 @@ using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     /// <summary>The root of <paramref name="module"/>'s tree: at the top, or for one read out of a package
     /// under the folder holding its file.</summary>
-    internal static SubjectNode ModuleRoot(LoadedModule module, BrowseNode? parent) => new(parent, new NodeSubject.Module(module));
+    internal static BrowseNode ModuleRoot(LoadedModule module, BrowseNode? parent) => new(parent, new NodeSubject.Module(module));
 
     /// <summary>The root of a listed file that could not be read, without children, showing why.</summary>
-    internal static SubjectNode FailedRoot(FailedAssembly failed) => new(null, new NodeSubject.FailedAssembly(failed));
+    internal static BrowseNode FailedRoot(FailedAssembly failed) => new(null, new NodeSubject.FailedAssembly(failed));
 
     /// <summary>The metadata, the debug metadata when there is some, the references and the resources,
     /// then every namespace a type is in or a name nests in, flat and sorted by name, each knowing the
@@ -21,9 +21,9 @@ internal sealed partial class SubjectNode
         var symbols = module.DebugSymbols;
         if (symbols != null)
             result.Add(MetadataFolder(module, this, symbols.File, symbols.Title));
-        result.Add(new SubjectNode(this, new NodeSubject.References(module)));
+        result.Add(new BrowseNode(this, new NodeSubject.References(module)));
         if (!file.Resources.IsEmpty)
-            result.Add(new SubjectNode(this, new NodeSubject.Resources(module)));
+            result.Add(new BrowseNode(this, new NodeSubject.Resources(module)));
 
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
         foreach (var type in module.MainModule.TopLevelTypeDefinitions)
@@ -35,7 +35,7 @@ internal sealed partial class SubjectNode
         }
         var forwardedByNamespace = ForwardedTypes.ListByNamespace(file.Metadata);
 
-        var namespaces = new Dictionary<string, SubjectNode>(StringComparer.Ordinal);
+        var namespaces = new Dictionary<string, BrowseNode>(StringComparer.Ordinal);
         var names = byNamespace.Keys
             .Union(forwardedByNamespace.Keys)
             .SelectMany(NamespaceNames.AndEnclosing)
@@ -48,7 +48,7 @@ internal sealed partial class SubjectNode
                 .Select(f => new ForwardedTypeInfo(module, f))
                 .ToList();
             var info = new NamespaceInfo(module, name, types, forwarded);
-            var node = new SubjectNode(this, new NodeSubject.Namespace(info)) { EnclosingNamespace = FindEnclosing(namespaces, name) };
+            var node = new BrowseNode(this, new NodeSubject.Namespace(info)) { EnclosingNamespace = FindEnclosing(namespaces, name) };
             namespaces.Add(name, node);
             result.Add(node);
         }
@@ -57,7 +57,7 @@ internal sealed partial class SubjectNode
 
     /// <summary>The namespace <paramref name="name"/> extends by a segment, made already, as names
     /// sort after the names they extend; null for an outermost name.</summary>
-    private static SubjectNode? FindEnclosing(Dictionary<string, SubjectNode> namespaces, string name)
+    private static BrowseNode? FindEnclosing(Dictionary<string, BrowseNode> namespaces, string name)
     {
         var enclosing = NamespaceNames.EnclosingName(name);
         if (enclosing == null)
@@ -77,7 +77,7 @@ internal sealed partial class SubjectNode
                 children.Add((type.Name, type.TypeParameterCount, node));
         }
         foreach (var forwarded in ns.Forwarded)
-            children.Add((forwarded.SortName, forwarded.Arity, new SubjectNode(this, new NodeSubject.ForwardedType(forwarded))));
+            children.Add((forwarded.SortName, forwarded.Arity, new BrowseNode(this, new NodeSubject.ForwardedType(forwarded))));
         return children
             .OrderBy(static c => c.Name, NaturalStringComparer.Instance)
             .ThenBy(static c => c.Arity)

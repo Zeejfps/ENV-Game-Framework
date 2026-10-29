@@ -145,9 +145,7 @@ public static class Analyzers
     /// entry the type it names — or null for any other node.</summary>
     public static AnalysisSymbol? Of(BrowseNode node)
     {
-        if (node is not SubjectNode subject)
-            return null;
-        return subject.Subject switch
+        return node.Subject switch
         {
             NodeSubject.TypeDefinition type => Describe(type.Definition.Symbol),
             NodeSubject.MemberDefinition member => Describe(member.Definition.Symbol),

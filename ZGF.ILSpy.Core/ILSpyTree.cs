@@ -31,11 +31,7 @@ public static class ILSpyTree
 
     /// <summary>The name ILSpy's tree gives the node standing for <paramref name="node"/>, or null
     /// for a node it has no named counterpart of.</summary>
-    public static string? NameOf(BrowseNode node) => node switch
-    {
-        SubjectNode subject => NameOf(subject.Subject),
-        _ => null,
-    };
+    public static string? NameOf(BrowseNode node) => NameOf(node.Subject);
 
     private static string? NameOf(NodeSubject subject) => subject switch
     {
@@ -123,7 +119,7 @@ public static class ILSpyTree
     public static ILSpyBookmarkInfo Describe(BrowseNode place, CodeAnchor? anchor)
     {
         var assembly = place.Assembly;
-        var entity = SubjectNode.EntityOf(place);
+        var entity = BrowseNode.EntityOf(place);
         var token = entity is null ? 0u : (uint)MetadataTokens.GetToken(entity.MetadataToken);
         if (anchor != null && anchor.Value.FilePath.Equals(assembly.FilePath))
         {
@@ -135,7 +131,7 @@ public static class ILSpyTree
         {
             token = (uint)anchor.Value.Token;
         }
-        var location = SubjectNode.EntityOf(place)?.FullName ?? NameOf(place);
+        var location = BrowseNode.EntityOf(place)?.FullName ?? NameOf(place);
         return new ILSpyBookmarkInfo(assembly.FullName, assembly.FilePath.FileName, token, entity?.FullName ?? location ?? place.Text, location,
             PathOf(place));
     }

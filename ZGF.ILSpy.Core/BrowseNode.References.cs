@@ -4,7 +4,7 @@ using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     private const string LocalFunctionMarker = ">g__";
 
@@ -23,7 +23,7 @@ internal sealed partial class SubjectNode
         module.ReadReferenceUsage();
         return module.File.AssemblyReferences
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => (BrowseNode)new SubjectNode(parent, new NodeSubject.AssemblyReference(new AssemblyReferenceInfo(module, r))))
+            .Select(r => (BrowseNode)new BrowseNode(parent, new NodeSubject.AssemblyReference(new AssemblyReferenceInfo(module, r))))
             .ToArray();
     }
 
@@ -34,7 +34,7 @@ internal sealed partial class SubjectNode
     {
         var children = new List<BrowseNode>();
         if (reference.Module.ReferenceUsage.Uses(reference.Reference.Handle))
-            children.Add(new SubjectNode(this, new NodeSubject.ReferencedTypes(reference)));
+            children.Add(new BrowseNode(this, new NodeSubject.ReferencedTypes(reference)));
         var referenced = ResolveReferenced(reference);
         if (referenced != null)
             children.AddRange(ListAssemblyReferences(referenced, this));
@@ -74,11 +74,11 @@ internal sealed partial class SubjectNode
     }
 
     /// <summary>The node of a type forwarded to another assembly, under <paramref name="parent"/>.</summary>
-    internal static SubjectNode Forwarded(LoadedModule module, BrowseNode parent, ForwardedType type) =>
+    internal static BrowseNode Forwarded(LoadedModule module, BrowseNode parent, ForwardedType type) =>
         new(parent, new NodeSubject.ForwardedType(new ForwardedTypeInfo(module, type)));
 
     /// <summary>The node of the type <paramref name="handle"/> names, used from a reference, under this node.</summary>
-    private SubjectNode UsedType(LoadedModule module, TypeReferenceHandle handle)
+    private BrowseNode UsedType(LoadedModule module, TypeReferenceHandle handle)
     {
         var metadata = module.File.Metadata;
         var reference = metadata.GetTypeReference(handle);
@@ -87,7 +87,7 @@ internal sealed partial class SubjectNode
         var label = ForwardedTypes.LabelOf(bare, arity);
         var ns = metadata.GetString(reference.Namespace);
         var info = new TypeReferenceInfo(module, handle, ns, label, QualifiedName(ns, label));
-        return new SubjectNode(this, new NodeSubject.TypeReference(info));
+        return new BrowseNode(this, new NodeSubject.TypeReference(info));
     }
 
     /// <summary>The full name of a type labelled <paramref name="label"/> listed under this node: after the
@@ -128,10 +128,10 @@ internal sealed partial class SubjectNode
             .ToArray();
     }
 
-    private SubjectNode UsedMember(LoadedModule module, MemberReferenceHandle handle, IMember declared)
+    private BrowseNode UsedMember(LoadedModule module, MemberReferenceHandle handle, IMember declared)
     {
         var info = new MemberReferenceInfo(module, handle, declared, $"{FullName}.{EntityText.Label(declared)}");
-        return new SubjectNode(this, new NodeSubject.MemberReference(info));
+        return new BrowseNode(this, new NodeSubject.MemberReference(info));
     }
 
     /// <summary>The member <paramref name="handle"/> uses as its type declares it: for an accessor, the
@@ -167,13 +167,13 @@ internal sealed partial class SubjectNode
             .ToArray();
     }
 
-    private static SubjectNode ModuleReferenceOf(LoadedModule module, BrowseNode parent, ModuleReferenceHandle handle,
+    private static BrowseNode ModuleReferenceOf(LoadedModule module, BrowseNode parent, ModuleReferenceHandle handle,
         Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> imports)
     {
         var metadata = module.File.Metadata;
         var name = metadata.GetString(metadata.GetModuleReference(handle).Name);
         var info = new ModuleReferenceInfo(module, name, IsModuleWithMetadata(metadata, name), ImportsFrom(imports, handle));
-        return new SubjectNode(parent, new NodeSubject.ModuleReference(info));
+        return new BrowseNode(parent, new NodeSubject.ModuleReference(info));
     }
 
     /// <summary>Whether the assembly's file table lists the module as one holding metadata.</summary>
@@ -229,7 +229,7 @@ internal sealed partial class SubjectNode
         return imports
             .OrderBy(i => i.Label, NaturalStringComparer.Instance)
             .ThenBy(i => i.DeclaringTypeName, NaturalStringComparer.Instance)
-            .Select(i => (BrowseNode)new SubjectNode(this, new NodeSubject.ImportedMethod(i)))
+            .Select(i => (BrowseNode)new BrowseNode(this, new NodeSubject.ImportedMethod(i)))
             .ToArray();
     }
 

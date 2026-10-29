@@ -55,15 +55,15 @@ public sealed class BrowseSession
 
     private static BrowseNode CreateRoot(LoadedAssembly assembly) => assembly switch
     {
-        FailedAssembly failed => SubjectNode.FailedRoot(failed),
-        LoadedPackage package => SubjectNode.PackageRoot(package),
+        FailedAssembly failed => BrowseNode.FailedRoot(failed),
+        LoadedPackage package => BrowseNode.PackageRoot(package),
         _ => throw new UnreachableException(),
     };
 
     internal BrowseNode RootOf(LoadedModule module)
     {
         if (module.Place == null)
-            return _moduleRoots.GetValue(module, static m => SubjectNode.ModuleRoot(m, null));
+            return _moduleRoots.GetValue(module, static m => BrowseNode.ModuleRoot(m, null));
         return RootInPackage(module, module.Place);
     }
 
@@ -75,7 +75,7 @@ public sealed class BrowseSession
             return placed;
         var folder = FindFolderNode(RootOf(place.Container), place.File.Folder);
         LoadChildren(folder);
-        return _moduleRoots.GetValue(module, m => SubjectNode.ModuleRoot(m, folder));
+        return _moduleRoots.GetValue(module, m => BrowseNode.ModuleRoot(m, folder));
     }
 
     /// <summary>The node of the folder at <paramref name="folder"/>, a path from the package's root:
@@ -98,7 +98,7 @@ public sealed class BrowseSession
     {
         foreach (var child in ChildrenOf(node))
         {
-            if (child is not SubjectNode subject || subject.Subject is not NodeSubject.Package package)
+            if (child.Subject is not NodeSubject.Package package)
                 continue;
             if (IsWithin(folder, package.Value.Folder.FullName))
                 return (child, package.Value.Folder);
@@ -257,13 +257,13 @@ public sealed class BrowseSession
 
     private void Register(BrowseNode node)
     {
-        if (node is SubjectNode subject && subject.Subject is NodeSubject.TypeDefinition type)
+        if (node.Subject is NodeSubject.TypeDefinition type)
             IndexOf(type.Definition.Module).TryAdd(type.Definition.Handle, node);
-        if (node is SubjectNode about && about.Subject is NodeSubject.MemberDefinition member)
+        if (node.Subject is NodeSubject.MemberDefinition member)
             IndexOf(member.Definition.Module).TryAdd(member.Definition.Handle, node);
-        if (node is SubjectNode root && root.Subject is NodeSubject.Module module)
+        if (node.Subject is NodeSubject.Module module)
             _moduleRoots.TryAdd(module.Value, node);
-        if (node is SubjectNode named && named.Subject is NodeSubject.Namespace ns)
+        if (node.Subject is NodeSubject.Namespace ns)
             NamespacesOf(ns.Value.Module).TryAdd(ns.Value.Name, node);
     }
 
@@ -353,7 +353,7 @@ public sealed class BrowseSession
     {
         if (_inner.TryGetValue(node, out var known))
             return known;
-        if (node is not SubjectNode subject || subject.Subject is not NodeSubject.Namespace)
+        if (node.Subject is not NodeSubject.Namespace)
             return [];
         var parent = node.Parent;
         if (parent == null || PeekChildren(parent) is not ChildrenState.Ready siblings)
@@ -369,9 +369,7 @@ public sealed class BrowseSession
     /// it and its own children, each where ILSpy sorts the full names of the types in it; else as built.</summary>
     private IReadOnlyList<BrowseNode> Nest(BrowseNode node, IReadOnlyList<BrowseNode> children)
     {
-        if (node is not SubjectNode subject)
-            return children;
-        return subject.Subject switch
+        return node.Subject switch
         {
             NodeSubject.Module => children.Where(static c => c.EnclosingNamespace == null).ToArray(),
             NodeSubject.Namespace => Interleave(InnerNamespaces(node), children),
@@ -406,9 +404,7 @@ public sealed class BrowseSession
     /// <summary>The name a namespace's type is sorted under, as its reflection name ends: <c>List`1</c>.</summary>
     private static string ReflectionNameOf(BrowseNode child)
     {
-        if (child is not SubjectNode subject)
-            throw new UnreachableException();
-        var (name, arity) = subject.Subject switch
+        var (name, arity) = child.Subject switch
         {
             NodeSubject.TypeDefinition type => (type.Definition.Symbol.Name, type.Definition.Symbol.TypeParameterCount),
             NodeSubject.ForwardedType forwarded => (forwarded.Value.SortName, forwarded.Value.Arity),
@@ -485,9 +481,7 @@ public sealed class BrowseSession
     /// <summary>The metadata <paramref name="node"/> is the folder of; null for a node of anything else.</summary>
     private static MetadataFolderInfo? MetadataOf(BrowseNode node)
     {
-        if (node is not SubjectNode subject)
-            return null;
-        if (subject.Subject is not NodeSubject.Metadata metadata)
+        if (node.Subject is not NodeSubject.Metadata metadata)
             return null;
         return metadata.Value;
     }
@@ -496,10 +490,10 @@ public sealed class BrowseSession
     /// when it lists none.</summary>
     private BrowseNode? FindTable(BrowseNode folder, TableIndex table)
     {
-        var tables = ChildrenOf(folder).FirstOrDefault(static c => c is SubjectNode subject && subject.Subject is NodeSubject.MetadataTables);
+        var tables = ChildrenOf(folder).FirstOrDefault(static c => c.Subject is NodeSubject.MetadataTables);
         if (tables == null)
             return null;
-        return ChildrenOf(tables).FirstOrDefault(c => c is SubjectNode subject && subject.Subject is NodeSubject.MetadataTable part
+        return ChildrenOf(tables).FirstOrDefault(c => c.Subject is NodeSubject.MetadataTable part
             && part.Value.ListedTable == table);
     }
 

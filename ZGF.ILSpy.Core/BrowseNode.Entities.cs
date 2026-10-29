@@ -2,7 +2,7 @@ using ICSharpCode.Decompiler.TypeSystem;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed partial class SubjectNode
+public sealed partial class BrowseNode
 {
     /// <summary>Whether the type's metadata lists anything the node would: a base type, an interface,
     /// a nested type, a member, or types that may derive from it.</summary>
@@ -23,9 +23,9 @@ internal sealed partial class SubjectNode
         var module = definition.Module;
         var result = new List<BrowseNode>();
         if (type.DirectBaseTypes.Any())
-            result.Add(new SubjectNode(this, new NodeSubject.BaseTypes(definition)));
+            result.Add(new BrowseNode(this, new NodeSubject.BaseTypes(definition)));
         if (DerivedTypes.CanHave(type))
-            result.Add(new SubjectNode(this, new NodeSubject.DerivedTypes(definition)));
+            result.Add(new BrowseNode(this, new NodeSubject.DerivedTypes(definition)));
 
         foreach (var nested in type.NestedTypes.OrderBy(t => t.Name, NaturalStringComparer.Instance))
             AddIfListed(result, ForType(module, this, nested));
@@ -58,7 +58,7 @@ internal sealed partial class SubjectNode
 
     private BrowseNode[] ListBaseTypes(DefinedType type) =>
         type.Symbol.DirectBaseTypes
-            .Select(t => (BrowseNode)new SubjectNode(this, new NodeSubject.BaseType(BaseTypeInfo.Of(type.Module, t))))
+            .Select(t => (BrowseNode)new BrowseNode(this, new NodeSubject.BaseType(BaseTypeInfo.Of(type.Module, t))))
             .ToArray();
 
     /// <summary>The types in scope of <paramref name="type"/> that derive from it directly, as
@@ -70,7 +70,7 @@ internal sealed partial class SubjectNode
         {
             var info = DerivedTypeInfo.Of(module, derived);
             if (info != null)
-                result.Add(new SubjectNode(parent, new NodeSubject.DerivedType(info)));
+                result.Add(new BrowseNode(parent, new NodeSubject.DerivedType(info)));
         }
         return result.ToArray();
     }

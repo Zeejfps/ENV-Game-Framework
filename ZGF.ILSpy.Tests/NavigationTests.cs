@@ -7,7 +7,7 @@ namespace ZGF.ILSpy.Tests;
 public sealed class NavigationTests
 {
     private static MetadataTableInfo TableOf(BrowseNode node) =>
-        Assert.IsType<NodeSubject.MetadataTable>(Assert.IsType<SubjectNode>(node).Subject).Value;
+        Assert.IsType<NodeSubject.MetadataTable>(node.Subject).Value;
 
     [Theory]
     [InlineData("N:ZGF.ILSpy.Tests.Fixtures", "ZGF.ILSpy.Tests.Fixtures")]
