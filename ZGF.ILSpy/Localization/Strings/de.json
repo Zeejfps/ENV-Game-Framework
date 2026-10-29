@@ -657,6 +657,7 @@
   "error.compare": "{left} kann nicht mit {right} verglichen werden",
   "error.import_bookmarks": "Lesezeichen aus {file} können nicht importiert werden",
   "error.bookmarks_not_found": "Einige Lesezeichen aus {file} wurden nicht gefunden und ausgelassen",
+  "error.bookmarks_unreadable": "Einige Lesezeichen in {file} konnten nicht gelesen werden und wurden ausgelassen",
   "error.theme": "Probleme im Design {file}",
   "error.themes_folder": "Der Designordner kann nicht angelegt werden",
   "error.custom_theme": "Das angepasste Design kann nicht geschrieben werden",

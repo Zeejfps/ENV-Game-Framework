@@ -270,8 +270,8 @@ internal sealed record BookmarkJson(
     }
 }
 
-/// <summary>The real ILSpy's bookmarks file as it can hold them.</summary>
-internal sealed record BookmarkFileJson(int Version, List<BookmarkJson?>? Bookmarks);
+/// <summary>The real ILSpy's bookmarks file as it can hold them, each bookmark read on its own.</summary>
+internal sealed record BookmarkFileJson(int Version, List<JsonElement>? Bookmarks);
 
 /// <summary>What the read shapes share.</summary>
 internal static class SettingsJson

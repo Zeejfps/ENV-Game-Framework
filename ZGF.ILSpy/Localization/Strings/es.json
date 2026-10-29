@@ -657,6 +657,7 @@
   "error.compare": "No se puede comparar {left} con {right}",
   "error.import_bookmarks": "No se pueden importar marcadores de {file}",
   "error.bookmarks_not_found": "Algunos marcadores de {file} no se encontraron y se omitieron",
+  "error.bookmarks_unreadable": "Algunos marcadores de {file} no se pudieron leer y se omitieron",
   "error.theme": "Problemas en el tema {file}",
   "error.themes_folder": "No se puede crear la carpeta de temas",
   "error.custom_theme": "No se puede escribir el tema personalizado",

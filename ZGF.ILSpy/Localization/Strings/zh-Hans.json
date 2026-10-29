@@ -657,6 +657,7 @@
   "error.compare": "无法比较 {left} 与 {right}",
   "error.import_bookmarks": "无法从 {file} 导入书签",
   "error.bookmarks_not_found": "{file} 中的部分书签未找到，已略过",
+  "error.bookmarks_unreadable": "{file} 中的部分书签无法读取，已略过",
   "error.theme": "主题 {file} 有问题",
   "error.themes_folder": "无法创建主题文件夹",
   "error.custom_theme": "无法写入自定义主题",

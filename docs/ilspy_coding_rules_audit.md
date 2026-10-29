@@ -63,7 +63,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Boundaries
 
-- Settings values still deserialized straight into their domain types: `DockLayout` (checked after by `IsWhole`/`RepeatsAnId`), `DisplayOptions` (`CodeFont.Family`/`Path` can be null), `SavedFilterState` (null `uint[]` values), `BookmarkViewState` (null tree-path strings). An imported ILSpy bookmarks file fails whole on one bad bookmark.
+- Settings values still deserialized straight into their domain types: `DockLayout` (checked after by `IsWhole`/`RepeatsAnId`), `DisplayOptions` (`CodeFont.Family`/`Path` can be null), `SavedFilterState` (null `uint[]` values), `BookmarkViewState` (null tree-path strings).
 - Persisted decompiler `Toggles` are a raw `ImmutableSortedDictionary<string,bool>`; stale keys make `ProducesSameCode` false and cause needless re-decompiles. `DecompilerToggle`'s public constructor lets `Apply` hit `KeyNotFoundException`.
 - `FeedJson`: `ReadBool` skips the kind check, `severity.GetInt32()` can throw outside the documented `InvalidDataException`, URLs stay strings, and `NuGetSource`'s public constructor bypasses `FromUrl` validation.
 - `NUGET_PACKAGES` is used as given (`NuGetConfig.cs:148`), while the config value goes through `GetFullPath`.

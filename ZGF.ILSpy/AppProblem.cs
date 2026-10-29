@@ -52,6 +52,10 @@ public abstract record AppProblem
 
     public sealed record BookmarksNotImported(string File, string Reason) : AppProblem;
 
+    /// <summary>The entries of <see cref="File"/> that <see cref="Reasons"/> describes are not bookmarks
+    /// at all, so they were left out.</summary>
+    public sealed record ImportedBookmarksUnreadable(string File, IReadOnlyList<string> Reasons) : AppProblem;
+
     /// <summary>The places of the bookmarks <see cref="Lost"/> describes, read from <see cref="File"/>, were not found.</summary>
     public sealed record ImportedBookmarksLost(string File, IReadOnlyList<string> Lost) : AppProblem;
 

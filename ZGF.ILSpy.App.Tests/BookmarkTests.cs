@@ -620,6 +620,22 @@ public sealed class BookmarkTests : IDisposable
     }
 
     [Fact]
+    public void A_bookmark_in_a_file_that_is_not_one_at_all_is_left_out_alone_and_reported()
+    {
+        var path = ILSpyFile("""{ "Name": "Broken", "Token": "not a number" }, """ +
+                             Record("Kept", "Body", TokenOf("Third"), 0, 1, Fixtures + ".Outline"));
+        var d = new AppStateDriver();
+
+        ImportBookmarks(d.AppState, path);
+        d.Settle();
+
+        Assert.Equal("Kept", Assert.Single(d.AppState.Bookmarks.Items).Name);
+        var words = Assert.Single(d.AppState.Errors.Entries).Words();
+        Assert.Equal("Some bookmarks in ILSpy.Bookmarks.json could not be read and were left out", words.Title);
+        Assert.StartsWith("#1: ", words.Details);
+    }
+
+    [Fact]
     public void A_bookmark_whose_tree_path_is_stale_is_placed_by_its_token_and_one_with_no_file_is_reported()
     {
         var gone = Record("Gone", "Token", TokenOf("Third"), 0, 1, Fixtures + ".Outline", _temp.PathOf("gone.dll"));

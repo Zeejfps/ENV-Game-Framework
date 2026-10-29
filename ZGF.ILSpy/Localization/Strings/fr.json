@@ -657,6 +657,7 @@
   "error.compare": "Impossible de comparer {left} avec {right}",
   "error.import_bookmarks": "Impossible d’importer les signets de {file}",
   "error.bookmarks_not_found": "Certains signets de {file} sont introuvables et ont été ignorés",
+  "error.bookmarks_unreadable": "Certains signets de {file} sont illisibles et ont été ignorés",
   "error.theme": "Problèmes dans le thème {file}",
   "error.themes_folder": "Impossible de créer le dossier des thèmes",
   "error.custom_theme": "Impossible d’écrire le thème personnalisé",

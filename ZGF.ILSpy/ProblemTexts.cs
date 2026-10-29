@@ -51,6 +51,7 @@ public static class ProblemTexts
         AppProblem.BookmarkGone p => (t.ErrorGoToBookmark(p.Bookmark), Failure(p.Error, t.ErrorNoLongerThere(p.Place))),
         AppProblem.BookmarksNotExported p => (t.ErrorExportBookmarks, p.Reason),
         AppProblem.BookmarksNotImported p => (t.ErrorImportBookmarks(p.File), p.Reason),
+        AppProblem.ImportedBookmarksUnreadable p => (t.ErrorBookmarksUnreadable(p.File), string.Join(Environment.NewLine, p.Reasons)),
         AppProblem.ImportedBookmarksLost p => (t.ErrorBookmarksNotFound(p.File), string.Join(Environment.NewLine, p.Lost)),
         AppProblem.BookmarksLeftOut p => (t.ErrorDuplicateBookmarks(p.Count), ""),
         AppProblem.ComparisonFailed p => (t.ErrorCompare(p.Left, p.Right), p.Error.ToString()),

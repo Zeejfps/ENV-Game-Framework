@@ -657,6 +657,7 @@
   "error.compare": "Não é possível comparar {left} com {right}",
   "error.import_bookmarks": "Não é possível importar indicadores de {file}",
   "error.bookmarks_not_found": "Alguns indicadores de {file} não foram encontrados e foram ignorados",
+  "error.bookmarks_unreadable": "Alguns indicadores de {file} não puderam ser lidos e foram ignorados",
   "error.theme": "Problemas no tema {file}",
   "error.themes_folder": "Não é possível criar a pasta de temas",
   "error.custom_theme": "Não é possível gravar o tema personalizado",

@@ -87,8 +87,9 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
     }
 
     /// <summary>The bookmarks in the file at <paramref name="path"/> that name an assembly file, as
-    /// ILSpy keeps them; null with why when the file cannot be read.</summary>
-    public static List<BookmarkRecord>? Read(string path, out string? error)
+    /// ILSpy keeps them, each read on its own, so one that is not a bookmark at all is left out alone,
+    /// with why; null with why when the file cannot be read.</summary>
+    public static BookmarksRead? Read(string path, out string? error)
     {
         try
         {
@@ -96,7 +97,7 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
             if (file is { Bookmarks: { } bookmarks })
             {
                 error = null;
-                return bookmarks.Select(static b => b?.Parse()).OfType<BookmarkRecord>().ToList();
+                return ReadEach(bookmarks);
             }
             error = $"{path}{Environment.NewLine}Not a bookmarks file.";
             return null;
@@ -107,4 +108,27 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
             return null;
         }
     }
+
+    private static BookmarksRead ReadEach(List<JsonElement> bookmarks)
+    {
+        var read = new List<BookmarkRecord>();
+        var unreadable = new List<string>();
+        for (var i = 0; i < bookmarks.Count; i++)
+        {
+            try
+            {
+                if (bookmarks[i].Deserialize(AppSettingsJson.Default.BookmarkJson)?.Parse() is { } bookmark)
+                    read.Add(bookmark);
+            }
+            catch (Exception e) when (e is JsonException or NotSupportedException)
+            {
+                unreadable.Add($"#{i + 1}: {e.Message}");
+            }
+        }
+        return new BookmarksRead(read, unreadable);
+    }
 }
+
+/// <summary>What reading a bookmarks file gave: the bookmarks naming an assembly file, and for each
+/// entry that is not a bookmark at all, its position from 1 and why.</summary>
+public sealed record BookmarksRead(List<BookmarkRecord> Bookmarks, IReadOnlyList<string> Unreadable);

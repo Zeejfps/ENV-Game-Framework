@@ -118,12 +118,15 @@ public static class Bookmarks
     public static async void ImportBookmarks(AppState appState, string path)
     {
         var file = Path.GetFileName(path);
-        var records = BookmarkFile.Read(path, out var error);
-        if (records == null)
+        var read = BookmarkFile.Read(path, out var error);
+        if (read == null)
         {
             appState.ReportError(new AppProblem.BookmarksNotImported(file, error ?? ""));
             return;
         }
+        if (read.Unreadable.Count > 0)
+            appState.ReportError(new AppProblem.ImportedBookmarksUnreadable(file, read.Unreadable));
+        var records = read.Bookmarks;
         appState.Imports.StartFinding();
         var found = await Background.Run(() => FindPlaces(appState, records));
         appState.Imports.StopFinding();

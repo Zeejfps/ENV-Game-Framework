@@ -672,6 +672,7 @@
   "error.compare": "Cannot compare {left} with {right}",
   "error.import_bookmarks": "Cannot import bookmarks from {file}",
   "error.bookmarks_not_found": "Some bookmarks from {file} were not found and were left out",
+  "error.bookmarks_unreadable": "Some bookmarks in {file} could not be read and were left out",
   "error.theme": "Problems in the theme {file}",
   "error.themes_folder": "Cannot make the themes folder",
   "error.custom_theme": "Cannot write the custom theme",
