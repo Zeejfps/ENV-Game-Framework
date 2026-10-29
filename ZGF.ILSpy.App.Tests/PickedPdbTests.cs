@@ -2,6 +2,7 @@ using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -17,7 +18,7 @@ public sealed class PickedPdbTests
         var copy = CopyFixtureWithoutPdb(temp);
         var app = new AppDriver(width: 1600f, settings: temp.Settings());
         OpenAssembly(app.AppState, copy);
-        app.RunUntil(() => app.AppState.IsListed(copy));
+        app.RunUntil(() => app.AppState.IsListed(PathOf(copy)));
         app.Settle(2);
         Assert.Null(OpenAssemblyOf(app.Driver).DebugSymbols);
         app.Frames.FilePicker.Answer = FixturePdb;
@@ -43,7 +44,7 @@ public sealed class PickedPdbTests
         RestoreActiveAssemblyList(next.AppState);
         next.Settle();
 
-        Assert.Equal(FixturePdb, Assert.Single(temp.Settings().AssemblyLists).Pdbs![copy]);
+        Assert.Equal(FixturePdb, Assert.Single(temp.Settings().AssemblyLists).Pdbs![PathOf(copy)]);
         Assert.Equal(FixturePdb, OpenAssemblyOf(next).DebugSymbols!.SourceFileName);
     }
 
@@ -86,7 +87,7 @@ public sealed class PickedPdbTests
     {
         var d = new AppStateDriver(temp.Settings());
         OpenAssembly(d.AppState, copy);
-        d.RunUntil(() => d.AppState.IsListed(copy));
+        d.RunUntil(() => d.AppState.IsListed(PathOf(copy)));
         d.Settle();
         return d;
     }

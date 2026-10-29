@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>An assembly of the running .NET runtime, offered to open from a picker.</summary>
-public sealed record RuntimeAssembly(string Name, string Framework, string FilePath);
+public sealed record RuntimeAssembly(string Name, string Framework, AssemblyPath FilePath);
 
 /// <summary>The running .NET runtime's shared framework directories and the assemblies in them; for a
 /// native build, which runs on no shared framework, those of the newest installed runtime. Each is
@@ -128,8 +128,10 @@ public static class RuntimeAssemblies
         {
             var name = Path.GetFileNameWithoutExtension(file);
             if (seen.Contains(name) || !IsManagedAssembly(file)) continue;
+            var path = AssemblyPath.Parse(file);
+            if (path == null) continue;
             seen.Add(name);
-            result.Add(new RuntimeAssembly(name, framework, file));
+            result.Add(new RuntimeAssembly(name, framework, path));
         }
         result.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
         return result.ToImmutableArray();

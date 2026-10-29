@@ -16,14 +16,14 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     /// <param name="package">The package the main assembly was read out of, whose folders are looked
     /// in first, from the main assembly's outwards; null for a file on disk.</param>
-    public AssemblyResolver(AssemblyList list, string mainPath, string? targetFramework, AssemblyPackage? package)
+    public AssemblyResolver(AssemblyList list, AssemblyPath mainPath, string? targetFramework, AssemblyPackage? package)
     {
         _list = list;
-        _mainPath = mainPath;
+        _mainPath = mainPath.Text;
         _package = package;
         _targetFramework = targetFramework;
         _fallback = new Lazy<UniversalAssemblyResolver>(() =>
-            new UniversalAssemblyResolver(mainPath, false, targetFramework, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
+            new UniversalAssemblyResolver(mainPath.Text, false, targetFramework, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
     }
 
     public MetadataFile? Resolve(IAssemblyReference reference) => ResolveAssembly(reference)?.File;
@@ -60,7 +60,7 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         return _list.FindKnown(reference, exactOrNewer: false);
     }
 
-    public string? FindFile(IAssemblyReference reference)
+    public AssemblyPath? FindFile(IAssemblyReference reference)
     {
         foreach (var directory in ListNearbyDirectories())
         {
@@ -76,7 +76,10 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         }
         try
         {
-            return _fallback.Value.FindAssemblyFile(reference);
+            var fallback = _fallback.Value.FindAssemblyFile(reference);
+            if (fallback == null)
+                return null;
+            return AssemblyPath.Parse(fallback);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
         {
@@ -86,11 +89,14 @@ internal sealed class AssemblyResolver : IAssemblyResolver
 
     /// <summary>The running runtime's file of <paramref name="name"/>; null when it has none, or its
     /// directories cannot be listed for now.</summary>
-    private static string? FindInRuntime(string name)
+    private static AssemblyPath? FindInRuntime(string name)
     {
         try
         {
-            return RuntimeAssemblies.Find(name);
+            var found = RuntimeAssemblies.Find(name);
+            if (found == null)
+                return null;
+            return AssemblyPath.Parse(found);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -108,28 +114,28 @@ internal sealed class AssemblyResolver : IAssemblyResolver
         yield return directory;
         if (_package == null)
             yield break;
-        while (directory.Length > _package.FilePath.Length)
+        while (directory.Length > _package.FilePath.Text.Length)
         {
             directory = Path.GetDirectoryName(directory)!;
             yield return directory;
         }
     }
 
-    private string? FindIn(string directory, string name)
+    private AssemblyPath? FindIn(string directory, string name)
     {
         foreach (var extension in Extensions)
         {
-            var candidate = Path.Combine(directory, name + extension);
-            if (Exists(candidate))
+            var candidate = AssemblyPath.Parse(Path.Combine(directory, name + extension));
+            if (candidate != null && Exists(candidate))
                 return candidate;
         }
         return null;
     }
 
     /// <summary>Whether there is a file at <paramref name="path"/>, on disk or in the main assembly's package.</summary>
-    private bool Exists(string path)
+    private bool Exists(AssemblyPath path)
     {
-        if (File.Exists(path))
+        if (File.Exists(path.Text))
             return true;
         if (_package == null)
             return false;
@@ -140,7 +146,8 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     {
         var directory = Path.GetDirectoryName(mainModule.FileName);
         if (directory is null) return null;
-        var path = Path.Combine(directory, moduleName);
+        var path = AssemblyPath.Parse(Path.Combine(directory, moduleName));
+        if (path == null) return null;
         return Exists(path) ? _list.TryLoadAssembly(path)?.File : null;
     }
 

@@ -5,6 +5,7 @@ using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Comparisons;
 using static ZGF.ILSpy.Docking;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -21,13 +22,13 @@ public sealed class ComparisonTests
     private static AppStateDriver OpenBoth()
     {
         var d = new AppStateDriver();
-        OpenAssemblies(d.AppState, [LeftPath, RightPath]);
+        OpenAssemblies(d.AppState, [PathOf(LeftPath), PathOf(RightPath)]);
         d.RunUntil(() => d.AppState.Assemblies.Assemblies.Count == 2);
         d.Settle();
         return d;
     }
 
-    private static LoadedModule Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath == path);
+    private static LoadedModule Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath.Text == path);
 
     /// <summary>Compares <paramref name="assembly"/> with <paramref name="other"/> and waits for the comparison.</summary>
     private static AssemblyComparison Compare(AppStateDriver d, string assembly, string other)
@@ -66,7 +67,7 @@ public sealed class ComparisonTests
 
         var comparison = Compare(d, RightPath, LeftPath);
 
-        Assert.Equal(RightPath, comparison.LeftPath);
+        Assert.Equal(RightPath, comparison.LeftPath.Text);
         Assert.Equal(RightName, comparison.Diff!.LeftName);
     }
 
@@ -115,7 +116,7 @@ public sealed class ComparisonTests
         var shown = d.AppState.Tabs.Active!;
         Assert.NotSame(comparisonTab, shown);
         Assert.Equal("Account", shown.Node!.Text);
-        Assert.Equal(RightPath, shown.Node.Assembly.FilePath);
+        Assert.Equal(RightPath, shown.Node.Assembly.FilePath.Text);
         Assert.Same(comparison, comparisonTab.Comparison);
     }
 
@@ -158,7 +159,7 @@ public sealed class ComparisonTests
 
         var picker = app.Ui.ComparisonPicker;
         Assert.True(picker.IsOpen);
-        Assert.Equal(LeftPath, picker.Compared!.FilePath);
+        Assert.Equal(LeftPath, picker.Compared!.FilePath.Text);
         Assert.True(app.Frames.Drew("Compare " + LeftName + " with"));
         Assert.True(app.Frames.Drew(RightName));
     }
@@ -191,7 +192,7 @@ public sealed class ComparisonTests
         app.RunUntil(() => comparison.Diff!.LeftName == RightName);
         app.Settle(2);
 
-        Assert.Equal(LeftPath, comparison.RightPath);
+        Assert.Equal(LeftPath, comparison.RightPath.Text);
         Assert.True(app.Frames.Drew(RightName + "  →  " + LeftName));
         Assert.True(app.Frames.Drew("4 removed"));
     }
@@ -223,7 +224,7 @@ public sealed class ComparisonTests
     private static AppDriver OpenBothOnScreen()
     {
         var app = new AppDriver(width: 1400f);
-        OpenAssemblies(app.AppState, [LeftPath, RightPath]);
+        OpenAssemblies(app.AppState, [PathOf(LeftPath), PathOf(RightPath)]);
         app.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         app.Settle(2);
         return app;

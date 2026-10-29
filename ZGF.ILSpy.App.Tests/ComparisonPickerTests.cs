@@ -1,5 +1,6 @@
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -12,13 +13,13 @@ public sealed class ComparisonPickerTests
     private static AppStateDriver OpenThree()
     {
         var d = AppStateDriver.Opened();
-        OpenAssemblies(d.AppState, [OlderPath, NewerPath]);
+        OpenAssemblies(d.AppState, [PathOf(OlderPath), PathOf(NewerPath)]);
         d.RunUntil(() => d.AppState.Assemblies.Assemblies.Count == 3);
         d.Settle();
         return d;
     }
 
-    private static LoadedModule Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath == path);
+    private static LoadedModule Opened(AppStateDriver d, string path) => d.AppState.Assemblies.Assemblies.Single(a => a.FilePath.Text == path);
 
     private static ComparisonPicker OpenPicker(AppStateDriver d, string path)
     {
@@ -31,7 +32,7 @@ public sealed class ComparisonPickerTests
     private static List<string> ShownPaths(ComparisonPicker picker)
     {
         return picker.Filtered
-            .Select(static a => a.FilePath)
+            .Select(static a => a.FilePath.Text)
             .ToList();
     }
 
@@ -43,7 +44,7 @@ public sealed class ComparisonPickerTests
         var picker = OpenPicker(d, OlderPath);
 
         Assert.Equal([NewerPath, AppStateDriver.FixturePath], ShownPaths(picker));
-        Assert.Equal(NewerPath, picker.Selected!.FilePath);
+        Assert.Equal(NewerPath, picker.Selected!.FilePath.Text);
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public sealed class ComparisonPickerTests
         picker.Filter = "Tests";
         picker.Update(d.AppState.Assemblies);
 
-        Assert.Equal(AppStateDriver.FixturePath, picker.Selected!.FilePath);
+        Assert.Equal(AppStateDriver.FixturePath, picker.Selected!.FilePath.Text);
     }
 
     [Fact]

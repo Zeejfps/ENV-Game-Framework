@@ -1,3 +1,4 @@
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Comparison;
 
 namespace ZGF.ILSpy;
@@ -11,15 +12,15 @@ public sealed class AssemblyComparison
     private readonly CancellationTokenSource _open = new();
     private CancellationTokenSource? _work;
 
-    public AssemblyComparison(string leftPath, string rightPath)
+    public AssemblyComparison(AssemblyPath leftPath, AssemblyPath rightPath)
     {
         LeftPath = leftPath;
         RightPath = rightPath;
     }
 
-    public string LeftPath { get; private set; }
+    public AssemblyPath LeftPath { get; private set; }
 
-    public string RightPath { get; private set; }
+    public AssemblyPath RightPath { get; private set; }
 
     public ApiScope Scope { get; private set; } = ApiScope.PublicApi;
 

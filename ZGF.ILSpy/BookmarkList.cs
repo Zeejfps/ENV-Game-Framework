@@ -22,7 +22,7 @@ public sealed class Bookmark
         ViewState = viewState;
         Enabled = enabled;
         Location = $"{place.Text}:{line + 1}";
-        Module = Path.GetFileName(place.FilePath);
+        Module = place.FilePath.FileName;
     }
 
     /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>.</summary>

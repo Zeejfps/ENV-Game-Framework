@@ -74,7 +74,7 @@ public static class TypeCards
             CanHaveDerived: DerivedTypesNode.CanHave(type));
     }
 
-    private static string AssemblyPathOf(ITypeDefinition type) => type.ParentModule!.MetadataFile!.FileName;
+    private static AssemblyPath AssemblyPathOf(ITypeDefinition type) => AssemblyPath.Of(type.ParentModule!.MetadataFile!);
 
     private static TypeStereotype StereotypeOf(ITypeDefinition type)
     {
@@ -147,7 +147,7 @@ public static class TypeCards
     {
         var definition = ancestor.GetDefinition();
         if (definition == null)
-            return new InheritedGroup(EntityText.ShortTypeName(ancestor), "", []);
+            return new InheritedGroup(EntityText.ShortTypeName(ancestor), null, []);
         var members = definition.Fields
             .Concat<IMember>(definition.Properties)
             .Concat(ListMethods(definition))

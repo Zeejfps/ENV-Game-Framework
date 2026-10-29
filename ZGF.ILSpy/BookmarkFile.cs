@@ -48,7 +48,7 @@ public sealed record BookmarkViewState(
 public sealed record BookmarkRecord(
     string Name,
     bool Enabled,
-    string FileName,
+    AssemblyPath FileName,
     string AssemblyFullName,
     string ModuleName,
     uint Token,

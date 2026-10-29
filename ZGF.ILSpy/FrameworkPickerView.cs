@@ -91,7 +91,7 @@ internal static class FrameworkPickerView
         for (var i = list.First; i < list.End; i++)
         {
             var assembly = picker.Filtered[i];
-            using (ui.Id(assembly.FilePath))
+            using (ui.Id(assembly.FilePath.Text))
             using (var row = list.Row(i, ui.GetId("row"), new Box { Gap = theme.GapTight }))
             {
                 var nameColor = row.Selected ? theme.SelectionText : theme.Text;

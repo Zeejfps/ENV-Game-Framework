@@ -5,8 +5,8 @@ namespace ZGF.ILSpy;
 /// <summary>A named assembly list as the settings keep it: its name, its assemblies' file paths, in
 /// order, the symbols analyzed in it, by assembly path the PDBs picked for its assemblies and the
 /// frameworks picked to resolve their references against, and the documents it had open.</summary>
-public sealed record AssemblyListRecord(string Name, List<string> Assemblies, List<CodeAnchor>? Analyzed = null,
-    Dictionary<string, string>? Pdbs = null, Dictionary<string, string>? Frameworks = null, DocumentsRecord? Documents = null);
+public sealed record AssemblyListRecord(string Name, List<AssemblyPath> Assemblies, List<CodeAnchor>? Analyzed = null,
+    Dictionary<AssemblyPath, string>? Pdbs = null, Dictionary<AssemblyPath, string>? Frameworks = null, DocumentsRecord? Documents = null);
 
 /// <summary>
 /// The user's named assembly lists and which one is open. Names are never empty and never the same
@@ -34,16 +34,16 @@ public sealed class SavedAssemblyLists
     public string Active => _active.Name;
 
     /// <summary>The file paths of the open list's assemblies.</summary>
-    public IReadOnlyList<string> ActivePaths => _active.Paths;
+    public IReadOnlyList<AssemblyPath> ActivePaths => _active.Paths;
 
     /// <summary>The symbols analyzed in the open list.</summary>
     public IReadOnlyList<CodeAnchor> ActiveAnalyses => _active.Analyzed;
 
     /// <summary>The PDBs picked for the open list's assemblies, by assembly path.</summary>
-    public IReadOnlyDictionary<string, string> ActivePdbs => _active.Pdbs;
+    public IReadOnlyDictionary<AssemblyPath, string> ActivePdbs => _active.Pdbs;
 
     /// <summary>The frameworks picked for the open list's assemblies, by assembly path.</summary>
-    public IReadOnlyDictionary<string, string> ActiveFrameworks => _active.Frameworks;
+    public IReadOnlyDictionary<AssemblyPath, string> ActiveFrameworks => _active.Frameworks;
 
     /// <summary>The documents the open list had open when they were last kept with it, or null for none.</summary>
     public DocumentsRecord? ActiveDocuments => _active.Documents;
@@ -80,9 +80,9 @@ public sealed class SavedAssemblyLists
         _lists.Add(list);
     }
 
-    private static SavedList CreateEmpty(string name) => new(name, new List<string>(), new List<CodeAnchor>());
+    private static SavedList CreateEmpty(string name) => new(name, new List<AssemblyPath>(), new List<CodeAnchor>());
 
-    private static void CopyPicks(IReadOnlyDictionary<string, string>? picks, Dictionary<string, string> into)
+    private static void CopyPicks(IReadOnlyDictionary<AssemblyPath, string>? picks, Dictionary<AssemblyPath, string> into)
     {
         if (picks == null)
             return;
@@ -109,17 +109,17 @@ public sealed class SavedAssemblyLists
     }
 
     /// <summary>A list's picks as the settings keep them; null for none, which leaves them out.</summary>
-    private static Dictionary<string, string>? SavePicks(Dictionary<string, string> picks)
+    private static Dictionary<AssemblyPath, string>? SavePicks(Dictionary<AssemblyPath, string> picks)
     {
         if (picks.Count == 0)
             return null;
-        return new Dictionary<string, string>(picks);
+        return new Dictionary<AssemblyPath, string>(picks);
     }
 
     public bool Contains(string name) => Find(name) != null;
 
     /// <summary>The file paths of the assemblies in the list named <paramref name="name"/>; none when there is no such list.</summary>
-    public IReadOnlyList<string> PathsOf(string name)
+    public IReadOnlyList<AssemblyPath> PathsOf(string name)
     {
         var list = Find(name);
         if (list == null)
@@ -141,7 +141,7 @@ public sealed class SavedAssemblyLists
     }
 
     /// <summary>Records <paramref name="paths"/> as the open list's assemblies.</summary>
-    public void RememberActive(IReadOnlyList<string> paths)
+    public void RememberActive(IReadOnlyList<AssemblyPath> paths)
     {
         if (_active.Paths.SequenceEqual(paths))
             return;
@@ -167,18 +167,18 @@ public sealed class SavedAssemblyLists
     }
 
     /// <summary>Records <paramref name="pdbs"/> as the PDBs picked for the open list's assemblies.</summary>
-    public void RememberActivePdbs(IReadOnlyDictionary<string, string> pdbs)
+    public void RememberActivePdbs(IReadOnlyDictionary<AssemblyPath, string> pdbs)
     {
         RememberPicks(_active.Pdbs, pdbs);
     }
 
     /// <summary>Records <paramref name="frameworks"/> as the frameworks picked for the open list's assemblies.</summary>
-    public void RememberActiveFrameworks(IReadOnlyDictionary<string, string> frameworks)
+    public void RememberActiveFrameworks(IReadOnlyDictionary<AssemblyPath, string> frameworks)
     {
         RememberPicks(_active.Frameworks, frameworks);
     }
 
-    private void RememberPicks(Dictionary<string, string> kept, IReadOnlyDictionary<string, string> picks)
+    private void RememberPicks(Dictionary<AssemblyPath, string> kept, IReadOnlyDictionary<AssemblyPath, string> picks)
     {
         if (HasPicks(kept, picks))
             return;
@@ -187,7 +187,7 @@ public sealed class SavedAssemblyLists
         Revision++;
     }
 
-    private static bool HasPicks(Dictionary<string, string> kept, IReadOnlyDictionary<string, string> picks)
+    private static bool HasPicks(Dictionary<AssemblyPath, string> kept, IReadOnlyDictionary<AssemblyPath, string> picks)
     {
         if (kept.Count != picks.Count)
             return false;
@@ -199,13 +199,13 @@ public sealed class SavedAssemblyLists
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public string Create(string name)
     {
-        return Add(new SavedList(name, new List<string>(), new List<CodeAnchor>()));
+        return Add(new SavedList(name, new List<AssemblyPath>(), new List<CodeAnchor>()));
     }
 
     /// <summary>Adds a list of the assemblies at <paramref name="paths"/>, named <paramref name="name"/>
     /// or numbered when that is taken, and returns the name it got.</summary>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
-    public string Create(string name, IReadOnlyList<string> paths)
+    public string Create(string name, IReadOnlyList<AssemblyPath> paths)
     {
         return Add(new SavedList(name, paths.ToList(), new List<CodeAnchor>()));
     }
@@ -323,13 +323,13 @@ public sealed class SavedAssemblyLists
 
     /// <summary>A list: its name, its assemblies' paths, the symbols analyzed in it, what was picked for
     /// its assemblies, by assembly path, and the documents it had open.</summary>
-    private sealed class SavedList(string name, List<string> paths, List<CodeAnchor> analyzed)
+    private sealed class SavedList(string name, List<AssemblyPath> paths, List<CodeAnchor> analyzed)
     {
         public string Name = name;
         public DocumentsRecord? Documents;
-        public List<string> Paths { get; } = paths;
+        public List<AssemblyPath> Paths { get; } = paths;
         public List<CodeAnchor> Analyzed { get; } = analyzed;
-        public Dictionary<string, string> Pdbs { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public Dictionary<string, string> Frameworks { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<AssemblyPath, string> Pdbs { get; } = new();
+        public Dictionary<AssemblyPath, string> Frameworks { get; } = new();
     }
 }

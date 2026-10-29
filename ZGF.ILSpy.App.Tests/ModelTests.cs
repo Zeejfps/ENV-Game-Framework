@@ -8,6 +8,7 @@ using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenLayout;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -123,7 +124,7 @@ public sealed class AppSettingsTests : IDisposable
     public void Saved_settings_load_back_and_leave_no_temporary_file()
     {
         var settings = AppSettings.Load(SettingsFile).Settings;
-        settings.AssemblyLists = [new AssemblyListRecord("Work", ["a.dll", "b.dll"]), new AssemblyListRecord("Play", ["c.dll"])];
+        settings.AssemblyLists = [new AssemblyListRecord("Work", [FakePath("a.dll"), FakePath("b.dll")]), new AssemblyListRecord("Play", [FakePath("c.dll")])];
         settings.ActiveAssemblyList = "Play";
         settings.Language = DecompilationLanguage.IL;
         settings.Decompiler = new DecompilerOptions { LanguageVersion = CSharpVersion.CSharp7_3 }.With(DecompilerToggle.Find("AlwaysUseBraces")!, false);
@@ -134,7 +135,7 @@ public sealed class AppSettingsTests : IDisposable
         var (loaded, problem) = AppSettings.Load(SettingsFile);
         Assert.IsType<SettingsProblem.None>(problem);
         Assert.Equal(["Work", "Play"], loaded.AssemblyLists.Select(static l => l.Name));
-        Assert.Equal(["a.dll", "b.dll"], loaded.AssemblyLists[0].Assemblies);
+        Assert.Equal([FakePath("a.dll"), FakePath("b.dll")], loaded.AssemblyLists[0].Assemblies);
         Assert.Equal("Play", loaded.ActiveAssemblyList);
         Assert.Equal(DecompilationLanguage.IL, loaded.Language);
         Assert.Equal(settings.Decompiler, loaded.Decompiler);
@@ -216,22 +217,22 @@ public sealed class AppSettingsTests : IDisposable
     [Fact]
     public void Lists_missing_their_name_or_assemblies_load_without_them()
     {
-        var (loaded, problem) = AppSettings.Load(Written("""{ "AssemblyLists": [ null, { "Name": null }, { "Name": "Work", "Assemblies": null }, { "Name": "Play", "Assemblies": [ " ", "a.dll" ] } ] }"""));
+        var (loaded, problem) = AppSettings.Load(Written("""{ "AssemblyLists": [ null, { "Name": null }, { "Name": "Work", "Assemblies": null }, { "Name": "Play", "Assemblies": [ " ", "a.dll", "C:\\a.dll" ] } ] }"""));
 
         Assert.IsType<SettingsProblem.None>(problem);
         Assert.Equal(["Work", "Play"], loaded.AssemblyLists.Select(static l => l.Name));
         Assert.Empty(loaded.AssemblyLists[0].Assemblies);
-        Assert.Equal(["a.dll"], loaded.AssemblyLists[1].Assemblies);
+        Assert.Equal([@"C:\a.dll"], loaded.AssemblyLists[1].Assemblies.Select(static p => p.Text));
     }
 
     [Fact]
     public void The_one_list_of_an_older_settings_file_becomes_the_default_list_and_is_saved_only_there()
     {
-        var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", "", "b.dll" ] }""")).Settings;
+        var loaded = AppSettings.Load(Written("""{ "Assemblies": [ "C:\\a.dll", "", "C:\\b.dll" ] }""")).Settings;
 
         var list = Assert.Single(loaded.AssemblyLists);
         Assert.Equal(SavedAssemblyLists.DefaultName, list.Name);
-        Assert.Equal(["a.dll", "b.dll"], list.Assemblies);
+        Assert.Equal([@"C:\a.dll", @"C:\b.dll"], list.Assemblies.Select(static p => p.Text));
         Assert.IsType<SettingsWrite.Written>(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Assemblies", out _));
     }
@@ -242,12 +243,12 @@ public sealed class AppSettingsTests : IDisposable
         var loaded = AppSettings.Load(Written("""
             { "AssemblyLists": [ { "Name": "Work", "Assemblies": [] }, { "Name": "Play", "Assemblies": [] } ],
               "ActiveAssemblyList": "Play",
-              "Analyzed": [ { "Kind": "Definition", "FilePath": "a.dll", "Token": 33554434 } ] }
+              "Analyzed": [ { "Kind": "Definition", "FilePath": "C:\\a.dll", "Token": 33554434 } ] }
             """)).Settings;
 
         Assert.Empty(loaded.AssemblyLists[0].Analyzed!);
         var analyzed = Assert.Single(loaded.AssemblyLists[1].Analyzed!);
-        Assert.Equal(new CodeAnchor(CodeAnchorKind.Definition, "a.dll", 33554434), analyzed);
+        Assert.Equal(new CodeAnchor(CodeAnchorKind.Definition, PathOf(@"C:\a.dll"), 33554434), analyzed);
         Assert.IsType<SettingsWrite.Written>(loaded.Save());
         Assert.False(JsonDocument.Parse(File.ReadAllText(SettingsFile)).RootElement.TryGetProperty("Analyzed", out _));
     }
@@ -323,7 +324,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         const string json = """
             { "Theme": "light", "Language": "Klingon", "Window": "wide",
-              "AssemblyLists": [ { "Name": "Work", "Assemblies": [ "a.dll" ] } ] }
+              "AssemblyLists": [ { "Name": "Work", "Assemblies": [ "C:\\a.dll" ] } ] }
             """;
         var (loaded, problem) = AppSettings.Load(Written(json));
         var appState = new AppState(loaded);
@@ -334,7 +335,7 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal("light", loaded.Theme.Text);
         Assert.Equal(DecompilationLanguage.CSharp, loaded.Language);
         Assert.Null(loaded.Window);
-        Assert.Equal(["a.dll"], Assert.Single(loaded.AssemblyLists).Assemblies);
+        Assert.Equal([@"C:\a.dll"], Assert.Single(loaded.AssemblyLists).Assemblies.Select(static p => p.Text));
         var copy = _temp.PathOf("settings.unreadable.json");
         Assert.Equal(new SettingsKept.CopiedTo(copy), leftOut.Kept);
         Assert.Equal(json, File.ReadAllText(copy));
@@ -349,9 +350,9 @@ public sealed class AppSettingsTests : IDisposable
         var (loaded, problem) = AppSettings.Load(Written("""
             { "AssemblyLists": [
                 { "Name": "Broken", "Assemblies": 5 },
-                { "Name": "Work", "Assemblies": [ "a.dll" ], "Documents": { "Tabs": [
+                { "Name": "Work", "Assemblies": [ "C:\\a.dll" ], "Documents": { "Tabs": [
                     { "kind": "nothing", "Panel": "document-1" },
-                    { "kind": "comparison", "Panel": "document-2", "LeftPath": "a.dll", "RightPath": "b.dll" } ] } } ] }
+                    { "kind": "comparison", "Panel": "document-2", "LeftPath": "C:\\a.dll", "RightPath": "C:\\b.dll" } ] } } ] }
             """));
 
         Assert.Equal(["AssemblyLists"], Assert.IsType<SettingsProblem.ValuesLeftOut>(problem).Fields);
@@ -408,7 +409,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         var (loaded, problem) = AppSettings.Load(Written("""
             { "AssemblyLists": [ { "Name": "Work", "Assemblies": [], "Documents": {
-                "Tabs": [ { "kind": "comparison", "Panel": "document-1", "LeftPath": "a.dll", "RightPath": "b.dll" } ],
+                "Tabs": [ { "kind": "comparison", "Panel": "document-1", "LeftPath": "C:\\a.dll", "RightPath": "C:\\b.dll" } ],
                 "Layout": { "Root": { "kind": "group", "Panels": [ null ] } } } } ] }
             """));
 
@@ -423,8 +424,8 @@ public sealed class AppSettingsTests : IDisposable
     {
         var (loaded, problem) = AppSettings.Load(Written("""
             { "FlagsFilters": { "TypeDef/Attributes": { "Groups": { "Visibility": null, "Layout": [ 8 ] }, "Mode": "Any" }, "Gone": null },
-              "Bookmarks": [ { "Name": "B", "FileName": "a.dll", "Place": [],
-                "ViewState": { "ExpandedFoldings": [ null, { "Start": 1, "End": 2 } ], "SelectedTreeNodePath": [ "a.dll", null ] } } ] }
+              "Bookmarks": [ { "Name": "B", "FileName": "C:\\a.dll", "Place": [],
+                "ViewState": { "ExpandedFoldings": [ null, { "Start": 1, "End": 2 } ], "SelectedTreeNodePath": [ "C:\\a.dll", null ] } } ] }
             """));
 
         Assert.IsType<SettingsProblem.None>(problem);
@@ -439,20 +440,20 @@ public sealed class AppSettingsTests : IDisposable
     public void Saved_values_missing_what_they_name_load_without_them()
     {
         var (loaded, problem) = AppSettings.Load(Written("""
-            { "AssemblyLists": [ { "Name": "Work", "Assemblies": [ null, "a.dll" ],
+            { "AssemblyLists": [ { "Name": "Work", "Assemblies": [ null, "C:\\a.dll" ],
                 "Analyzed": [ { "Kind": "Definition", "FilePath": null, "Token": 1 } ],
                 "Documents": { "Tabs": [
                     { "kind": "node", "Panel": "document-1", "FilePath": null, "Place": [] },
-                    { "kind": "node", "Panel": "document-2", "FilePath": "a.dll", "Place": [ { "Kind": "Assembly", "Text": null } ] },
-                    { "kind": "diagram", "Panel": "document-3", "Types": [ { "AssemblyPath": "a.dll", "FullName": null } ] } ] } } ],
-              "Bookmarks": [ { "Name": null, "FileName": "a.dll", "Place": [] }, { "Name": "Gone", "FileName": null } ],
+                    { "kind": "node", "Panel": "document-2", "FilePath": "C:\\a.dll", "Place": [ { "Kind": "Assembly", "Text": null } ] },
+                    { "kind": "diagram", "Panel": "document-3", "Types": [ { "AssemblyPath": "C:\\a.dll", "FullName": null } ] } ] } } ],
+              "Bookmarks": [ { "Name": null, "FileName": "C:\\a.dll", "Place": [] }, { "Name": "Gone", "FileName": null } ],
               "NuGet": { "FeedUrl": null },
               "FoldedOptionGroups": [ null, "Other" ] }
             """));
 
         Assert.IsType<SettingsProblem.None>(problem);
         var list = Assert.Single(loaded.AssemblyLists);
-        Assert.Equal(["a.dll"], list.Assemblies);
+        Assert.Equal([@"C:\a.dll"], list.Assemblies.Select(static p => p.Text));
         Assert.Empty(list.Analyzed!);
         var diagram = Assert.IsType<DiagramDocumentRecord>(Assert.Single(list.Documents!.Tabs));
         Assert.Empty(diagram.Types);
@@ -646,9 +647,9 @@ public sealed class FrameworkPickerTests
         var posted = PostedActions.OfThisTest();
         var assemblies = new[]
         {
-            new RuntimeAssembly("System.Net.Http", "Microsoft.NETCore.App", "a.dll"),
-            new RuntimeAssembly("System.Net.Sockets", "Microsoft.NETCore.App", "b.dll"),
-            new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll"),
+            new RuntimeAssembly("System.Net.Http", "Microsoft.NETCore.App", FakePath("a.dll")),
+            new RuntimeAssembly("System.Net.Sockets", "Microsoft.NETCore.App", FakePath("b.dll")),
+            new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", FakePath("c.dll")),
         };
         var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => assemblies);
         var list = new AssemblyList();
@@ -667,8 +668,8 @@ public sealed class FrameworkPickerTests
     public void Assemblies_already_open_are_not_offered()
     {
         var posted = PostedActions.OfThisTest();
-        var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", AppStateDriver.FixturePath);
-        var other = new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", "c.dll");
+        var open = new RuntimeAssembly("Fixtures", "Microsoft.NETCore.App", PathOf(AppStateDriver.FixturePath));
+        var other = new RuntimeAssembly("System.Text.Json", "Microsoft.NETCore.App", FakePath("c.dll"));
         var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => [open, other]);
         var list = new AssemblyList();
         picker.Open();

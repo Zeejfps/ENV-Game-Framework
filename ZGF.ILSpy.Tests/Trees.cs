@@ -64,4 +64,12 @@ internal static class Trees
     /// <summary>The assembly or module at <paramref name="path"/>, opened in <paramref name="list"/>; fails
     /// the test when it opens as anything else.</summary>
     public static LoadedModule OpenModule(this AssemblyList list, string path) => Assert.IsType<LoadedModule>(list.Open(path));
+
+    /// <summary>Opens the file at <paramref name="path"/>, which the test names and must be absolute.</summary>
+    public static LoadedAssembly Open(this AssemblyList list, string path, CancellationToken cancellationToken = default) =>
+        list.Open(AssemblyPath.Of(path), cancellationToken);
+
+    public static LoadedAssembly? TryLoad(this AssemblyList list, string path) => list.TryLoad(AssemblyPath.Of(path));
+
+    public static LoadedAssembly? TryLoad(this AssemblyList list, string path, int generation) => list.TryLoad(AssemblyPath.Of(path), generation);
 }

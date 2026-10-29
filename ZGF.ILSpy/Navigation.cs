@@ -90,7 +90,7 @@ public static class Navigation
     /// type or member <paramref name="idString"/> names, written as XML documentation ids are, looked
     /// for in the assemblies read from them, or in every open one when there are none. Reports when
     /// none has it.</summary>
-    public static async void OpenAndShowId(AppState appState, IReadOnlyList<string> paths, string idString)
+    public static async void OpenAndShowId(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString)
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
@@ -113,7 +113,7 @@ public static class Navigation
         }
     }
 
-    private static BrowseNode? OpenAndFindId(AppState appState, IReadOnlyList<string> paths, string idString, CancellationToken token)
+    private static BrowseNode? OpenAndFindId(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString, CancellationToken token)
     {
         var opened = new List<LoadedAssembly>();
         foreach (var path in paths)

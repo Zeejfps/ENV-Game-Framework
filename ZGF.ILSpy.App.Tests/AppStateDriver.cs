@@ -10,6 +10,7 @@ using static ZGF.ILSpy.Analysis;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -240,7 +241,7 @@ internal sealed class AppStateDriver
     /// <summary>The listed node at the labels under the fixture assembly's root.</summary>
     public BrowseNode Node(params ReadOnlySpan<string> labels)
     {
-        var fixtures = AppState.Assemblies.Assemblies.Single(a => a.FilePath == FixturePath);
+        var fixtures = AppState.Assemblies.Assemblies.Single(a => a.FilePath.Text == FixturePath);
         return fixtures.Root.Child(labels);
     }
 

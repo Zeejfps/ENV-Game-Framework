@@ -88,7 +88,7 @@ public sealed class AssemblyListTests
         var core = list.Open(typeof(AssemblyList).Assembly.Location);
 
         Assert.Single(snapshot);
-        Assert.Equal([Trees.TestAssemblyPath, typeof(AssemblyList).Assembly.Location], list.FilePaths);
+        Assert.Equal([Trees.TestAssemblyPath, typeof(AssemblyList).Assembly.Location], list.FilePaths.Select(static p => p.Text));
         Assert.Equal(2, list.Version);
 
         list.Close(tests);
@@ -124,7 +124,7 @@ public sealed class AssemblyListTests
         Assert.IsType<FailedAssembly>(notPe);
         Assert.IsType<FailedAssembly>(missing);
         Assert.Equal([notPe, missing], list.Listed);
-        Assert.Equal([text, text + ".missing"], list.FilePaths);
+        Assert.Equal([text, text + ".missing"], list.FilePaths.Select(static p => p.Text));
         Assert.Empty(list.Assemblies);
         Assert.Same(notPe, list.Open(text));
     }
@@ -236,9 +236,9 @@ public sealed class AssemblyListTests
         var presets = AssemblyListPresets.FindRuntimePresets(temp.Path);
 
         Assert.Equal(["Microsoft.NETCore.App 10.0.1", "Microsoft.NETCore.App 9.0.11", "Microsoft.WindowsDesktop.App 9.0.3"], presets.Select(p => p.Name));
-        Assert.Equal([Path.Combine(net10, "System.Runtime.dll")], presets[0].Paths);
-        Assert.Equal([Path.Combine(net9, "mscorlib.dll"), Path.Combine(net9, "System.Runtime.dll")], presets[1].Paths);
-        Assert.Equal([Path.Combine(desktop, "WindowsBase.dll")], presets[2].Paths);
+        Assert.Equal([Path.Combine(net10, "System.Runtime.dll")], presets[0].Paths.Select(static p => p.Text));
+        Assert.Equal([Path.Combine(net9, "mscorlib.dll"), Path.Combine(net9, "System.Runtime.dll")], presets[1].Paths.Select(static p => p.Text));
+        Assert.Equal([Path.Combine(desktop, "WindowsBase.dll")], presets[2].Paths.Select(static p => p.Text));
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class AssemblyListTests
         var preset = AssemblyListPresets.Installed.FirstOrDefault(p => p.Name.StartsWith(name, StringComparison.Ordinal));
 
         Assert.NotNull(preset);
-        Assert.Contains(preset.Paths, p => Path.GetFileName(p) == "System.Runtime.dll");
+        Assert.Contains(preset.Paths, p => p.FileName == "System.Runtime.dll");
     }
 
     [Fact]
@@ -262,8 +262,8 @@ public sealed class AssemblyListTests
         var runtime = list.FindNode(references.Child("System.Runtime").Target!);
         var sibling = list.FindNode(references.Child("ZGF.ILSpy.Core").Target!);
 
-        Assert.Equal(Path.Combine(RuntimeAssemblies.Directories[0], "System.Runtime.dll"), runtime!.Assembly.FilePath, ignoreCase: true);
-        Assert.Equal(typeof(AssemblyList).Assembly.Location, sibling!.Assembly.FilePath, ignoreCase: true);
+        Assert.Equal(Path.Combine(RuntimeAssemblies.Directories[0], "System.Runtime.dll"), runtime!.Assembly.FilePath.Text, ignoreCase: true);
+        Assert.Equal(typeof(AssemblyList).Assembly.Location, sibling!.Assembly.FilePath.Text, ignoreCase: true);
         Assert.Same(runtime.Assembly.Root, runtime);
         Assert.Contains(runtime.Assembly, list.Assemblies);
     }

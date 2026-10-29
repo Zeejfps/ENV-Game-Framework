@@ -49,7 +49,7 @@ public sealed class BundleTests
 
         Assert.False(calculator.IsError);
         Assert.Contains("class Calculator<T>", calculator.GetText());
-        Assert.Equal(Path.Combine(bundle.FilePath, "ZGF.ILSpy.Core.dll"), core!.Assembly.FilePath);
+        Assert.Equal(bundle.FilePath.Combine("ZGF.ILSpy.Core.dll"), core!.Assembly.FilePath);
     }
 
     [Fact]

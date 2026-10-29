@@ -13,7 +13,7 @@ public sealed class FrameworkPicker
     private readonly Action<AppProblem> _reportError;
     private readonly Func<IReadOnlyList<RuntimeAssembly>> _scan;
     private readonly List<RuntimeAssembly> _filtered = new();
-    private readonly HashSet<string> _listed = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<AssemblyPath> _listed = new();
     private int _listedVersion = -1;
     private IReadOnlyList<RuntimeAssembly>? _all;
     private string? _appliedFilter;

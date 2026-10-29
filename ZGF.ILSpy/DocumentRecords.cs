@@ -22,7 +22,7 @@ public abstract record DocumentRecord(string Panel, string? Title);
 public sealed record NodeDocumentRecord(
     string Panel,
     string? Title,
-    string FilePath,
+    AssemblyPath FilePath,
     List<NodePathSegment> Place,
     DecompilationLanguage Language,
     CodeViewPosition? Position) : DocumentRecord(Panel, Title)
@@ -36,7 +36,7 @@ public sealed record DiagramDocumentRecord(
     string Panel,
     string? Title,
     List<TypeAnchor> Types,
-    List<string>? HomeAssemblies,
+    List<AssemblyPath>? HomeAssemblies,
     DiagramViewRecord? View) : DocumentRecord(Panel, Title);
 
 /// <summary>A tab comparing the API of the assembly at <see cref="LeftPath"/> with that of the one at
@@ -44,8 +44,8 @@ public sealed record DiagramDocumentRecord(
 public sealed record ComparisonDocumentRecord(
     string Panel,
     string? Title,
-    string LeftPath,
-    string RightPath,
+    AssemblyPath LeftPath,
+    AssemblyPath RightPath,
     ApiScope Scope,
     ComparisonViewRecord? View) : DocumentRecord(Panel, Title);
 

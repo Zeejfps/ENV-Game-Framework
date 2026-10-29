@@ -41,8 +41,8 @@ public sealed class PresentationTests
         Assert.Equal($"{duplicate.Name} (copy)", second.Label);
         Assert.Equal(first.Secondary, second.Secondary);
         Assert.Equal(second.Label, tree.Label(duplicate.Root));
-        Assert.Contains(original.FilePath, first.Tooltip);
-        Assert.Contains(duplicate.FilePath, second.Tooltip);
+        Assert.Contains(original.FilePath.Text, first.Tooltip);
+        Assert.Contains(duplicate.FilePath.Text, second.Tooltip);
         Assert.Contains(original.FullName, first.Tooltip);
     }
 
@@ -172,6 +172,6 @@ public sealed class PresentationTests
 
         Assert.Equal(assembly.Name, tab.Title);
         Assert.Contains(assembly.FullName, tab.Tooltip);
-        Assert.Contains(assembly.FilePath, tab.Tooltip);
+        Assert.Contains(assembly.FilePath.Text, tab.Tooltip);
     }
 }

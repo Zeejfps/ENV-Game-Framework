@@ -68,7 +68,7 @@ public sealed class DebugSymbolsTests
         var list = new AssemblyList();
         var before = list.OpenModule(copy).DebugSymbols;
 
-        list.Pdbs.Pick(copy, TestPdbPath);
+        list.Pdbs.Pick(AssemblyPath.Of(copy), TestPdbPath);
         list.Clear();
         var after = list.OpenModule(copy);
 

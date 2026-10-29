@@ -10,7 +10,7 @@ public static class Trees
     /// again when its roots changed. The roots of the assemblies read from <paramref name="reopening"/>
     /// spin while they are reopened.</summary>
     public static void SyncTrees(UiState uiState, AssemblyList assemblies, AnalyzerTree analyzer, ApiVisibility visibility,
-        IReadOnlyCollection<string> reopening)
+        IReadOnlyCollection<AssemblyPath> reopening)
     {
         ForgetClearedList(uiState, assemblies);
         uiState.Tree.ShowApi(visibility);

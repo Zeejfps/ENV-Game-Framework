@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -24,7 +25,7 @@ public sealed class AppInstanceTests
         Assert.True(handedOver);
         Assert.True(first.TryTakeHanded(out var handed));
         Assert.Equal("T:Some.Type", handed.NavigateTo);
-        Assert.Equal([Path.GetFullPath("relative.dll")], handed.AssemblyPaths);
+        Assert.Equal([Path.GetFullPath("relative.dll")], handed.AssemblyPaths.Select(static p => p.Text));
         Assert.Equal(1, Volatile.Read(ref woken));
     }
 
@@ -72,6 +73,6 @@ public sealed class AppInstanceTests
 
         Assert.True(front);
         Assert.Equal("Greet(int) : string", app.AppState.Tabs.Active!.Node!.Text);
-        Assert.Equal([AppStateDriver.FixturePath], app.AppState.Assemblies.FilePaths);
+        Assert.Equal([AppStateDriver.FixturePath], app.AppState.Assemblies.FilePaths.Select(static p => p.Text));
     }
 }

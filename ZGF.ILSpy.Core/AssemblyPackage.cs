@@ -53,7 +53,7 @@ public sealed class AssemblyPackage
     private readonly Dictionary<string, PackageFile> _files;
     private readonly Func<PackageFile, byte[]> _read;
 
-    private AssemblyPackage(string filePath, bool isBundle, PackageFolder root, Dictionary<string, PackageFile> files, Func<PackageFile, byte[]> read)
+    private AssemblyPackage(AssemblyPath filePath, bool isBundle, PackageFolder root, Dictionary<string, PackageFile> files, Func<PackageFile, byte[]> read)
     {
         FilePath = filePath;
         IsBundle = isBundle;
@@ -63,7 +63,7 @@ public sealed class AssemblyPackage
     }
 
     /// <summary>The absolute path of the package file.</summary>
-    public string FilePath { get; }
+    public AssemblyPath FilePath { get; }
 
     /// <summary>Whether this is an app published as a single-file bundle, not a zip.</summary>
     public bool IsBundle { get; }
@@ -73,7 +73,7 @@ public sealed class AssemblyPackage
     /// <summary>The package at <paramref name="path"/>: a zip archive, else a single-file bundle; null
     /// when the file is neither.</summary>
     /// <exception cref="IOException">The file cannot be read.</exception>
-    public static AssemblyPackage? TryRead(string path)
+    public static AssemblyPackage? TryRead(AssemblyPath path)
     {
         var zip = TryReadZip(path);
         if (zip != null)
@@ -81,11 +81,11 @@ public sealed class AssemblyPackage
         return TryReadBundle(path);
     }
 
-    private static AssemblyPackage? TryReadZip(string path)
+    private static AssemblyPackage? TryReadZip(AssemblyPath path)
     {
         try
         {
-            using var archive = ZipFile.OpenRead(path);
+            using var archive = ZipFile.OpenRead(path.Text);
             return ReadZip(path, archive);
         }
         catch (InvalidDataException)
@@ -94,7 +94,7 @@ public sealed class AssemblyPackage
         }
     }
 
-    private static AssemblyPackage ReadZip(string path, ZipArchive archive)
+    private static AssemblyPackage ReadZip(AssemblyPath path, ZipArchive archive)
     {
         var tree = new FileTree();
         var entryNames = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -120,9 +120,9 @@ public sealed class AssemblyPackage
         entryNames.TryAdd(fullName, entry.FullName);
     }
 
-    private static byte[] ReadZipFile(string path, PackageFile file, string entryName)
+    private static byte[] ReadZipFile(AssemblyPath path, PackageFile file, string entryName)
     {
-        using var archive = ZipFile.OpenRead(path);
+        using var archive = ZipFile.OpenRead(path.Text);
         var entry = archive.GetEntry(entryName) ?? throw new IOException($"'{file.FullName}' is no longer in '{path}'.");
         using var stream = entry.Open();
         using var copy = new MemoryStream();
@@ -130,9 +130,9 @@ public sealed class AssemblyPackage
         return copy.ToArray();
     }
 
-    private static AssemblyPackage? TryReadBundle(string path)
+    private static AssemblyPackage? TryReadBundle(AssemblyPath path)
     {
-        var entries = BundleContents.TryReadManifest(path);
+        var entries = BundleContents.TryReadManifest(path.Text);
         if (entries == null)
             return null;
         var tree = new FileTree();
@@ -145,7 +145,7 @@ public sealed class AssemblyPackage
             tree.AddFile(fullName, entry.Size);
             byName.TryAdd(fullName, entry);
         }
-        return tree.CreatePackage(path, isBundle: true, file => BundleContents.Read(path, byName[file.FullName]));
+        return tree.CreatePackage(path, isBundle: true, file => BundleContents.Read(path.Text, byName[file.FullName]));
     }
 
     private static bool IsFolderName(string name) => name.EndsWith(Separator) || name.EndsWith('\\');
@@ -211,7 +211,7 @@ public sealed class AssemblyPackage
             return folder;
         }
 
-        public AssemblyPackage CreatePackage(string path, bool isBundle, Func<PackageFile, byte[]> read)
+        public AssemblyPackage CreatePackage(AssemblyPath path, bool isBundle, Func<PackageFile, byte[]> read)
         {
             SortFolder(_root);
             return new AssemblyPackage(path, isBundle, _root, _files, read);
@@ -259,7 +259,7 @@ public sealed class AssemblyPackage
 
     /// <summary>The file at <paramref name="path"/>, a path made by <see cref="PathOf"/>; null when
     /// the package has none there.</summary>
-    internal PackageFile? FindFileAt(string path)
+    internal PackageFile? FindFileAt(AssemblyPath path)
     {
         var relative = RelativeName(FilePath, path);
         return FindFile(relative);
@@ -357,36 +357,32 @@ public sealed class AssemblyPackage
 
     /// <summary>The path <paramref name="file"/> is known by, as if the package were a folder:
     /// <c>C:\packages\Foo.nupkg\lib\net8.0\Foo.dll</c>.</summary>
-    public string PathOf(PackageFile file)
+    public AssemblyPath PathOf(PackageFile file)
     {
         var relative = file.FullName.Replace(Separator, Path.DirectorySeparatorChar);
-        return Path.Combine(FilePath, relative);
+        return FilePath.Combine(relative);
     }
-
-    /// <summary>Whether <paramref name="path"/> is one <see cref="PathOf"/> made for a file in the package
-    /// at <paramref name="packagePath"/>.</summary>
-    internal static bool Holds(string packagePath, string path) =>
-        path.Length > packagePath.Length
-        && path[packagePath.Length] == Path.DirectorySeparatorChar
-        && path.StartsWith(packagePath, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The package file a path made by <see cref="PathOf"/> runs through, and the path of the
     /// file inside it; null when no file on disk lies along <paramref name="path"/>.</summary>
-    internal static (string Package, string FullName)? SplitPath(string path)
+    internal static (AssemblyPath Package, string FullName)? SplitPath(AssemblyPath path)
     {
-        var folder = Path.GetDirectoryName(path);
+        var folder = Path.GetDirectoryName(path.Text);
         while (folder != null)
         {
             if (File.Exists(folder))
-                return (folder, RelativeName(folder, path));
+            {
+                var package = AssemblyPath.Of(folder);
+                return (package, RelativeName(package, path));
+            }
             folder = Path.GetDirectoryName(folder);
         }
         return null;
     }
 
-    private static string RelativeName(string package, string path)
+    private static string RelativeName(AssemblyPath package, AssemblyPath path)
     {
-        var relative = Path.GetRelativePath(package, path);
+        var relative = Path.GetRelativePath(package.Text, path.Text);
         return relative.Replace(Path.DirectorySeparatorChar, Separator);
     }
 }

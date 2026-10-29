@@ -45,7 +45,7 @@ public sealed class AnchorTests
         var line = type.LineContaining(text);
         var anchor = type.AnchorAt(line)!.Value;
 
-        var upper = anchor with { FilePath = anchor.FilePath.ToUpperInvariant() };
+        var upper = anchor with { FilePath = AssemblyPath.Of(anchor.FilePath.Text.ToUpperInvariant()) };
 
         Assert.Equal(anchor, upper);
         Assert.Equal(anchor.GetHashCode(), upper.GetHashCode());
@@ -55,10 +55,10 @@ public sealed class AnchorTests
     [Fact]
     public void A_type_anchor_is_the_same_whatever_the_case_of_its_path_but_not_of_its_name()
     {
-        var anchor = new TypeAnchor(@"C:\Lib\A.dll", "N.Outer+Inner`1");
+        var anchor = new TypeAnchor(AssemblyPath.Of(@"C:\Lib\A.dll"), "N.Outer+Inner`1");
 
-        Assert.Equal(anchor, anchor with { AssemblyPath = @"c:\lib\a.DLL" });
-        Assert.Equal(anchor.GetHashCode(), (anchor with { AssemblyPath = @"c:\lib\a.DLL" }).GetHashCode());
+        Assert.Equal(anchor, anchor with { AssemblyPath = AssemblyPath.Of(@"c:\lib\a.DLL") });
+        Assert.Equal(anchor.GetHashCode(), (anchor with { AssemblyPath = AssemblyPath.Of(@"c:\lib\a.DLL") }).GetHashCode());
         Assert.NotEqual(anchor, anchor with { FullName = "n.outer+inner`1" });
     }
 

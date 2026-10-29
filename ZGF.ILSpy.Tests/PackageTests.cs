@@ -41,7 +41,7 @@ public sealed class PackageTests
             WriteText(archive, "./readme.txt", "Read me");
         }
 
-        var package = AssemblyPackage.TryRead(path)!;
+        var package = AssemblyPackage.TryRead(AssemblyPath.Of(path))!;
 
         var guide = package.FindFile("docs/guide.txt")!;
         Assert.Equal("Guide", Encoding.UTF8.GetString(package.ReadFile(guide)));
@@ -66,7 +66,7 @@ public sealed class PackageTests
             WriteText(archive, "readme.txt", "Read me");
         }
 
-        var package = AssemblyPackage.TryRead(path)!;
+        var package = AssemblyPackage.TryRead(AssemblyPath.Of(path))!;
 
         Assert.Equal(["readme.txt"], package.ListFiles().Select(static f => f.FullName));
         Assert.Empty(package.Root.Folders);
@@ -78,14 +78,14 @@ public sealed class PackageTests
         using var temp = new TempDir();
         var list = new AssemblyList();
         var path = WritePackage(temp);
-        var type = CodeReference.ToEntity(CodeReferenceKind.Type, "Sample", path, MetadataTokens.TypeDefinitionHandle(2));
+        var type = CodeReference.ToEntity(CodeReferenceKind.Type, "Sample", AssemblyPath.Of(path), MetadataTokens.TypeDefinitionHandle(2));
 
         Assert.Null(list.FindNode(type));
         Assert.Null(list.FindMetadataRow(type));
         Assert.Null(list.Describe(type));
         Assert.Null(list.FindApiReferencePage(type));
         Assert.Null(list.FindTypeDefinition(type));
-        Assert.Null(list.FindMetadataRow(CodeReference.ToAssembly("Sample", path)));
+        Assert.Null(list.FindMetadataRow(CodeReference.ToAssembly("Sample", AssemblyPath.Of(path))));
     }
 
     [Fact]
@@ -94,10 +94,10 @@ public sealed class PackageTests
         using var temp = new TempDir();
         var list = new AssemblyList();
         var package = list.Open(WritePackage(temp));
-        var sibling = Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Core.dll");
+        var sibling = package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Core.dll"));
         list.TargetFrameworks.Pick(sibling, ".NETFramework,Version=v4.8");
         list.Clear();
-        var assembly = list.TryLoad(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Tests.dll"))!;
+        var assembly = list.TryLoad(package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Tests.dll")))!;
 
         list.Close(assembly);
 
@@ -135,7 +135,7 @@ public sealed class PackageTests
         var root = TestAssemblyRoot(folder);
         var assembly = root.Assembly;
 
-        Assert.Equal(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Tests.dll"), assembly.FilePath);
+        Assert.Equal(package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Tests.dll")), assembly.FilePath);
         Assert.Same(package, ContainerOf(assembly));
         Assert.Same(root, assembly.Root);
         Assert.Same(folder, root.Parent);
@@ -148,7 +148,7 @@ public sealed class PackageTests
         using var temp = new TempDir();
         var list = new AssemblyList();
         var package = list.Open(WritePackage(temp));
-        var path = Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Tests.dll");
+        var path = package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Tests.dll"));
 
         var assembly = list.TryLoad(path)!;
 
@@ -168,7 +168,7 @@ public sealed class PackageTests
         var second = new AssemblyList();
         var found = second.FindNode(path);
 
-        Assert.Equal(packagePath, path.FilePath);
+        Assert.Equal(packagePath, path.FilePath.Text);
         Assert.Equal(new NodePathSegment(NodeKind.PackageFolder, LibFolder), path.Segments[0]);
         Assert.NotNull(found);
         Assert.Equal(calculator.Text, found.Text);
@@ -186,7 +186,7 @@ public sealed class PackageTests
         var core = assembly.Root.Child("References", "ZGF.ILSpy.Core");
         var resolved = list.FindNode(core.Target!);
 
-        Assert.Equal(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Core.dll"), resolved!.Assembly.FilePath);
+        Assert.Equal(package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Core.dll")), resolved!.Assembly.FilePath);
         Assert.Same(package, ContainerOf(resolved.Assembly));
     }
 
@@ -202,7 +202,7 @@ public sealed class PackageTests
 
         Assert.Equal(calculator.Text, found!.Text);
         var listed = Assert.Single(list.Listed);
-        Assert.Equal(packagePath, listed.FilePath);
+        Assert.Equal(packagePath, listed.FilePath.Text);
         Assert.Same(listed, ContainerOf(found.Assembly));
     }
 
@@ -236,7 +236,7 @@ public sealed class PackageTests
         var core = assembly.Root.Child("References", "ZGF.ILSpy.Core");
         var resolved = list.FindNode(core.Target!);
 
-        Assert.Equal(CoreAssemblyPath, resolved!.Assembly.FilePath, ignoreCase: true);
+        Assert.Equal(CoreAssemblyPath, resolved!.Assembly.FilePath.Text, ignoreCase: true);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public sealed class PackageTests
 
         var symbols = assembly.DebugSymbols;
 
-        Assert.Equal(Path.ChangeExtension(assembly.FilePath, ".pdb"), symbols!.SourceFileName);
+        Assert.Equal(Path.ChangeExtension(assembly.FilePath.Text, ".pdb"), symbols!.SourceFileName);
         Assert.Null(core.DebugSymbols);
     }
 

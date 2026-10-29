@@ -23,7 +23,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private NodeIconPalette _iconColors = BuiltInThemes.Dark.Icons;
     private AppIcons _icons = BuiltInIconThemes.Reference.Icons;
     private TokenFormat _tokens = TokenFormat.Hidden;
-    private IReadOnlyCollection<string> _reopening = [];
+    private IReadOnlyCollection<AssemblyPath> _reopening = [];
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
     public IReadOnlyList<BrowseNode> Roots => _roots;
@@ -66,11 +66,11 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         }
     }
 
-    private static BrowseNode? FindRootOfFile(BrowseNode[] roots, string filePath)
+    private static BrowseNode? FindRootOfFile(BrowseNode[] roots, AssemblyPath filePath)
     {
         foreach (var root in roots)
         {
-            if (string.Equals(root.Assembly.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            if (root.Assembly.FilePath.Equals(filePath))
                 return root;
         }
         return null;
@@ -188,7 +188,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public void ShowTokens(TokenFormat format) => _tokens = format;
 
     /// <summary>Spins the roots of the assemblies read from <paramref name="files"/>, which are being reopened.</summary>
-    public void ShowReopening(IReadOnlyCollection<string> files) => _reopening = files;
+    public void ShowReopening(IReadOnlyCollection<AssemblyPath> files) => _reopening = files;
 
     /// <summary>Expands the tree down to <paramref name="node"/>, selects it and scrolls to it. When
     /// it is hidden, or inside a hidden node, its nearest shown ancestor is selected instead.</summary>
@@ -424,7 +424,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     private static string[] FolderHints(List<BrowseNode> nodes)
     {
-        var folders = nodes.Select(static n => (Path.GetDirectoryName(n.Assembly.FilePath) ?? "").Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)).ToArray();
+        var folders = nodes.Select(static n => (Path.GetDirectoryName(n.Assembly.FilePath.Text) ?? "").Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)).ToArray();
         var deepest = folders.Max(static f => f.Length);
         for (var depth = 1; depth <= deepest; depth++)
         {
@@ -432,7 +432,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
             if (hints.Distinct(StringComparer.OrdinalIgnoreCase).Count() == hints.Length)
                 return hints;
         }
-        return nodes.Select(static n => n.Assembly.FilePath).ToArray();
+        return nodes.Select(static n => n.Assembly.FilePath.Text).ToArray();
     }
 
     private async void Build(BrowseNode node)

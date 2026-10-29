@@ -24,7 +24,7 @@ public sealed record PackageFolderPlace(LoadedPackage Container, PackageFolder F
 /// </summary>
 public abstract class LoadedAssembly
 {
-    private protected LoadedAssembly(AssemblyList list, string filePath, string name, string fullName, Version? version)
+    private protected LoadedAssembly(AssemblyList list, AssemblyPath filePath, string name, string fullName, Version? version)
     {
         List = list;
         FilePath = filePath;
@@ -35,18 +35,18 @@ public abstract class LoadedAssembly
     }
 
     /// <summary>The name of a file that holds no assembly's name: the file's, without its extension.</summary>
-    private protected static string NameOf(string filePath) => Path.GetFileNameWithoutExtension(filePath);
+    private protected static string NameOf(AssemblyPath filePath) => Path.GetFileNameWithoutExtension(filePath.Text);
 
     /// <summary>The absolute path of the file this was loaded from; for an assembly read out of a
     /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
-    public string FilePath { get; }
+    public AssemblyPath FilePath { get; }
 
     /// <summary>The node <paramref name="path"/> leads to from this file's root, when this is the item
     /// of the list the path starts at; else, or when nothing is there, null. May load the nodes on the
     /// way: call it off the UI thread.</summary>
     public BrowseNode? FindNode(NodePath path)
     {
-        if (!string.Equals(path.FilePath, FilePath, StringComparison.OrdinalIgnoreCase))
+        if (!path.FilePath.Equals(FilePath))
             return null;
         return path.Resolve(Root);
     }
@@ -112,8 +112,8 @@ public sealed class LoadedModule : LoadedAssembly
     private readonly Lazy<AssemblyNode> _root;
     private AssemblyNode? _rootInPackage;
 
-    internal LoadedModule(AssemblyList list, MetadataFile file, PackagePlace? place = null)
-        : base(list, file.FileName, NameOf(file), FullNameOf(file), VersionOf(file))
+    internal LoadedModule(AssemblyList list, AssemblyPath path, MetadataFile file, PackagePlace? place = null)
+        : base(list, path, NameOf(path, file), FullNameOf(file), VersionOf(file))
     {
         File = file;
         Place = place;
@@ -128,10 +128,10 @@ public sealed class LoadedModule : LoadedAssembly
     }
 
     /// <summary>The assembly's name, or for a module that is no assembly, its file's.</summary>
-    private static string NameOf(MetadataFile file)
+    private static string NameOf(AssemblyPath path, MetadataFile file)
     {
         if (!file.Metadata.IsAssembly)
-            return NameOf(file.FileName);
+            return NameOf(path);
         var metadata = file.Metadata;
         return metadata.GetString(metadata.GetAssemblyDefinition().Name);
     }
@@ -392,7 +392,7 @@ public sealed class FailedAssembly : LoadedAssembly
     private readonly Lazy<FailedAssemblyNode> _root;
 
     internal FailedAssembly(AssemblyList list, AssemblyLoadException error)
-        : base(list, error.FilePath, NameOf(error.FilePath), error.FilePath, null)
+        : base(list, error.FilePath, NameOf(error.FilePath), error.FilePath.Text, null)
     {
         Error = error;
         _root = new Lazy<FailedAssemblyNode>(() => new FailedAssemblyNode(this));
@@ -412,7 +412,7 @@ public sealed class LoadedPackage : LoadedAssembly
     private readonly Lazy<IReadOnlyList<LoadedModule>> _assemblies;
 
     internal LoadedPackage(AssemblyList list, AssemblyPackage package)
-        : base(list, package.FilePath, NameOf(package.FilePath), package.FilePath, null)
+        : base(list, package.FilePath, NameOf(package.FilePath), package.FilePath.Text, null)
     {
         Package = package;
         _root = new Lazy<PackageNode>(() => new PackageNode(this));
@@ -456,7 +456,7 @@ public sealed class LoadedPackage : LoadedAssembly
         var path = Package.PathOf(file);
         foreach (var assembly in Assemblies)
         {
-            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+            if (assembly.FilePath.Equals(path))
                 return assembly;
         }
         return null;

@@ -209,14 +209,14 @@ public sealed class AppState
 
     /// <summary>True when the assembly or package at <paramref name="filePath"/> is open in the active
     /// list and loaded.</summary>
-    internal bool IsListed(string filePath)
+    internal bool IsListed(AssemblyPath filePath)
     {
         var listed = Assemblies.Listed;
         for (var i = 0; i < listed.Count; i++)
         {
             if (listed[i] is FailedAssembly)
                 continue;
-            if (string.Equals(listed[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            if (listed[i].FilePath.Equals(filePath))
                 return true;
         }
         return false;

@@ -4,7 +4,7 @@ using ICSharpCode.Decompiler.Metadata;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>A ready-made assembly list offered to add: the assemblies of a framework installed here.</summary>
-public sealed record AssemblyListPreset(string Name, IReadOnlyList<string> Paths);
+public sealed record AssemblyListPreset(string Name, IReadOnlyList<AssemblyPath> Paths);
 
 /// <summary>The ready-made assembly lists this machine offers: one per installed shared framework and
 /// feature version, of its newest patch (<c>Microsoft.NETCore.App 9.0.3</c>), newest first, then on
@@ -66,7 +66,7 @@ public static class AssemblyListPresets
             var paths = ListFrameworkAssemblies(version.Directory);
             if (paths.Count == 0)
                 continue;
-            presets.Add(new AssemblyListPreset($"{framework} {version.Label}", paths));
+            presets.Add(new AssemblyListPreset($"{framework} {version.Label}", PathsOf(paths)));
         }
         return presets;
     }
@@ -110,6 +110,14 @@ public static class AssemblyListPresets
             .ToList();
     }
 
+    private static List<AssemblyPath> PathsOf(List<string> files)
+    {
+        return files
+            .Select(AssemblyPath.Parse)
+            .OfType<AssemblyPath>()
+            .ToList();
+    }
+
     private static bool IsFrameworkAssemblyFile(string path)
     {
         var name = Path.GetFileName(path);
@@ -132,7 +140,7 @@ public static class AssemblyListPresets
             var paths = ResolveInGac(fullNames);
             if (paths.Count == 0)
                 continue;
-            presets.Add(new AssemblyListPreset(name, paths));
+            presets.Add(new AssemblyListPreset(name, PathsOf(paths)));
         }
         return presets;
     }

@@ -12,7 +12,7 @@ namespace ZGF.ILSpy;
 public static class Assemblies
 {
     /// <summary>Opens the files in the background, then shows the last one opened.</summary>
-    public static void OpenAssemblies(AppState appState, IEnumerable<string> paths)
+    public static void OpenAssemblies(AppState appState, IEnumerable<AssemblyPath> paths)
     {
         var files = paths.ToArray();
         if (files.Length == 0)
@@ -20,7 +20,7 @@ public static class Assemblies
         OpenInBackground(appState, files);
     }
 
-    private static async void OpenInBackground(AppState appState, string[] files)
+    private static async void OpenInBackground(AppState appState, AssemblyPath[] files)
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
@@ -54,7 +54,9 @@ public static class Assemblies
         appState.ReportError(new AppProblem.OpenFailed(error));
     }
 
-    public static void OpenAssembly(AppState appState, string path) => OpenAssemblies(appState, [path]);
+    /// <summary>Opens the file at <paramref name="path"/>, as a file dialog or a download names it; nothing
+    /// when it is no absolute path.</summary>
+    public static void OpenAssembly(AppState appState, string path) => OpenFilesAt(appState, [path]);
 
     /// <summary>Opens the files among <paramref name="paths"/>, dropped on the window, as
     /// <see cref="OpenAssemblies"/> does; folders are left out.</summary>
@@ -63,6 +65,14 @@ public static class Assemblies
         var files = paths
             .Where(File.Exists)
             .ToList();
+        OpenFilesAt(appState, files);
+    }
+
+    private static void OpenFilesAt(AppState appState, IEnumerable<string> paths)
+    {
+        var files = paths
+            .Select(AssemblyPath.Parse)
+            .OfType<AssemblyPath>();
         OpenAssemblies(appState, files);
     }
 
@@ -168,7 +178,7 @@ public static class Assemblies
 
     private static bool IsPathOf(LoadedAssembly item, NodePath path)
     {
-        return string.Equals(path.FilePath, item.FilePath, StringComparison.OrdinalIgnoreCase);
+        return path.FilePath.Equals(item.FilePath);
     }
 
     private static Reopened ReadAgain(AppState appState, LoadedAssembly item, List<NodePath> places)
@@ -305,7 +315,7 @@ public static class Assemblies
         return tab.Position;
     }
 
-    private static Reloaded ReopenFiles(AppState appState, IReadOnlyList<string> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    private static Reloaded ReopenFiles(AppState appState, IReadOnlyList<AssemblyPath> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
     {
         OpenFiles(appState, paths, cancellationToken);
         var expandedNodes = LoadExpandedNodes(appState, expanded, cancellationToken);
@@ -400,7 +410,7 @@ public static class Assemblies
 
     /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
     /// reload or clearing the list stops it, and the settings are saved once it is done.</summary>
-    internal static async void OpenAssembliesAsReload(AppState appState, List<string> paths)
+    internal static async void OpenAssembliesAsReload(AppState appState, List<AssemblyPath> paths)
     {
         var ticket = appState.Reload.Start();
         var opened = await Background.Run(() => OpenFiles(appState, paths, ticket.Token));
@@ -426,7 +436,7 @@ public static class Assemblies
     }
 
     /// <summary>Lists the files, those that fail to load as failed, and returns the last.</summary>
-    private static LoadedAssembly? OpenFiles(AppState appState, IEnumerable<string> paths, CancellationToken cancellationToken)
+    private static LoadedAssembly? OpenFiles(AppState appState, IEnumerable<AssemblyPath> paths, CancellationToken cancellationToken)
     {
         LoadedAssembly? last = null;
         foreach (var path in paths)

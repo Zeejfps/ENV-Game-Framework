@@ -128,7 +128,7 @@ public sealed class ComparisonPicker
             return true;
         if (assembly.NameAndVersion.Contains(filter, StringComparison.OrdinalIgnoreCase))
             return true;
-        return assembly.FilePath.Contains(filter, StringComparison.OrdinalIgnoreCase);
+        return assembly.FilePath.Text.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 
     private void SelectAgain(LoadedModule? selected)

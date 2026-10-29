@@ -12,7 +12,7 @@ public sealed class NodePath : IEquatable<NodePath>
 {
     private readonly NodePathSegment[] _segments;
 
-    private NodePath(string filePath, NodePathSegment[] segments)
+    private NodePath(AssemblyPath filePath, NodePathSegment[] segments)
     {
         FilePath = filePath;
         _segments = segments;
@@ -20,7 +20,7 @@ public sealed class NodePath : IEquatable<NodePath>
 
     /// <summary>The absolute path of the listed file the path starts from: an assembly, or the package
     /// an assembly was read out of.</summary>
-    public string FilePath { get; }
+    public AssemblyPath FilePath { get; }
 
     /// <summary>How many nodes lie below the root on the way down, the node itself included.</summary>
     public int Depth => _segments.Length;
@@ -32,7 +32,7 @@ public sealed class NodePath : IEquatable<NodePath>
     public IReadOnlyList<NodePathSegment> Segments => _segments;
 
     /// <summary>The label of the node this names.</summary>
-    public string Text => _segments.Length == 0 ? Path.GetFileName(FilePath) : _segments[^1].Text;
+    public string Text => _segments.Length == 0 ? FilePath.FileName : _segments[^1].Text;
 
     /// <summary>The path to <paramref name="node"/> from the root of its tree: for a node of an
     /// assembly read out of a package, from the package's root.</summary>
@@ -50,7 +50,7 @@ public sealed class NodePath : IEquatable<NodePath>
 
     /// <summary>The path to the node reached from the root of the assembly at
     /// <paramref name="filePath"/> through <paramref name="segments"/>, as <see cref="Segments"/> gives them.</summary>
-    public static NodePath From(string filePath, IEnumerable<NodePathSegment> segments) => new(filePath, segments.ToArray());
+    public static NodePath From(AssemblyPath filePath, IEnumerable<NodePathSegment> segments) => new(filePath, segments.ToArray());
 
     internal BrowseNode? Resolve(BrowseNode root)
     {
@@ -76,7 +76,7 @@ public sealed class NodePath : IEquatable<NodePath>
     {
         if (ReferenceEquals(this, other)) return true;
         if (other is null || other._segments.Length != _segments.Length) return false;
-        if (!string.Equals(FilePath, other.FilePath, StringComparison.OrdinalIgnoreCase)) return false;
+        if (!FilePath.Equals(other.FilePath)) return false;
         for (var i = _segments.Length - 1; i >= 0; i--)
         {
             if (_segments[i] != other._segments[i]) return false;
@@ -89,12 +89,12 @@ public sealed class NodePath : IEquatable<NodePath>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(FilePath, StringComparer.OrdinalIgnoreCase);
+        hash.Add(FilePath);
         foreach (var segment in _segments)
             hash.Add(segment);
         return hash.ToHashCode();
     }
 
     public override string ToString() =>
-        _segments.Length == 0 ? FilePath : $"{FilePath}: {string.Join(" › ", _segments.Select(s => s.Text))}";
+        _segments.Length == 0 ? FilePath.Text : $"{FilePath}: {string.Join(" › ", _segments.Select(s => s.Text))}";
 }

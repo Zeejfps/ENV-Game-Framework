@@ -59,7 +59,7 @@ internal static class AssemblySearch
         }
 
         private static bool InAssembly(LoadedModule assembly, string scope) =>
-            Path.GetFileName(assembly.FilePath).Contains(scope, StringComparison.OrdinalIgnoreCase) ||
+            assembly.FilePath.FileName.Contains(scope, StringComparison.OrdinalIgnoreCase) ||
             assembly.FullName.Contains(scope, StringComparison.OrdinalIgnoreCase);
 
         private bool InNamespace(string ns) =>
@@ -294,12 +294,12 @@ internal static class AssemblySearch
         {
             var matches = query.AssemblyName switch
             {
-                AssemblyNameKind.FilePath => query.IsMatch(assembly.FilePath),
+                AssemblyNameKind.FilePath => query.IsMatch(assembly.FilePath.Text),
                 AssemblyNameKind.FullName => query.IsMatch(assembly.FullName),
-                _ => query.IsMatch(assembly.Name) || query.IsMatch(Path.GetFileName(assembly.FilePath)),
+                _ => query.IsMatch(assembly.Name) || query.IsMatch(assembly.FilePath.FileName),
             };
             if (matches)
-                Add(assembly.Root, assembly.FilePath);
+                Add(assembly.Root, assembly.FilePath.Text);
         }
 
         private void ScanNamespaces(LoadedModule assembly)

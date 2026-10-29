@@ -86,19 +86,19 @@ public static class Comparisons
     }
 
     /// <summary>The open assembly read from <paramref name="filePath"/> whose API can be compared; null when there is none.</summary>
-    private static LoadedModule? FindOpen(AppState appState, string filePath)
+    private static LoadedModule? FindOpen(AppState appState, AssemblyPath filePath)
     {
         foreach (var assembly in appState.Assemblies.Assemblies)
         {
-            if (string.Equals(assembly.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
+            if (assembly.FilePath.Equals(filePath))
                 return assembly;
         }
         return null;
     }
 
-    private static void ShowClosed(AppState appState, AssemblyComparison comparison, string filePath)
+    private static void ShowClosed(AppState appState, AssemblyComparison comparison, AssemblyPath filePath)
     {
-        comparison.ShowFailure(new ComparisonFailure.AssemblyClosed(Path.GetFileName(filePath)));
+        comparison.ShowFailure(new ComparisonFailure.AssemblyClosed(filePath.FileName));
     }
 
     private static void ReportFailure(AppState appState, AssemblyComparison comparison, LoadedModule left, LoadedModule right, Exception error)

@@ -45,7 +45,7 @@ public sealed class AssemblyPicker
             return true;
         if (choice.Assembly.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
             return true;
-        return choice.Assembly.FilePath.Contains(filter, StringComparison.OrdinalIgnoreCase);
+        return choice.Assembly.FilePath.Text.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Whether every shown assembly is ticked, none is, or some are (null).</summary>

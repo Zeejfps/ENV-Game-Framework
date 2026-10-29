@@ -115,7 +115,7 @@ public static class NodeText
     private static string Describe(BrowseNode node)
     {
         if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule assembly)
-            return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath }.OfType<string>());
+            return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath.Text }.OfType<string>());
         if (node.Kind == NodeKind.FailedAssembly && node.Assembly is FailedAssembly failed)
             return failed.Error.Message;
         var name = node.FullName;

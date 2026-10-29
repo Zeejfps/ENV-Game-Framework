@@ -12,7 +12,7 @@ internal interface IPackageFolderNode
 /// <summary>The root of a listed package or bundle: its folders, then its files. An assembly file is
 /// the root of that assembly's tree; any other file is shown as a resource is.</summary>
 internal sealed class PackageNode(LoadedPackage package)
-    : BrowseNode(package, null, KindOf(package.Package), System.IO.Path.GetFileName(package.FilePath)), IPackageFolderNode
+    : BrowseNode(package, null, KindOf(package.Package), package.FilePath.FileName), IPackageFolderNode
 {
     private static NodeKind KindOf(AssemblyPackage contents) => contents.IsBundle ? NodeKind.Bundle : NodeKind.Package;
 
@@ -20,7 +20,7 @@ internal sealed class PackageNode(LoadedPackage package)
 
     public PackageFolder Folder => package.Package.Root;
 
-    public override string FullName => Assembly.FilePath;
+    public override string FullName => Assembly.FilePath.Text;
 
     private protected override bool MayHaveChildren => true;
 

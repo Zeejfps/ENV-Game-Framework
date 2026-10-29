@@ -400,7 +400,7 @@ internal sealed class DocumentBuilder : ITextOutput
         var kind = CodeReference.KindOf(metadata.Metadata, handle);
         if (kind == null)
             return null;
-        return CodeReference.ToEntity(kind.Value, text, metadata.FileName, (EntityHandle)handle);
+        return CodeReference.ToEntity(kind.Value, text, AssemblyPath.Of(metadata), (EntityHandle)handle);
     }
 
     private IEntity? ResolveDefinition(MetadataFile metadata, EntityHandle handle)

@@ -7,6 +7,7 @@ using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -29,7 +30,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = new AppStateDriver();
         OpenAssembly(d.AppState, SampleAppPath);
-        d.RunUntil(() => d.AppState.IsListed(SampleAppPath));
+        d.RunUntil(() => d.AppState.IsListed(PathOf(SampleAppPath)));
         d.Settle();
         return d;
     }
@@ -96,7 +97,7 @@ public sealed class ExportTests : IDisposable
     {
         var app = new AppDriver();
         OpenAssembly(app.AppState, SampleAppPath);
-        app.RunUntil(() => app.AppState.IsListed(SampleAppPath));
+        app.RunUntil(() => app.AppState.IsListed(PathOf(SampleAppPath)));
         app.Settle(2);
         app.Frames.FilePicker.Answer = _temp.Path;
 
@@ -134,8 +135,8 @@ public sealed class ExportTests : IDisposable
         var app = AppDriver.Opened();
         var sample = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
         OpenAssembly(app.AppState, sample);
-        app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Any(a => a.FilePath == sample));
-        var assembly = app.AppState.Assemblies.Assemblies.Single(a => a.FilePath == sample);
+        app.Driver.RunUntil(() => app.AppState.Assemblies.Assemblies.Any(a => a.FilePath.Text == sample));
+        var assembly = app.AppState.Assemblies.Assemblies.Single(a => a.FilePath.Text == sample);
         var baml = assembly.Root.Child("Resources", "SampleApp.g.resources", "mainwindow.baml");
         app.Show(baml, frames: 2);
         var path = _temp.PathOf("mainwindow.xaml");

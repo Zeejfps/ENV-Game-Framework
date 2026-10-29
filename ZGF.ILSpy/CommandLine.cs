@@ -16,7 +16,7 @@ public sealed class CommandLine
 
     public string SettingsPath { get; private set; } = AppSettings.DefaultPath;
     public RenderBackendKind RenderBackend { get; private set; } = RenderBackendKind.Auto;
-    public List<string> AssemblyPaths { get; } = new();
+    public List<AssemblyPath> AssemblyPaths { get; } = new();
 
     /// <summary>The language to decompile to, or null to keep the one the settings have.</summary>
     public DecompilationLanguage? Language { get; private set; }
@@ -62,7 +62,16 @@ public sealed class CommandLine
         else if (arg == NewInstanceFlag)
             NewInstance = true;
         else if (!arg.StartsWith(FlagPrefix, StringComparison.Ordinal))
-            AssemblyPaths.Add(arg);
+            AddAssemblyPath(arg);
+    }
+
+    /// <summary>Takes <paramref name="arg"/> as a file, made absolute from this process's folder; leaves it
+    /// out when it is no path.</summary>
+    private void AddAssemblyPath(string arg)
+    {
+        var path = AssemblyPath.Parse(Path.Combine(Environment.CurrentDirectory, arg));
+        if (path != null)
+            AssemblyPaths.Add(path);
     }
 
     /// <summary>The language named <paramref name="name"/>, in any case; null for one the app does not have.</summary>
@@ -103,7 +112,7 @@ public sealed class CommandLine
         if (NavigateTo != null)
             args.Add(NavigateToOption + NavigateTo);
         foreach (var path in AssemblyPaths)
-            args.Add(Path.GetFullPath(path));
+            args.Add(path.Text);
         return args;
     }
 }

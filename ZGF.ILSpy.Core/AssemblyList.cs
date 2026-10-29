@@ -10,9 +10,9 @@ using AssemblyReference = ICSharpCode.Decompiler.Metadata.AssemblyReference;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>Thrown when a file cannot be opened as a .NET assembly or module.</summary>
-public sealed class AssemblyLoadException(string filePath, string message, Exception? inner = null) : Exception(message, inner)
+public sealed class AssemblyLoadException(AssemblyPath filePath, string message, Exception? inner = null) : Exception(message, inner)
 {
-    public string FilePath { get; } = filePath;
+    public AssemblyPath FilePath { get; } = filePath;
 }
 
 /// <summary>
@@ -24,7 +24,7 @@ public sealed class AssemblyList
 {
     private readonly object _gate = new();
     /// <summary>What was read, by path: assemblies, packages and the assemblies read out of packages.</summary>
-    private readonly Dictionary<string, LoadedAssembly> _known = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<AssemblyPath, LoadedAssembly> _known = new();
     private ImmutableArray<LoadedAssembly> _listed = ImmutableArray<LoadedAssembly>.Empty;
     private ImmutableArray<LoadedModule> _loaded = ImmutableArray<LoadedModule>.Empty;
     private int _version;
@@ -41,7 +41,7 @@ public sealed class AssemblyList
     public IReadOnlyList<LoadedAssembly> Listed => _listed;
 
     /// <summary>The open files' paths, in order, failed ones included, for persisting the list.</summary>
-    public IReadOnlyList<string> FilePaths => _listed.Select(a => a.FilePath).ToArray();
+    public IReadOnlyList<AssemblyPath> FilePaths => _listed.Select(a => a.FilePath).ToArray();
 
     /// <summary>Increments whenever <see cref="Assemblies"/> changes.</summary>
     public int Version => Volatile.Read(ref _version);
@@ -71,9 +71,8 @@ public sealed class AssemblyList
     /// several files out of the list that follows.</summary>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled,
     /// or the list was cleared while the file was read.</exception>
-    public LoadedAssembly Open(string path, CancellationToken cancellationToken = default)
+    public LoadedAssembly Open(AssemblyPath path, CancellationToken cancellationToken = default)
     {
-        path = Path.GetFullPath(path);
         var generation = Generation;
         while (true)
         {
@@ -87,7 +86,7 @@ public sealed class AssemblyList
 
     /// <summary>The assembly read from <paramref name="path"/>, or when it cannot be read, the failure
     /// listed for it, else a new one.</summary>
-    private LoadedAssembly LoadOrFail(string path, int generation)
+    private LoadedAssembly LoadOrFail(AssemblyPath path, int generation)
     {
         try
         {
@@ -521,14 +520,14 @@ public sealed class AssemblyList
         }
     }
 
-    private LoadedAssembly? FindListedLoaded(string path)
+    private LoadedAssembly? FindListedLoaded(AssemblyPath path)
     {
         var listed = _listed;
         foreach (var assembly in listed)
         {
             if (assembly is FailedAssembly)
                 continue;
-            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
+            if (assembly.FilePath.Equals(path))
                 return assembly;
         }
         return null;
@@ -553,16 +552,16 @@ public sealed class AssemblyList
         CancellationToken cancellationToken = default) =>
         SearchAsync(SearchQuery.Parse(text, kinds), cancellationToken);
 
-    internal LoadedAssembly? TryLoad(string path) => TryLoad(path, Generation);
+    internal LoadedAssembly? TryLoad(AssemblyPath path) => TryLoad(path, Generation);
 
-    /// <summary>The assembly at <paramref name="path"/>, as <see cref="TryLoad(string, int)"/> loads it;
+    /// <summary>The assembly at <paramref name="path"/>, as <see cref="TryLoad(AssemblyPath, int)"/> loads it;
     /// null for a package, which has no metadata of its own, or a file that failed to load.</summary>
-    internal LoadedModule? TryLoadAssembly(string path) => TryLoadAssembly(path, Generation);
+    internal LoadedModule? TryLoadAssembly(AssemblyPath path) => TryLoadAssembly(path, Generation);
 
-    private LoadedModule? TryLoadAssembly(string path, int generation) =>
+    private LoadedModule? TryLoadAssembly(AssemblyPath path, int generation) =>
         TryLoad(path, generation) is LoadedModule module ? module : null;
 
-    internal LoadedAssembly? TryLoad(string path, int generation)
+    internal LoadedAssembly? TryLoad(AssemblyPath path, int generation)
     {
         try
         {
@@ -613,7 +612,7 @@ public sealed class AssemblyList
 
     /// <summary>The assembly at <paramref name="path"/>, read from the file unless it is loaded. One read
     /// for a <paramref name="generation"/> that a clear has ended is not kept.</summary>
-    private LoadedAssembly Load(string path, int generation)
+    private LoadedAssembly Load(AssemblyPath path, int generation)
     {
         lock (_gate)
         {
@@ -688,7 +687,7 @@ public sealed class AssemblyList
         return read;
     }
 
-    private LoadedModule? FindReadOutOf(LoadedPackage package, string path)
+    private LoadedModule? FindReadOutOf(LoadedPackage package, AssemblyPath path)
     {
         if (!_known.TryGetValue(path, out var known))
             return null;
@@ -699,7 +698,7 @@ public sealed class AssemblyList
         return module;
     }
 
-    private LoadedModule? TryReadOutOfPackage(LoadedPackage package, string path, string fullName)
+    private LoadedModule? TryReadOutOfPackage(LoadedPackage package, AssemblyPath path, string fullName)
     {
         try
         {
@@ -741,14 +740,14 @@ public sealed class AssemblyList
         return _listed.Replace(failure, assembly);
     }
 
-    private FailedAssembly? FindListedFailure(string path)
+    private FailedAssembly? FindListedFailure(AssemblyPath path)
     {
         var listed = _listed;
         foreach (var assembly in listed)
         {
             if (assembly is not FailedAssembly failed)
                 continue;
-            if (string.Equals(failed.FilePath, path, StringComparison.OrdinalIgnoreCase))
+            if (failed.FilePath.Equals(path))
                 return failed;
         }
         return null;
@@ -766,19 +765,19 @@ public sealed class AssemblyList
         var definition = Definitions.Resolve(owner.MainModule, handle);
         if (definition == null)
             return (null, default);
-        return (TryLoadAssembly(definition.ParentModule!.MetadataFile!.FileName, generation), definition.MetadataToken);
+        return (TryLoadAssembly(AssemblyPath.Of(definition.ParentModule!.MetadataFile!), generation), definition.MetadataToken);
     }
 
     /// <summary>What <paramref name="path"/> holds: an assembly, a package, or an assembly in a
     /// package, read from a path <see cref="AssemblyPackage.PathOf"/> made.</summary>
     /// <exception cref="AssemblyLoadException">There is no such file, or it is none of those.</exception>
-    private LoadedAssembly Read(string path, int generation)
+    private LoadedAssembly Read(AssemblyPath path, int generation)
     {
-        if (File.Exists(path))
+        if (File.Exists(path.Text))
             return ReadAssemblyOrPackage(path);
         var inPackage = AssemblyPackage.SplitPath(path);
         if (inPackage == null)
-            return new LoadedModule(this, ReadFile(path));
+            return new LoadedModule(this, path, ReadFile(path));
         var container = Load(inPackage.Value.Package, generation);
         if (container is not LoadedPackage package)
             throw new AssemblyLoadException(path, $"'{container.FilePath}' is not a package.");
@@ -787,11 +786,11 @@ public sealed class AssemblyList
 
     /// <summary>The assembly at <paramref name="path"/>, else the WebCIL module, else the package, else
     /// why it is none of those.</summary>
-    private LoadedAssembly ReadAssemblyOrPackage(string path)
+    private LoadedAssembly ReadAssemblyOrPackage(AssemblyPath path)
     {
         try
         {
-            return new LoadedModule(this, ReadFile(path));
+            return new LoadedModule(this, path, ReadFile(path));
         }
         catch (AssemblyLoadException)
         {
@@ -802,11 +801,11 @@ public sealed class AssemblyList
         }
     }
 
-    private LoadedAssembly? ReadWebCilOrPackage(string path)
+    private LoadedAssembly? ReadWebCilOrPackage(AssemblyPath path)
     {
         var module = ReadWebCil(path);
         if (module != null)
-            return new LoadedModule(this, module);
+            return new LoadedModule(this, path, module);
         var package = ReadPackage(path);
         if (package == null)
             return null;
@@ -815,11 +814,11 @@ public sealed class AssemblyList
 
     /// <summary>The assembly <paramref name="path"/> holds as WebCIL, wrapped in WebAssembly the way
     /// Blazor ships it; null when the file is no WebCIL.</summary>
-    private WebCilFile? ReadWebCil(string path)
+    private WebCilFile? ReadWebCil(AssemblyPath path)
     {
         try
         {
-            return WebCilFile.FromFile(path, _readerOptions);
+            return WebCilFile.FromFile(path.Text, _readerOptions);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
         {
@@ -827,7 +826,7 @@ public sealed class AssemblyList
         }
     }
 
-    private static AssemblyPackage? ReadPackage(string path)
+    private static AssemblyPackage? ReadPackage(AssemblyPath path)
     {
         try
         {
@@ -839,14 +838,14 @@ public sealed class AssemblyList
         }
     }
 
-    private LoadedModule ReadOutOfPackage(LoadedPackage container, string path, string fullName)
+    private LoadedModule ReadOutOfPackage(LoadedPackage container, AssemblyPath path, string fullName)
     {
         var package = container.Package;
         var file = package.FindFile(fullName);
         if (file == null)
             throw new AssemblyLoadException(path, $"'{container.FilePath}' holds no '{fullName}'.");
         var image = ReadPackageFile(package, file);
-        return new LoadedModule(this, image, new PackagePlace(container, file));
+        return new LoadedModule(this, path, image, new PackagePlace(container, file));
     }
 
     private PEFile ReadPackageFile(AssemblyPackage package, PackageFile file)
@@ -864,11 +863,11 @@ public sealed class AssemblyList
         }
     }
 
-    private PEFile ReadFile(string path)
+    private PEFile ReadFile(AssemblyPath path)
     {
         try
         {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var stream = new FileStream(path.Text, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             return ReadImage(path, stream);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -878,11 +877,11 @@ public sealed class AssemblyList
     }
 
     /// <summary>The assembly or module <paramref name="stream"/> holds, known by <paramref name="path"/>.</summary>
-    private PEFile ReadImage(string path, Stream stream)
+    private PEFile ReadImage(AssemblyPath path, Stream stream)
     {
         try
         {
-            var file = new PEFile(path, stream, PEStreamOptions.PrefetchEntireImage, _readerOptions);
+            var file = new PEFile(path.Text, stream, PEStreamOptions.PrefetchEntireImage, _readerOptions);
             if (!file.Reader.HasMetadata)
                 throw new AssemblyLoadException(path, $"'{path}' is not a .NET assembly.");
             return file;

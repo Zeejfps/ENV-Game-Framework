@@ -10,7 +10,7 @@ public sealed class ILSpyTreeTests
         var assembly = Trees.TestAssembly;
         var calculator = assembly.Calculator();
 
-        Assert.Equal(assembly.FilePath, ILSpyTree.NameOf(assembly.Root));
+        Assert.Equal(assembly.FilePath.Text, ILSpyTree.NameOf(assembly.Root));
         Assert.Equal(Trees.FixturesNamespace, ILSpyTree.NameOf(assembly.Fixtures()));
         Assert.Equal(Trees.FixturesNamespace + ".Calculator`1", ILSpyTree.NameOf(calculator));
         Assert.Equal(Trees.FixturesNamespace + ".Calculator`1+Mode", ILSpyTree.NameOf(calculator.Child("Mode")));
@@ -54,10 +54,10 @@ public sealed class ILSpyTreeTests
         var info = ILSpyTree.Describe(calculator, anchor);
 
         Assert.Equal(assembly.FullName, info.AssemblyFullName);
-        Assert.Equal(Path.GetFileName(assembly.FilePath), info.ModuleName);
+        Assert.Equal(assembly.FilePath.FileName, info.ModuleName);
         Assert.Equal((uint)anchor!.Value.Token, info.Token);
         Assert.Equal(Trees.FixturesNamespace + ".Calculator.Add", info.MemberName);
         Assert.Equal(Trees.FixturesNamespace + ".Calculator", info.LocationNodeName);
-        Assert.Equal([assembly.FilePath, Trees.FixturesNamespace, Trees.FixturesNamespace + ".Calculator`1"], info.TreePath);
+        Assert.Equal([assembly.FilePath.Text, Trees.FixturesNamespace, Trees.FixturesNamespace + ".Calculator`1"], info.TreePath);
     }
 }

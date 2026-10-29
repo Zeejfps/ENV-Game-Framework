@@ -2,6 +2,7 @@ using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -15,7 +16,7 @@ public sealed class AssemblyMenuTests
         using var temp = new TempDir();
         var missing = temp.PathOf("Missing.dll");
         var app = AppDriver.Opened();
-        OpenAssemblies(app.AppState, [missing, CoreLibPath]);
+        OpenAssemblies(app.AppState, [PathOf(missing), PathOf(CoreLibPath)]);
         app.RunUntil(() => app.AppState.Assemblies.Listed.Count == 3);
         app.Settle(2);
 
@@ -23,13 +24,13 @@ public sealed class AssemblyMenuTests
         app.ClickMenuItem("Sort list by name").Frame(2);
 
         var sorted = app.AppState.Assemblies.FilePaths;
-        Assert.Equal([missing, CoreLibPath, AppStateDriver.FixturePath], sorted);
+        Assert.Equal([missing, CoreLibPath, AppStateDriver.FixturePath], sorted.Select(static p => p.Text));
 
         app.Click("File").Frame(2);
         app.ClickMenuItem("Close assemblies that failed to load").Frame(2);
 
         var roots = app.Ui.Tree.Roots;
-        Assert.Equal([CoreLibPath, AppStateDriver.FixturePath], roots.Select(r => r.Assembly.FilePath));
+        Assert.Equal([CoreLibPath, AppStateDriver.FixturePath], roots.Select(r => r.Assembly.FilePath.Text));
         Assert.False(AnyFailedToLoad(app.AppState));
     }
 
@@ -42,7 +43,7 @@ public sealed class AssemblyMenuTests
 
         app.PickFromTreeMenu(assembly.Name, "Open containing folder");
 
-        Assert.Equal([assembly.FilePath], app.Frames.RevealedFiles);
+        Assert.Equal([assembly.FilePath.Text], app.Frames.RevealedFiles);
     }
 
     [Fact]

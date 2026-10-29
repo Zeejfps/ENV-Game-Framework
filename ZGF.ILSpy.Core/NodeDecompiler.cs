@@ -367,7 +367,7 @@ internal static class NodeDecompiler
     private static void WriteAssemblySummary(LoadedModule assembly, DocumentBuilder output)
     {
         var file = assembly.File;
-        WriteComment(output, assembly.FilePath);
+        WriteComment(output, assembly.FilePath.Text);
         WriteComment(output, assembly.FullName);
         var corHeader = file.CorHeader;
         if (file.Metadata.IsAssembly && corHeader != null)

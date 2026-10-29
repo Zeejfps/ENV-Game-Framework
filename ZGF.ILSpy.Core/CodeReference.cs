@@ -28,7 +28,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
     private readonly int _localKey;
     private readonly CodeReference? _scope;
 
-    private CodeReference(CodeReferenceKind kind, string name, string? filePath, EntityHandle handle, int localKey, CodeReference? scope)
+    private CodeReference(CodeReferenceKind kind, string name, AssemblyPath? filePath, EntityHandle handle, int localKey, CodeReference? scope)
     {
         Kind = kind;
         Name = name;
@@ -47,10 +47,10 @@ public sealed class CodeReference : IEquatable<CodeReference>
     /// true for assemblies and entities, false for locals and labels.</summary>
     public bool IsNavigable => FilePath != null;
 
-    internal string? FilePath { get; }
+    internal AssemblyPath? FilePath { get; }
     internal EntityHandle Handle { get; }
 
-    internal static CodeReference ToEntity(CodeReferenceKind kind, string name, string filePath, EntityHandle handle) =>
+    internal static CodeReference ToEntity(CodeReferenceKind kind, string name, AssemblyPath filePath, EntityHandle handle) =>
         new(kind, name, filePath, handle, 0, null);
 
     /// <summary>A reference to the definition <paramref name="entity"/>, named <paramref name="name"/>
@@ -60,7 +60,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
         var file = entity.ParentModule?.MetadataFile;
         if (file == null || entity.MetadataToken.IsNil)
             return null;
-        return ToEntity(KindOf(entity.SymbolKind), name ?? entity.Name, file.FileName, entity.MetadataToken);
+        return ToEntity(KindOf(entity.SymbolKind), name ?? entity.Name, AssemblyPath.Of(file), entity.MetadataToken);
     }
 
     /// <summary>What a reference to <paramref name="handle"/> of <paramref name="metadata"/> points
@@ -91,7 +91,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
         };
 
     /// <summary>A reference to the assembly in the file at <paramref name="filePath"/> itself.</summary>
-    internal static CodeReference ToAssembly(string name, string filePath) =>
+    internal static CodeReference ToAssembly(string name, AssemblyPath filePath) =>
         new(CodeReferenceKind.Assembly, name, filePath, EntityHandle.AssemblyDefinition, 0, null);
 
     internal static CodeReference ToLocal(CodeReferenceKind kind, string name, int key, CodeReference? scope) =>
@@ -102,7 +102,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
         if (ReferenceEquals(this, other)) return true;
         if (other is null) return false;
         if (FilePath != null || other.FilePath != null)
-            return Handle == other.Handle && string.Equals(FilePath, other.FilePath, StringComparison.OrdinalIgnoreCase);
+            return Handle == other.Handle && Equals(FilePath, other.FilePath);
         return Kind == other.Kind && _localKey == other._localKey && Equals(_scope, other._scope);
     }
 
@@ -110,7 +110,7 @@ public sealed class CodeReference : IEquatable<CodeReference>
 
     public override int GetHashCode() =>
         FilePath != null
-            ? HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(FilePath), MetadataTokens.GetToken(Handle))
+            ? HashCode.Combine(FilePath, MetadataTokens.GetToken(Handle))
             : HashCode.Combine(Kind, _localKey, _scope);
 
     public static bool operator ==(CodeReference? left, CodeReference? right) => Equals(left, right);

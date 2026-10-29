@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
 using ZGF.ILSpy.Localization;
 
@@ -109,7 +110,7 @@ internal static class DiagramFaces
     /// <summary>The members of <paramref name="members"/>, of the assembly at <paramref name="assemblyPath"/>,
     /// that the card shows: all of them for one of the diagram's own assemblies or while the filter shows
     /// hidden ones, else those other assemblies can reach.</summary>
-    private static List<CardMember> ListShown(DiagramViewState view, TypeDiagram diagram, string assemblyPath, IReadOnlyList<CardMember> members)
+    private static List<CardMember> ListShown(DiagramViewState view, TypeDiagram diagram, AssemblyPath? assemblyPath, IReadOnlyList<CardMember> members)
     {
         if (view.ShowsHiddenMembers)
             return members.ToList();

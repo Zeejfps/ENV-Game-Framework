@@ -8,6 +8,7 @@ using static ZGF.ILSpy.Preferences;
 using static ZGF.ILSpy.Settings;
 using static ZGF.ILSpy.ScreenLayout;
 using static ZGF.ILSpy.App.Tests.BuiltInGlyphs;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -274,7 +275,7 @@ public sealed class BookmarkTests : IDisposable
         GoToBookmark(d.AppState, bookmark);
         app.Settle(4);
 
-        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths);
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Assemblies.FilePaths.Select(static p => p.Text));
         Assert.Equal("Outline", d.AppState.Tabs.Active!.Node!.Text);
     }
 

@@ -42,7 +42,7 @@ public sealed class TypeCardTests
         Assert.Equal(TypeStereotype.Interface, Card("IFeeds").Stereotype);
         Assert.Equal(TypeStereotype.Static, Card("Visits").Stereotype);
         Assert.Equal(TypeStereotype.None, Card("Lion").Stereotype);
-        Assert.Equal(Trees.TestAssemblyPath, animal.AssemblyPath);
+        Assert.Equal(Trees.TestAssemblyPath, animal.AssemblyPath.Text);
     }
 
     [Fact]

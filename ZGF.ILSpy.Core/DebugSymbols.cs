@@ -195,7 +195,10 @@ internal sealed class DebugSymbols : IDebugInfoProvider
     {
         if (package == null)
             return TryReadFromDisk(path);
-        var file = package.FindFileAt(path);
+        var inPackage = AssemblyPath.Parse(path);
+        if (inPackage == null)
+            return null;
+        var file = package.FindFileAt(inPackage);
         if (file == null)
             return null;
         return package.ReadFile(file);

@@ -3,6 +3,7 @@ using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.CommandLines;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -19,7 +20,7 @@ public sealed class CommandLineTests
         Assert.Equal(DecompilationLanguage.IL, commandLine.Language);
         Assert.Equal("Work", commandLine.AssemblyList);
         Assert.True(commandLine.ClearList);
-        Assert.Equal(["a.dll"], commandLine.AssemblyPaths);
+        Assert.Equal([Path.GetFullPath("a.dll")], commandLine.AssemblyPaths.Select(static p => p.Text));
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public sealed class CommandLineTests
         Assert.True(handed.ClearList);
         Assert.Equal("T:Some.Type", handed.NavigateTo);
         Assert.False(handed.NewInstance);
-        Assert.Equal([Path.GetFullPath("a.dll")], handed.AssemblyPaths);
+        Assert.Equal([Path.GetFullPath("a.dll")], handed.AssemblyPaths.Select(static p => p.Text));
     }
 
     [Fact]
@@ -98,13 +99,13 @@ public sealed class CommandLineTests
     public void A_list_named_that_there_is_none_of_is_added_and_opened_empty()
     {
         using var temp = new TempDir();
-        var d = new AppStateDriver(SettingsWith(temp, new AssemblyListRecord(SavedAssemblyLists.DefaultName, [AppStateDriver.FixturePath])));
+        var d = new AppStateDriver(SettingsWith(temp, new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)])));
 
         Start(d, $"--list={Other}");
 
         Assert.Equal(Other, d.AppState.Lists.Active);
         Assert.Empty(d.AppState.Assemblies.FilePaths);
-        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Lists.PathsOf(SavedAssemblyLists.DefaultName));
+        Assert.Equal([AppStateDriver.FixturePath], d.AppState.Lists.PathsOf(SavedAssemblyLists.DefaultName).Select(static p => p.Text));
     }
 
     [Fact]
@@ -113,15 +114,15 @@ public sealed class CommandLineTests
         using var temp = new TempDir();
         var settings = SettingsWith(temp,
             new AssemblyListRecord(SavedAssemblyLists.DefaultName, []),
-            new AssemblyListRecord(Other, [AppStateDriver.FixturePath]));
+            new AssemblyListRecord(Other, [PathOf(AppStateDriver.FixturePath)]));
         var d = new AppStateDriver(settings);
 
         Start(d, "--list=other", OtherAssembly);
         SaveSettings(d.AppState);
 
-        string[] opened = [AppStateDriver.FixturePath, OtherAssembly];
+        AssemblyPath[] opened = [PathOf(AppStateDriver.FixturePath), PathOf(OtherAssembly)];
         Assert.Equal(Other, d.AppState.Lists.Active);
-        Assert.Equal(opened.Order(), d.AppState.Assemblies.FilePaths.Order());
+        Assert.Equal(opened.OrderBy(static p => p.Text), d.AppState.Assemblies.FilePaths.OrderBy(static p => p.Text));
         Assert.Equal(Other, temp.Settings().ActiveAssemblyList);
     }
 
@@ -129,13 +130,13 @@ public sealed class CommandLineTests
     public void Clearing_the_list_opens_only_the_files_named_and_saves_the_list_with_them()
     {
         using var temp = new TempDir();
-        var d = new AppStateDriver(SettingsWith(temp, new AssemblyListRecord(SavedAssemblyLists.DefaultName, [AppStateDriver.FixturePath])));
+        var d = new AppStateDriver(SettingsWith(temp, new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)])));
 
         Start(d, "--clear-list", OtherAssembly);
         SaveSettings(d.AppState);
 
-        Assert.Equal([OtherAssembly], d.AppState.Assemblies.FilePaths);
-        Assert.Equal([OtherAssembly], Assert.Single(temp.Settings().AssemblyLists).Assemblies);
+        Assert.Equal([OtherAssembly], d.AppState.Assemblies.FilePaths.Select(static p => p.Text));
+        Assert.Equal([OtherAssembly], Assert.Single(temp.Settings().AssemblyLists).Assemblies.Select(static p => p.Text));
     }
 
     private static AppSettings SettingsWith(TempDir temp, params AssemblyListRecord[] lists)
@@ -157,5 +158,5 @@ public sealed class CommandLineTests
         d.Settle();
     }
 
-    private static bool AreListed(AppState appState, List<string> paths) => paths.All(appState.IsListed);
+    private static bool AreListed(AppState appState, List<AssemblyPath> paths) => paths.All(appState.IsListed);
 }

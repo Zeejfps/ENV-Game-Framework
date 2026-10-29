@@ -92,14 +92,14 @@ internal static class ComparisonPickerView
     private static void Row(Ui<UiState> ui, ListScope list, int index, LoadedModule assembly)
     {
         var theme = ui.Theme;
-        using (ui.Id(assembly.FilePath))
+        using (ui.Id(assembly.FilePath.Text))
         using (var row = list.Row(index, ui.GetId("row"), new Box { Gap = theme.GapTight, AlignY = Align.Center }))
         {
             var nameColor = row.Selected ? theme.SelectionText : theme.Text;
             NodeIcons.Draw(ui, NodeKind.Assembly);
             ui.Text(assembly.NameAndVersion, color: nameColor);
             FrameworkText(ui, assembly);
-            ui.Text(assembly.FilePath, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
+            ui.Text(assembly.FilePath.Text, new Box { Width = Sizing.Grow() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
         }
     }
 

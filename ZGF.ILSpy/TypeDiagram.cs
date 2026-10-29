@@ -13,7 +13,7 @@ public sealed class TypeDiagram
     private readonly List<TypeCard> _cards = new();
     private readonly HashSet<CodeReference> _types = new();
     private readonly List<TypeLink> _links = new();
-    private readonly HashSet<string> _homeAssemblies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<AssemblyPath> _homeAssemblies = new();
     private readonly CancellationTokenSource _open = new();
     private CancellationTokenSource? _layout;
     private int _reading;
@@ -101,16 +101,22 @@ public sealed class TypeDiagram
     }
 
     /// <summary>Takes the assembly at <paramref name="assemblyPath"/> as one of the diagram's own.</summary>
-    public void TakeHome(string assemblyPath)
+    public void TakeHome(AssemblyPath assemblyPath)
     {
         _homeAssemblies.Add(assemblyPath);
     }
 
-    /// <summary>Whether the assembly at <paramref name="assemblyPath"/> is one of the diagram's own.</summary>
-    public bool IsHome(string assemblyPath) => _homeAssemblies.Contains(assemblyPath);
+    /// <summary>Whether the assembly at <paramref name="assemblyPath"/> is one of the diagram's own; false
+    /// for none.</summary>
+    public bool IsHome(AssemblyPath? assemblyPath)
+    {
+        if (assemblyPath == null)
+            return false;
+        return _homeAssemblies.Contains(assemblyPath);
+    }
 
     /// <summary>The files of the diagram's own assemblies.</summary>
-    public IReadOnlyCollection<string> HomeAssemblies => _homeAssemblies;
+    public IReadOnlyCollection<AssemblyPath> HomeAssemblies => _homeAssemblies;
 
     /// <summary>Counts a read of cards for the diagram as started, until <see cref="FinishReading"/>.</summary>
     public void StartReading()

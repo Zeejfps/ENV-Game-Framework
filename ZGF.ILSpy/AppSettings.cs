@@ -318,7 +318,7 @@ public sealed class AppSettings
         if (analyzed == null)
             return;
         if (lists.Count == 0)
-            lists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, new List<string>()));
+            lists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, new List<AssemblyPath>()));
         var index = FindActiveListIndex(lists, active);
         var list = lists[index];
         var hasAnalyses = list.Analyzed != null && list.Analyzed.Count > 0;

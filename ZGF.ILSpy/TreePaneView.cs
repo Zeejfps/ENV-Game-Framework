@@ -219,7 +219,7 @@ internal static class TreePaneView
         if (node.Kind == NodeKind.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
             ScopeSearch(ui.State, node);
         if (IsListedRoot(node) && ui.MenuItem(t.TreeOpenContainingFolder, id: "open-containing-folder", icon: new UiIcon(ui.State.Icons.AssembliesOpenContainingFolder)))
-            ui.RevealFile(node.Assembly.FilePath);
+            ui.RevealFile(node.Assembly.FilePath.Text);
         if (IsListedRoot(node))
         {
             ui.MenuSeparator();
@@ -361,7 +361,7 @@ internal static class TreePaneView
     /// <summary>The folder the assembly's file is in; null for one read out of a package, whose path runs through it.</summary>
     private static string? FindFolderOf(LoadedModule assembly)
     {
-        var folder = Path.GetDirectoryName(assembly.FilePath);
+        var folder = Path.GetDirectoryName(assembly.FilePath.Text);
         if (!Directory.Exists(folder))
             return null;
         return folder;

@@ -3,6 +3,7 @@ using ZGF.ILSpy.Core.Comparison;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Comparisons;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -22,7 +23,7 @@ public sealed class SavedComparisonTests : IDisposable
     private AppDriver Compared()
     {
         var app = new AppDriver(settings: _temp.Settings());
-        OpenAssemblies(app.AppState, [LeftPath, RightPath]);
+        OpenAssemblies(app.AppState, [PathOf(LeftPath), PathOf(RightPath)]);
         app.RunUntil(() => app.AppState.Assemblies.Assemblies.Count == 2);
         app.Settle(2);
         var assemblies = app.AppState.Assemblies.Assemblies;
@@ -75,8 +76,8 @@ public sealed class SavedComparisonTests : IDisposable
         var reopened = restored.Comparison!;
         Assert.Equal("ApiDiffSample API diff", restored.Title);
         Assert.Equal(panel, next.Ui.Documents.PanelOf(restored));
-        Assert.Equal(RightPath, reopened.LeftPath);
-        Assert.Equal(LeftPath, reopened.RightPath);
+        Assert.Equal(RightPath, reopened.LeftPath.Text);
+        Assert.Equal(LeftPath, reopened.RightPath.Text);
         Assert.Equal(ApiScope.AllDeclared, reopened.Diff!.Scope);
         Assert.Equal("ApiDiffSample (2.0.0.0)", reopened.Diff.LeftName);
         Assert.False(next.Ui.Documents.ViewOf(restored).Comparison.OnlyDifferences);
@@ -87,11 +88,11 @@ public sealed class SavedComparisonTests : IDisposable
     {
         var app = Compared();
         var tab = app.AppState.Tabs.Active!;
-        Assert.Equal(LeftPath, ReadSavedComparison().LeftPath);
+        Assert.Equal(LeftPath, ReadSavedComparison().LeftPath.Text);
 
         SwapComparedAssemblies(app.AppState, tab.Comparison!);
         app.Settle(2);
-        Assert.Equal(RightPath, ReadSavedComparison().LeftPath);
+        Assert.Equal(RightPath, ReadSavedComparison().LeftPath.Text);
 
         app.Ui.Documents.ViewOf(tab).Comparison.ShowOnlyDifferences(false);
         app.Settle(2);
@@ -102,7 +103,7 @@ public sealed class SavedComparisonTests : IDisposable
     public void A_comparison_of_an_assembly_no_longer_open_comes_back_saying_so()
     {
         var app = Compared();
-        CloseAssembly(app.AppState, app.AppState.Assemblies.Assemblies.Single(a => a.FilePath == RightPath));
+        CloseAssembly(app.AppState, app.AppState.Assemblies.Assemblies.Single(a => a.FilePath.Text == RightPath));
         app.Settle(2);
         app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 700, false));
 

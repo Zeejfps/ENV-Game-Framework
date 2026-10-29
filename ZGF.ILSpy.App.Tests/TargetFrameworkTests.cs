@@ -5,6 +5,7 @@ using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Settings;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -14,7 +15,7 @@ public sealed class TargetFrameworkTests
     private static readonly string SampleAppPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
     private static LoadedModule FixturesOf(AppState appState) =>
-        appState.Assemblies.Assemblies.Single(a => a.FilePath == AppStateDriver.FixturePath);
+        appState.Assemblies.Assemblies.Single(a => a.FilePath.Text == AppStateDriver.FixturePath);
 
     /// <summary>Right-clicks the fixture assembly's row and picks <paramref name="item"/> from its
     /// Target framework submenu, then waits for the reload.</summary>
@@ -44,7 +45,7 @@ public sealed class TargetFrameworkTests
         Assert.Equal("net48", NodeText.PickedFramework(assembly.Root));
         Assert.DoesNotContain("net48", NodeText.Secondary(assembly.Root));
         Assert.Equal(FontWeight.Bold, app.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "net48").Inputs.Style.FontWeight.Value);
-        Assert.Equal(Net48, Assert.Single(temp.Settings().AssemblyLists).Frameworks![AppStateDriver.FixturePath]);
+        Assert.Equal(Net48, Assert.Single(temp.Settings().AssemblyLists).Frameworks![PathOf(AppStateDriver.FixturePath)]);
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class TargetFrameworkTests
     {
         var app = AppDriver.Opened(width: 1600f);
         OpenAssembly(app.AppState, SampleAppPath);
-        app.RunUntil(() => app.AppState.IsListed(SampleAppPath));
+        app.RunUntil(() => app.AppState.IsListed(PathOf(SampleAppPath)));
         var fixtures = FixturesOf(app.AppState);
         var sample = SampleOf(app.AppState);
         var tree = app.Ui.Tree;
@@ -101,7 +102,7 @@ public sealed class TargetFrameworkTests
     }
 
     private static LoadedModule SampleOf(AppState appState) =>
-        appState.Assemblies.Assemblies.Single(a => a.FilePath == SampleAppPath);
+        appState.Assemblies.Assemblies.Single(a => a.FilePath.Text == SampleAppPath);
 
     [Fact]
     public void Picking_a_framework_for_an_assembly_in_a_package_keeps_the_tree_expanded_and_the_tab_on_what_it_showed()
@@ -145,8 +146,8 @@ public sealed class TargetFrameworkTests
         var settings = temp.Settings();
         settings.AssemblyLists =
         [
-            new AssemblyListRecord(SavedAssemblyLists.DefaultName, [AppStateDriver.FixturePath],
-                Frameworks: new Dictionary<string, string> { [AppStateDriver.FixturePath] = Net48 }),
+            new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)],
+                Frameworks: new Dictionary<AssemblyPath, string> { [PathOf(AppStateDriver.FixturePath)] = Net48 }),
         ];
         var d = new AppStateDriver(settings);
 

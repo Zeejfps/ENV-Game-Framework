@@ -9,6 +9,7 @@ using static ZGF.ILSpy.AssemblyLists;
 using static ZGF.ILSpy.Diagrams;
 using static ZGF.ILSpy.DocumentPanels;
 using static ZGF.ILSpy.Navigation;
+using static ZGF.ILSpy.App.Tests.TestPaths;
 
 namespace ZGF.ILSpy.App.Tests;
 
@@ -88,11 +89,11 @@ public sealed class SavedDocumentsTests : IDisposable
 
     private static AppSettings SettingsWith(DocumentsRecord documents)
     {
-        var list = new AssemblyListRecord(SavedAssemblyLists.DefaultName, [AppStateDriver.FixturePath], Documents: documents);
+        var list = new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)], Documents: documents);
         return new AppSettings { AssemblyLists = [list] };
     }
 
-    private static TypeAnchor FixtureType(string name) => new(AppStateDriver.FixturePath, $"{AppStateDriver.FixturesNamespace}.{name}");
+    private static TypeAnchor FixtureType(string name) => new(PathOf(AppStateDriver.FixturePath), $"{AppStateDriver.FixturesNamespace}.{name}");
 
     [Fact]
     public void Scrolling_alone_writes_no_settings_and_the_next_save_keeps_where_the_view_stands()
@@ -171,7 +172,7 @@ public sealed class SavedDocumentsTests : IDisposable
             new(NodeKind.Namespace, AppStateDriver.FixturesNamespace),
             new(NodeKind.Class, "Missing"),
         };
-        var missing = new NodeDocumentRecord(MissingPanel, "Missing", AppStateDriver.FixturePath, place, DecompilationLanguage.CSharp, null);
+        var missing = new NodeDocumentRecord(MissingPanel, "Missing", PathOf(AppStateDriver.FixturePath), place, DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([missing], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -192,7 +193,7 @@ public sealed class SavedDocumentsTests : IDisposable
             new(NodeKind.Namespace, AppStateDriver.FixturesNamespace),
             new(NodeKind.Class, "Greeter"),
         };
-        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", AppStateDriver.FixturePath, place, DecompilationLanguage.CSharp, null);
+        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", PathOf(AppStateDriver.FixturePath), place, DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([greeter], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -207,7 +208,7 @@ public sealed class SavedDocumentsTests : IDisposable
     public void A_diagram_comes_back_without_the_types_no_longer_found_and_is_the_one_shown_types_go_to()
     {
         var vehicle = FixtureType("Vehicle");
-        var saved = new DiagramDocumentRecord(DiagramPanel, "Vehicle diagram", [vehicle, FixtureType("Missing")], [AppStateDriver.FixturePath], null);
+        var saved = new DiagramDocumentRecord(DiagramPanel, "Vehicle diagram", [vehicle, FixtureType("Missing")], [PathOf(AppStateDriver.FixturePath)], null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([saved], DiagramPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -216,7 +217,7 @@ public sealed class SavedDocumentsTests : IDisposable
         var tab = Assert.Single(d.AppState.Tabs);
         Assert.Equal("Vehicle diagram", tab.Title);
         Assert.Equal([vehicle], ListTypes(tab));
-        Assert.True(tab.Diagram!.IsHome(AppStateDriver.FixturePath));
+        Assert.True(tab.Diagram!.IsHome(PathOf(AppStateDriver.FixturePath)));
         Assert.Same(tab, d.AppState.Tabs.Diagram);
     }
 
@@ -229,7 +230,7 @@ public sealed class SavedDocumentsTests : IDisposable
         SwitchAssemblyList(d.AppState, Other);
         d.Settle();
         OpenAssembly(d.AppState, AppStateDriver.FixturePath);
-        d.RunUntil(() => d.AppState.Assemblies.FilePaths.Contains(AppStateDriver.FixturePath));
+        d.RunUntil(() => d.AppState.Assemblies.FilePaths.Contains(PathOf(AppStateDriver.FixturePath)));
         d.Settle();
         d.Show(d.Fixture("Farewell"));
 
@@ -298,7 +299,7 @@ public sealed class SavedDocumentsTests : IDisposable
     }
 
     private static NodeDocumentRecord HandTab(string panel, string title) =>
-        new(panel, title, AppStateDriver.FixturePath, [], DecompilationLanguage.CSharp, null);
+        new(panel, title, PathOf(AppStateDriver.FixturePath), [], DecompilationLanguage.CSharp, null);
 
     [Fact]
     public void A_new_panel_skips_every_panel_saved_documents_were_docked_as_however_numbered()

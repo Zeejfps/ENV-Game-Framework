@@ -240,7 +240,7 @@ public static class Diagrams
         return diagram;
     }
 
-    private static void TakeHomes(TypeDiagram diagram, List<string>? assemblies)
+    private static void TakeHomes(TypeDiagram diagram, List<AssemblyPath>? assemblies)
     {
         if (assemblies == null)
             return;

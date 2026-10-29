@@ -10,17 +10,17 @@ namespace ZGF.ILSpy.Core;
 /// </summary>
 public sealed class AssemblyPicks
 {
-    private static readonly ImmutableDictionary<string, string> None = ImmutableDictionary.Create<string, string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly ImmutableDictionary<AssemblyPath, string> None = ImmutableDictionary<AssemblyPath, string>.Empty;
 
     private readonly Lock _gate = new();
-    private ImmutableDictionary<string, string> _picks = None;
+    private ImmutableDictionary<AssemblyPath, string> _picks = None;
 
     /// <summary>Every pick, by the assembly's path.</summary>
-    public IReadOnlyDictionary<string, string> All => Volatile.Read(ref _picks);
+    public IReadOnlyDictionary<AssemblyPath, string> All => Volatile.Read(ref _picks);
 
     /// <summary>Has the assembly at <paramref name="assemblyPath"/> take <paramref name="value"/> from
     /// the next time it is opened.</summary>
-    public void Pick(string assemblyPath, string value)
+    public void Pick(AssemblyPath assemblyPath, string value)
     {
         lock (_gate)
             Volatile.Write(ref _picks, _picks.SetItem(assemblyPath, value));
@@ -28,16 +28,16 @@ public sealed class AssemblyPicks
 
     /// <summary>Has the assembly at <paramref name="assemblyPath"/> find for itself again what it was
     /// given, from the next time it is opened.</summary>
-    public void Forget(string assemblyPath)
+    public void Forget(AssemblyPath assemblyPath)
     {
         lock (_gate)
             Volatile.Write(ref _picks, _picks.Remove(assemblyPath));
     }
 
     /// <summary>Takes <paramref name="picks"/> in place of those before, as when another list opens.</summary>
-    public void Use(IReadOnlyDictionary<string, string> picks)
+    public void Use(IReadOnlyDictionary<AssemblyPath, string> picks)
     {
-        var taken = ImmutableDictionary.CreateRange(StringComparer.OrdinalIgnoreCase, picks);
+        var taken = ImmutableDictionary.CreateRange(picks);
         lock (_gate)
             Volatile.Write(ref _picks, taken);
     }
@@ -50,7 +50,7 @@ public sealed class AssemblyPicks
     }
 
     /// <summary>What was picked for the assembly at <paramref name="assemblyPath"/>, or null.</summary>
-    public string? Find(string assemblyPath)
+    public string? Find(AssemblyPath assemblyPath)
     {
         return All.GetValueOrDefault(assemblyPath);
     }
@@ -63,7 +63,7 @@ public sealed class AssemblyPicks
         {
             var picks = _picks.Remove(item.FilePath);
             if (item is LoadedPackage)
-                picks = picks.RemoveRange(picks.Keys.Where(path => AssemblyPackage.Holds(item.FilePath, path)));
+                picks = picks.RemoveRange(picks.Keys.Where(path => path.IsUnder(item.FilePath)));
             Volatile.Write(ref _picks, picks);
         }
     }

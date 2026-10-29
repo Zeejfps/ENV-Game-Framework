@@ -89,15 +89,16 @@ internal sealed record AssemblyListJson(
             PicksOf(Pdbs), PicksOf(Frameworks), Documents?.Parse(file, field));
     }
 
-    private static Dictionary<string, string>? PicksOf(Dictionary<string, string?>? picks)
+    private static Dictionary<AssemblyPath, string>? PicksOf(Dictionary<string, string?>? picks)
     {
         if (picks == null)
             return null;
-        var kept = new Dictionary<string, string>();
-        foreach (var (path, pick) in picks)
+        var kept = new Dictionary<AssemblyPath, string>();
+        foreach (var (text, pick) in picks)
         {
-            if (!string.IsNullOrWhiteSpace(pick))
-                kept.Add(path, pick);
+            var path = AssemblyPath.Parse(text);
+            if (path != null && !string.IsNullOrWhiteSpace(pick))
+                kept.TryAdd(path, pick);
         }
         return kept;
     }
@@ -110,7 +111,10 @@ internal sealed record CodeAnchorJson(CodeAnchorKind Kind, string? FilePath, int
     {
         if (FilePath == null)
             return null;
-        return new CodeAnchor(Kind, FilePath, Token, ILOffset);
+        var path = AssemblyPath.Parse(FilePath);
+        if (path == null)
+            return null;
+        return new CodeAnchor(Kind, path, Token, ILOffset);
     }
 }
 
@@ -167,10 +171,13 @@ internal sealed record NodeDocumentJson(
     {
         if (Panel == null || FilePath == null)
             return null;
+        var path = AssemblyPath.Parse(FilePath);
+        if (path == null)
+            return null;
         var place = SettingsJson.SegmentsOf(Place);
         if (place == null)
             return null;
-        return new NodeDocumentRecord(Panel, Title, FilePath, place, Language, Position);
+        return new NodeDocumentRecord(Panel, Title, path, place, Language, Position);
     }
 }
 
@@ -203,7 +210,11 @@ internal sealed record ComparisonDocumentJson(
     {
         if (Panel == null || LeftPath == null || RightPath == null)
             return null;
-        return new ComparisonDocumentRecord(Panel, Title, LeftPath, RightPath, Scope, View);
+        var left = AssemblyPath.Parse(LeftPath);
+        var right = AssemblyPath.Parse(RightPath);
+        if (left == null || right == null)
+            return null;
+        return new ComparisonDocumentRecord(Panel, Title, left, right, Scope, View);
     }
 }
 
@@ -217,7 +228,10 @@ internal sealed record TypeAnchorJson(string? AssemblyPath, string? FullName)
     {
         if (AssemblyPath == null || FullName == null)
             return null;
-        return new TypeAnchor(AssemblyPath, FullName);
+        var path = Core.AssemblyPath.Parse(AssemblyPath);
+        if (path == null)
+            return null;
+        return new TypeAnchor(path, FullName);
     }
 }
 
@@ -271,13 +285,16 @@ internal sealed record BookmarkJson(
     List<NodePathSegmentJson?>? Place,
     DecompilationLanguage? Language)
 {
-    /// <summary>The bookmark, with what the file lacks filled in; null without an assembly file. A
-    /// place missing a step's label is no place.</summary>
+    /// <summary>The bookmark, with what the file lacks filled in; null without the absolute path of an
+    /// assembly file. A place missing a step's label is no place.</summary>
     public BookmarkRecord? Parse()
     {
-        if (string.IsNullOrEmpty(FileName))
+        if (FileName == null)
             return null;
-        return new BookmarkRecord(Name ?? "", Enabled, FileName, AssemblyFullName ?? "", ModuleName ?? Path.GetFileName(FileName),
+        var path = AssemblyPath.Parse(FileName);
+        if (path == null)
+            return null;
+        return new BookmarkRecord(Name ?? "", Enabled, path, AssemblyFullName ?? "", ModuleName ?? path.FileName,
             Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), SettingsJson.SegmentsOf(Place), Language);
     }
 }
@@ -387,12 +404,16 @@ internal sealed record BookmarkFileJson(int Version, List<JsonElement>? Bookmark
 /// <summary>What the read shapes share.</summary>
 internal static class SettingsJson
 {
-    /// <summary><paramref name="paths"/> without blank ones; none when there are none.</summary>
-    public static List<string> PathsOf(List<string?>? paths)
+    /// <summary>The absolute paths among <paramref name="paths"/>; none when there are none.</summary>
+    public static List<AssemblyPath> PathsOf(List<string?>? paths)
     {
         if (paths == null)
-            return new List<string>();
-        return paths.Where(static p => !string.IsNullOrWhiteSpace(p)).OfType<string>().ToList();
+            return new List<AssemblyPath>();
+        return paths
+            .OfType<string>()
+            .Select(AssemblyPath.Parse)
+            .OfType<AssemblyPath>()
+            .ToList();
     }
 
     /// <summary>The symbols in <paramref name="anchors"/> that name a file; none when there are none.</summary>
@@ -425,7 +446,7 @@ internal static class SettingsJson
     typeof(EnumByName<CodeAnchorKind>), typeof(EnumByName<CSharpVersion>), typeof(EnumByName<DecompilationLanguage>),
     typeof(EnumByName<Direction>), typeof(EnumByName<Locale>), typeof(EnumByName<MatchMode>),
     typeof(EnumByName<MemberSection>), typeof(EnumByName<NodeKind>), typeof(EnumByName<SearchKinds>),
-    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>),
+    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>), typeof(AssemblyPathJson),
 ])]
 [JsonSerializable(typeof(SettingsFile))]
 [JsonSerializable(typeof(BookmarkFile))]

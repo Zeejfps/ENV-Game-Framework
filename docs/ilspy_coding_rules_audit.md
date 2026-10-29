@@ -93,5 +93,4 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ## Suggested order
 
-1. Introduce an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
-2. Make the silent default branches throw.
+1. Make the silent default branches throw.

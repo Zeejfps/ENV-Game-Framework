@@ -31,7 +31,7 @@ public sealed record CardSection(MemberSection Kind, IReadOnlyList<CardMember> M
 
 /// <summary>The members a card's type inherits from one of its base types, which is named
 /// <see cref="From"/> as the type derives from it and defined in the assembly at <see cref="AssemblyPath"/>.</summary>
-public sealed record InheritedGroup(string From, string AssemblyPath, IReadOnlyList<CardMember> Members);
+public sealed record InheritedGroup(string From, AssemblyPath? AssemblyPath, IReadOnlyList<CardMember> Members);
 
 /// <summary>A type as a diagram shows it: its name as the tree writes it, the kind its icon shows and
 /// its stereotype; its own members by kind, then what it inherits by base type, nearest first; the links
@@ -43,7 +43,7 @@ public sealed record TypeCard(
     TypeAnchor Anchor,
     string Name,
     string FullName,
-    string AssemblyPath,
+    AssemblyPath AssemblyPath,
     NodeKind Kind,
     NodeAccessibility Accessibility,
     TypeStereotype Stereotype,
