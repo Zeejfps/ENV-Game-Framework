@@ -373,39 +373,6 @@ public sealed class DockLayout
         _ => throw new ArgumentOutOfRangeException(nameof(node)),
     };
 
-    /// <summary>Whether every node, window and panel a deserialized layout could have left out is there.</summary>
-    public bool IsWhole()
-    {
-        if (Windows == null)
-            return false;
-        if (!IsWhole(Root))
-            return false;
-        foreach (var window in Windows)
-        {
-            if (window == null)
-                return false;
-            if (!IsWhole(window.Root))
-                return false;
-        }
-        return true;
-    }
-
-    private static bool IsWhole(DockNode? node)
-    {
-        if (node is DockGroup group)
-            return IsWhole(group);
-        if (node is DockSplit split)
-            return IsWhole(split.First) && IsWhole(split.Second);
-        return false;
-    }
-
-    private static bool IsWhole(DockGroup group)
-    {
-        if (group.Panels == null)
-            return false;
-        return !group.Panels.Exists(p => p == null);
-    }
-
     /// <summary>Whether two of the nodes or windows of a whole layout have the same id. The dock space
     /// only numbers the parts that have none, and keeps a splitter's or tab strip's state by id, so two
     /// parts under one id would move together.</summary>

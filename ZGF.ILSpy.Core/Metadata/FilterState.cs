@@ -131,7 +131,7 @@ namespace ZGF.ILSpy.Core.Metadata
 			foreach (var (group, values) in saved.Groups ?? new())
 			{
 				if (mutexSelections.ContainsKey(group))
-					mutexSelections[group] = values?.ToImmutableHashSet();
+					mutexSelections[group] = values.ToImmutableHashSet();
 			}
 			foreach (var (flag, state) in saved.Flags ?? new())
 			{

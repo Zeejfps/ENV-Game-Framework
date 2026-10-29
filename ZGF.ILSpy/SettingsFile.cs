@@ -115,11 +115,11 @@ internal sealed record CodeAnchorJson(CodeAnchorKind Kind, string? FilePath, int
 }
 
 /// <summary>A list's open documents as a settings file can hold them, each tab read on its own.</summary>
-internal sealed record DocumentsJson(List<JsonElement>? Tabs, string? Active, string? Preview, DockLayout? Layout)
+internal sealed record DocumentsJson(List<JsonElement>? Tabs, string? Active, string? Preview, DockLayoutJson? Layout)
 {
     /// <summary>The documents, without tabs missing what they show, docked as a view, or docked as
-    /// a panel another tab was; null without tabs. A tab that is not one at all leaves out
-    /// <paramref name="field"/>.</summary>
+    /// a panel another tab was; null without tabs. A tab that is not one at all, or a layout missing
+    /// a part or giving two parts one id, leaves out <paramref name="field"/>.</summary>
     public DocumentsRecord? Parse(SettingsReader file, string field)
     {
         if (Tabs == null)
@@ -130,7 +130,18 @@ internal sealed record DocumentsJson(List<JsonElement>? Tabs, string? Active, st
             .Where(static t => !DockPanels.IsView(t.Panel))
             .DistinctBy(static t => t.Panel)
             .ToList();
-        return new DocumentsRecord(tabs, Active, Preview, Layout);
+        return new DocumentsRecord(tabs, Active, Preview, ParseLayout(file, field));
+    }
+
+    private DockLayout? ParseLayout(SettingsReader file, string field)
+    {
+        if (Layout == null)
+            return null;
+        var layout = Layout.Parse();
+        if (layout != null && !layout.RepeatsAnId())
+            return layout;
+        file.LeaveOut(field);
+        return null;
     }
 }
 
@@ -255,7 +266,7 @@ internal sealed record BookmarkJson(
     int LineNumber,
     string? MemberName,
     string? LocationNodeName,
-    BookmarkViewState? ViewState,
+    BookmarkViewStateJson? ViewState,
     List<NodePathSegmentJson?>? Place,
     DecompilationLanguage? Language)
 {
@@ -266,7 +277,106 @@ internal sealed record BookmarkJson(
         if (string.IsNullOrEmpty(FileName))
             return null;
         return new BookmarkRecord(Name ?? "", Enabled, FileName, AssemblyFullName ?? "", ModuleName ?? Path.GetFileName(FileName),
-            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState, SettingsJson.SegmentsOf(Place), Language);
+            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), SettingsJson.SegmentsOf(Place), Language);
+    }
+}
+
+/// <summary>ILSpy's view of a bookmark's document, as a settings or bookmarks file can hold it.</summary>
+internal sealed record BookmarkViewStateJson(
+    int Version,
+    int CaretOffset,
+    double VerticalOffset,
+    double HorizontalOffset,
+    int? FoldingChecksum,
+    List<BookmarkFoldingRange?>? ExpandedFoldings,
+    BookmarkRenderedLayoutSettings? RenderedLayoutSettings,
+    List<string?>? SelectedTreeNodePath)
+{
+    /// <summary>The view state, without missing foldings; a tree path missing a step is no path.</summary>
+    public BookmarkViewState Parse()
+    {
+        var foldings = ExpandedFoldings?.OfType<BookmarkFoldingRange>().ToList();
+        return new BookmarkViewState(Version, CaretOffset, VerticalOffset, HorizontalOffset, FoldingChecksum, foldings,
+            RenderedLayoutSettings, TreePathOf(SelectedTreeNodePath));
+    }
+
+    private static List<string>? TreePathOf(List<string?>? path)
+    {
+        if (path == null)
+            return null;
+        var steps = path.OfType<string>().ToList();
+        if (steps.Count != path.Count)
+            return null;
+        return steps;
+    }
+}
+
+/// <summary>How the app is drawn, as a settings file can hold it. What it lacks, or holds as null, is
+/// as <see cref="DisplayOptions.Default"/> has it.</summary>
+internal sealed record DisplayOptionsJson(
+    float? FontSize,
+    bool? ShowLineNumbers,
+    bool? HighlightCurrentLine,
+    bool? HighlightMatchingBrackets,
+    bool? ShowOmnibar,
+    float? UiScale,
+    CodeFontJson? Font,
+    TokenFormat? TreeTokens,
+    bool? ShowEmptyMetadataTables,
+    bool? NestedNamespaces,
+    bool? SystemTitleBar,
+    bool? PreviewTabs)
+{
+    public DisplayOptions Parse()
+    {
+        var d = DisplayOptions.Default;
+        return new DisplayOptions(
+            FontSize,
+            ShowLineNumbers ?? d.ShowLineNumbers,
+            HighlightCurrentLine ?? d.HighlightCurrentLine,
+            HighlightMatchingBrackets ?? d.HighlightMatchingBrackets,
+            ShowOmnibar ?? d.ShowOmnibar,
+            UiScale ?? d.UiScale,
+            Font?.Parse(),
+            TreeTokens ?? d.TreeTokens,
+            ShowEmptyMetadataTables ?? d.ShowEmptyMetadataTables,
+            NestedNamespaces ?? d.NestedNamespaces,
+            SystemTitleBar ?? d.SystemTitleBar,
+            PreviewTabs ?? d.PreviewTabs);
+    }
+}
+
+/// <summary>A font to draw code in, as a settings file can hold it. Without its family or file it is
+/// none, and the bundled font stands in.</summary>
+internal sealed record CodeFontJson(string? Family, string? Path, int FaceIndex)
+{
+    public CodeFont? Parse()
+    {
+        if (Family == null || Path == null)
+            return null;
+        return new CodeFont(Family, Path, FaceIndex);
+    }
+}
+
+/// <summary>A flags filter, as a settings file can hold it. A group without values is left as it starts.</summary>
+internal sealed record SavedFilterStateJson(Dictionary<string, uint[]?>? Groups, Dictionary<string, TriState>? Flags, MatchMode Mode)
+{
+    public SavedFilterState Parse()
+    {
+        return new SavedFilterState(GroupsOf(Groups), Flags, Mode);
+    }
+
+    private static Dictionary<string, uint[]>? GroupsOf(Dictionary<string, uint[]?>? groups)
+    {
+        if (groups == null)
+            return null;
+        var kept = new Dictionary<string, uint[]>();
+        foreach (var (group, values) in groups)
+        {
+            if (values != null)
+                kept.Add(group, values);
+        }
+        return kept;
     }
 }
 
@@ -329,12 +439,12 @@ internal static class SettingsJson
 [JsonSerializable(typeof(Locale?))]
 [JsonSerializable(typeof(WindowBounds?))]
 [JsonSerializable(typeof(DecompilerOptions))]
-[JsonSerializable(typeof(DisplayOptions))]
-[JsonSerializable(typeof(DockLayout))]
+[JsonSerializable(typeof(DisplayOptionsJson))]
+[JsonSerializable(typeof(DockLayoutJson))]
 [JsonSerializable(typeof(List<string?>))]
 [JsonSerializable(typeof(List<float>))]
 [JsonSerializable(typeof(List<CodeAnchorJson?>))]
-[JsonSerializable(typeof(Dictionary<string, SavedFilterState>))]
+[JsonSerializable(typeof(Dictionary<string, SavedFilterStateJson?>))]
 [JsonSerializable(typeof(NuGetSearchJson))]
 [JsonSerializable(typeof(AssemblyListJson))]
 [JsonSerializable(typeof(DocumentJson))]

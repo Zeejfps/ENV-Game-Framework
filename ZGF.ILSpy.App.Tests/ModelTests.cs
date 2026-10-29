@@ -360,6 +360,81 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal("document-2", Assert.Single(list.Documents!.Tabs).Panel);
     }
 
+    [Theory]
+    [InlineData(typeof(AssemblyListRecord), typeof(AssemblyListJson))]
+    [InlineData(typeof(DocumentsRecord), typeof(DocumentsJson))]
+    [InlineData(typeof(NodeDocumentRecord), typeof(NodeDocumentJson))]
+    [InlineData(typeof(DiagramDocumentRecord), typeof(DiagramDocumentJson))]
+    [InlineData(typeof(ComparisonDocumentRecord), typeof(ComparisonDocumentJson))]
+    [InlineData(typeof(NodePathSegment), typeof(NodePathSegmentJson))]
+    [InlineData(typeof(TypeAnchor), typeof(TypeAnchorJson))]
+    [InlineData(typeof(DiagramViewRecord), typeof(DiagramViewJson))]
+    [InlineData(typeof(CardFold), typeof(CardFoldJson))]
+    [InlineData(typeof(CodeAnchor), typeof(CodeAnchorJson))]
+    [InlineData(typeof(SavedNuGetSearch), typeof(NuGetSearchJson))]
+    [InlineData(typeof(BookmarkRecord), typeof(BookmarkJson))]
+    [InlineData(typeof(BookmarkViewState), typeof(BookmarkViewStateJson))]
+    [InlineData(typeof(DisplayOptions), typeof(DisplayOptionsJson))]
+    [InlineData(typeof(CodeFont), typeof(CodeFontJson))]
+    [InlineData(typeof(ZGF.ILSpy.Core.Metadata.SavedFilterState), typeof(SavedFilterStateJson))]
+    [InlineData(typeof(DockLayout), typeof(DockLayoutJson))]
+    [InlineData(typeof(DockSplit), typeof(DockSplitJson))]
+    [InlineData(typeof(DockGroup), typeof(DockGroupJson))]
+    [InlineData(typeof(DockWindow), typeof(DockWindowJson))]
+    public void Every_field_the_settings_write_is_read_back(Type written, Type read)
+    {
+        static IEnumerable<string> NamesOf(Type type) =>
+            AppSettingsJson.Default.GetTypeInfo(type)!.Properties.Where(static p => p.Get != null).Select(static p => p.Name).Order();
+
+        Assert.Equal(NamesOf(written), NamesOf(read));
+    }
+
+    [Fact]
+    public void Display_options_round_trip_and_a_font_missing_its_file_is_left_out_alone()
+    {
+        var settings = AppSettings.Load(SettingsFile).Settings;
+        settings.Display = new DisplayOptions(14f, false, true, false, false, 1.25f, new CodeFont("Mono", "/mono.ttf", 1),
+            TokenFormat.Hex, true, true, true, false);
+        Assert.IsType<SettingsWrite.Written>(settings.Save());
+
+        Assert.Equal(settings.Display, AppSettings.Load(SettingsFile).Settings.Display);
+        var (loaded, problem) = AppSettings.Load(Written("""{ "Display": { "ShowLineNumbers": false, "Font": { "Family": "Mono", "Path": null } } }"""));
+        Assert.IsType<SettingsProblem.None>(problem);
+        Assert.Equal(DisplayOptions.Default with { ShowLineNumbers = false }, loaded.Display);
+    }
+
+    [Fact]
+    public void A_list_whose_documents_layout_is_missing_a_part_keeps_its_tabs_without_it_and_is_reported()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""
+            { "AssemblyLists": [ { "Name": "Work", "Assemblies": [], "Documents": {
+                "Tabs": [ { "kind": "comparison", "Panel": "document-1", "LeftPath": "a.dll", "RightPath": "b.dll" } ],
+                "Layout": { "Root": { "kind": "group", "Panels": [ null ] } } } } ] }
+            """));
+
+        Assert.Equal(["AssemblyLists"], Assert.IsType<SettingsProblem.ValuesLeftOut>(problem).Fields);
+        var documents = Assert.Single(loaded.AssemblyLists).Documents!;
+        Assert.Single(documents.Tabs);
+        Assert.Null(documents.Layout);
+    }
+
+    [Fact]
+    public void Filters_and_bookmark_views_load_without_the_parts_they_hold_as_null()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""
+            { "FlagsFilters": { "TypeDef/Attributes": { "Groups": { "Visibility": null, "Layout": [ 8 ] }, "Mode": "Any" }, "Gone": null },
+              "Bookmarks": [ { "Name": "B", "FileName": "a.dll", "Place": [],
+                "ViewState": { "ExpandedFoldings": [ null, { "Start": 1, "End": 2 } ], "SelectedTreeNodePath": [ "a.dll", null ] } } ] }
+            """));
+
+        Assert.IsType<SettingsProblem.None>(problem);
+        var filter = Assert.Single(loaded.FlagsFilters!).Value;
+        Assert.Equal(["Layout"], filter.Groups!.Keys);
+        var view = Assert.Single(loaded.Bookmarks).ViewState!;
+        Assert.Equal([new BookmarkFoldingRange(1, 2)], view.ExpandedFoldings!);
+        Assert.Null(view.SelectedTreeNodePath);
+    }
+
     [Fact]
     public void Saved_values_missing_what_they_name_load_without_them()
     {

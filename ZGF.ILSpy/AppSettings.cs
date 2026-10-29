@@ -178,8 +178,7 @@ public sealed class AppSettings
         if (fields == null)
             return new SettingsLoad(new AppSettings(), new SettingsProblem.Empty());
         var file = new SettingsReader(fields);
-        var settings = Parse(file);
-        var layoutProblem = DropBrokenLayout(settings);
+        var settings = Parse(file, out var layoutProblem);
         if (file.LeftOut.Count == 0)
             return new SettingsLoad(settings, layoutProblem);
         if (layoutProblem is not SettingsProblem.None)
@@ -205,7 +204,7 @@ public sealed class AppSettings
 
     /// <summary>The settings <paramref name="file"/> holds, with what older files kept moved to where
     /// it is kept now, and windows sized within reason.</summary>
-    private static AppSettings Parse(SettingsReader file)
+    private static AppSettings Parse(SettingsReader file, out SettingsProblem layoutProblem)
     {
         var json = AppSettingsJson.Default;
         var lists = ReadAssemblyLists(file);
@@ -221,18 +220,18 @@ public sealed class AppSettings
             Language = file.Read(nameof(SettingsFile.Language), json.NullableDecompilationLanguage) ?? DecompilationLanguage.CSharp,
             Decompiler = file.Read(nameof(SettingsFile.Decompiler), json.DecompilerOptions) ?? DecompilerOptions.Default,
             FoldedOptionGroups = NamesOf(file.Read(nameof(SettingsFile.FoldedOptionGroups), json.ListString)),
-            Display = file.Read(nameof(SettingsFile.Display), json.DisplayOptions),
+            Display = file.Read(nameof(SettingsFile.Display), json.DisplayOptionsJson)?.Parse(),
             Locale = file.Read(nameof(SettingsFile.Locale), json.NullableLocale),
             ApiVisibility = ApiVisibilityOf(
                 file.Read(nameof(SettingsFile.ApiVisibility), json.NullableApiVisibility),
                 file.Read(SettingsFile.OldShowNonPublic, json.NullableBoolean)),
             SearchKinds = file.Read(nameof(SettingsFile.SearchKinds), json.NullableSearchKinds) ?? SearchKinds.TypesAndMembers,
-            Layout = file.Read(nameof(SettingsFile.Layout), json.DockLayout),
+            Layout = ReadLayout(file, out layoutProblem),
             Bookmarks = ReadBookmarks(file),
             BookmarkColumns = file.Read(nameof(SettingsFile.BookmarkColumns), json.ListSingle),
             SearchColumns = file.Read(nameof(SettingsFile.SearchColumns), json.ListSingle),
             ExportColumns = file.Read(nameof(SettingsFile.ExportColumns), json.ListSingle),
-            FlagsFilters = file.Read(nameof(SettingsFile.FlagsFilters), json.DictionaryStringSavedFilterState),
+            FlagsFilters = ReadFlagsFilters(file),
             Window = Sanitize(file.Read(nameof(SettingsFile.Window), json.NullableWindowBounds)),
             ExportWindow = SanitizeDialog(file.Read(nameof(SettingsFile.ExportWindow), json.NullableWindowBounds)),
             NuGet = file.Read(nameof(SettingsFile.NuGet), json.NuGetSearchJson)?.Parse(),
@@ -265,24 +264,41 @@ public sealed class AppSettings
         return names?.OfType<string>().ToList();
     }
 
-    /// <summary>Leaves out a saved layout the dock space cannot be given, for the panels to be where
-    /// they start out.</summary>
-    private static SettingsProblem DropBrokenLayout(AppSettings settings)
+    /// <summary>The layout the file holds, or null, with why, when the dock space cannot be given
+    /// it, for the panels to be where they start out.</summary>
+    private static DockLayout? ReadLayout(SettingsReader file, out SettingsProblem problem)
     {
-        var layout = settings.Layout;
+        problem = new SettingsProblem.None();
+        var saved = file.Read(nameof(SettingsFile.Layout), AppSettingsJson.Default.DockLayoutJson);
+        if (saved == null)
+            return null;
+        var layout = saved.Parse();
         if (layout == null)
-            return new SettingsProblem.None();
-        if (!layout.IsWhole())
         {
-            settings.Layout = null;
-            return new SettingsProblem.LayoutPartsMissing();
+            problem = new SettingsProblem.LayoutPartsMissing();
+            return null;
         }
         if (layout.RepeatsAnId())
         {
-            settings.Layout = null;
-            return new SettingsProblem.LayoutPartsRepeated();
+            problem = new SettingsProblem.LayoutPartsRepeated();
+            return null;
         }
-        return new SettingsProblem.None();
+        return layout;
+    }
+
+    /// <summary>The flags filters the file holds, without missing ones.</summary>
+    private static Dictionary<string, SavedFilterState>? ReadFlagsFilters(SettingsReader file)
+    {
+        var saved = file.Read(nameof(SettingsFile.FlagsFilters), AppSettingsJson.Default.DictionaryStringSavedFilterStateJson);
+        if (saved == null)
+            return null;
+        var filters = new Dictionary<string, SavedFilterState>();
+        foreach (var (key, filter) in saved)
+        {
+            if (filter != null)
+                filters.Add(key, filter.Parse());
+        }
+        return filters;
     }
 
     /// <summary>Makes the one list of a file from before lists had names the default list, unless
