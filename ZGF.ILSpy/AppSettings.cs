@@ -1,17 +1,14 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using ZGF.Desktop;
-using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
-using ZGF.ILSpy.Core.Comparison;
-using ZGF.ILSpy.Core.Diagrams;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Localization;
 
 namespace ZGF.ILSpy;
 
-/// <summary>What persists between runs, in the user's app-data folder.</summary>
+/// <summary>What persists between runs, in the user's app-data folder, as read from its file by
+/// <see cref="Load"/>: whatever the file held, every value here is one the app can use.</summary>
 public sealed class AppSettings
 {
     public static string DefaultPath { get; } = Path.Combine(
@@ -22,7 +19,6 @@ public sealed class AppSettings
     private const string UnreadableExtension = ".unreadable.json";
 
     /// <summary>Where <see cref="Save"/> writes; null keeps the settings in memory only.</summary>
-    [JsonIgnore]
     public string? FilePath
     {
         get;
@@ -36,12 +32,10 @@ public sealed class AppSettings
 
     /// <summary>Where the user's themes are: a folder beside the settings file; null while the settings
     /// are kept in memory only.</summary>
-    [JsonIgnore]
     public string? ThemesFolder { get; private set; }
 
     /// <summary>Where the user's icon themes are: a folder beside the settings file; null while the
     /// settings are kept in memory only.</summary>
-    [JsonIgnore]
     public string? IconThemesFolder { get; private set; }
 
     /// <summary>The named assembly lists, the open one's as it was left.</summary>
@@ -49,11 +43,6 @@ public sealed class AppSettings
 
     /// <summary>The name of the list that was open; null opens the first.</summary>
     public string? ActiveAssemblyList { get; set; }
-
-    /// <summary>The one list that settings files kept before lists had names. <see cref="Load"/>
-    /// moves it into <see cref="AssemblyLists"/>, so it is never written.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<string>? Assemblies { get; set; }
 
     /// <summary>The id of the chosen theme, the name of its file without the extension.</summary>
     public string Theme { get; set; } = ThemeCatalog.DarkId;
@@ -72,21 +61,11 @@ public sealed class AppSettings
     /// <summary>The interface language; null follows the system's.</summary>
     public Locale? Locale { get; set; }
     public ApiVisibility ApiVisibility { get; set; } = ApiVisibility.AllButCompilerGenerated;
-
-    /// <summary>The one switch settings files kept before <see cref="ApiVisibility"/> had three
-    /// choices. <see cref="Load"/> moves it into that, so it is never written.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? ShowNonPublic { get; set; }
     public SearchKinds SearchKinds { get; set; } = SearchKinds.TypesAndMembers;
     /// <summary>Where the views and the open list's documents were docked; null for where they start out.</summary>
     public DockLayout? Layout { get; set; }
 
     public List<BookmarkRecord> Bookmarks { get; set; } = new();
-
-    /// <summary>The symbols analyzed before each list kept its own, by assembly file and metadata token.
-    /// <see cref="Load"/> moves them into the open list, so they are never written.</summary>
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<CodeAnchor>? Analyzed { get; set; }
 
     /// <summary>The bookmarks panel's column weights as last dragged; null for the defaults.</summary>
     public List<float>? BookmarkColumns { get; set; }
@@ -162,22 +141,11 @@ public sealed class AppSettings
         return Window.Value.ApplyTo(config);
     }
 
+    /// <summary>The settings in the file at <paramref name="path"/>, each value read on its own, so a
+    /// value the file holds wrong leaves out only that one, for its default to stand in.</summary>
     public static SettingsLoad Load(string path)
     {
-        var read = Read(path);
-        var settings = read.Settings;
-        var problem = read.Problem;
-        if (problem is SettingsProblem.None)
-            problem = DropBrokenLayout(settings);
-        settings.AssemblyLists = CleanAssemblyLists(settings.AssemblyLists);
-        settings.MoveUnnamedListIntoDefault();
-        settings.MoveAnalysesIntoActiveList();
-        settings.MoveShowNonPublicIntoApiVisibility();
-        settings.RenameThemeToId();
-        settings.DefaultMissingIconTheme();
-        settings.Window = Sanitize(settings.Window);
-        settings.ExportWindow = SanitizeDialog(settings.ExportWindow);
-        settings.NuGetWindow = SanitizeDialog(settings.NuGetWindow);
+        var (settings, problem) = Read(path);
         settings.FilePath = MaySaveOver(problem) ? path : null;
         return new SettingsLoad(settings, problem);
     }
@@ -186,6 +154,7 @@ public sealed class AppSettings
     {
         SettingsProblem.NotRead notRead => notRead.Kept is not SettingsKept.NotSaved,
         SettingsProblem.NotJson notJson => notJson.Kept is not SettingsKept.NotSaved,
+        SettingsProblem.ValuesLeftOut leftOut => leftOut.Kept is not SettingsKept.NotSaved,
         _ => true,
     };
 
@@ -193,12 +162,10 @@ public sealed class AppSettings
     {
         if (!File.Exists(path))
             return new SettingsLoad(new AppSettings(), new SettingsProblem.None());
+        Dictionary<string, JsonElement>? fields;
         try
         {
-            var settings = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.AppSettings);
-            if (settings == null)
-                return new SettingsLoad(new AppSettings(), new SettingsProblem.Empty());
-            return new SettingsLoad(settings, new SettingsProblem.None());
+            fields = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.DictionaryStringJsonElement);
         }
         catch (Exception e) when (e is JsonException or NotSupportedException)
         {
@@ -208,10 +175,20 @@ public sealed class AppSettings
         {
             return new SettingsLoad(new AppSettings(), new SettingsProblem.NotRead(e.Message, Keep(path)));
         }
+        if (fields == null)
+            return new SettingsLoad(new AppSettings(), new SettingsProblem.Empty());
+        var file = new SettingsReader(fields);
+        var settings = Parse(file);
+        var layoutProblem = DropBrokenLayout(settings);
+        if (file.LeftOut.Count == 0)
+            return new SettingsLoad(settings, layoutProblem);
+        if (layoutProblem is not SettingsProblem.None)
+            file.LeaveOut(nameof(SettingsFile.Layout));
+        return new SettingsLoad(settings, new SettingsProblem.ValuesLeftOut(file.LeftOut, Keep(path)));
     }
 
-    /// <summary>Copies the settings file at <paramref name="path"/>, which could not be read, beside
-    /// it, so that saving the settings does not lose what it holds.</summary>
+    /// <summary>Copies the settings file at <paramref name="path"/>, which could not be read whole,
+    /// beside it, so that saving the settings does not lose what it holds.</summary>
     private static SettingsKept Keep(string path)
     {
         var copy = Path.ChangeExtension(path, UnreadableExtension);
@@ -224,6 +201,68 @@ public sealed class AppSettings
         {
             return new SettingsKept.NotSaved();
         }
+    }
+
+    /// <summary>The settings <paramref name="file"/> holds, with what older files kept moved to where
+    /// it is kept now, and windows sized within reason.</summary>
+    private static AppSettings Parse(SettingsReader file)
+    {
+        var json = AppSettingsJson.Default;
+        var lists = ReadAssemblyLists(file);
+        var active = file.Read(nameof(SettingsFile.ActiveAssemblyList), json.String);
+        MoveUnnamedListIntoDefault(lists, file.Read(SettingsFile.OldAssemblies, json.ListString));
+        MoveAnalysesIntoActiveList(lists, active, file.Read(SettingsFile.OldAnalyzed, json.ListCodeAnchorJson));
+        return new AppSettings
+        {
+            AssemblyLists = lists,
+            ActiveAssemblyList = active,
+            Theme = ThemeIdOf(file.Read(nameof(SettingsFile.Theme), json.String)),
+            IconTheme = IconThemeIdOf(file.Read(nameof(SettingsFile.IconTheme), json.String)),
+            Language = file.Read(nameof(SettingsFile.Language), json.NullableDecompilationLanguage) ?? DecompilationLanguage.CSharp,
+            Decompiler = file.Read(nameof(SettingsFile.Decompiler), json.DecompilerOptions) ?? DecompilerOptions.Default,
+            FoldedOptionGroups = NamesOf(file.Read(nameof(SettingsFile.FoldedOptionGroups), json.ListString)),
+            Display = file.Read(nameof(SettingsFile.Display), json.DisplayOptions),
+            Locale = file.Read(nameof(SettingsFile.Locale), json.NullableLocale),
+            ApiVisibility = ApiVisibilityOf(
+                file.Read(nameof(SettingsFile.ApiVisibility), json.NullableApiVisibility),
+                file.Read(SettingsFile.OldShowNonPublic, json.NullableBoolean)),
+            SearchKinds = file.Read(nameof(SettingsFile.SearchKinds), json.NullableSearchKinds) ?? SearchKinds.TypesAndMembers,
+            Layout = file.Read(nameof(SettingsFile.Layout), json.DockLayout),
+            Bookmarks = ReadBookmarks(file),
+            BookmarkColumns = file.Read(nameof(SettingsFile.BookmarkColumns), json.ListSingle),
+            SearchColumns = file.Read(nameof(SettingsFile.SearchColumns), json.ListSingle),
+            ExportColumns = file.Read(nameof(SettingsFile.ExportColumns), json.ListSingle),
+            FlagsFilters = file.Read(nameof(SettingsFile.FlagsFilters), json.DictionaryStringSavedFilterState),
+            Window = Sanitize(file.Read(nameof(SettingsFile.Window), json.NullableWindowBounds)),
+            ExportWindow = SanitizeDialog(file.Read(nameof(SettingsFile.ExportWindow), json.NullableWindowBounds)),
+            NuGet = file.Read(nameof(SettingsFile.NuGet), json.NuGetSearchJson)?.Parse(),
+            NuGetWindow = SanitizeDialog(file.Read(nameof(SettingsFile.NuGetWindow), json.NullableWindowBounds)),
+        };
+    }
+
+    /// <summary>The lists the file holds, each read on its own, without nameless ones.</summary>
+    private static List<AssemblyListRecord> ReadAssemblyLists(SettingsReader file)
+    {
+        const string field = nameof(SettingsFile.AssemblyLists);
+        return file.ReadEach(field)
+            .Select(l => file.Parse(l, AppSettingsJson.Default.AssemblyListJson, field)?.Parse(file, field))
+            .OfType<AssemblyListRecord>()
+            .ToList();
+    }
+
+    /// <summary>The bookmarks the file holds, each read on its own, without ones naming no assembly file.</summary>
+    private static List<BookmarkRecord> ReadBookmarks(SettingsReader file)
+    {
+        const string field = nameof(SettingsFile.Bookmarks);
+        return file.ReadEach(field)
+            .Select(b => file.Parse(b, AppSettingsJson.Default.BookmarkJson, field)?.Parse())
+            .OfType<BookmarkRecord>()
+            .ToList();
+    }
+
+    private static List<string>? NamesOf(List<string?>? names)
+    {
+        return names?.OfType<string>().ToList();
     }
 
     /// <summary>Leaves out a saved layout the dock space cannot be given, for the panels to be where
@@ -246,116 +285,59 @@ public sealed class AppSettings
         return new SettingsProblem.None();
     }
 
-    /// <summary><paramref name="lists"/> without what a hand-edited file can leave in them: missing
-    /// lists, names or assemblies, blank paths, picked PDBs among them, documents missing what they show,
-    /// docked as a view, or docked as a panel another document was.</summary>
-    private static List<AssemblyListRecord> CleanAssemblyLists(List<AssemblyListRecord>? lists)
+    /// <summary>Makes the one list of a file from before lists had names the default list, unless
+    /// the file has named lists too.</summary>
+    private static void MoveUnnamedListIntoDefault(List<AssemblyListRecord> lists, List<string?>? unnamed)
     {
-        if (lists == null)
-            return new List<AssemblyListRecord>();
-        return lists
-            .Where(static l => l != null && l.Name != null)
-            .Select(static l => new AssemblyListRecord(l.Name, CleanPaths(l.Assemblies), CleanAnalyses(l.Analyzed), CleanPicks(l.Pdbs), CleanPicks(l.Frameworks), CleanDocuments(l.Documents)))
-            .ToList();
-    }
-
-    private static DocumentsRecord? CleanDocuments(DocumentsRecord? documents)
-    {
-        if (documents == null)
-            return null;
-        if (documents.Tabs == null)
-            return null;
-        var tabs = documents.Tabs
-            .Where(IsWhole)
-            .Where(static t => !DockPanels.IsView(t.Panel))
-            .DistinctBy(static t => t.Panel)
-            .ToList();
-        return documents with { Tabs = tabs };
-    }
-
-    private static bool IsWhole(DocumentRecord? document) => document switch
-    {
-        NodeDocumentRecord node => IsWholeNode(node),
-        DiagramDocumentRecord diagram => IsWholeDiagram(diagram),
-        ComparisonDocumentRecord comparison => IsWholeComparison(comparison),
-        _ => false,
-    };
-
-    private static bool IsWholeNode(NodeDocumentRecord node)
-    {
-        if (node.Panel == null)
-            return false;
-        if (node.FilePath == null)
-            return false;
-        return node.Place != null;
-    }
-
-    private static bool IsWholeDiagram(DiagramDocumentRecord diagram)
-    {
-        if (diagram.Panel == null)
-            return false;
-        return diagram.Types != null;
-    }
-
-    private static bool IsWholeComparison(ComparisonDocumentRecord comparison)
-    {
-        if (comparison.Panel == null)
-            return false;
-        if (comparison.LeftPath == null)
-            return false;
-        return comparison.RightPath != null;
-    }
-
-    private static Dictionary<string, string>? CleanPicks(Dictionary<string, string>? picks)
-    {
-        if (picks == null)
-            return null;
-        return picks
-            .Where(static p => !string.IsNullOrWhiteSpace(p.Value))
-            .ToDictionary(static p => p.Key, static p => p.Value);
-    }
-
-    private static List<string> CleanPaths(List<string>? paths)
-    {
-        if (paths == null)
-            return new List<string>();
-        return paths
-            .Where(static p => !string.IsNullOrWhiteSpace(p))
-            .ToList();
-    }
-
-    private void MoveUnnamedListIntoDefault()
-    {
-        if (Assemblies == null)
+        if (unnamed == null)
             return;
-        var paths = CleanPaths(Assemblies);
-        Assemblies = null;
-        if (AssemblyLists.Count > 0)
+        if (lists.Count > 0)
             return;
-        AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, paths));
+        lists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, SettingsJson.PathsOf(unnamed)));
     }
 
-    private void MoveShowNonPublicIntoApiVisibility()
+    /// <summary>Gives the analyses saved before each list kept its own to the open list, unless it has some.</summary>
+    private static void MoveAnalysesIntoActiveList(List<AssemblyListRecord> lists, string? active, List<CodeAnchorJson?>? analyzed)
     {
-        if (ShowNonPublic == null)
+        if (analyzed == null)
             return;
-        if (ShowNonPublic == false)
-            ApiVisibility = ApiVisibility.PublicOnly;
-        ShowNonPublic = null;
+        if (lists.Count == 0)
+            lists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, new List<string>()));
+        var index = FindActiveListIndex(lists, active);
+        var list = lists[index];
+        var hasAnalyses = list.Analyzed != null && list.Analyzed.Count > 0;
+        if (hasAnalyses)
+            return;
+        lists[index] = list with { Analyzed = SettingsJson.AnchorsOf(analyzed) };
     }
 
-    /// <summary>Turns the theme's name from before themes were files into the id of its file, and a
-    /// missing theme into the default one.</summary>
-    private void RenameThemeToId()
+    /// <summary>Where the list <paramref name="active"/> names is, else the first.</summary>
+    private static int FindActiveListIndex(List<AssemblyListRecord> lists, string? active)
     {
-        if (string.IsNullOrWhiteSpace(Theme))
-        {
-            Theme = ThemeCatalog.DarkId;
-            return;
-        }
-        var id = IdOfOldTheme(Theme);
-        if (id != null)
-            Theme = id;
+        if (active == null)
+            return 0;
+        var index = lists.FindIndex(l => string.Equals(l.Name.Trim(), active.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+            return 0;
+        return index;
+    }
+
+    /// <summary>The visibility saved, or for a file from before it had three choices, what its
+    /// non-public switch said.</summary>
+    private static ApiVisibility ApiVisibilityOf(ApiVisibility? saved, bool? showNonPublic)
+    {
+        if (showNonPublic == false)
+            return ApiVisibility.PublicOnly;
+        return saved ?? ApiVisibility.AllButCompilerGenerated;
+    }
+
+    /// <summary>The id of the theme <paramref name="saved"/> names, as the name from before themes
+    /// were files or as the id of its file; the default theme for none.</summary>
+    private static string ThemeIdOf(string? saved)
+    {
+        if (string.IsNullOrWhiteSpace(saved))
+            return ThemeCatalog.DarkId;
+        return IdOfOldTheme(saved) ?? saved;
     }
 
     private static string? IdOfOldTheme(string name) => name switch
@@ -372,10 +354,11 @@ public sealed class AppSettings
         _ => null,
     };
 
-    private void DefaultMissingIconTheme()
+    private static string IconThemeIdOf(string? saved)
     {
-        if (string.IsNullOrWhiteSpace(IconTheme))
-            IconTheme = IconThemeCatalog.ReferenceId;
+        if (string.IsNullOrWhiteSpace(saved))
+            return IconThemeCatalog.ReferenceId;
+        return saved;
     }
 
     private static string? FindFolderBeside(string? settingsFile, string name)
@@ -388,46 +371,6 @@ public sealed class AppSettings
         return Path.Combine(folder, name);
     }
 
-    private static List<CodeAnchor> CleanAnalyses(List<CodeAnchor>? analyzed)
-    {
-        if (analyzed == null)
-            return new List<CodeAnchor>();
-        return analyzed;
-    }
-
-    /// <summary>Gives the analyses saved before each list kept its own to the open list, unless it has some.</summary>
-    private void MoveAnalysesIntoActiveList()
-    {
-        if (Analyzed == null)
-            return;
-        var analyzed = Analyzed;
-        Analyzed = null;
-        if (AssemblyLists.Count == 0)
-            AssemblyLists.Add(new AssemblyListRecord(SavedAssemblyLists.DefaultName, new List<string>()));
-        var index = FindActiveListIndex();
-        var active = AssemblyLists[index];
-        var hasAnalyses = active.Analyzed != null && active.Analyzed.Count > 0;
-        if (hasAnalyses)
-            return;
-        AssemblyLists[index] = active with { Analyzed = analyzed };
-    }
-
-    /// <summary>Where the list <see cref="ActiveAssemblyList"/> names is, else the first.</summary>
-    private int FindActiveListIndex()
-    {
-        var index = AssemblyLists.FindIndex(IsActiveList);
-        if (index < 0)
-            return 0;
-        return index;
-    }
-
-    private bool IsActiveList(AssemblyListRecord list)
-    {
-        if (ActiveAssemblyList == null)
-            return false;
-        return string.Equals(list.Name.Trim(), ActiveAssemblyList.Trim(), StringComparison.OrdinalIgnoreCase);
-    }
-
     /// <summary>Writes the settings to <see cref="FilePath"/>, replacing the file whole so a failed
     /// write never leaves it truncated.</summary>
     public SettingsWrite Save()
@@ -437,7 +380,7 @@ public sealed class AppSettings
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(temporary, JsonSerializer.Serialize(this, AppSettingsJson.Default.AppSettings));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(SettingsFile.Of(this), AppSettingsJson.Default.SettingsFile));
             File.Move(temporary, FilePath, overwrite: true);
             return new SettingsWrite.Written();
         }
@@ -447,15 +390,3 @@ public sealed class AppSettings
         }
     }
 }
-
-[JsonSourceGenerationOptions(WriteIndented = true, Converters =
-[
-    typeof(EnumByName<ApiScope>), typeof(EnumByName<ApiVisibility>), typeof(EnumByName<BookmarkKind>),
-    typeof(EnumByName<CodeAnchorKind>), typeof(EnumByName<CSharpVersion>), typeof(EnumByName<DecompilationLanguage>),
-    typeof(EnumByName<Direction>), typeof(EnumByName<Locale>), typeof(EnumByName<MatchMode>),
-    typeof(EnumByName<MemberSection>), typeof(EnumByName<NodeKind>), typeof(EnumByName<SearchKinds>),
-    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>),
-])]
-[JsonSerializable(typeof(AppSettings))]
-[JsonSerializable(typeof(BookmarkFile))]
-internal sealed partial class AppSettingsJson : JsonSerializerContext;

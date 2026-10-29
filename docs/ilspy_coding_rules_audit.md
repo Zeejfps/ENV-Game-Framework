@@ -63,8 +63,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Boundaries
 
-- `AppSettings` is both the JSON DTO and the live domain object. Fields declared non-null can be null after load: `AssemblyListRecord.Name` (`AppSettings.cs:230`), `NodeDocumentRecord.FilePath` (`:257`), `BookmarkRecord.Name` (`BookmarkList.cs:37`).
-- Legacy fields (`Assemblies`, `Analyzed`, `ShowNonPublic`) and order-dependent migrations (`AppSettings.cs:168-173`) live on that domain object.
+- Settings values still deserialized straight into their domain types: `DockLayout` (checked after by `IsWhole`/`RepeatsAnId`), `DisplayOptions` (`CodeFont.Family`/`Path` can be null), `SavedFilterState` (null `uint[]` values), `BookmarkViewState` (null tree-path strings). An imported ILSpy bookmarks file fails whole on one bad bookmark.
 - Persisted decompiler `Toggles` are a raw `ImmutableSortedDictionary<string,bool>`; stale keys make `ProducesSameCode` false and cause needless re-decompiles. `DecompilerToggle`'s public constructor lets `Apply` hit `KeyNotFoundException`.
 - `FeedJson`: `ReadBool` skips the kind check, `severity.GetInt32()` can throw outside the documented `InvalidDataException`, URLs stay strings, and `NuGetSource`'s public constructor bypasses `FromUrl` validation.
 - `NUGET_PACKAGES` is used as given (`NuGetConfig.cs:148`), while the config value goes through `GetFullPath`.
@@ -90,19 +89,8 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - `ExportsPanelView.cs:105-133` snapshots runs once per frame, so Delete then an arrow key in the same frame moves against a stale list.
 - `AssemblyList.UseLoadOptions` (`:166-176`) checks and sets two volatile fields without the lock.
 
-## Done well
-
-- Closed sum types where they exist: `TabContent`, `AppCommand`/`ViewCommand`, `SettingsProblem`, `AppProblem`, `Outcome<T>`, `NodeContent`, `DocBlock`, `MetadataRowDetails`; interpreters throw `UnreachableException` on an unknown case.
-- `AppInstance` treats the single-instance pipe as untrusted: count and size caps, `CurrentUserOnly`, parsed straight into `CommandLine`.
-- `ThemeFolderWatch` is fully lock-guarded and debounced; theme `extends` chains have cycle detection and report file and line.
-- Settings and bookmark files are written atomically; window bounds, UI scale and zoom are clamped on restore.
-- `AssemblyList` gives out immutable snapshots; `BrowseNode.Children` uses correct double-checked locking.
-- Views mostly return result records instead of mutating; `MetadataGridFrame` is a `ref struct` with no ambient state.
-- Shallow hierarchies (depth ≤ 3, sealed leaves), no re-export hubs, no `global using`.
-
 ## Suggested order
 
-1. Split settings into a JSON DTO and a parsed `AppSettings`, read field by field so one bad value no longer drops the whole file. That also fixes the false non-null claims.
-2. Turn `LoadedAssembly` into a sum type. That removes many `!`.
-3. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
-4. Make the silent default branches throw.
+1. Turn `LoadedAssembly` into a sum type. That removes many `!`.
+2. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
+3. Make the silent default branches throw.

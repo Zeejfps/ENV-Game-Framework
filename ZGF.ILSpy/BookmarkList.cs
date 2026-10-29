@@ -34,9 +34,9 @@ public sealed class Bookmark
             BookmarkKind.Body => new CodeAnchor(CodeAnchorKind.Statement, record.FileName, (int)record.Token, record.ILOffset),
             _ => null,
         };
-        var ilspy = new ILSpyBookmarkInfo(record.AssemblyFullName ?? "", record.ModuleName ?? Path.GetFileName(record.FileName), record.Token,
-            record.MemberName ?? "", record.LocationNodeName, record.ViewState?.SelectedTreeNodePath);
-        return new Bookmark(place, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor, record.Name ?? "", ilspy,
+        var ilspy = new ILSpyBookmarkInfo(record.AssemblyFullName, record.ModuleName, record.Token,
+            record.MemberName, record.LocationNodeName, record.ViewState?.SelectedTreeNodePath);
+        return new Bookmark(place, record.Language ?? DecompilationLanguage.CSharp, Math.Max(0, record.LineNumber - 1), anchor, record.Name, ilspy,
             record.ViewState, record.Enabled);
     }
 
@@ -254,8 +254,8 @@ public sealed class BookmarkList
     /// <summary>Replaces the list with the bookmarks in <paramref name="saved"/> that know their place.
     /// Returns how many were left out because one before them marks the same line.</summary>
     public int Load(IEnumerable<BookmarkRecord>? saved) =>
-        Import((saved ?? []).Where(static r => r is { Place: not null } && !string.IsNullOrEmpty(r.FileName))
-            .Select(static r => Bookmark.FromRecord(r, NodePath.From(r.FileName, r.Place!))), BookmarkImportMode.Replace);
+        Import((saved ?? []).Select(static r => r.Place is { } place ? Bookmark.FromRecord(r, NodePath.From(r.FileName, place)) : null)
+            .OfType<Bookmark>(), BookmarkImportMode.Replace);
 
     /// <summary>Adds <paramref name="bookmarks"/>, after dropping every bookmark first when replacing,
     /// leaving out the ones that mark a line already marked. Returns how many were left out.</summary>

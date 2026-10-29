@@ -20,6 +20,10 @@ public abstract record SettingsProblem
     /// <summary>The file is not JSON of the settings, so the settings are the defaults.</summary>
     public sealed record NotJson(string Detail, SettingsKept Kept) : SettingsProblem;
 
+    /// <summary>Some of the file's values, named by their fields, are not what those fields hold, so
+    /// they are the defaults; the rest are as the file has them.</summary>
+    public sealed record ValuesLeftOut(IReadOnlyList<string> Fields, SettingsKept Kept) : SettingsProblem;
+
     /// <summary>The file holds <c>null</c>, so the settings are the defaults.</summary>
     public sealed record Empty : SettingsProblem;
 
@@ -31,7 +35,7 @@ public abstract record SettingsProblem
     public sealed record LayoutPartsRepeated : SettingsProblem;
 }
 
-/// <summary>How a settings file that could not be read is kept from being saved over.</summary>
+/// <summary>How a settings file that could not be read whole is kept from being saved over.</summary>
 public abstract record SettingsKept
 {
     private SettingsKept()

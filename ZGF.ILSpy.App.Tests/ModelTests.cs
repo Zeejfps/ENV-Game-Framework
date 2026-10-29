@@ -314,8 +314,77 @@ public sealed class AppSettingsTests : IDisposable
     {
         var (loaded, problem) = AppSettings.Load(Written("""{ "Locale": 42 }"""));
 
-        Assert.IsType<SettingsProblem.NotJson>(problem);
+        Assert.Equal(["Locale"], Assert.IsType<SettingsProblem.ValuesLeftOut>(problem).Fields);
         Assert.Null(loaded.Locale);
+    }
+
+    [Fact]
+    public void A_value_the_file_holds_wrong_leaves_out_that_value_alone_and_the_file_is_kept()
+    {
+        const string json = """
+            { "Theme": "light", "Language": "Klingon", "Window": "wide",
+              "AssemblyLists": [ { "Name": "Work", "Assemblies": [ "a.dll" ] } ] }
+            """;
+        var (loaded, problem) = AppSettings.Load(Written(json));
+        var appState = new AppState(loaded);
+        ReportSettingsProblem(appState, problem);
+
+        var leftOut = Assert.IsType<SettingsProblem.ValuesLeftOut>(problem);
+        Assert.Equal(["Language", "Window"], leftOut.Fields);
+        Assert.Equal("light", loaded.Theme);
+        Assert.Equal(DecompilationLanguage.CSharp, loaded.Language);
+        Assert.Null(loaded.Window);
+        Assert.Equal(["a.dll"], Assert.Single(loaded.AssemblyLists).Assemblies);
+        var copy = _temp.PathOf("settings.unreadable.json");
+        Assert.Equal(new SettingsKept.CopiedTo(copy), leftOut.Kept);
+        Assert.Equal(json, File.ReadAllText(copy));
+        var details = Assert.Single(appState.Errors.Entries).Words().Details;
+        Assert.Contains("Language, Window", details);
+        Assert.Contains(copy, details);
+    }
+
+    [Fact]
+    public void A_list_or_tab_the_file_holds_wrong_leaves_out_that_one_alone()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""
+            { "AssemblyLists": [
+                { "Name": "Broken", "Assemblies": 5 },
+                { "Name": "Work", "Assemblies": [ "a.dll" ], "Documents": { "Tabs": [
+                    { "kind": "nothing", "Panel": "document-1" },
+                    { "kind": "comparison", "Panel": "document-2", "LeftPath": "a.dll", "RightPath": "b.dll" } ] } } ] }
+            """));
+
+        Assert.Equal(["AssemblyLists"], Assert.IsType<SettingsProblem.ValuesLeftOut>(problem).Fields);
+        var list = Assert.Single(loaded.AssemblyLists);
+        Assert.Equal("Work", list.Name);
+        Assert.Equal("document-2", Assert.Single(list.Documents!.Tabs).Panel);
+    }
+
+    [Fact]
+    public void Saved_values_missing_what_they_name_load_without_them()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""
+            { "AssemblyLists": [ { "Name": "Work", "Assemblies": [ null, "a.dll" ],
+                "Analyzed": [ { "Kind": "Definition", "FilePath": null, "Token": 1 } ],
+                "Documents": { "Tabs": [
+                    { "kind": "node", "Panel": "document-1", "FilePath": null, "Place": [] },
+                    { "kind": "node", "Panel": "document-2", "FilePath": "a.dll", "Place": [ { "Kind": "Assembly", "Text": null } ] },
+                    { "kind": "diagram", "Panel": "document-3", "Types": [ { "AssemblyPath": "a.dll", "FullName": null } ] } ] } } ],
+              "Bookmarks": [ { "Name": null, "FileName": "a.dll", "Place": [] }, { "Name": "Gone", "FileName": null } ],
+              "NuGet": { "FeedUrl": null },
+              "FoldedOptionGroups": [ null, "Other" ] }
+            """));
+
+        Assert.IsType<SettingsProblem.None>(problem);
+        var list = Assert.Single(loaded.AssemblyLists);
+        Assert.Equal(["a.dll"], list.Assemblies);
+        Assert.Empty(list.Analyzed!);
+        var diagram = Assert.IsType<DiagramDocumentRecord>(Assert.Single(list.Documents!.Tabs));
+        Assert.Empty(diagram.Types);
+        var bookmark = Assert.Single(loaded.Bookmarks);
+        Assert.Equal(("", "a.dll", ""), (bookmark.Name, bookmark.ModuleName, bookmark.MemberName));
+        Assert.Null(loaded.NuGet);
+        Assert.Equal(["Other"], loaded.FoldedOptionGroups);
     }
 
     [Fact]

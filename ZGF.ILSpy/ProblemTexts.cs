@@ -92,6 +92,7 @@ public static class ProblemTexts
     private static string SettingsTitle(Strings t, SettingsProblem problem) => problem switch
     {
         SettingsProblem.NotRead or SettingsProblem.NotJson or SettingsProblem.Empty => t.ErrorReadSettings,
+        SettingsProblem.ValuesLeftOut => t.ErrorReadSomeSettings,
         SettingsProblem.LayoutPartsMissing or SettingsProblem.LayoutPartsRepeated => t.ErrorReadLayout,
         _ => throw new UnreachableException(),
     };
@@ -100,6 +101,7 @@ public static class ProblemTexts
     {
         SettingsProblem.NotRead notRead => notRead.Detail + Environment.NewLine + DescribeKept(t, notRead.Kept),
         SettingsProblem.NotJson notJson => t.ErrorSettingsNotJson(notJson.Detail) + Environment.NewLine + DescribeKept(t, notJson.Kept),
+        SettingsProblem.ValuesLeftOut leftOut => t.ErrorSettingsValuesLeftOut(string.Join(", ", leftOut.Fields)) + Environment.NewLine + DescribeKept(t, leftOut.Kept),
         SettingsProblem.Empty => t.ErrorSettingsEmpty,
         SettingsProblem.LayoutPartsMissing => t.ErrorLayoutPartsMissing,
         SettingsProblem.LayoutPartsRepeated => t.ErrorLayoutPartsRepeated,

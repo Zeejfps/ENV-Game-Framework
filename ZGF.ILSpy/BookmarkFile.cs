@@ -92,11 +92,11 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
     {
         try
         {
-            var file = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.BookmarkFile);
+            var file = JsonSerializer.Deserialize(File.ReadAllText(path), AppSettingsJson.Default.BookmarkFileJson);
             if (file is { Bookmarks: { } bookmarks })
             {
                 error = null;
-                return bookmarks.Where(static b => b != null && !string.IsNullOrEmpty(b.FileName)).ToList();
+                return bookmarks.Select(static b => b?.Parse()).OfType<BookmarkRecord>().ToList();
             }
             error = $"{path}{Environment.NewLine}Not a bookmarks file.";
             return null;

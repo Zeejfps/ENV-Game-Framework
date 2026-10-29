@@ -266,8 +266,8 @@ public sealed class MetadataGridTests
             Assert.Equal(1u, Convert.ToUInt32(grid.Text(r, attributes), 16) & (uint)visibility));
         app.TextRect("Visibility = Public");
 
-        var json = JsonSerializer.Serialize(new AppSettings { FlagsFilters = app.Ui.MetadataFilters.Save() }, AppSettingsJson.Default.AppSettings);
-        var saved = JsonSerializer.Deserialize(json, AppSettingsJson.Default.AppSettings)!.FlagsFilters;
+        var json = JsonSerializer.Serialize(app.Ui.MetadataFilters.Save(), AppSettingsJson.Default.DictionaryStringSavedFilterState);
+        var saved = JsonSerializer.Deserialize(json, AppSettingsJson.Default.DictionaryStringSavedFilterState);
         var restored = new MetadataFilters(saved).For(grid, attributes);
         Assert.Equal("Visibility = Public", FilterStatePresenter.Describe(restored));
     }
