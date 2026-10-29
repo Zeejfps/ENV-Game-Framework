@@ -23,9 +23,10 @@ public sealed class CefWebViewHost : IWebViewFactory, IDisposable
     /// on; every web view callback then arrives there too.</summary>
     public static CefWebViewHost Start(IUiDispatcher dispatcher, CefWebViewOptions? options = null)
     {
-        var runtime = new CefRuntimeHost(dispatcher);
+        var chosen = options ?? new CefWebViewOptions();
+        var runtime = new CefRuntimeHost(dispatcher, chosen);
         runtime.Initialize();
-        return new CefWebViewHost(runtime, options ?? new CefWebViewOptions());
+        return new CefWebViewHost(runtime, chosen);
     }
 
     public IWebView Create(IWebViewFrameSink frames, WebViewSetup setup) => _factory.Create(frames, setup);

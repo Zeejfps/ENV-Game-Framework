@@ -24,9 +24,12 @@ internal sealed class CefRuntimeHost : IDisposable
     private bool _disposed;
     private int _openBrowsers;
 
-    public CefRuntimeHost(IUiDispatcher dispatcher)
+    private readonly CefWebViewOptions _options;
+
+    public CefRuntimeHost(IUiDispatcher dispatcher, CefWebViewOptions options)
     {
         _dispatcher = dispatcher;
+        _options = options;
     }
 
     public bool IsInitialized => _initialized;
@@ -45,7 +48,10 @@ internal sealed class CefRuntimeHost : IDisposable
         // debugging, otherwise Info so a renderer's own fatal line is still recorded.
         var logFile = Environment.GetEnvironmentVariable("ZGF_CEF_LOGFILE");
         if (string.IsNullOrEmpty(logFile))
-            logFile = CefPaths.LogFile;
+            logFile = Path.Combine(_options.ProfileFolder, "cef-debug.log");
+        // CachePath, under RootCachePath, is what keeps the GPU process's shader caches out of the
+        // working directory it was launched from.
+        var profile = Path.Combine(_options.ProfileFolder, "Default");
 
         var settings = new CefSettings
         {
@@ -60,19 +66,19 @@ internal sealed class CefRuntimeHost : IDisposable
             LocalesDirPath = CefPaths.LocalesDir,
             // Both must be set: CachePath (a subdir of RootCachePath) is what relocates the GPU/Dawn
             // shader caches out of the working directory into the app-data profile.
-            RootCachePath = CefPaths.CacheRoot,
-            CachePath = CefPaths.ProfileCachePath,
+            RootCachePath = _options.ProfileFolder,
+            CachePath = profile,
             LogSeverity = CefLog.Enabled ? CefLogSeverity.Verbose : CefLogSeverity.Info,
             LogFile = logFile,
         };
 
-        Directory.CreateDirectory(CefPaths.ProfileCachePath);
+        Directory.CreateDirectory(profile);
 
         // Always tell the user where the deep log is — it's what to attach when a page crashes the renderer.
         Console.Error.WriteLine($"[zgf-cef] Chromium log: {logFile}");
         CefLog.Write($"initializing: libcef={CefPaths.LibCefDir}, helper={CefPaths.HelperExe}, resources={CefPaths.ResourcesDir}, locales={CefPaths.LocalesDir}");
         var mainArgs = new CefMainArgs(GetProcessArgs());
-        CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this), IntPtr.Zero);
+        CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this, _options.AutoplayWithoutGesture), IntPtr.Zero);
         _initialized = true;
         CefLog.Write($"initialized (chrome {CefRuntime.ChromeVersion}); creating {_pending.Count} pending browser(s)");
 
@@ -182,13 +188,21 @@ internal sealed class CefRuntimeHost : IDisposable
 internal sealed class ZgfBrowserCefApp : CefApp
 {
     private readonly BrowserProcessHandler _handler;
+    private readonly bool _autoplayWithoutGesture;
 
-    public ZgfBrowserCefApp(CefRuntimeHost host) => _handler = new BrowserProcessHandler(host);
+    public ZgfBrowserCefApp(CefRuntimeHost host, bool autoplayWithoutGesture)
+    {
+        _handler = new BrowserProcessHandler(host);
+        _autoplayWithoutGesture = autoplayWithoutGesture;
+    }
 
     protected override CefBrowserProcessHandler GetBrowserProcessHandler() => _handler;
 
     protected override void OnBeforeCommandLineProcessing(string processType, CefCommandLine commandLine)
     {
+        if (_autoplayWithoutGesture)
+            commandLine.AppendSwitch("autoplay-policy", "no-user-gesture-required");
+
         // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
         // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
         // (a CHECK/NOTREACHED, a GPU error) is visible when a page crashes it.
