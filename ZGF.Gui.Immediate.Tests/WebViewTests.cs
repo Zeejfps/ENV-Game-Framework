@@ -149,6 +149,18 @@ public sealed class WebViewTests
     }
 
     [Fact]
+    public void A_locked_pointer_leaves_the_page_and_reaches_it_no_more()
+    {
+        _frames.Frame();
+        _frames.MovePointer(Page).Frame(2);
+        View.Events.Clear();
+
+        _frames.LockPointer(true).MovePointer(Page.X + 30f, Page.Y + 30f).Press().Frame().Release().Frame();
+
+        Assert.Equal(["leave"], View.Events.Where(e => e is "leave" || e.StartsWith("move") || e.StartsWith("down") || e.StartsWith("up")).ToArray());
+    }
+
+    [Fact]
     public void The_wheel_over_the_page_scrolls_it()
     {
         _frames.Frame();

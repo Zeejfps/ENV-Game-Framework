@@ -207,6 +207,13 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>The host locks the pointer to the window, or frees it, as it does for <see cref="Ui.LockPointer"/>.</summary>
+    public UiFrames<TState> LockPointer(bool locked)
+    {
+        _pending.LockPointer(locked);
+        return this;
+    }
+
     public UiFrames<TState> MovePointer(float x, float y)
     {
         _pending.MovePointer(new PointF(x, y));

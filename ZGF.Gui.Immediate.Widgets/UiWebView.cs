@@ -84,7 +84,7 @@ public sealed class WebPage : IDisposable
     internal void Point(Ui ui, UiRect rect, Interaction interaction)
     {
         var input = ui.Input;
-        var following = interaction.Hovered || interaction.Held || _rightDown || _middleDown;
+        var following = !input.PointerLocked && (interaction.Hovered || interaction.Held || _rightDown || _middleDown);
         if (!following)
         {
             if (_pointerInside)
