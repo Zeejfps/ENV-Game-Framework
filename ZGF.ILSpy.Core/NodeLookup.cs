@@ -65,6 +65,11 @@ public static class NodeLookup
         }
     }
 
+    /// <summary>The node <paramref name="address"/> leads to, as <see cref="Find(AssemblyList, BrowseSession, CodeReference)"/>
+    /// finds the node of a reference to it.</summary>
+    public static BrowseNode? Find(AssemblyList list, BrowseSession session, NavigationAddress address) =>
+        Find(list, session, address.ToReference());
+
     /// <summary>The metadata table row that defines what <paramref name="reference"/> points at: the row
     /// of a type or member, or an assembly's own row, opening and listing the assembly that defines it
     /// as <see cref="Find(AssemblyList, BrowseSession, CodeReference)"/> does. Null if the reference is

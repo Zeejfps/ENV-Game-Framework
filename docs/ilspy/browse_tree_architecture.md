@@ -181,7 +181,9 @@ Nesting namespaces must keep today's behavior: a namespace is hidden only when i
 2. **Done.** **Take content out of the node.** Add `NodeContentLoader` and `DocumentRequest`, make `NodeDecompiler` take requests, and drop `MetadataGrid`'s owner. This breaks the `BrowseNode → NodeDecompiler → subclasses` cycle.
 3. **Done.** **Add `BrowseSession`.** Move the roots, the node index and child loading out of `LoadedModule` and `BrowseNode`.
 4. **Done.** **Replace subclasses with subjects**, one family at a time, each payload validated as it is built: entities, then references, resources, metadata and packages.
-5. **Move the consumers** (UI, analyzers, search, comparison) onto subjects, and derive icons at the UI edge.
+5. **In progress.** **Move the consumers** (UI, analyzers, search, comparison) onto subjects, and derive icons at the UI edge.
+   - **Done:** activation; `BrowseNode.Target` is gone.
+   - **Left:** a definition's address in place of `Reference` and `Token`; `NodeText` labels and secondary text; tree hiding; icons from subjects; search and comparison off `NodeKind`; the remaining optional fields (`Namespace`, `DeclaringTypeName`, `ForwardedTo`, `Accessibility` and the flags).
 6. **Version paths.** Add the new segments and the reader for old ones, and check bookmarks, saved tabs, expansion and `ILSpyTree.Locate`'s path-then-token lookup (`ILSpyTree.cs:64`).
 7. **Delete `NodeKind` from Core** and the compatibility members left over, and add the dependency test to CI.
 

@@ -184,7 +184,7 @@ public sealed class PackageTests
         var assembly = TestAssemblyRoot(package.Root.Child(LibFolder)).Assembly;
 
         var core = assembly.Root.Child("References", "ZGF.ILSpy.Core");
-        var resolved = list.FindNode(core.Target!);
+        var resolved = list.FindNode(core.Destination);
 
         Assert.Equal(package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Core.dll")), resolved!.Assembly.FilePath);
         Assert.Same(package, ContainerOf(resolved.Assembly));
@@ -234,7 +234,7 @@ public sealed class PackageTests
         var assembly = list.Open(Trees.TestAssemblyPath);
 
         var core = assembly.Root.Child("References", "ZGF.ILSpy.Core");
-        var resolved = list.FindNode(core.Target!);
+        var resolved = list.FindNode(core.Destination);
 
         Assert.Equal(CoreAssemblyPath, resolved!.Assembly.FilePath.Text, ignoreCase: true);
     }

@@ -76,7 +76,7 @@ public sealed class ModuleReferenceTests
         var answer = assembly.Root.Child("References", "fixture-native", "Answer() : int");
 
         var text = Assert.IsType<DocumentContent>(answer.Content()).Document.GetText();
-        var definition = list.FindNode(answer.Target!);
+        var definition = list.FindNode(answer.Destination);
 
         Assert.Contains("Calls fixture_answer in fixture-native", text);
         Assert.Same(assembly.Fixtures().Child("NativeImports", "Answer() : int"), definition);
@@ -92,7 +92,7 @@ public sealed class ModuleReferenceTests
 
         // GC._Collect is a generated stub on every system; most QCalls are not, or not everywhere.
         var collect = imports.First(i => i.Text.StartsWith("_Collect(", StringComparison.Ordinal));
-        var definition = list.FindNode(collect.Target!)!;
+        var definition = list.FindNode(collect.Destination)!;
 
         Assert.DoesNotContain(qcall.Children, i => i.Text.Contains(">g__", StringComparison.Ordinal));
         Assert.Equal("System.GC", collect.DeclaringTypeName);

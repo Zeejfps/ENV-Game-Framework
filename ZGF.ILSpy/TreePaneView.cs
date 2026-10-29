@@ -162,9 +162,9 @@ internal static class TreePaneView
     /// <summary>Goes where <paramref name="node"/> points when it stands for a reference, else opens it in a tab kept open.</summary>
     private static void Open(AppState appState, BrowseNode node)
     {
-        if (node.Target != null)
+        if (Activation.Of(node.Subject) is Activation.Navigate jump)
         {
-            GoToTarget(appState, node);
+            GoTo(appState, jump.Address);
             return;
         }
         OpenNode(appState, node);
@@ -190,14 +190,14 @@ internal static class TreePaneView
     private static void NodeMenu(Ui<UiState> ui, AppState appState, BrowseNode node)
     {
         var t = ui.State.Strings;
-        var pointsElsewhere = node.Target != null;
-        var openKey = pointsElsewhere ? null : Shortcuts.Enter;
+        var jump = Activation.Of(node.Subject) as Activation.Navigate;
+        var openKey = jump != null ? null : Shortcuts.Enter;
         if (ui.MenuItem(t.TreeOpen, openKey, id: "open"))
             OpenNode(appState, node);
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             ShowNode(appState, node, inNewTab: true);
-        if (pointsElsewhere && ui.MenuItem(t.TreeGoToTarget, Shortcuts.Enter, id: "go-to-target"))
-            GoToTarget(appState, node);
+        if (jump != null && ui.MenuItem(t.TreeGoToTarget, Shortcuts.Enter, id: "go-to-target"))
+            GoTo(appState, jump.Address);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         DocsItem(ui, node);

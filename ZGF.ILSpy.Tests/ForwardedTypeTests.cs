@@ -46,7 +46,7 @@ public sealed class ForwardedTypeTests
         var netstandard = list.Open(RuntimeFile("netstandard.dll"));
         var forwarded = netstandard.Root.Child("System.Collections.Generic").Child("List<>");
 
-        var definition = list.FindNode(forwarded.Target!);
+        var definition = list.FindNode(forwarded.Destination);
 
         Assert.Equal("System.Collections", forwarded.ForwardedTo);
         Assert.Equal(NodeKind.Class, definition!.Kind);
@@ -65,7 +65,7 @@ public sealed class ForwardedTypeTests
         var namespaceDocument = forwarded.Parent!.Decompile(DecompilationLanguage.CSharp);
 
         Assert.Contains("// Forwarded to System.Private.CoreLib", document.GetText());
-        Assert.Equal(forwarded.Target, document.Lines[document.LineContaining("System.Collections.Generic.IList<>")].SpanAt("System.Collections.Generic.IList<>").Reference);
+        Assert.Equal(forwarded.Destination.ToReference(), document.Lines[document.LineContaining("System.Collections.Generic.IList<>")].SpanAt("System.Collections.Generic.IList<>").Reference);
         Assert.Contains("IList<> // Forwarded to System.Private.CoreLib", namespaceDocument.GetText());
     }
 }

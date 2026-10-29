@@ -248,13 +248,9 @@ public static class Navigation
         appState.ReportError(new AppProblem.NoApiReferencePage(reference.Name));
     }
 
-    /// <summary>Goes where a node points (a base type, an assembly reference), if anywhere.</summary>
-    public static void GoToTarget(AppState appState, BrowseNode node)
-    {
-        if (node.Target == null)
-            return;
-        Navigate(appState, node.Target, inNewTab: false);
-    }
+    /// <summary>Goes where a node points: what a reference, a forwarded type, an imported method, or a base
+    /// or derived type leads to.</summary>
+    public static void GoTo(AppState appState, NavigationAddress address) => Navigate(appState, address.ToReference(), inNewTab: false);
 
     public static void GoBack(AppState appState) => GoToHistoryEntry(appState, appState.History.CurrentIndex - 1);
 

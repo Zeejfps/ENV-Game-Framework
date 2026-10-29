@@ -103,7 +103,7 @@ public sealed class BrowseTreeTests
         Assert.Equal((NodeKind.DerivedType, "Circle"), (circle.Kind, circle.Text));
         Assert.Equal(NodeAccessibility.Internal, circle.Accessibility);
         Assert.False(circle.HasChildren);
-        Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Target!));
+        Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Destination));
         Assert.DoesNotContain(fixtures.Child("Circle").Children, c => c.Kind == NodeKind.DerivedTypes);
         Assert.DoesNotContain(fixtures.Child("Size").Children, c => c.Kind == NodeKind.DerivedTypes);
         Assert.Empty(assembly.Calculator().Child("Derived Types").Children);
@@ -134,7 +134,7 @@ public sealed class BrowseTreeTests
 
         Assert.Equal(["object", "IShape"], bases.Select(b => b.Text));
         Assert.All(bases, b => Assert.Equal(NodeKind.BaseType, b.Kind));
-        Assert.Same(assembly.Fixtures().Child("IShape"), list.FindNode(bases[1].Target!));
+        Assert.Same(assembly.Fixtures().Child("IShape"), list.FindNode(bases[1].Destination));
     }
 
     [Fact]

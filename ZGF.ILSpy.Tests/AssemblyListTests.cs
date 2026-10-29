@@ -259,8 +259,8 @@ public sealed class AssemblyListTests
         var (list, assembly) = Trees.OpenTestAssembly();
         var references = assembly.Root.Child("References");
 
-        var runtime = list.FindNode(references.Child("System.Runtime").Target!);
-        var sibling = list.FindNode(references.Child("ZGF.ILSpy.Core").Target!);
+        var runtime = list.FindNode(references.Child("System.Runtime").Destination);
+        var sibling = list.FindNode(references.Child("ZGF.ILSpy.Core").Destination);
 
         Assert.Equal(Path.Combine(RuntimeAssemblies.Directories[0], "System.Runtime.dll"), runtime!.Assembly.FilePath.Text, ignoreCase: true);
         Assert.Equal(typeof(AssemblyList).Assembly.Location, sibling!.Assembly.FilePath.Text, ignoreCase: true);

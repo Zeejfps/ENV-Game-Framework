@@ -34,6 +34,9 @@ internal static class SessionQueries
         public void LoadChildren() => TestSession.Shared.LoadChildren(node);
 
         public IReadOnlyList<BrowseNode> InnerNamespaces => TestSession.Shared.InnerNamespaces(node);
+
+        /// <summary>Where activating the node goes; fails the test when it opens itself.</summary>
+        public NavigationAddress Destination => Assert.IsType<Activation.Navigate>(Activation.Of(node.Subject)).Address;
     }
 
     extension(AssemblyList list)
@@ -41,6 +44,8 @@ internal static class SessionQueries
         public BrowseNode? FindNode(NodePath path) => NodeLookup.Find(list, TestSession.Shared, path);
 
         public BrowseNode? FindNode(CodeReference reference) => NodeLookup.Find(list, TestSession.Shared, reference);
+
+        public BrowseNode? FindNode(NavigationAddress address) => NodeLookup.Find(list, TestSession.Shared, address);
 
         public BrowseNode? FindListedNode(NodePath path) => NodeLookup.FindListed(list, TestSession.Shared, path);
 

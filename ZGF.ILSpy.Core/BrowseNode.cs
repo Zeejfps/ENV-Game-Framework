@@ -134,10 +134,6 @@ public sealed partial class BrowseNode
     /// <summary>The name of the assembly a forwarded type is forwarded to; null for other nodes.</summary>
     public string? ForwardedTo { get; private init; }
 
-    /// <summary>Where activating this node should navigate, for nodes that point elsewhere (a base type,
-    /// an assembly reference); null otherwise.</summary>
-    public CodeReference? Target { get; private init; }
-
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
     public NodePath Path => _path ??= NodePath.Of(this);
 

@@ -59,7 +59,7 @@ public sealed class ReferencedTypesTests
     {
         var (list, assembly) = Trees.OpenTestAssembly();
 
-        var definition = list.FindNode(UsedList(assembly).Target!);
+        var definition = list.FindNode(UsedList(assembly).Destination);
 
         Assert.NotNull(definition);
         Assert.Equal(NodeKind.Class, definition.Kind);

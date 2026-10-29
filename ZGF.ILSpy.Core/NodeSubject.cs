@@ -366,8 +366,9 @@ public sealed class DerivedTypeInfo
     }
 }
 
-/// <summary>A definition that can be navigated to: a type or member, by the file that defines it and
-/// its handle there. Unlike a <see cref="CodeReference"/> it never names a local or a label.</summary>
+/// <summary>Where navigation can go: an assembly, type or member, by a file and a handle there, either
+/// the definition itself or a reference to one, resolved when it is followed. Unlike a
+/// <see cref="CodeReference"/> it never names a local or a label.</summary>
 public sealed record NavigationAddress
 {
     private NavigationAddress(AssemblyPath filePath, EntityHandle handle, CodeReferenceKind kind, string name)
@@ -386,6 +387,15 @@ public sealed record NavigationAddress
 
     /// <summary>The definition's name, as references to it are shown.</summary>
     public string Name { get; }
+
+    /// <summary>The address of what <paramref name="handle"/> of the file at <paramref name="filePath"/>
+    /// names, a <paramref name="kind"/> called <paramref name="name"/>: an assembly, type or member.</summary>
+    internal static NavigationAddress To(CodeReferenceKind kind, string name, AssemblyPath filePath, EntityHandle handle)
+    {
+        if (kind is CodeReferenceKind.Local or CodeReferenceKind.Label)
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Locals and labels are not navigated to.");
+        return new NavigationAddress(filePath, handle, kind, name);
+    }
 
     /// <summary>The address of <paramref name="entity"/>'s definition; null when it has no metadata file
     /// or token to be found by.</summary>

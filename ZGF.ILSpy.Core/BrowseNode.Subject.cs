@@ -23,33 +23,21 @@ public sealed partial class BrowseNode
             case NodeSubject.MemberDefinition member:
                 (Accessibility, IsPublicApi, IsCompilerGenerated, Reference, Token) = DescribeDefinition(parent, member.Definition.Symbol, member.Definition.Address);
                 break;
-            case NodeSubject.AssemblyReference reference:
-                var assembly = reference.Value.Reference;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Assembly, assembly.Name, reference.Value.Module.FilePath, assembly.Handle);
-                break;
             case NodeSubject.TypeReference type:
                 Namespace = type.Value.Namespace;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Type, Text, type.Value.Module.FilePath, type.Value.Handle);
-                break;
-            case NodeSubject.MemberReference member:
-                var declared = member.Value.Declared;
-                Target = CodeReference.ToEntity(CodeReference.KindOf(declared.SymbolKind), declared.Name, member.Value.Module.FilePath, member.Value.Handle);
                 break;
             case NodeSubject.ImportedMethod import:
                 var shown = import.Value.Shown;
                 Accessibility = EntityText.Map(shown.Symbol.Accessibility);
                 IsPublicApi = EntityText.IsPublicApi(shown.Symbol);
                 DeclaringTypeName = import.Value.DeclaringTypeName;
-                Target = shown.Address.ToReference();
                 break;
             case NodeSubject.ForwardedType forwarded:
                 ForwardedTo = forwarded.Value.Destination;
-                Target = CodeReference.ToEntity(CodeReferenceKind.Type, forwarded.Value.Label, forwarded.Value.Module.FilePath, forwarded.Value.Handle);
                 break;
             case NodeSubject.BaseType baseType:
                 if (baseType.Value.Target is BaseTypeTarget.Navigable navigable)
                 {
-                    Target = navigable.Address.ToReference();
                     Accessibility = EntityText.Map(navigable.Definition.Accessibility);
                     IsPublicApi = EntityText.IsPublicApi(navigable.Definition);
                 }
@@ -57,7 +45,6 @@ public sealed partial class BrowseNode
             case NodeSubject.DerivedType derived:
                 Accessibility = EntityText.Map(derived.Value.Symbol.Accessibility);
                 IsPublicApi = EntityText.IsPublicApi(derived.Value.Symbol);
-                Target = derived.Value.Address.ToReference();
                 break;
             case NodeSubject.ResourceContainer container:
                 (IsPublicApi, Accessibility) = ResourceNodes.Visibility(container.Value.Resource);
@@ -74,7 +61,8 @@ public sealed partial class BrowseNode
                 IsPublicApi = ns.Value.IsPublicApi;
                 IsCompilerGenerated = ns.Value.IsCompilerGenerated;
                 break;
-            case NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
+            case NodeSubject.AssemblyReference or NodeSubject.MemberReference or NodeSubject.References or NodeSubject.ReferencedTypes
+                or NodeSubject.ModuleReference or NodeSubject.BaseTypes
                 or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
                 or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly:
                 break;
