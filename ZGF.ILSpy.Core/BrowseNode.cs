@@ -111,10 +111,6 @@ public abstract class BrowseNode
     /// tree nests namespaces; null for an outermost namespace and for any other node.</summary>
     public BrowseNode? EnclosingNamespace { get; private protected init; }
 
-    /// <summary>For a namespace, the namespaces whose names extend it by a segment, sorted by name;
-    /// none for any other node.</summary>
-    public virtual IReadOnlyList<BrowseNode> InnerNamespaces => NoChildren;
-
     public BrowseNode? Parent { get; }
 
     /// <summary>The root of the tree the node is in: the listed assembly, package or file it was found
@@ -154,12 +150,6 @@ public abstract class BrowseNode
 
     /// <summary>A qualified name for copying, e.g. <c>System.Collections.Generic.List&lt;T&gt;.Add(T)</c>.</summary>
     public virtual string FullName => Text;
-
-    /// <summary>The children as the tree lists them when it nests namespaces, given
-    /// <paramref name="children"/>, those built: for an assembly, its children but the namespaces nested
-    /// in others; for a namespace, the namespaces nested in it and its own children, sorted together by
-    /// name; else <paramref name="children"/>.</summary>
-    internal virtual IReadOnlyList<BrowseNode> Nest(IReadOnlyList<BrowseNode> children) => children;
 
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
     public NodePath Path => _path ??= NodePath.Of(this);

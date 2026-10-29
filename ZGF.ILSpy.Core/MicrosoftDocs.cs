@@ -12,8 +12,8 @@ public static class MicrosoftDocs
     /// visible outside its assembly. Null for any other node.</summary>
     public static string? FindPage(BrowseNode node)
     {
-        if (node is NamespaceNode ns)
-            return FindNamespacePage(ns);
+        if (node is SubjectNode subject && subject.Subject is NodeSubject.Namespace ns)
+            return FindNamespacePage(ns.Value);
         var entity = SubjectNode.EntityOf(node);
         if (entity != null)
             return FindPage(entity);
@@ -32,7 +32,7 @@ public static class MicrosoftDocs
         return PageAt(name);
     }
 
-    private static string? FindNamespacePage(NamespaceNode ns)
+    private static string? FindNamespacePage(NamespaceInfo ns)
     {
         if (!ns.IsPublicApi)
             return null;

@@ -383,6 +383,8 @@ public sealed class DecompilationTests
 
     /// <summary>The nodes under <paramref name="roots"/> that show no type's or member's code, not
     /// following members, base and derived types, or references into what they name.</summary>
+    private static bool IsModule(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.Module;
+
     private static bool IsLeafToSummarize(BrowseNode node)
     {
         if (node is not SubjectNode subject)
@@ -397,7 +399,7 @@ public sealed class DecompilationTests
         while (pending.Count > 0)
         {
             var node = pending.Pop();
-            if (SubjectNode.EntityOf(node) == null && node is not AssemblyNode)
+            if (SubjectNode.EntityOf(node) == null && !IsModule(node))
                 nodes.Add(node);
             if (IsLeafToSummarize(node))
                 continue;

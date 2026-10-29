@@ -32,6 +32,8 @@ internal static class SessionQueries
         public ChildrenState ChildrenState => TestSession.Shared.PeekChildren(node);
 
         public void LoadChildren() => TestSession.Shared.LoadChildren(node);
+
+        public IReadOnlyList<BrowseNode> InnerNamespaces => TestSession.Shared.InnerNamespaces(node);
     }
 
     extension(AssemblyList list)

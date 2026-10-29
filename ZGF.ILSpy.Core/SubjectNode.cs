@@ -68,9 +68,14 @@ internal sealed partial class SubjectNode : BrowseNode
             case NodeSubject.MetadataTable table:
                 IsEmptyTable = table.Value.IsEmptyTable;
                 break;
+            case NodeSubject.Namespace ns:
+                IsEnclosingOnly = ns.Value.IsEnclosingOnly;
+                IsPublicApi = ns.Value.IsPublicApi;
+                IsCompilerGenerated = ns.Value.IsCompilerGenerated;
+                break;
             case NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
                 or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
-                or NodeSubject.Package or NodeSubject.PackageFile:
+                or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly:
                 break;
             default:
                 throw new UnreachableException();
@@ -93,7 +98,7 @@ internal sealed partial class SubjectNode : BrowseNode
     {
         NodeSubject.TypeDefinition type => type.Definition.Module,
         NodeSubject.MemberDefinition member => member.Definition.Module,
-        NodeSubject.References references => references.Module,
+        NodeSubject.References references => references.Owner,
         NodeSubject.AssemblyReference reference => reference.Value.Module,
         NodeSubject.ReferencedTypes types => types.Reference.Module,
         NodeSubject.TypeReference type => type.Value.Module,
@@ -105,7 +110,7 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.BaseType baseType => baseType.Value.Module,
         NodeSubject.DerivedTypes derivedTypes => derivedTypes.Type.Module,
         NodeSubject.DerivedType derived => derived.Value.Module,
-        NodeSubject.Resources resources => resources.Module,
+        NodeSubject.Resources resources => resources.Owner,
         NodeSubject.ResourceContainer container => container.Value.Module,
         NodeSubject.ResourceEntry entry => entry.Value.Module,
         NodeSubject.Metadata metadata => metadata.Value.Module,
@@ -113,6 +118,9 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.MetadataTable table => table.Value.Module,
         NodeSubject.Package package => package.Value.Package,
         NodeSubject.PackageFile file => file.Value.Package,
+        NodeSubject.Module module => module.Value,
+        NodeSubject.Namespace ns => ns.Value.Module,
+        NodeSubject.FailedAssembly failed => failed.Value,
         _ => throw new UnreachableException(),
     };
 
@@ -126,7 +134,7 @@ internal sealed partial class SubjectNode : BrowseNode
             or NodeSubject.ReferencedTypes or NodeSubject.TypeReference or NodeSubject.MemberReference or NodeSubject.ModuleReference
             or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseTypes or NodeSubject.BaseType
             or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.Metadata
-            or NodeSubject.MetadataTables or NodeSubject.MetadataTable or NodeSubject.Package => null,
+            or NodeSubject.MetadataTables or NodeSubject.MetadataTable or NodeSubject.Package or NodeSubject.Module or NodeSubject.Namespace or NodeSubject.FailedAssembly => null,
         _ => throw new UnreachableException(),
     };
 
@@ -140,7 +148,7 @@ internal sealed partial class SubjectNode : BrowseNode
             or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseTypes or NodeSubject.BaseType
             or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources or NodeSubject.ResourceContainer
             or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable
-            or NodeSubject.PackageFile => null,
+            or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.Namespace or NodeSubject.FailedAssembly => null,
         _ => throw new UnreachableException(),
     };
 
@@ -153,7 +161,7 @@ internal sealed partial class SubjectNode : BrowseNode
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
             or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
             or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables
-            or NodeSubject.MetadataTable or NodeSubject.Package or NodeSubject.PackageFile => null,
+            or NodeSubject.MetadataTable or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.Namespace or NodeSubject.FailedAssembly => null,
         _ => throw new UnreachableException(),
     };
 
@@ -168,6 +176,9 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.ForwardedType forwarded => forwarded.Value.FullName,
         NodeSubject.Package package => package.Value.FullName,
         NodeSubject.PackageFile file => file.Value.File.FullName,
+        NodeSubject.Module module => module.Value.FullName,
+        NodeSubject.Namespace ns => ns.Value.Name,
+        NodeSubject.FailedAssembly failed => failed.Value.FilePath.Text,
         NodeSubject.References or NodeSubject.ReferencedTypes or NodeSubject.ModuleReference or NodeSubject.BaseTypes
             or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
             or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables
@@ -205,6 +216,9 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.MetadataTable table => KindOf(table.Value),
         NodeSubject.Package package => KindOf(package.Value),
         NodeSubject.PackageFile file => ResourceNodes.KindOf(file.Value.File.Name),
+        NodeSubject.Module => NodeKind.Assembly,
+        NodeSubject.Namespace => NodeKind.Namespace,
+        NodeSubject.FailedAssembly => NodeKind.FailedAssembly,
         _ => throw new UnreachableException(),
     };
 
@@ -232,6 +246,9 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.MetadataTable table => table.Value.Title,
         NodeSubject.Package package => package.Value.Label,
         NodeSubject.PackageFile file => file.Value.File.Name,
+        NodeSubject.Module module => LabelOf(module.Value),
+        NodeSubject.Namespace ns => ns.Value.Label,
+        NodeSubject.FailedAssembly failed => failed.Value.FilePath.FileName,
         _ => throw new UnreachableException(),
     };
 
@@ -239,17 +256,18 @@ internal sealed partial class SubjectNode : BrowseNode
     {
         NodeSubject.TypeDefinition type => MayListMembers(type.Definition),
         NodeSubject.MemberDefinition member => member.Definition.Symbol is IProperty or IEvent,
-        NodeSubject.References references => HasReferences(references.Module),
+        NodeSubject.References references => HasReferences(references.Owner),
         NodeSubject.AssemblyReference => true,
         NodeSubject.ReferencedTypes types => types.Reference.Module.ReferenceUsage.Uses(types.Reference.Reference.Handle),
         NodeSubject.TypeReference type => UsesAnythingOf(type.Value),
         NodeSubject.ModuleReference module => module.Value.Imports.Count > 0,
         NodeSubject.BaseTypes or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.ResourceContainer
-            or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.Package => true,
+            or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.Package or NodeSubject.Module => true,
+        NodeSubject.Namespace ns => !ns.Value.IsEnclosingOnly,
         NodeSubject.MetadataTable table => table.Value.Part is MetadataPart.DebugDirectory,
         NodeSubject.DerivedType derived => !derived.Value.Symbol.IsSealed,
         NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
-            or NodeSubject.ResourceEntry or NodeSubject.PackageFile => false,
+            or NodeSubject.ResourceEntry or NodeSubject.PackageFile or NodeSubject.FailedAssembly => false,
         _ => throw new UnreachableException(),
     };
 
@@ -257,7 +275,7 @@ internal sealed partial class SubjectNode : BrowseNode
     {
         NodeSubject.TypeDefinition type => ListMembers(type.Definition),
         NodeSubject.MemberDefinition member => ListAccessors(member.Definition),
-        NodeSubject.References references => ListAssemblyReferences(references.Module, this).Concat(ListModuleReferences(references.Module, this)).ToArray(),
+        NodeSubject.References references => ListAssemblyReferences(references.Owner, this).Concat(ListModuleReferences(references.Owner, this)).ToArray(),
         NodeSubject.AssemblyReference reference => ListReferenceContents(reference.Value),
         NodeSubject.ReferencedTypes types => ListUsedTypes(types.Reference),
         NodeSubject.TypeReference type => ListUsedOf(type.Value),
@@ -265,14 +283,16 @@ internal sealed partial class SubjectNode : BrowseNode
         NodeSubject.BaseTypes baseTypes => ListBaseTypes(baseTypes.Type),
         NodeSubject.DerivedTypes derivedTypes => FindDerivedTypes(derivedTypes.Type.Module, this, derivedTypes.Type.Symbol),
         NodeSubject.DerivedType derived => FindDerivedTypes(derived.Value.Module, this, derived.Value.Symbol),
-        NodeSubject.Resources resources => ListResources(resources.Module),
+        NodeSubject.Resources resources => ListResources(resources.Owner),
         NodeSubject.ResourceContainer container => ListEntries(container.Value),
         NodeSubject.Metadata metadata => ListMetadata(metadata.Value),
         NodeSubject.MetadataTables tables => ListTables(tables.Folder),
         NodeSubject.MetadataTable table => table.Value.Part is MetadataPart.DebugDirectory directory ? ListDebugEntries(table.Value.Module, directory.File) : [],
         NodeSubject.Package package => ListPackageFolder(package.Value),
+        NodeSubject.Module module => ListModule(module.Value),
+        NodeSubject.Namespace ns => ListNamespace(ns.Value),
         NodeSubject.MemberReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType or NodeSubject.BaseType
-            or NodeSubject.ResourceEntry or NodeSubject.PackageFile => [],
+            or NodeSubject.ResourceEntry or NodeSubject.PackageFile or NodeSubject.FailedAssembly => [],
         _ => throw new UnreachableException(),
     };
 

@@ -12,6 +12,23 @@ public abstract class NodeSubject
     {
     }
 
+    /// <summary>A module that was read: an assembly, or a WebCIL module; the root of its tree.</summary>
+    public sealed class Module(LoadedModule value) : NodeSubject
+    {
+        public LoadedModule Value { get; } = value;
+    }
+
+    public sealed class Namespace(NamespaceInfo value) : NodeSubject
+    {
+        public NamespaceInfo Value { get; } = value;
+    }
+
+    /// <summary>A listed file that could not be read as a .NET assembly; the root of its tree.</summary>
+    public sealed class FailedAssembly(Core.FailedAssembly value) : NodeSubject
+    {
+        public Core.FailedAssembly Value { get; } = value;
+    }
+
     public sealed class TypeDefinition(DefinedType definition) : NodeSubject
     {
         public DefinedType Definition { get; } = definition;
@@ -23,10 +40,10 @@ public abstract class NodeSubject
         public DefinedMember Definition { get; } = definition;
     }
 
-    /// <summary>The folder of the assemblies and modules <see cref="Module"/> references.</summary>
-    public sealed class References(LoadedModule module) : NodeSubject
+    /// <summary>The folder of the assemblies and modules <see cref="Owner"/> references.</summary>
+    public sealed class References(LoadedModule owner) : NodeSubject
     {
-        public LoadedModule Module { get; } = module;
+        public LoadedModule Owner { get; } = owner;
     }
 
     public sealed class AssemblyReference(AssemblyReferenceInfo value) : NodeSubject
@@ -87,10 +104,10 @@ public abstract class NodeSubject
         public DerivedTypeInfo Value { get; } = value;
     }
 
-    /// <summary>The folder of <see cref="Module"/>'s manifest resources.</summary>
-    public sealed class Resources(LoadedModule module) : NodeSubject
+    /// <summary>The folder of <see cref="Owner"/>'s manifest resources.</summary>
+    public sealed class Resources(LoadedModule owner) : NodeSubject
     {
-        public LoadedModule Module { get; } = module;
+        public LoadedModule Owner { get; } = owner;
     }
 
     /// <summary>A manifest resource that holds entries: a <c>.resources</c> file, or Avalonia's asset container.</summary>
@@ -251,6 +268,8 @@ public sealed class ForwardedTypeInfo
         Handle = type.Handle;
         Namespace = type.Namespace;
         Label = type.Label;
+        SortName = type.SortName;
+        Arity = type.Arity;
         Destination = type.Destination;
     }
 
@@ -262,6 +281,12 @@ public sealed class ForwardedTypeInfo
 
     /// <summary>The type as <c>typeof</c> names an open generic type, e.g. <c>Dictionary&lt;,&gt;</c>.</summary>
     public string Label { get; }
+
+    /// <summary>The name without type parameters, which it sorts by, then by <see cref="Arity"/>.</summary>
+    public string SortName { get; }
+
+    /// <summary>How many type parameters it has.</summary>
+    public int Arity { get; }
 
     public string Destination { get; }
 
@@ -437,4 +462,38 @@ public sealed class DefinedMember
             return null;
         return new DefinedMember(module, member, address);
     }
+}
+
+/// <summary>A namespace of <see cref="Module"/>: the types it defines there and those it forwards from
+/// there to other assemblies. One that holds neither is listed only because others nest in it.</summary>
+public sealed class NamespaceInfo
+{
+    internal NamespaceInfo(LoadedModule module, string name, IReadOnlyList<ITypeDefinition> types, IReadOnlyList<ForwardedTypeInfo> forwarded)
+    {
+        Module = module;
+        Name = name;
+        Types = types;
+        Forwarded = forwarded;
+    }
+
+    public LoadedModule Module { get; }
+
+    /// <summary>The full name; empty for the global namespace.</summary>
+    public string Name { get; }
+
+    public IReadOnlyList<ITypeDefinition> Types { get; }
+
+    public IReadOnlyList<ForwardedTypeInfo> Forwarded { get; }
+
+    /// <summary>The name as the tree shows it: <c>-</c> for the global namespace.</summary>
+    public string Label => Name.Length == 0 ? "-" : Name;
+
+    /// <summary>Whether the module puts no types here, listing it only because others nest in it.</summary>
+    public bool IsEnclosingOnly => Types.Count == 0 && Forwarded.Count == 0;
+
+    /// <summary>Whether a type here is visible outside the module: one it forwards, or a public one.</summary>
+    public bool IsPublicApi => Forwarded.Count > 0 || Types.Any(EntityText.IsPublicApi);
+
+    /// <summary>Whether everything here is something the compiler made up.</summary>
+    public bool IsCompilerGenerated => Forwarded.Count == 0 && Types.All(Members.IsCompilerGenerated);
 }

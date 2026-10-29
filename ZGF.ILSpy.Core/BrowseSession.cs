@@ -36,7 +36,10 @@ public sealed class BrowseSession
 
     private static readonly ChildrenState.Unloaded NotLoaded = new();
 
-    private readonly ConditionalWeakTable<LoadedModule, AssemblyNode> _moduleRoots = new();
+    private readonly ConditionalWeakTable<LoadedModule, BrowseNode> _moduleRoots = new();
+    private readonly ConditionalWeakTable<LoadedModule, ConcurrentDictionary<string, BrowseNode>> _namespaces = new();
+    private readonly ConditionalWeakTable<BrowseNode, IReadOnlyList<BrowseNode>> _nested = new();
+    private readonly ConditionalWeakTable<BrowseNode, IReadOnlyList<BrowseNode>> _inner = new();
     private readonly ConditionalWeakTable<LoadedAssembly, BrowseNode> _otherRoots = new();
     private readonly ConditionalWeakTable<LoadedModule, ConcurrentDictionary<EntityHandle, BrowseNode>> _index = new();
     private readonly ConditionalWeakTable<BrowseNode, ChildSlot> _children = new();
@@ -52,27 +55,27 @@ public sealed class BrowseSession
 
     private static BrowseNode CreateRoot(LoadedAssembly assembly) => assembly switch
     {
-        FailedAssembly failed => new FailedAssemblyNode(failed),
+        FailedAssembly failed => SubjectNode.FailedRoot(failed),
         LoadedPackage package => SubjectNode.PackageRoot(package),
         _ => throw new UnreachableException(),
     };
 
-    internal AssemblyNode RootOf(LoadedModule module)
+    internal BrowseNode RootOf(LoadedModule module)
     {
         if (module.Place == null)
-            return _moduleRoots.GetValue(module, static m => new AssemblyNode(m, null));
+            return _moduleRoots.GetValue(module, static m => SubjectNode.ModuleRoot(m, null));
         return RootInPackage(module, module.Place);
     }
 
     /// <summary>The root of <paramref name="module"/> under the folder of its package's tree holding its
     /// file: the one that folder lists, else one made there the first time, then kept.</summary>
-    private AssemblyNode RootInPackage(LoadedModule module, PackagePlace place)
+    private BrowseNode RootInPackage(LoadedModule module, PackagePlace place)
     {
         if (_moduleRoots.TryGetValue(module, out var placed))
             return placed;
         var folder = FindFolderNode(RootOf(place.Container), place.File.Folder);
         LoadChildren(folder);
-        return _moduleRoots.GetValue(module, m => new AssemblyNode(m, folder));
+        return _moduleRoots.GetValue(module, m => SubjectNode.ModuleRoot(m, folder));
     }
 
     /// <summary>The node of the folder at <paramref name="folder"/>, a path from the package's root:
@@ -127,7 +130,7 @@ public sealed class BrowseSession
         var state = PeekChildren(node);
         if (state is not ChildrenState.Ready ready)
             return state;
-        return new ChildrenState.Ready(node.Nest(ready.Children));
+        return new ChildrenState.Ready(_nested.GetValue(node, n => Nest(n, ready.Children)));
     }
 
     /// <summary>The children of <paramref name="node"/>, built on the thread pool when nobody asked for
@@ -258,8 +261,10 @@ public sealed class BrowseSession
             IndexOf(type.Definition.Module).TryAdd(type.Definition.Handle, node);
         if (node is SubjectNode about && about.Subject is NodeSubject.MemberDefinition member)
             IndexOf(member.Definition.Module).TryAdd(member.Definition.Handle, node);
-        if (node is AssemblyNode root)
-            _moduleRoots.TryAdd(root.Module, root);
+        if (node is SubjectNode root && root.Subject is NodeSubject.Module module)
+            _moduleRoots.TryAdd(module.Value, node);
+        if (node is SubjectNode named && named.Subject is NodeSubject.Namespace ns)
+            NamespacesOf(ns.Value.Module).TryAdd(ns.Value.Name, node);
     }
 
     private ConcurrentDictionary<EntityHandle, BrowseNode> IndexOf(LoadedModule module) =>
@@ -333,11 +338,83 @@ public sealed class BrowseSession
         return null;
     }
 
-    private NamespaceNode? FindNamespace(LoadedModule module, string name)
+    private BrowseNode? FindNamespace(LoadedModule module, string name)
     {
-        var root = RootOf(module);
-        LoadChildren(root);
-        return root.NamespaceNamed(name);
+        LoadChildren(RootOf(module));
+        return NamespacesOf(module).GetValueOrDefault(name);
+    }
+
+    private ConcurrentDictionary<string, BrowseNode> NamespacesOf(LoadedModule module) =>
+        _namespaces.GetValue(module, static _ => new ConcurrentDictionary<string, BrowseNode>(StringComparer.Ordinal));
+
+    /// <summary>The namespaces whose names extend <paramref name="node"/>'s by a segment, sorted by name;
+    /// none for a node that is no namespace. Never blocks.</summary>
+    public IReadOnlyList<BrowseNode> InnerNamespaces(BrowseNode node)
+    {
+        if (_inner.TryGetValue(node, out var known))
+            return known;
+        if (node is not SubjectNode subject || subject.Subject is not NodeSubject.Namespace)
+            return [];
+        var parent = node.Parent;
+        if (parent == null || PeekChildren(parent) is not ChildrenState.Ready siblings)
+            return [];
+        var inner = siblings.Children
+            .Where(c => ReferenceEquals(c.EnclosingNamespace, node))
+            .ToArray();
+        return _inner.GetValue(node, _ => inner);
+    }
+
+    /// <summary>The children as the tree lists them when it nests namespaces, given those built: for a
+    /// module, its children but the namespaces nested in others; for a namespace, the namespaces nested in
+    /// it and its own children, each where ILSpy sorts the full names of the types in it; else as built.</summary>
+    private IReadOnlyList<BrowseNode> Nest(BrowseNode node, IReadOnlyList<BrowseNode> children)
+    {
+        if (node is not SubjectNode subject)
+            return children;
+        return subject.Subject switch
+        {
+            NodeSubject.Module => children.Where(static c => c.EnclosingNamespace == null).ToArray(),
+            NodeSubject.Namespace => Interleave(InnerNamespaces(node), children),
+            _ => children,
+        };
+    }
+
+    /// <summary>The namespaces in <paramref name="inner"/> among <paramref name="own"/>, a namespace's
+    /// children sorted.</summary>
+    private static BrowseNode[] Interleave(IReadOnlyList<BrowseNode> inner, IReadOnlyList<BrowseNode> own)
+    {
+        var result = new List<BrowseNode>(own.Count + inner.Count);
+        var pending = new Queue<BrowseNode>(inner);
+        foreach (var child in own)
+        {
+            while (pending.Count > 0 && SortsBefore(pending.Peek(), child))
+                result.Add(pending.Dequeue());
+            result.Add(child);
+        }
+        result.AddRange(pending);
+        return result.ToArray();
+    }
+
+    /// <summary>Whether ILSpy, sorting the full names of the types, comes to those in
+    /// <paramref name="inner"/> before <paramref name="child"/>.</summary>
+    private static bool SortsBefore(BrowseNode inner, BrowseNode child)
+    {
+        var key = NamespaceNames.LastSegment(inner.FullName) + ".";
+        return NaturalStringComparer.Instance.Compare(key, ReflectionNameOf(child)) < 0;
+    }
+
+    /// <summary>The name a namespace's type is sorted under, as its reflection name ends: <c>List`1</c>.</summary>
+    private static string ReflectionNameOf(BrowseNode child)
+    {
+        if (child is not SubjectNode subject)
+            throw new UnreachableException();
+        var (name, arity) = subject.Subject switch
+        {
+            NodeSubject.TypeDefinition type => (type.Definition.Symbol.Name, type.Definition.Symbol.TypeParameterCount),
+            NodeSubject.ForwardedType forwarded => (forwarded.Value.SortName, forwarded.Value.Arity),
+            _ => throw new UnreachableException(),
+        };
+        return arity == 0 ? name : name + "`" + arity;
     }
 
     /// <summary>The node of the namespace, type or member <paramref name="idString"/> names in

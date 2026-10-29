@@ -253,7 +253,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         var ownHidden = ns.IsEnclosingOnly || IsApiHidden(ns);
         if (!ownHidden) return false;
         if (!_nestNamespaces) return true;
-        return ns.InnerNamespaces.All(IsNamespaceHidden);
+        return _session.InnerNamespaces(ns).All(IsNamespaceHidden);
     }
 
     private bool IsApiHidden(BrowseNode node)
@@ -339,7 +339,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     public bool HasChildren(BrowseNode node)
     {
         if (!_nestNamespaces) return _session.HasChildren(node);
-        return _session.HasChildren(node) || node.InnerNamespaces.Count > 0;
+        return _session.HasChildren(node) || _session.InnerNamespaces(node).Count > 0;
     }
 
     /// <summary>The children shown under <paramref name="node"/>: those not hidden, with namespaces

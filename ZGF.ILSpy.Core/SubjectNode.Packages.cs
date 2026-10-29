@@ -44,7 +44,7 @@ internal sealed partial class SubjectNode
         var assembly = PackageContents.IsAssemblyName(file.Name) ? package.FindAssembly(file) : null;
         if (assembly == null)
             return new SubjectNode(this, new NodeSubject.PackageFile(new PackageFileInfo(package, file)));
-        return new AssemblyNode(assembly, this);
+        return ModuleRoot(assembly, this);
     }
 
     private static NodeKind KindOf(PackageFolderInfo folder)

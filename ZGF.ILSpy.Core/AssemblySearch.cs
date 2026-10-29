@@ -321,11 +321,11 @@ public static class AssemblySearch
         /// query finds.</summary>
         private bool IsNamespaceFound(BrowseNode node)
         {
-            if (node is not NamespaceNode ns)
+            if (node is not SubjectNode subject || subject.Subject is not NodeSubject.Namespace ns)
                 return false;
-            if (ns.IsEnclosingOnly)
+            if (ns.Value.IsEnclosingOnly)
                 return false;
-            return InNamespace(ns.Name) && query.IsMatch(ns.Text);
+            return InNamespace(ns.Value.Name) && query.IsMatch(node.Text);
         }
 
         private void Add(LoadedModule assembly, EntityHandle handle)
@@ -381,7 +381,7 @@ public static class AssemblySearch
         private void Add(BrowseNode node)
         {
             var ns = node.Parent;
-            while (ns is not null and not NamespaceNode)
+            while (ns != null && !IsNamespace(ns))
                 ns = ns.Parent;
             var name = ns?.Text ?? "";
             var type = node.Parent;
@@ -390,6 +390,8 @@ public static class AssemblySearch
             else
                 Add(node, name.Length == 0 ? "-" : name);
         }
+
+        private static bool IsNamespace(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.Namespace;
 
         private void Add(BrowseNode node, string location)
         {

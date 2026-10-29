@@ -41,7 +41,9 @@ public static class NodeContentLoader
 
     /// <summary>Whether <see cref="LoadAsync"/> gives decompiled code, which changes with the language
     /// and options, rather than a grid, a picture or why the file failed to load, which do not.</summary>
-    public static bool DependsOnLanguage(BrowseNode node) => GridOf(node) == null && node is not FailedAssemblyNode && !IsImage(node);
+    public static bool DependsOnLanguage(BrowseNode node) => GridOf(node) == null && !IsFailedFile(node) && !IsImage(node);
+
+    private static bool IsFailedFile(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.FailedAssembly;
 
     /// <summary>The grid <paramref name="node"/> shows: a metadata header, directory, table or heap's, or a
     /// <c>.resources</c> file's entries; null for a node that shows none.</summary>
@@ -67,10 +69,12 @@ public static class NodeContentLoader
     /// offered under: the node's name, made safe for a file name, with the language's extension.</summary>
     public static string SuggestCodeFileName(BrowseNode node, DecompilationLanguage language)
     {
-        var name = node is AssemblyNode ? node.Assembly.Name : SubjectNode.EntityOf(node)?.Name ?? node.Text;
+        var name = IsModule(node) ? node.Assembly.Name : SubjectNode.EntityOf(node)?.Name ?? node.Text;
         var extension = DecompilationLanguages.IsIL(language) ? ".il" : ".cs";
         return WholeProjectDecompiler.CleanUpFileName(name, extension);
     }
+
+    private static bool IsModule(BrowseNode node) => node is SubjectNode subject && subject.Subject is NodeSubject.Module;
 
     private static NodeContent Load(BrowseSession session, BrowseNode node, DecompilationLanguage language, DecompilerOptions options,
         CancellationToken cancellationToken)
@@ -105,8 +109,8 @@ public static class NodeContentLoader
 
     private static CodeExport ExportOf(BrowseSession session, BrowseNode node) => node switch
     {
-        AssemblyNode assembly => new CodeExport.WholeModule(assembly.Module),
-        NamespaceNode ns => new CodeExport.Namespace(ns.Module, ns.Name, ns.Types.ToList()),
+        SubjectNode subject when subject.Subject is NodeSubject.Module module => new CodeExport.WholeModule(module.Value),
+        SubjectNode subject when subject.Subject is NodeSubject.Namespace ns => new CodeExport.Namespace(ns.Value.Module, ns.Value.Name, ns.Value.Types),
         _ => new CodeExport.Document(RequestOf(session, node)),
     };
 
@@ -114,10 +118,6 @@ public static class NodeContentLoader
     {
         switch (node)
         {
-            case FailedAssemblyNode failed:
-                return new DocumentRequest.Failure(failed.Failed, node.Text, node.FullName);
-            case AssemblyNode assembly:
-                return new DocumentRequest.ModulePreview(assembly.Module, node.Text, node.FullName);
             case SubjectNode subject:
                 return RequestOf(session, subject);
             default:
@@ -156,6 +156,10 @@ public static class NodeContentLoader
         NodeSubject.Package => new DocumentRequest.Summary(new SummaryInfo.Comments(session.ChildrenOf(node).Select(DescribePackageChild).ToList()), null,
             node.Text, node.FullName),
         NodeSubject.PackageFile file => ResourceRequest(node, file.Value),
+        NodeSubject.Module module => new DocumentRequest.ModulePreview(module.Value, node.Text, node.FullName),
+        NodeSubject.FailedAssembly failed => new DocumentRequest.Failure(failed.Value, node.Text, node.FullName),
+        NodeSubject.Namespace => new DocumentRequest.Summary(new SummaryInfo.Namespace(node.Text, ListNamespaceEntries(session, node)), node.SourceModule,
+            node.Text, node.FullName),
         _ => throw new UnreachableException(),
     };
 
@@ -172,17 +176,14 @@ public static class NodeContentLoader
     /// <summary>The module <paramref name="node"/> is a node of; null for one of a package or a file that failed.</summary>
     private static LoadedModule? ModuleOf(BrowseNode node)
     {
-        if (node is SubjectNode subject)
-            return subject.SourceModule;
-        if (node is not IModuleNode module)
+        if (node is not SubjectNode subject)
             return null;
-        return module.Module;
+        return subject.SourceModule;
     }
 
     /// <summary>What the summary of <paramref name="node"/> lists, read from its children.</summary>
     private static SummaryInfo SummaryOf(BrowseSession session, BrowseNode node) => node switch
     {
-        NamespaceNode => new SummaryInfo.Namespace(node.Text, ListNamespaceEntries(session, node)),
         _ => throw new UnreachableException(),
     };
 
@@ -205,7 +206,7 @@ public static class NodeContentLoader
         NodeSubject.BaseType or NodeSubject.DerivedType => new SummaryInfo.Types([new SummaryLink(node.Text, node.Target)]),
         NodeSubject.TypeDefinition or NodeSubject.MemberDefinition or NodeSubject.Resources or NodeSubject.ResourceContainer
             or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable
-            or NodeSubject.Package or NodeSubject.PackageFile => throw new UnreachableException(),
+            or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.Namespace or NodeSubject.FailedAssembly => throw new UnreachableException(),
         _ => throw new UnreachableException(),
     };
 

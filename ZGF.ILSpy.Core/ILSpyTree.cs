@@ -33,8 +33,6 @@ public static class ILSpyTree
     /// for a node it has no named counterpart of.</summary>
     public static string? NameOf(BrowseNode node) => node switch
     {
-        AssemblyNode => node.Assembly.FilePath.Text,
-        NamespaceNode ns => ns.Name,
         SubjectNode subject => NameOf(subject.Subject),
         _ => null,
     };
@@ -54,7 +52,9 @@ public static class ILSpyTree
             or NodeSubject.MemberReference or NodeSubject.ModuleReference or NodeSubject.ImportedMethod or NodeSubject.ForwardedType
             or NodeSubject.BaseTypes or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
             or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables or NodeSubject.MetadataTable
-            or NodeSubject.Package or NodeSubject.PackageFile => null,
+            or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.FailedAssembly => null,
+        NodeSubject.Module module => module.Value.FilePath.Text,
+        NodeSubject.Namespace ns => ns.Value.Name,
         _ => throw new UnreachableException(),
     };
 
