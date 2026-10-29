@@ -274,9 +274,9 @@ internal static class TreePaneView
     /// out of a package; else null.</summary>
     private static PackagePlace? PackedAssemblyOf(BrowseNode node)
     {
-        if (node.Kind != NodeKind.Assembly)
+        if (node.Kind != NodeKind.Assembly || node.Assembly is not LoadedModule assembly)
             return null;
-        return node.Assembly.InPackage;
+        return assembly.Place;
     }
 
     /// <summary>Whether the menu offers to save the node's code: it shows code, and is no resource,

@@ -78,8 +78,7 @@ public static class NodeText
 
     private static string WriteAssemblyLabel(LoadedAssembly assembly)
     {
-        var place = assembly.InPackage;
-        if (place == null)
+        if (assembly is not LoadedModule { Place: { } place })
             return assembly.NameAndVersion;
         return $"{assembly.NameAndVersion}{Separator}{place.File.Folder}";
     }
@@ -117,8 +116,8 @@ public static class NodeText
     {
         if (node.Kind == NodeKind.Assembly && node.Assembly is LoadedModule assembly)
             return string.Join("\n", new[] { assembly.FullName, assembly.FrameworkName, assembly.FilePath }.OfType<string>());
-        if (node.Kind == NodeKind.FailedAssembly)
-            return node.Assembly.LoadError!;
+        if (node.Kind == NodeKind.FailedAssembly && node.Assembly is FailedAssembly failed)
+            return failed.Error.Message;
         var name = node.FullName;
         return Accessibility(node.Accessibility) is { } accessibility ? $"{name}\n{accessibility}" : name;
     }

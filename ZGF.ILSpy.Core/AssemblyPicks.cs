@@ -62,7 +62,7 @@ public sealed class AssemblyPicks
         lock (_gate)
         {
             var picks = _picks.Remove(item.FilePath);
-            if (item.IsPackage)
+            if (item is LoadedPackage)
                 picks = picks.RemoveRange(picks.Keys.Where(path => AssemblyPackage.Holds(item.FilePath, path)));
             Volatile.Write(ref _picks, picks);
         }

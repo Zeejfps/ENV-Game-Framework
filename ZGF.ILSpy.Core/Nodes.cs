@@ -140,9 +140,11 @@ internal sealed class AssemblyNode : BrowseNode, IModuleNode
 
 /// <summary>The root of a listed file that could not be read as a .NET assembly: labelled with the
 /// file's name, without children, and showing why it failed.</summary>
-internal sealed class FailedAssemblyNode(LoadedAssembly assembly)
+internal sealed class FailedAssemblyNode(FailedAssembly assembly)
     : BrowseNode(assembly, null, NodeKind.FailedAssembly, System.IO.Path.GetFileName(assembly.FilePath))
 {
+    public FailedAssembly Failed { get; } = assembly;
+
     public override string FullName => Assembly.FilePath;
 }
 

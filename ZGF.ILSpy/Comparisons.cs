@@ -90,8 +90,6 @@ public static class Comparisons
     {
         foreach (var assembly in appState.Assemblies.Assemblies)
         {
-            if (!assembly.CanCompareApi)
-                continue;
             if (string.Equals(assembly.FilePath, filePath, StringComparison.OrdinalIgnoreCase))
                 return assembly;
         }

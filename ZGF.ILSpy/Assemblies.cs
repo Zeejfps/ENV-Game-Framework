@@ -229,7 +229,7 @@ public static class Assemblies
     public static void CloseFailedAssemblies(AppState appState)
     {
         var failed = appState.Assemblies.Listed
-            .Where(a => a.HasLoadError)
+            .OfType<FailedAssembly>()
             .ToList();
         foreach (var assembly in failed)
             appState.Assemblies.Close(assembly);
@@ -238,12 +238,7 @@ public static class Assemblies
     /// <summary>Whether any file on the list failed to load.</summary>
     public static bool AnyFailedToLoad(AppState appState)
     {
-        return appState.Assemblies.Listed.Any(IsFailed);
-    }
-
-    private static bool IsFailed(LoadedAssembly assembly)
-    {
-        return assembly.HasLoadError;
+        return appState.Assemblies.Listed.Any(static a => a is FailedAssembly);
     }
 
     /// <summary>Orders the list by name, and assemblies of one name by version.</summary>

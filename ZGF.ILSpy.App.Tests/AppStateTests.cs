@@ -193,7 +193,7 @@ public sealed class AppStateTests
 
         var failed = Assert.Single(d.AppState.Assemblies.Listed);
         var tab = Assert.Single(d.AppState.Tabs);
-        Assert.True(failed.HasLoadError);
+        Assert.IsType<FailedAssembly>(failed);
         Assert.Same(failed.Root, tab.Node);
         Assert.Contains(Path.GetFileName(missing), tab.Document.GetText());
         Assert.Same(failed.Root, Assert.Single(d.Ui.Tree.Roots));
@@ -538,7 +538,7 @@ public sealed class AppStateTests
         Assert.Equal("Greeter", tab.Title);
         Assert.Equal(new TabContent.Gone(tab.Location!), tab.Content);
         Assert.Contains("gone", TabPlaceholder.Write(d.Ui.Strings, tab.Content));
-        Assert.True(Assert.Single(d.AppState.Assemblies.Listed).HasLoadError);
+        Assert.IsType<FailedAssembly>(Assert.Single(d.AppState.Assemblies.Listed));
         Assert.Contains(d.AppState.Errors.Entries, e => e.Words().Title.Contains("Greeter"));
     }
 }

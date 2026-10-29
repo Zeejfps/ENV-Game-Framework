@@ -69,7 +69,7 @@ public static class Decompilation
     /// which its tab tells already.</summary>
     private static void ReportFailure(AppState appState, DocumentTab tab, BrowseNode node, Exception? error)
     {
-        if (node.Assembly.HasLoadError)
+        if (node.Assembly is FailedAssembly)
             return;
         appState.ReportError(new AppProblem.DecompilationFailed(node.FullName, error, tab.Document.GetText()));
     }

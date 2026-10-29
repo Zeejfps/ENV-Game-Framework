@@ -28,7 +28,7 @@ public sealed class BundleTests
 
         var bundle = list.Open(WriteBundle(temp));
 
-        Assert.True(bundle.IsPackage);
+        Assert.IsType<LoadedPackage>(bundle);
         Assert.Equal(NodeKind.Bundle, bundle.Root.Kind);
         Assert.Equal(BundleName, bundle.Root.Text);
         Assert.Equal([NodeKind.Resource, NodeKind.Assembly, NodeKind.Assembly], bundle.Root.Children.Select(c => c.Kind));
@@ -100,7 +100,7 @@ public sealed class BundleTests
 
         var failed = new AssemblyList().Open(path);
 
-        Assert.True(failed.HasLoadError);
+        Assert.IsType<FailedAssembly>(failed);
     }
 
     private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;

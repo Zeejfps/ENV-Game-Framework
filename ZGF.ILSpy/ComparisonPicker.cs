@@ -95,9 +95,7 @@ public sealed class ComparisonPicker
 
     private bool IsCandidate(LoadedModule assembly)
     {
-        if (assembly == Compared)
-            return false;
-        return assembly.CanCompareApi;
+        return assembly != Compared;
     }
 
     private bool IsNamedAsCompared(LoadedModule assembly)

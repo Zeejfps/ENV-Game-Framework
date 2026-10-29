@@ -11,7 +11,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ### Optional-field bags that should be sum types
 
 - **Assemblies and nodes**
-    - `LoadedAssembly` mixes four kinds in one class: plain, failed, package, in-package.
     - `BrowseNode` (`BrowseNode.cs:96-160`) has 7 nullable fields marked "null for other nodes", and a 50-value `NodeKind` set independently of the subclass.
 - **References and documents**
     - `CodeReference` (`CodeReference.cs:31`): entity and local references share one class, and `Kind` is not tied to `FilePath`.
@@ -54,8 +53,8 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Escape hatches
 
-- Swallowed: empty `catch (Exception)` at `LoadedAssembly.cs:354`; swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseNode.cs:182`, `NodeDecompiler.cs:41`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.
-- Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(AssemblyNode)Root` in `LoadedAssembly.cs` and `AssemblyList.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:194, 202` tie enum order to column order.
+- Swallowed: swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseNode.cs:182`, `NodeDecompiler.cs:41`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.
+- Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:194, 202` tie enum order to column order.
 - `(LanguageVersion)options.LanguageVersion` casts numerically between two mirrored enums.
 - Reflection: `DecompilerOptions.cs:45/72` reads `DecompilerSettings` properties by name.
 - "Enable the button, then force-unwrap": `TreePaneView.cs:51-60`, `ComparisonView.cs:164`, `AssemblyListsDialogView.cs:58` are correct only while disabled widgets never fire.
@@ -90,6 +89,5 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ## Suggested order
 
-1. Turn `LoadedAssembly` into a sum type. That removes many `!`.
-2. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
-3. Make the silent default branches throw.
+1. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
+2. Make the silent default branches throw.

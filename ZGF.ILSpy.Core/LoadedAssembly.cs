@@ -41,11 +41,6 @@ public abstract class LoadedAssembly
     /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
     public string FilePath { get; }
 
-    public bool IsPackage => this is LoadedPackage;
-
-    /// <summary>The package this assembly was read out of, and its file there; null for anything else.</summary>
-    public PackagePlace? InPackage => this is LoadedModule module ? module.Place : null;
-
     /// <summary>The node <paramref name="path"/> leads to from this file's root, when this is the item
     /// of the list the path starts at; else, or when nothing is there, null. May load the nodes on the
     /// way: call it off the UI thread.</summary>
@@ -85,16 +80,6 @@ public abstract class LoadedAssembly
         return $"{name} ({version})";
     }
 
-    /// <summary>Why the file could not be read as a .NET assembly, or null when it was. A file that
-    /// failed has no metadata: only its <see cref="FilePath"/>, <see cref="Name"/> and <see cref="Root"/>
-    /// tell anything about it.</summary>
-    public string? LoadError => this is FailedAssembly failed ? failed.Error.Message : null;
-
-    /// <summary>What went wrong reading the file, in full; null when it was read.</summary>
-    public string? LoadErrorDetails => this is FailedAssembly failed ? failed.Error.InnerException?.ToString() : null;
-
-    public bool HasLoadError => this is FailedAssembly;
-
     /// <summary>The tree's root for this assembly. For an assembly read out of a package, it sits in
     /// the package's tree, under the folder holding its file.</summary>
     public BrowseNode Root => this switch
@@ -104,12 +89,6 @@ public abstract class LoadedAssembly
         LoadedModule module => module.AssemblyRoot,
         _ => throw new UnreachableException(),
     };
-
-    /// <summary>Whether a class diagram can be drawn of this assembly: it loaded, with types to read.</summary>
-    public bool CanCreateDiagram => this is LoadedModule;
-
-    /// <summary>Whether this assembly's API can be compared with another's: it loaded, with types to read.</summary>
-    public bool CanCompareApi => this is LoadedModule;
 
     internal AssemblyList List { get; }
     internal bool IsListed { get; set; }
@@ -404,7 +383,9 @@ public sealed class LoadedModule : LoadedAssembly
         };
 }
 
-/// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why.</summary>
+/// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why. It
+/// has no metadata: only its <see cref="LoadedAssembly.FilePath"/>, <see cref="LoadedAssembly.Name"/>
+/// and <see cref="Error"/> tell anything about it.</summary>
 public sealed class FailedAssembly : LoadedAssembly
 {
     private readonly Lazy<FailedAssemblyNode> _root;

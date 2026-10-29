@@ -37,7 +37,7 @@ public sealed class AssemblyList
     public IReadOnlyList<LoadedModule> Assemblies => _loaded;
 
     /// <summary>The open files in the order they were opened, packages and those that failed to load
-    /// (<see cref="LoadedAssembly.HasLoadError"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
+    /// (<see cref="FailedAssembly"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
     public IReadOnlyList<LoadedAssembly> Listed => _listed;
 
     /// <summary>The open files' paths, in order, failed ones included, for persisting the list.</summary>
@@ -65,7 +65,7 @@ public sealed class AssemblyList
 
     /// <summary>Opens the assembly at <paramref name="path"/>, or returns it if already open. Its type
     /// system starts loading in the background. A file that is missing or not a .NET assembly is listed
-    /// all the same, with <see cref="LoadedAssembly.HasLoadError"/> set, and the assembly takes its place
+    /// all the same, as a <see cref="FailedAssembly"/>, and the assembly takes its place
     /// once the file loads. Once <paramref name="cancellationToken"/> is cancelled
     /// the assembly is no longer listed, so cancelling before <see cref="Clear"/> keeps the opens of
     /// several files out of the list that follows.</summary>
@@ -107,7 +107,7 @@ public sealed class AssemblyList
         var item = assembly.ListedItem;
         lock (_gate)
         {
-            if (!item.HasLoadError && !ForgetKnown(item)) return;
+            if (item is not FailedAssembly && !ForgetKnown(item)) return;
             Pdbs.ForgetFor(item);
             TargetFrameworks.ForgetFor(item);
             ForgetReadOutOf(item);
@@ -131,7 +131,7 @@ public sealed class AssemblyList
     private void ForgetReadOutOf(LoadedAssembly package)
     {
         var read = _known
-            .Where(k => k.Value.InPackage?.Container == package)
+            .Where(k => k.Value is LoadedModule { Place: { } place } && place.Container == package)
             .Select(k => k.Key)
             .ToList();
         foreach (var path in read)
@@ -526,7 +526,7 @@ public sealed class AssemblyList
         var listed = _listed;
         foreach (var assembly in listed)
         {
-            if (assembly.HasLoadError)
+            if (assembly is FailedAssembly)
                 continue;
             if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
                 return assembly;
@@ -638,8 +638,8 @@ public sealed class AssemblyList
     /// listed, so that listing never reads files while holding the lock.</summary>
     internal bool TryList(LoadedAssembly assembly, int generation, CancellationToken cancellationToken = default)
     {
-        if (assembly.InPackage != null)
-            return TryList(assembly.InPackage.Container, generation, cancellationToken);
+        if (assembly is LoadedModule { Place: { } place })
+            return TryList(place.Container, generation, cancellationToken);
         if (assembly is LoadedPackage package)
             package.ReadAssemblies();
         lock (_gate)
@@ -692,7 +692,7 @@ public sealed class AssemblyList
     {
         if (!_known.TryGetValue(path, out var known))
             return null;
-        if (known is not LoadedModule { InPackage: { } place } module)
+        if (known is not LoadedModule { Place: { } place } module)
             return null;
         if (place.Container != package)
             return null;
@@ -722,7 +722,7 @@ public sealed class AssemblyList
     /// read from it, or for a failure, the one listed for it while nothing was read from it.</summary>
     private bool HoldsPathFor(LoadedAssembly assembly)
     {
-        if (!assembly.HasLoadError)
+        if (assembly is not FailedAssembly)
             return _known.TryGetValue(assembly.FilePath, out var known) && known == assembly;
         if (_known.ContainsKey(assembly.FilePath))
             return false;
@@ -741,15 +741,15 @@ public sealed class AssemblyList
         return _listed.Replace(failure, assembly);
     }
 
-    private LoadedAssembly? FindListedFailure(string path)
+    private FailedAssembly? FindListedFailure(string path)
     {
         var listed = _listed;
         foreach (var assembly in listed)
         {
-            if (!assembly.HasLoadError)
+            if (assembly is not FailedAssembly failed)
                 continue;
-            if (string.Equals(assembly.FilePath, path, StringComparison.OrdinalIgnoreCase))
-                return assembly;
+            if (string.Equals(failed.FilePath, path, StringComparison.OrdinalIgnoreCase))
+                return failed;
         }
         return null;
     }

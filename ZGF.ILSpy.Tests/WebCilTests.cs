@@ -14,8 +14,8 @@ public sealed class WebCilTests
 
         var counter = assembly.Root.Child("SampleApp").Child("Counter").Decompile(DecompilationLanguage.CSharp);
 
-        Assert.False(assembly.HasLoadError);
-        Assert.False(assembly.IsPackage);
+        Assert.IsNotType<FailedAssembly>(assembly);
+        Assert.IsNotType<LoadedPackage>(assembly);
         Assert.Equal("SampleApp", assembly.Name);
         Assert.False(counter.IsError);
         Assert.Contains("public void Increment()", counter.GetText());
@@ -59,6 +59,6 @@ public sealed class WebCilTests
 
         var failed = new AssemblyList().Open(path);
 
-        Assert.True(failed.HasLoadError);
+        Assert.IsType<FailedAssembly>(failed);
     }
 }

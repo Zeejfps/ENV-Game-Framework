@@ -121,8 +121,8 @@ public sealed class AssemblyListTests
         var notPe = list.Open(text);
         var missing = list.Open(text + ".missing");
 
-        Assert.True(notPe.HasLoadError);
-        Assert.True(missing.HasLoadError);
+        Assert.IsType<FailedAssembly>(notPe);
+        Assert.IsType<FailedAssembly>(missing);
         Assert.Equal([notPe, missing], list.Listed);
         Assert.Equal([text, text + ".missing"], list.FilePaths);
         Assert.Empty(list.Assemblies);
@@ -158,8 +158,8 @@ public sealed class AssemblyListTests
 
         var loaded = list.Open(path);
 
-        Assert.True(failed.HasLoadError);
-        Assert.False(loaded.HasLoadError);
+        Assert.IsType<FailedAssembly>(failed);
+        Assert.IsNotType<FailedAssembly>(loaded);
         Assert.Equal([loaded, other], list.Listed);
         Assert.Equal([loaded, other], list.Assemblies);
     }

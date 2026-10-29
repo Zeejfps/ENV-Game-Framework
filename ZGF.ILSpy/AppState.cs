@@ -214,7 +214,7 @@ public sealed class AppState
         var listed = Assemblies.Listed;
         for (var i = 0; i < listed.Count; i++)
         {
-            if (listed[i].HasLoadError)
+            if (listed[i] is FailedAssembly)
                 continue;
             if (string.Equals(listed[i].FilePath, filePath, StringComparison.OrdinalIgnoreCase))
                 return true;

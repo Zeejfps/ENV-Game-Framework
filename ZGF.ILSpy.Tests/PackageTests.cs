@@ -21,10 +21,10 @@ public sealed class PackageTests
 
         var package = list.Open(WritePackage(temp));
 
-        Assert.True(package.IsPackage);
+        Assert.IsType<LoadedPackage>(package);
         Assert.Equal([package], list.Listed);
         Assert.Equal(["ZGF.ILSpy.Core", TestAssemblyName], list.Assemblies.Select(a => a.Name));
-        Assert.All(list.Assemblies, a => Assert.Same(package, a.InPackage!.Container));
+        Assert.All(list.Assemblies, a => Assert.Same(package, ContainerOf(a)));
         Assert.Equal(NodeKind.Package, package.Root.Kind);
         Assert.Equal("Sample.1.0.0.nupkg", package.Root.Text);
         Assert.Equal([LibFolder, "runtimes/win-x64/native", "readme.txt"], package.Root.Children.Select(c => c.Text));
@@ -117,7 +117,7 @@ public sealed class PackageTests
 
         Assert.True(replaced);
         Assert.Equal([fresh], list.Listed);
-        Assert.All(list.Assemblies, a => Assert.Same(fresh, a.InPackage!.Container));
+        Assert.All(list.Assemblies, a => Assert.Same(fresh, ContainerOf(a)));
         Assert.Empty(list.Assemblies.Intersect(old));
         var root = TestAssemblyRoot(fresh.Root.Child(LibFolder));
         Assert.Same(list.Assemblies[1], root.Assembly);
@@ -136,7 +136,7 @@ public sealed class PackageTests
         var assembly = root.Assembly;
 
         Assert.Equal(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Tests.dll"), assembly.FilePath);
-        Assert.Same(package, assembly.InPackage!.Container);
+        Assert.Same(package, ContainerOf(assembly));
         Assert.Same(root, assembly.Root);
         Assert.Same(folder, root.Parent);
         Assert.Equal(NodeKind.Class, assembly.Calculator().Kind);
@@ -172,7 +172,7 @@ public sealed class PackageTests
         Assert.Equal(new NodePathSegment(NodeKind.PackageFolder, LibFolder), path.Segments[0]);
         Assert.NotNull(found);
         Assert.Equal(calculator.Text, found.Text);
-        Assert.True(Assert.Single(second.Listed).IsPackage);
+        Assert.IsType<LoadedPackage>(Assert.Single(second.Listed));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public sealed class PackageTests
         var resolved = list.FindNode(core.Target!);
 
         Assert.Equal(Path.Combine(package.FilePath, "lib", "net10.0", "ZGF.ILSpy.Core.dll"), resolved!.Assembly.FilePath);
-        Assert.Same(package, resolved.Assembly.InPackage!.Container);
+        Assert.Same(package, ContainerOf(resolved.Assembly));
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class PackageTests
         Assert.Equal(calculator.Text, found!.Text);
         var listed = Assert.Single(list.Listed);
         Assert.Equal(packagePath, listed.FilePath);
-        Assert.Same(listed, found.Assembly.InPackage!.Container);
+        Assert.Same(listed, ContainerOf(found.Assembly));
     }
 
     [Fact]
@@ -297,7 +297,7 @@ public sealed class PackageTests
             results.AddRange(batch);
 
         var calculator = Assert.Single(results, r => r.Text == "Calculator<T>");
-        Assert.Same(package, calculator.Node.Assembly.InPackage!.Container);
+        Assert.Same(package, ContainerOf(calculator.Node.Assembly));
         Assert.Same(package.Root.Child(LibFolder), calculator.Node.Assembly.Root.Parent);
     }
 
@@ -375,8 +375,8 @@ public sealed class PackageTests
 
         var failed = list.Open(temp.Write("notes.dll", "not an assembly"));
 
-        Assert.True(failed.HasLoadError);
-        Assert.False(failed.IsPackage);
+        Assert.IsType<FailedAssembly>(failed);
+        Assert.IsNotType<LoadedPackage>(failed);
     }
 
     private static BrowseNode TestAssemblyRoot(BrowseNode folder)
@@ -393,6 +393,10 @@ public sealed class PackageTests
 
     /// <summary>A NuGet package of the test assembly, with its PDB, and the assembly it references,
     /// without one, beside a native library and a text file.</summary>
+    /// <summary>The package <paramref name="assembly"/> was read out of; fails the test when it was read from no package.</summary>
+    private static LoadedPackage ContainerOf(LoadedAssembly assembly) =>
+        Assert.IsType<PackagePlace>(Assert.IsType<LoadedModule>(assembly).Place).Container;
+
     private static PackageFolder FolderOf(BrowseNode node) => Assert.IsType<PackageFolderPlace>(node.FolderInPackage).Folder;
 
     private static string WritePackage(TempDir temp)

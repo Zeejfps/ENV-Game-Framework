@@ -52,8 +52,8 @@ internal static class NodeDecompiler
         CancellationToken cancellationToken, string? note = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (node is FailedAssemblyNode)
-            return DescribeLoadError(node, language);
+        if (node is FailedAssemblyNode failed)
+            return DescribeLoadError(failed, language);
         var builder = new DocumentBuilder(language, ModuleOf(node));
         if (note != null)
             WriteComment(builder, note);
@@ -67,14 +67,13 @@ internal static class NodeDecompiler
     }
 
     /// <summary>Why the file of <paramref name="node"/>, which failed to load, could not be read.</summary>
-    private static DecompiledDocument DescribeLoadError(BrowseNode node, DecompilationLanguage language)
+    private static DecompiledDocument DescribeLoadError(FailedAssemblyNode node, DecompilationLanguage language)
     {
-        var assembly = node.Assembly;
+        var error = node.Failed.Error;
         var builder = new DocumentBuilder(language);
-        WriteComment(builder, assembly.LoadError!);
-        var details = assembly.LoadErrorDetails;
-        if (details != null)
-            builder.Write(details, SpanKind.Comment);
+        WriteComment(builder, error.Message);
+        if (error.InnerException is { } inner)
+            builder.Write(inner.ToString(), SpanKind.Comment);
         return builder.Build(node.Text, isError: true);
     }
 
