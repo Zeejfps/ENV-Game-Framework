@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -34,13 +35,22 @@ internal static class FrameworkPickerView
 
             using (ui.Panel(new Box { Height = Sizing.Grow(), Padding = theme.BorderWidth, Background = theme.Field, Clip = true }))
             {
-                if (picker.IsLoading)
-                    ui.Text(t.PickerScanning, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);
-                else if (picker.Error != null)
-                    ui.Text(t.PickerScanFailed, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
-                        color: theme.TextMuted, wrap: true);
-                else
-                    open |= Rows(ui, picker, listId);
+                switch (picker.Scan)
+                {
+                    case RuntimeScan.NotStarted:
+                    case RuntimeScan.Scanning:
+                        ui.Text(t.PickerScanning, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) }, color: theme.TextMuted);
+                        break;
+                    case RuntimeScan.Failed:
+                        ui.Text(t.PickerScanFailed, new Box { Padding = new Spacing(theme.ShellPaddingX, theme.Gap) },
+                            color: theme.TextMuted, wrap: true);
+                        break;
+                    case RuntimeScan.Scanned:
+                        open |= Rows(ui, picker, listId);
+                        break;
+                    default:
+                        throw new UnreachableException();
+                }
             }
 
             using (ui.Row(new Box { Gap = theme.GapTight }))

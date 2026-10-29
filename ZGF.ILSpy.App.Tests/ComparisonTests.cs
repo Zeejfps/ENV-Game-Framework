@@ -110,7 +110,8 @@ public sealed class ComparisonTests
         var comparisonTab = d.AppState.Tabs.Active!;
         var account = Entry(comparison.Diff!, "ApiDiffSample", "Account");
 
-        Navigate(d.AppState, account.Right!, inNewTab: false);
+        var sides = Assert.IsType<ApiSides.Both>(Assert.IsType<ApiEntry.Entity>(account).Sides);
+        Navigate(d.AppState, sides.Right.Reference, inNewTab: false);
         d.Settle();
 
         var shown = d.AppState.Tabs.Active!;

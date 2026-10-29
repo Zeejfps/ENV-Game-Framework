@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
@@ -187,12 +188,29 @@ public sealed class ComparisonRows : ITreeModel<ApiEntry>
 
     /// <summary>How the entry is declared: on both sides when it changed, else on the side it is on;
     /// null for a namespace.</summary>
-    private string? DescribeDeclarations(ApiEntry entry)
+    private string? DescribeDeclarations(ApiEntry entry) =>
+        entry switch
+        {
+            ApiEntry.Namespace => null,
+            ApiEntry.Entity entity => DescribeDeclarations(entity.Sides),
+            _ => throw new UnreachableException(),
+        };
+
+    private string DescribeDeclarations(ApiSides sides) =>
+        sides switch
+        {
+            ApiSides.LeftOnly left => left.Left.Declaration,
+            ApiSides.RightOnly right => right.Right.Declaration,
+            ApiSides.Both both => DescribeDeclarations(both),
+            _ => throw new UnreachableException(),
+        };
+
+    private string DescribeDeclarations(ApiSides.Both sides)
     {
-        if (entry.Change != ApiChange.Changed)
-            return entry.RightDeclaration ?? entry.LeftDeclaration;
-        var left = _strings.ComparisonLeftDeclaration(entry.LeftDeclaration!);
-        var right = _strings.ComparisonRightDeclaration(entry.RightDeclaration!);
+        if (sides.Left.Declaration == sides.Right.Declaration)
+            return sides.Right.Declaration;
+        var left = _strings.ComparisonLeftDeclaration(sides.Left.Declaration);
+        var right = _strings.ComparisonRightDeclaration(sides.Right.Declaration);
         return left + Environment.NewLine + right;
     }
 

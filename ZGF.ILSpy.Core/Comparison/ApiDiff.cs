@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ZGF.ILSpy.Core.Comparison;
 
 /// <summary>Which types and members a comparison takes in; never those the compiler made up.</summary>
@@ -26,33 +28,100 @@ public enum ApiChange
     Changed,
 }
 
-/// <summary>A namespace, type or member of either assembly compared, labelled as the tree labels it,
-/// with what it points at and how it is declared on each side it is on, and what it holds, merged from
-/// both sides and sorted as the tree sorts them.</summary>
-public sealed class ApiEntry
+/// <summary>Which of the assemblies compared a namespace is in.</summary>
+public enum ApiPresence
 {
-    public required NodeKind Kind { get; init; }
+    LeftOnly,
+    RightOnly,
+    Both,
+}
 
-    public required string Text { get; init; }
+/// <summary>A type or member as one assembly has it: what it points at, and how it is declared, as C# writes it.</summary>
+public sealed record ApiSide(CodeReference Reference, string Declaration);
 
-    public NodeAccessibility Accessibility { get; init; }
+/// <summary>Which of the assemblies compared a type or member is in, and how each has it.</summary>
+public abstract record ApiSides
+{
+    private ApiSides()
+    {
+    }
 
-    public required ApiChange Change { get; init; }
+    public sealed record LeftOnly(ApiSide Left) : ApiSides;
+
+    public sealed record RightOnly(ApiSide Right) : ApiSides;
+
+    public sealed record Both(ApiSide Left, ApiSide Right) : ApiSides;
+}
+
+/// <summary>A namespace, type or member of either assembly compared, labelled as the tree labels it,
+/// and what it holds, merged from both sides and sorted as the tree sorts them.</summary>
+public abstract class ApiEntry
+{
+    private ApiEntry(string text, ApiChange change, IReadOnlyList<ApiEntry> children)
+    {
+        Text = text;
+        Change = change;
+        Children = children;
+        HasChanges = change != ApiChange.Unchanged || children.Any(static c => c.HasChanges);
+    }
+
+    public abstract NodeKind Kind { get; }
+
+    public string Text { get; }
+
+    public abstract NodeAccessibility Accessibility { get; }
+
+    public ApiChange Change { get; }
 
     /// <summary>Whether it, or anything it holds, differs.</summary>
-    public required bool HasChanges { get; init; }
+    public bool HasChanges { get; }
 
-    public CodeReference? Left { get; init; }
+    public IReadOnlyList<ApiEntry> Children { get; }
 
-    public CodeReference? Right { get; init; }
+    public sealed class Namespace(string text, ApiPresence presence, IReadOnlyList<ApiEntry> children)
+        : ApiEntry(text, ChangeOf(presence), children)
+    {
+        public override NodeKind Kind => NodeKind.Namespace;
 
-    /// <summary>How the left assembly declares it, as C# writes it; null for a namespace or what it lacks.</summary>
-    public string? LeftDeclaration { get; init; }
+        public override NodeAccessibility Accessibility => NodeAccessibility.None;
 
-    /// <summary>How the right assembly declares it, as C# writes it; null for a namespace or what it lacks.</summary>
-    public string? RightDeclaration { get; init; }
+        public ApiPresence Presence => presence;
 
-    public required IReadOnlyList<ApiEntry> Children { get; init; }
+        private static ApiChange ChangeOf(ApiPresence presence) =>
+            presence switch
+            {
+                ApiPresence.LeftOnly => ApiChange.Removed,
+                ApiPresence.RightOnly => ApiChange.Added,
+                ApiPresence.Both => ApiChange.Unchanged,
+                _ => throw new UnreachableException(),
+            };
+    }
+
+    public sealed class Entity(NodeKind kind, string text, NodeAccessibility accessibility, ApiSides sides, IReadOnlyList<ApiEntry> children)
+        : ApiEntry(text, ChangeOf(sides), children)
+    {
+        public override NodeKind Kind => kind;
+
+        public override NodeAccessibility Accessibility => accessibility;
+
+        public ApiSides Sides => sides;
+
+        private static ApiChange ChangeOf(ApiSides sides) =>
+            sides switch
+            {
+                ApiSides.LeftOnly => ApiChange.Removed,
+                ApiSides.RightOnly => ApiChange.Added,
+                ApiSides.Both both => ChangeOf(both),
+                _ => throw new UnreachableException(),
+            };
+
+        private static ApiChange ChangeOf(ApiSides.Both sides)
+        {
+            if (sides.Left.Declaration != sides.Right.Declaration)
+                return ApiChange.Changed;
+            return ApiChange.Unchanged;
+        }
+    }
 }
 
 /// <summary>What changed in the API from a left assembly to a right one: their namespaces, merged

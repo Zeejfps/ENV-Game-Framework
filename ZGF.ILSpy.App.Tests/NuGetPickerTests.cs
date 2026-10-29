@@ -230,15 +230,21 @@ public sealed class NuGetPickerTests : IDisposable
         _fake.AnswerSearches(PackageWithDetails);
         var picker = OpenPicker(posted);
 
-        var failed = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
-        Poll.Until(() => !failed.IsLoading, posted.Run);
+        var failed = ReadDetails(picker, posted);
         _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
         picker.RetryDetails(picker.Selected!, PackageVersion.Parse("2.0.0")!);
-        var retried = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
-        Poll.Until(() => !retried.IsLoading, posted.Run);
+        var retried = ReadDetails(picker, posted);
 
-        Assert.NotNull(failed.Error);
-        Assert.Equal("MIT", retried.Details!.License);
+        Assert.IsType<VersionDetails.Failed>(failed);
+        Assert.Equal("MIT", Assert.IsType<VersionDetails.Read>(retried).Details.License);
+    }
+
+    /// <summary>The details of version 2.0.0 of the package selected, once they are no longer loading.</summary>
+    private static VersionDetails ReadDetails(NuGetPicker picker, PostedActions posted)
+    {
+        VersionDetails? DetailsNow() => picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!);
+        Poll.Until(() => DetailsNow() is not VersionDetails.Loading, posted.Run);
+        return DetailsNow()!;
     }
 
     [Fact]
@@ -287,11 +293,10 @@ public sealed class NuGetPickerTests : IDisposable
         _fake.Answer(DetailsUrl, """{ "catalogEntry": { "licenseExpression": "MIT" } }""");
         var picker = OpenPicker(posted);
 
-        var details = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!)!;
-        Poll.Until(() => !details.IsLoading, posted.Run);
+        var details = ReadDetails(picker, posted);
         var again = picker.DetailsOf(picker.Selected!, PackageVersion.Parse("2.0.0")!);
 
-        Assert.Equal("MIT", details.Details!.License);
+        Assert.Equal("MIT", Assert.IsType<VersionDetails.Read>(details).Details.License);
         Assert.Same(details, again);
         Assert.Single(_fake.Requested, DetailsUrl);
     }

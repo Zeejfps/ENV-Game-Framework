@@ -34,9 +34,20 @@ public sealed class PackageFolder(string name, string fullName)
     public List<PackageFile> Files { get; } = new();
 }
 
-/// <summary>A file of a package that was not extracted: <see cref="Error"/> says why, or is null when
-/// its path would have put it outside the folder extracted into.</summary>
-public sealed record ExtractFailure(PackageFile File, ExportError? Error);
+/// <summary>A file of a package that was not extracted, and why.</summary>
+public abstract record ExtractFailure
+{
+    private ExtractFailure()
+    {
+    }
+
+    public abstract PackageFile File { get; init; }
+
+    /// <summary>Its path would have put it outside the folder extracted into.</summary>
+    public sealed record OutsideFolder(PackageFile File) : ExtractFailure;
+
+    public sealed record NotWritten(PackageFile File, ExportError Error) : ExtractFailure;
+}
 
 /// <summary>The paths extracting a package's folder wrote, and the files it could not.</summary>
 public sealed record ExtractedFiles(IReadOnlyList<string> Written, IReadOnlyList<ExtractFailure> Failures);
@@ -294,14 +305,14 @@ public sealed class AssemblyPackage
         {
             var path = TargetPathOf(file, folder, root);
             if (path == null)
-                return new ExtractFailure(file, null);
+                return new ExtractFailure.OutsideFolder(file);
             WriteFile(file, path);
             written.Add(path);
             return null;
         }
         catch (Exception e) when (IsExtractError(e))
         {
-            return new ExtractFailure(file, new ExportError(e.Message, e.ToString()));
+            return new ExtractFailure.NotWritten(file, new ExportError(e.Message, e.ToString()));
         }
     }
 

@@ -634,10 +634,9 @@ public sealed class FrameworkPickerTests
         var picker = new FrameworkPicker(static () => Strings.En, problem => reported.Add(ProblemTexts.Describe(Strings.En, problem).Title), static () => throw new InvalidDataException("no runtime"));
 
         picker.Open();
-        Poll.Until(() => !picker.IsLoading, posted.Run);
+        Poll.Until(() => picker.Scan is not RuntimeScan.Scanning, posted.Run);
 
-        Assert.False(picker.IsLoading);
-        Assert.Contains("no runtime", picker.Error);
+        Assert.Contains("no runtime", Assert.IsType<RuntimeScan.Failed>(picker.Scan).Error);
         Assert.Single(reported);
     }
 
@@ -654,7 +653,7 @@ public sealed class FrameworkPickerTests
         var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => assemblies);
         var list = new AssemblyList();
         picker.Open();
-        Poll.Until(() => !picker.IsLoading, posted.Run);
+        Poll.Until(() => picker.Scan is not RuntimeScan.Scanning, posted.Run);
         picker.Update(list);
 
         picker.Selection.SelectAll(picker.Filtered);
@@ -673,7 +672,7 @@ public sealed class FrameworkPickerTests
         var picker = new FrameworkPicker(static () => Strings.En, static _ => { }, () => [open, other]);
         var list = new AssemblyList();
         picker.Open();
-        Poll.Until(() => !picker.IsLoading, posted.Run);
+        Poll.Until(() => picker.Scan is not RuntimeScan.Scanning, posted.Run);
         picker.Update(list);
         Assert.Equal([open, other], picker.Filtered);
 

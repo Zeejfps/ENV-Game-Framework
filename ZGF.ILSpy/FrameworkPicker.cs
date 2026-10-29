@@ -15,7 +15,6 @@ public sealed class FrameworkPicker
     private readonly List<RuntimeAssembly> _filtered = new();
     private readonly HashSet<AssemblyPath> _listed = new();
     private int _listedVersion = -1;
-    private IReadOnlyList<RuntimeAssembly>? _all;
     private string? _appliedFilter;
     private bool _focusFilter;
 
@@ -40,35 +39,33 @@ public sealed class FrameworkPicker
     /// <summary>The picked-out assemblies, in the order they are shown.</summary>
     public List<RuntimeAssembly> ListSelected() => Selection.InOrder(_filtered);
 
-    public bool IsLoading { get; private set; }
+    public RuntimeScan Scan { get; private set; } = new RuntimeScan.NotStarted();
+
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
 
-    /// <summary>Why the runtime could not be scanned, or null.</summary>
-    public string? Error { get; private set; }
-
+    /// <summary>Scans the runtime the first time it opens, and again after a scan failed.</summary>
     public async void Open()
     {
         IsOpen = true;
         _focusFilter = true;
         _appliedFilter = null;
-        if (_all != null)
+        if (Scan is RuntimeScan.Scanned or RuntimeScan.Scanning)
             return;
-        if (IsLoading)
-            return;
-        IsLoading = true;
-        Error = null;
+        Scan = new RuntimeScan.Scanning();
         var scanned = await Background.Run(_scan);
-        IsLoading = false;
         _appliedFilter = null;
+        Scan = ScanOf(scanned);
+    }
+
+    private RuntimeScan ScanOf(Outcome<IReadOnlyList<RuntimeAssembly>> scanned)
+    {
         switch (scanned)
         {
             case Outcome<IReadOnlyList<RuntimeAssembly>>.Ok ok:
-                _all = ok.Value;
-                break;
+                return new RuntimeScan.Scanned(ok.Value);
             case Outcome<IReadOnlyList<RuntimeAssembly>>.Failed failed:
-                Error = failed.Error.ToString();
                 _reportError(new AppProblem.RuntimeNotScanned(failed.Error));
-                break;
+                return new RuntimeScan.Failed(failed.Error.ToString());
             default:
                 throw new UnreachableException();
         }
@@ -103,14 +100,14 @@ public sealed class FrameworkPicker
 
     private void ApplyFilter()
     {
-        if (_all == null)
+        if (Scan is not RuntimeScan.Scanned scanned)
             return;
         if (Filter == _appliedFilter)
             return;
         _appliedFilter = Filter;
         _filtered.Clear();
         var filter = Filter.Trim();
-        foreach (var assembly in _all)
+        foreach (var assembly in scanned.Assemblies)
         {
             if (Offers(assembly, filter))
                 _filtered.Add(assembly);
@@ -130,4 +127,20 @@ public sealed class FrameworkPicker
             return true;
         return assembly.Name.Contains(filter, StringComparison.OrdinalIgnoreCase);
     }
+}
+
+/// <summary>How far scanning the runtime for its assemblies has got.</summary>
+public abstract record RuntimeScan
+{
+    private RuntimeScan()
+    {
+    }
+
+    public sealed record NotStarted : RuntimeScan;
+
+    public sealed record Scanning : RuntimeScan;
+
+    public sealed record Scanned(IReadOnlyList<RuntimeAssembly> Assemblies) : RuntimeScan;
+
+    public sealed record Failed(string Error) : RuntimeScan;
 }

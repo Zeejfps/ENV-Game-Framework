@@ -147,10 +147,38 @@ internal static class ComparisonView
     {
         if (entry == null)
             return;
-        var reference = entry.Right ?? entry.Left;
-        if (reference == null)
+        var side = RightOf(entry) ?? LeftOf(entry);
+        if (side == null)
             return;
-        Navigate(appState, reference, inNewTab);
+        Navigate(appState, side.Reference, inNewTab);
+    }
+
+    /// <summary>How the left assembly has <paramref name="entry"/>; null for a namespace or what it lacks.</summary>
+    private static ApiSide? LeftOf(ApiEntry entry)
+    {
+        if (entry is not ApiEntry.Entity entity)
+            return null;
+        return entity.Sides switch
+        {
+            ApiSides.LeftOnly sides => sides.Left,
+            ApiSides.Both sides => sides.Left,
+            ApiSides.RightOnly => null,
+            _ => throw new UnreachableException(),
+        };
+    }
+
+    /// <summary>How the right assembly has <paramref name="entry"/>; null for a namespace or what it lacks.</summary>
+    private static ApiSide? RightOf(ApiEntry entry)
+    {
+        if (entry is not ApiEntry.Entity entity)
+            return null;
+        return entity.Sides switch
+        {
+            ApiSides.RightOnly sides => sides.Right,
+            ApiSides.Both sides => sides.Right,
+            ApiSides.LeftOnly => null,
+            _ => throw new UnreachableException(),
+        };
     }
 
     private static void ContextMenu(Ui<UiState> ui, AppState appState, ComparisonRows rows)
@@ -162,9 +190,11 @@ internal static class ComparisonView
         var entry = rows.View.Selected;
         if (entry == null)
             return;
-        if (ui.MenuItem(t.ComparisonOpenLeft, enabled: entry.Left != null, id: "open-left"))
-            Navigate(appState, entry.Left!, inNewTab: false);
-        if (ui.MenuItem(t.ComparisonOpenRight, enabled: entry.Right != null, id: "open-right"))
-            Navigate(appState, entry.Right!, inNewTab: false);
+        var left = LeftOf(entry);
+        var right = RightOf(entry);
+        if (ui.MenuItem(t.ComparisonOpenLeft, enabled: left != null, id: "open-left") && left != null)
+            Navigate(appState, left.Reference, inNewTab: false);
+        if (ui.MenuItem(t.ComparisonOpenRight, enabled: right != null, id: "open-right") && right != null)
+            Navigate(appState, right.Reference, inNewTab: false);
     }
 }

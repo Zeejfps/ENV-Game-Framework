@@ -15,10 +15,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - **References and documents**
     - `CodeReference` (`CodeReference.cs:31`): entity and local references share one class, and `Kind` is not tied to `FilePath`.
     - `DecompiledDocument` marks failure with `isError: bool` (`:106`, `:127`); the exception is flattened to text in `NodeDecompiler.cs:41`.
-- **Results**
-    - `ExportedProject` (`AssemblyExport.cs:15-22`) has both `PdbPath?` and `PdbFailure?`; `PdbFailure.Error == null` silently means "no debug directory", `ExtractFailure.Error == null` means "path escapes the target".
-    - `ApiEntry` (`Comparison/ApiDiff.cs:32-55`) has `Left?`/`Right?`, so "both null" is representable; key collisions are dropped by `TryAdd` in `ApiEntries.cs`.
-    - `VersionDetails` (`NuGetPicker.cs:673`) and `FrameworkPicker.cs:18-47` use the loading/data/error bag the rules call out. `NuGetPicker.cs:30-44` has 11 nullable or bool fields.
 - **App state**
     - `ExportQueue.cs:254-266` spreads idle-or-running over `_cancel?`, `Running?`, `IsCancelling`, `Progress?`, forcing `_cancel!` at `:347`. `ExportStart.IsWithdrawn` is a flag every caller must check.
     - `IconValue` and `IconFont` (`IconThemeFile.cs:12-19`) have public constructors that accept invalid combinations.
@@ -47,7 +43,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:194, 202` tie enum order to column order.
 - `(LanguageVersion)options.LanguageVersion` casts numerically between two mirrored enums.
 - Reflection: `DecompilerOptions.cs:45/72` reads `DecompilerSettings` properties by name.
-- "Enable the button, then force-unwrap": `TreePaneView.cs:51-60`, `ComparisonView.cs:164`, `AssemblyListsDialogView.cs:58` are correct only while disabled widgets never fire.
+- "Enable the button, then force-unwrap": `TreePaneView.cs:51-60`, `AssemblyListsDialogView.cs:58` are correct only while disabled widgets never fire.
 - The other ~90 catches are properly filtered with `when e is IOException or …`.
 
 ### Boundaries

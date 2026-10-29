@@ -45,6 +45,8 @@ public sealed class ApiDiffTests
         return found;
     }
 
+    private static ApiSides.Both Both(ApiEntry entry) => Assert.IsType<ApiSides.Both>(Assert.IsType<ApiEntry.Entity>(entry).Sides);
+
     private static ApiEntry Public(params ReadOnlySpan<string> path) => Entry(s_public.Value, path);
 
     private static ApiEntry All(params ReadOnlySpan<string> path) => Entry(s_all.Value, path);
@@ -67,9 +69,7 @@ public sealed class ApiDiffTests
         Assert.Equal(ApiChange.Unchanged, deposit.Change);
         Assert.False(deposit.HasChanges);
         Assert.False(statement.HasChanges);
-        Assert.NotNull(deposit.Left);
-        Assert.NotNull(deposit.Right);
-        Assert.Equal(deposit.LeftDeclaration, deposit.RightDeclaration);
+        Assert.Equal(Both(deposit).Left.Declaration, Both(deposit).Right.Declaration);
     }
 
     [Fact]
@@ -79,12 +79,9 @@ public sealed class ApiDiffTests
         var withdraw = Public(SampleNamespace, "Account", "Withdraw(decimal) : void");
 
         Assert.Equal(ApiChange.Added, transfer.Change);
-        Assert.Null(transfer.Left);
-        Assert.NotNull(transfer.Right);
+        Assert.IsType<ApiSides.RightOnly>(Assert.IsType<ApiEntry.Entity>(transfer).Sides);
         Assert.Equal(ApiChange.Removed, withdraw.Change);
-        Assert.NotNull(withdraw.Left);
-        Assert.Null(withdraw.Right);
-        Assert.Null(withdraw.RightDeclaration);
+        Assert.IsType<ApiSides.LeftOnly>(Assert.IsType<ApiEntry.Entity>(withdraw).Sides);
     }
 
     [Fact]
@@ -105,14 +102,14 @@ public sealed class ApiDiffTests
         var maxOwners = Public(SampleNamespace, "Account", "MaxOwners : int");
 
         Assert.Equal(ApiChange.Changed, describe.Change);
-        Assert.Equal("public virtual string Describe()", describe.LeftDeclaration);
-        Assert.Equal("public string Describe()", describe.RightDeclaration);
+        Assert.Equal("public virtual string Describe()", Both(describe).Left.Declaration);
+        Assert.Equal("public string Describe()", Both(describe).Right.Declaration);
         Assert.Equal(ApiChange.Changed, balance.Change);
-        Assert.Equal("public decimal Balance { get; private set; }", balance.LeftDeclaration);
-        Assert.Equal("public decimal Balance { get; set; }", balance.RightDeclaration);
+        Assert.Equal("public decimal Balance { get; private set; }", Both(balance).Left.Declaration);
+        Assert.Equal("public decimal Balance { get; set; }", Both(balance).Right.Declaration);
         Assert.Equal(ApiChange.Changed, maxOwners.Change);
-        Assert.Equal("public const int MaxOwners = 2", maxOwners.LeftDeclaration);
-        Assert.Equal("public const int MaxOwners = 3", maxOwners.RightDeclaration);
+        Assert.Equal("public const int MaxOwners = 2", Both(maxOwners).Left.Declaration);
+        Assert.Equal("public const int MaxOwners = 3", Both(maxOwners).Right.Declaration);
     }
 
     [Fact]
@@ -121,7 +118,7 @@ public sealed class ApiDiffTests
         var legacy = Public(SampleNamespace, "Legacy");
 
         Assert.Equal(ApiChange.Changed, legacy.Change);
-        Assert.Equal("[Obsolete(\"Use Account.Describe\")] public static class Legacy", legacy.RightDeclaration);
+        Assert.Equal("[Obsolete(\"Use Account.Describe\")] public static class Legacy", Both(legacy).Right.Declaration);
         Assert.Equal(ApiChange.Unchanged, Named(legacy.Children, "Run() : void").Change);
     }
 
@@ -131,8 +128,8 @@ public sealed class ApiDiffTests
         var note = Public(SampleNamespace, "Notes", "Note(string?) : void");
 
         Assert.Equal(ApiChange.Changed, note.Change);
-        Assert.Equal("public void Note(string)", note.LeftDeclaration);
-        Assert.Equal("public void Note(string?)", note.RightDeclaration);
+        Assert.Equal("public void Note(string)", Both(note).Left.Declaration);
+        Assert.Equal("public void Note(string?)", Both(note).Right.Declaration);
     }
 
     [Fact]
@@ -211,8 +208,8 @@ public sealed class ApiDiffTests
         var opened = s_opened.Value;
         var deposit = Public(SampleNamespace, "Account", "Deposit(decimal) : void");
 
-        var left = opened.List.FindNode(deposit.Left!);
-        var right = opened.List.FindNode(deposit.Right!);
+        var left = opened.List.FindNode(Both(deposit).Left.Reference);
+        var right = opened.List.FindNode(Both(deposit).Right.Reference);
 
         Assert.Same(opened.Left, left!.Assembly);
         Assert.Same(opened.Right, right!.Assembly);

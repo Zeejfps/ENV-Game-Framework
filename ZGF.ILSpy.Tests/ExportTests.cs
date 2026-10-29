@@ -272,9 +272,9 @@ public sealed class ExportTests : IDisposable
 
         var exported = AssemblyExport.ExportProject(Trees.TestAssembly, DecompilerOptions.Default, projectPath, new ProjectExtras(Pdb: true, EmbedSourcesInPdb: embed));
 
-        Assert.Null(exported.PdbFailure);
-        Assert.Equal(_temp.PathOf(Path.Combine("Project", "ZGF.ILSpy.Tests.pdb")), exported.PdbPath);
-        Assert.Equal(embed, CountEmbeddedSources(exported.PdbPath!) > 0);
+        var pdb = Assert.IsType<ProjectPdb.Written>(exported.Pdb);
+        Assert.Equal(_temp.PathOf(Path.Combine("Project", "ZGF.ILSpy.Tests.pdb")), pdb.Path);
+        Assert.Equal(embed, CountEmbeddedSources(pdb.Path) > 0);
     }
 
     [Fact]

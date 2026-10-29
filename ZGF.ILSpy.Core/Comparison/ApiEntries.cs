@@ -16,18 +16,33 @@ internal static class ApiEntries
     {
         var leftTypes = ListTypesByNamespace(left, scope);
         var rightTypes = ListTypesByNamespace(right, scope);
-        var names = leftTypes.Keys
-            .Union(rightTypes.Keys)
-            .Order(NaturalStringComparer.Instance)
+        var names = ListPresence(leftTypes.Keys, rightTypes.Keys)
+            .OrderBy(static n => n.Name, NaturalStringComparer.Instance)
             .ToList();
         var entries = new List<ApiEntry>();
-        foreach (var name in names)
+        foreach (var (name, presence) in names)
         {
-            var leftOnes = leftTypes.GetValueOrDefault(name);
-            var rightOnes = rightTypes.GetValueOrDefault(name);
-            entries.Add(CompareNamespace(name, leftOnes, rightOnes, scope, cancellationToken));
+            var leftOnes = leftTypes.GetValueOrDefault(name) ?? None;
+            var rightOnes = rightTypes.GetValueOrDefault(name) ?? None;
+            var children = CompareAll(leftOnes, rightOnes, scope, cancellationToken);
+            entries.Add(new ApiEntry.Namespace(NamespaceText(name), presence, children));
         }
         return entries;
+    }
+
+    private static List<(string Name, ApiPresence Presence)> ListPresence(IReadOnlyCollection<string> left, IReadOnlyCollection<string> right)
+    {
+        var rightSet = right.ToHashSet(StringComparer.Ordinal);
+        var leftSet = left.ToHashSet(StringComparer.Ordinal);
+        var names = new List<(string, ApiPresence)>();
+        foreach (var name in left)
+            names.Add((name, rightSet.Contains(name) ? ApiPresence.Both : ApiPresence.LeftOnly));
+        foreach (var name in right)
+        {
+            if (!leftSet.Contains(name))
+                names.Add((name, ApiPresence.RightOnly));
+        }
+        return names;
     }
 
     /// <summary>The top-level types of <paramref name="module"/> that <paramref name="scope"/> takes in, by
@@ -42,9 +57,23 @@ internal static class ApiEntries
             if (!IsTakenIn(type, scope))
                 continue;
             var types = FindOrAddNamespace(byNamespace, type.Namespace);
-            types.Add(ApiKeys.Of(type), type);
+            AddByKey(types, type);
         }
         return byNamespace;
+    }
+
+    /// <summary>Adds <paramref name="entity"/> under its key, numbered when others took the key before
+    /// it, so none is dropped; those that share a key are matched in the order the metadata lists them.</summary>
+    private static void AddByKey(Dictionary<string, IEntity> entities, IEntity entity)
+    {
+        var key = ApiKeys.Of(entity);
+        var candidate = key;
+        var number = 2;
+        while (!entities.TryAdd(candidate, entity))
+        {
+            candidate = $"{key}#{number}";
+            number++;
+        }
     }
 
     /// <summary>Whether <paramref name="type"/> is the type every module has to hold its global members,
@@ -76,32 +105,6 @@ internal static class ApiEntries
         return types;
     }
 
-    private static ApiEntry CompareNamespace(string name, Dictionary<string, IEntity>? left, Dictionary<string, IEntity>? right, ApiScope scope,
-        CancellationToken cancellationToken)
-    {
-        var leftTypes = left ?? None;
-        var rightTypes = right ?? None;
-        var children = CompareAll(leftTypes, rightTypes, scope, cancellationToken);
-        var change = ChangeOfNamespace(left, right);
-        return new ApiEntry
-        {
-            Kind = NodeKind.Namespace,
-            Text = NamespaceText(name),
-            Change = change,
-            HasChanges = HasChanges(change, children),
-            Children = children,
-        };
-    }
-
-    private static ApiChange ChangeOfNamespace(Dictionary<string, IEntity>? left, Dictionary<string, IEntity>? right)
-    {
-        if (left == null)
-            return ApiChange.Added;
-        if (right == null)
-            return ApiChange.Removed;
-        return ApiChange.Unchanged;
-    }
-
     private static string NamespaceText(string name)
     {
         if (name.Length == 0)
@@ -114,16 +117,20 @@ internal static class ApiEntries
     private static List<ApiEntry> CompareAll(Dictionary<string, IEntity> left, Dictionary<string, IEntity> right, ApiScope scope,
         CancellationToken cancellationToken)
     {
-        var keys = left.Keys
-            .Union(right.Keys)
-            .ToList();
-        var entries = new List<ApiEntry>(keys.Count);
-        foreach (var key in keys)
+        var entries = new List<ApiEntry>(left.Count + right.Count);
+        foreach (var (key, leftOne) in left)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var leftOne = left.GetValueOrDefault(key);
-            var rightOne = right.GetValueOrDefault(key);
-            entries.Add(Compare(leftOne, rightOne, scope, cancellationToken));
+            if (right.TryGetValue(key, out var rightOne))
+                entries.Add(CompareBoth(leftOne, rightOne, scope, cancellationToken));
+            else
+                entries.Add(Removed(leftOne, scope, cancellationToken));
+        }
+        foreach (var (key, rightOne) in right)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!left.ContainsKey(key))
+                entries.Add(Added(rightOne, scope, cancellationToken));
         }
         return entries
             .OrderBy(static e => SortGroup(e.Kind))
@@ -131,35 +138,37 @@ internal static class ApiEntries
             .ToList();
     }
 
-    /// <summary>The entry of an entity on either side or both, which <paramref name="right"/> labels
-    /// when it is there.</summary>
-    private static ApiEntry Compare(IEntity? left, IEntity? right, ApiScope scope, CancellationToken cancellationToken)
+    private static ApiEntry Removed(IEntity left, ApiScope scope, CancellationToken cancellationToken)
     {
-        var shown = right ?? left!;
-        var leftChildren = ListChildren(left, scope);
-        var rightChildren = ListChildren(right, scope);
-        var children = CompareAll(leftChildren, rightChildren, scope, cancellationToken);
-        var leftDeclaration = ApiDeclarations.Of(left);
-        var rightDeclaration = ApiDeclarations.Of(right);
-        var change = ChangeOf(leftDeclaration, rightDeclaration);
-        return new ApiEntry
-        {
-            Kind = EntityText.KindOf(shown),
-            Text = EntityText.Label(shown),
-            Accessibility = EntityText.Map(shown.Accessibility),
-            Change = change,
-            HasChanges = HasChanges(change, children),
-            Left = ReferTo(left),
-            Right = ReferTo(right),
-            LeftDeclaration = leftDeclaration,
-            RightDeclaration = rightDeclaration,
-            Children = children,
-        };
+        var children = CompareAll(ListChildren(left, scope), None, scope, cancellationToken);
+        return EntryOf(left, new ApiSides.LeftOnly(SideOf(left)), children);
     }
 
+    private static ApiEntry Added(IEntity right, ApiScope scope, CancellationToken cancellationToken)
+    {
+        var children = CompareAll(None, ListChildren(right, scope), scope, cancellationToken);
+        return EntryOf(right, new ApiSides.RightOnly(SideOf(right)), children);
+    }
+
+    /// <summary>The entry of an entity on both sides, which <paramref name="right"/> labels.</summary>
+    private static ApiEntry CompareBoth(IEntity left, IEntity right, ApiScope scope, CancellationToken cancellationToken)
+    {
+        var children = CompareAll(ListChildren(left, scope), ListChildren(right, scope), scope, cancellationToken);
+        return EntryOf(right, new ApiSides.Both(SideOf(left), SideOf(right)), children);
+    }
+
+    private static ApiEntry EntryOf(IEntity shown, ApiSides sides, List<ApiEntry> children)
+    {
+        var kind = EntityText.KindOf(shown);
+        var accessibility = EntityText.Map(shown.Accessibility);
+        return new ApiEntry.Entity(kind, EntityText.Label(shown), accessibility, sides, children);
+    }
+
+    private static ApiSide SideOf(IEntity entity) => new(CodeReference.To(entity), ApiDeclarations.Of(entity));
+
     /// <summary>The nested types and members of <paramref name="entity"/> that <paramref name="scope"/>
-    /// takes in, each by its key, without accessors or an enum's value field; none for a member or nothing.</summary>
-    private static Dictionary<string, IEntity> ListChildren(IEntity? entity, ApiScope scope)
+    /// takes in, each by its key, without accessors or an enum's value field; none for a member.</summary>
+    private static Dictionary<string, IEntity> ListChildren(IEntity entity, ApiScope scope)
     {
         if (entity is not ITypeDefinition type)
             return None;
@@ -167,7 +176,7 @@ internal static class ApiEntries
         foreach (var member in ListMembers(type))
         {
             if (IsTakenIn(member, scope))
-                children.TryAdd(ApiKeys.Of(member), member);
+                AddByKey(children, member);
         }
         return children;
     }
@@ -189,31 +198,6 @@ internal static class ApiEntries
         if (type.Kind != TypeKind.Enum)
             return false;
         return !field.IsStatic;
-    }
-
-    private static ApiChange ChangeOf(string? leftDeclaration, string? rightDeclaration)
-    {
-        if (leftDeclaration == null)
-            return ApiChange.Added;
-        if (rightDeclaration == null)
-            return ApiChange.Removed;
-        if (leftDeclaration != rightDeclaration)
-            return ApiChange.Changed;
-        return ApiChange.Unchanged;
-    }
-
-    private static bool HasChanges(ApiChange change, List<ApiEntry> children)
-    {
-        if (change != ApiChange.Unchanged)
-            return true;
-        return children.Exists(static c => c.HasChanges);
-    }
-
-    private static CodeReference? ReferTo(IEntity? entity)
-    {
-        if (entity == null)
-            return null;
-        return CodeReference.To(entity);
     }
 
     /// <summary>Where entries of <paramref name="kind"/> sort among a type's: nested types first, then
@@ -240,25 +224,11 @@ internal static class ApiEntries
 
     private static int Count(ApiEntry entry, ApiChange change)
     {
-        var own = CountOwn(entry, change);
-        if (IsAddedOrRemovedEntity(entry))
+        if (entry is not ApiEntry.Entity)
+            return Count(entry.Children, change);
+        var own = entry.Change == change ? 1 : 0;
+        if (entry.Change is ApiChange.Added or ApiChange.Removed)
             return own;
         return own + Count(entry.Children, change);
-    }
-
-    private static int CountOwn(ApiEntry entry, ApiChange change)
-    {
-        if (entry.Kind == NodeKind.Namespace)
-            return 0;
-        if (entry.Change != change)
-            return 0;
-        return 1;
-    }
-
-    private static bool IsAddedOrRemovedEntity(ApiEntry entry)
-    {
-        if (entry.Kind == NodeKind.Namespace)
-            return false;
-        return entry.Change is ApiChange.Added or ApiChange.Removed;
     }
 }

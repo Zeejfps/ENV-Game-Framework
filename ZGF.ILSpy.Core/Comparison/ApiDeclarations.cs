@@ -39,11 +39,9 @@ internal static class ApiDeclarations
         "System.FlagsAttribute",
     };
 
-    /// <summary>How <paramref name="entity"/> is declared, after its notable attributes; null for no entity.</summary>
-    public static string? Of(IEntity? entity)
+    /// <summary>How <paramref name="entity"/> is declared, after its notable attributes.</summary>
+    public static string Of(IEntity entity)
     {
-        if (entity == null)
-            return null;
         var attributes = WriteNotableAttributes(entity);
         var declaration = Declare(entity);
         return attributes + declaration;

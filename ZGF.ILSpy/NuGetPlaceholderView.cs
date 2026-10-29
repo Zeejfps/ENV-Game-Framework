@@ -31,9 +31,10 @@ internal static class NuGetPlaceholderView
                 Waiting(ui, t.NugetSearching);
                 return;
             }
-            if (picker.SearchError != null)
+            var error = picker.SearchError;
+            if (error != null)
             {
-                SearchFailed(ui, picker);
+                SearchFailed(ui, picker, error);
                 return;
             }
             NothingFound(ui, picker);
@@ -56,12 +57,12 @@ internal static class NuGetPlaceholderView
     }
 
     /// <summary>That the search failed and why, and a button that runs it again.</summary>
-    private static void SearchFailed(Ui<UiState> ui, NuGetPicker picker)
+    private static void SearchFailed(Ui<UiState> ui, NuGetPicker picker, string error)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         Warning(ui, t.NugetSearchFailed);
-        ui.Text(picker.SearchError!, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
+        ui.Text(error, color: theme.TextMuted, size: theme.FontSizeSmall, wrap: true);
         if (ui.Button(t.NugetRetry, id: "nuget-retry"))
             picker.Retry();
     }

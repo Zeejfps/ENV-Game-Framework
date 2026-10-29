@@ -146,8 +146,9 @@ public static class Exports
     private static ExportReport WithProjects(this ExportReport report, IReadOnlyList<ExportedProject> projects, string first)
     {
         var pdbs = projects
-            .Where(static p => p.PdbPath != null)
-            .Select(static p => p.PdbPath!);
+            .Select(static p => p.Pdb)
+            .OfType<ProjectPdb.Written>()
+            .Select(static p => p.Path);
         var written = projects
             .Select(static p => p.ProjectPath)
             .Prepend(first)
@@ -155,8 +156,9 @@ public static class Exports
             .Distinct()
             .ToList();
         var pdbProblems = projects
-            .Where(static p => p.PdbFailure != null)
-            .Select(static p => ProblemOf(p.PdbFailure!));
+            .Select(static p => p.Pdb)
+            .OfType<ProjectPdb.Failed>()
+            .Select(static p => ProblemOf(p.Failure));
         var problems = projects
             .SelectMany(static p => p.Errors)
             .Select(static ExportProblem (e) => new ExportProblem.NotDecompiled(e))
@@ -260,13 +262,13 @@ public static class Exports
         return report with { Written = written, Problems = problems };
     }
 
-    private static ExportProblem ProblemOf(PdbFailure failure)
-    {
-        var name = failure.Assembly.Name;
-        if (failure.Error == null)
-            return new ExportProblem.NoPdbEntry(name);
-        return new ExportProblem.PdbNotWritten(name, failure.Error);
-    }
+    private static ExportProblem ProblemOf(PdbFailure failure) =>
+        failure switch
+        {
+            PdbFailure.NoDebugEntry f => new ExportProblem.NoPdbEntry(f.Assembly.Name),
+            PdbFailure.NotWritten f => new ExportProblem.PdbNotWritten(f.Assembly.Name, f.Error),
+            _ => throw new UnreachableException(),
+        };
 
     /// <summary>Writes every file in the folder of a package <paramref name="place"/> stands for, shown as
     /// <paramref name="name"/>, into <paramref name="folder"/>, at its path from that folder. Files that
@@ -288,13 +290,13 @@ public static class Exports
         return report with { Written = extracted.Written, Problems = problems };
     }
 
-    private static ExportProblem ProblemOf(ExtractFailure failure)
-    {
-        var path = failure.File.FullName;
-        if (failure.Error == null)
-            return new ExportProblem.OutsideFolder(path);
-        return new ExportProblem.FileNotWritten(path, failure.Error);
-    }
+    private static ExportProblem ProblemOf(ExtractFailure failure) =>
+        failure switch
+        {
+            ExtractFailure.OutsideFolder f => new ExportProblem.OutsideFolder(f.File.FullName),
+            ExtractFailure.NotWritten f => new ExportProblem.FileNotWritten(f.File.FullName, f.Error),
+            _ => throw new UnreachableException(),
+        };
 
     /// <summary>Shows the report of <paramref name="report"/> in a new tab.</summary>
     public static void ShowExportReport(AppState appState, ExportReport report)

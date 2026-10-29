@@ -9,16 +9,25 @@ namespace ZGF.ILSpy.Core;
 /// <summary>Something the decompiler could not handle: what it was doing, and the full error.</summary>
 public sealed record ExportError(string Message, string Details);
 
-/// <summary>An assembly decompiled into a C# project: the project file, and what could not be
-/// decompiled, which the project holds as error comments instead. When a PDB was asked for,
-/// <see cref="PdbPath"/> is where it was written, or <see cref="PdbFailure"/> says why it was not.</summary>
-public sealed record ExportedProject(LoadedModule Assembly, string ProjectPath, IReadOnlyList<ExportError> Errors)
+/// <summary>An assembly decompiled into a C# project: the project file, what could not be
+/// decompiled, which the project holds as error comments instead, and what came of its PDB.</summary>
+public sealed record ExportedProject(LoadedModule Assembly, string ProjectPath, IReadOnlyList<ExportError> Errors, ProjectId Id)
 {
-    internal ProjectId? Id { get; init; }
+    public ProjectPdb Pdb { get; init; } = new ProjectPdb.NotAsked();
+}
 
-    public string? PdbPath { get; init; }
+/// <summary>What came of the PDB of an exported project.</summary>
+public abstract record ProjectPdb
+{
+    private ProjectPdb()
+    {
+    }
 
-    public PdbFailure? PdbFailure { get; init; }
+    public sealed record NotAsked : ProjectPdb;
+
+    public sealed record Written(string Path) : ProjectPdb;
+
+    public sealed record Failed(PdbFailure Failure) : ProjectPdb;
 }
 
 /// <summary>What a project export writes besides the project: the strong-name key it copies into
@@ -33,9 +42,20 @@ public sealed record ProjectExtras(string? StrongNameKeyFile = null, bool Pdb = 
 /// also the name of the folder the project goes in.</summary>
 public sealed record SolutionProject(LoadedModule Assembly, string Name);
 
-/// <summary>An assembly no PDB was written for: <see cref="Error"/> says why, or is null when its
-/// debug directory names no PDB for one to match.</summary>
-public sealed record PdbFailure(LoadedModule Assembly, ExportError? Error);
+/// <summary>An assembly no PDB was written for, and why.</summary>
+public abstract record PdbFailure
+{
+    private PdbFailure()
+    {
+    }
+
+    public abstract LoadedModule Assembly { get; init; }
+
+    /// <summary>Its debug directory names no PDB for one to match.</summary>
+    public sealed record NoDebugEntry(LoadedModule Assembly) : PdbFailure;
+
+    public sealed record NotWritten(LoadedModule Assembly, ExportError Error) : PdbFailure;
+}
 
 /// <summary>How far an export has got: it works on part <see cref="Part"/> of <see cref="Parts"/>,
 /// named <see cref="Name"/>, and has done <see cref="Fraction"/> of the whole export, from 0 to 1,
@@ -94,7 +114,7 @@ public static class AssemblyExport
         var errors = decompiler.Errors
             .Select(static e => new ExportError(e.Message, e.ToString()))
             .ToList();
-        return new ExportedProject(assembly, projectPath, errors) { Id = id };
+        return new ExportedProject(assembly, projectPath, errors, id);
     }
 
     private static WholeProjectDecompiler CreateProjectDecompiler(LoadedModule assembly, DecompilerOptions options, CancellationToken cancellationToken)
@@ -111,9 +131,9 @@ public static class AssemblyExport
     {
         var failure = TryGeneratePdb(project.Assembly, options, folder, embedSources, progress, cancellationToken);
         if (failure != null)
-            return project with { PdbFailure = failure };
+            return project with { Pdb = new ProjectPdb.Failed(failure) };
         var path = Path.Combine(folder, project.Assembly.PdbFileName);
-        return project with { PdbPath = path };
+        return project with { Pdb = new ProjectPdb.Written(path) };
     }
 
     /// <summary>Decompiles each of <paramref name="projects"/> into a project in a folder of its own,
@@ -191,7 +211,7 @@ public static class AssemblyExport
     }
     private static ProjectItem ToSolutionItem(ExportedProject project)
     {
-        var id = project.Id!;
+        var id = project.Id;
         return new ProjectItem(project.ProjectPath, id.PlatformName, id.Guid, id.TypeGuid);
     }
 
@@ -266,7 +286,7 @@ public static class AssemblyExport
         IProgress<DecompilationProgress>? progress, CancellationToken cancellationToken)
     {
         if (!assembly.CanGeneratePdb)
-            return new PdbFailure(assembly, null);
+            return new PdbFailure.NoDebugEntry(assembly);
         var path = Path.Combine(folder, assembly.PdbFileName);
         try
         {
@@ -275,7 +295,7 @@ public static class AssemblyExport
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            return new PdbFailure(assembly, new ExportError(e.Message, e.ToString()));
+            return new PdbFailure.NotWritten(assembly, new ExportError(e.Message, e.ToString()));
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
@@ -145,32 +146,34 @@ internal static class NuGetDetailsView
     private static void DetailsStatus(Ui<UiState> ui, NuGetPicker picker, FeedPackage package, VersionDetails? details)
     {
         var theme = ui.Theme;
-        if (details == null)
-            return;
-        if (details.IsLoading)
+        switch (details)
         {
-            ui.Spinner(theme.Surface);
-            ui.Text(ui.State.Strings.NugetLoadingDetails, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
-            return;
+            case null:
+            case VersionDetails.Read:
+                break;
+            case VersionDetails.Loading:
+                ui.Spinner(theme.Surface);
+                ui.Text(ui.State.Strings.NugetLoadingDetails, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
+                break;
+            case VersionDetails.Failed:
+                if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost) && picker.Version != null)
+                    picker.RetryDetails(package, picker.Version);
+                break;
+            default:
+                throw new UnreachableException();
         }
-        if (details.Error == null)
-            return;
-        if (ui.Button(ui.State.Strings.NugetRetry, id: "retry-details", variant: ButtonVariant.Ghost) && picker.Version != null)
-            picker.RetryDetails(package, picker.Version);
     }
 
     /// <summary>That the version's details could not be read; or why the version should not be opened
     /// lightly: it is deprecated, or has known vulnerabilities.</summary>
     private static void Warnings(Ui<UiState> ui, VersionDetails? details)
     {
-        if (details == null)
-            return;
-        if (details.Error != null)
+        if (details is VersionDetails.Failed failed)
         {
-            DetailsFailed(ui, details.Error);
+            DetailsFailed(ui, failed.Error);
             return;
         }
-        var read = details.Details;
+        var read = ReadOf(details);
         if (read == null)
             return;
         if (read.Deprecation != null)
@@ -251,9 +254,9 @@ internal static class NuGetDetailsView
     /// <summary>The details read; null while they load, could not be read, or none are asked for.</summary>
     private static PackageVersionDetails? ReadOf(VersionDetails? details)
     {
-        if (details == null)
+        if (details is not VersionDetails.Read read)
             return null;
-        return details.Details;
+        return read.Details;
     }
 
     private static string FormatDate(DateTimeOffset date, CultureInfo culture) => date.ToLocalTime().ToString("d", culture);
