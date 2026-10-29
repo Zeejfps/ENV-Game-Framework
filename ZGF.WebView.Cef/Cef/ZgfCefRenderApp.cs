@@ -16,14 +16,34 @@ public sealed class ZgfCefRenderApp : CefApp
     /// <summary>Process message the page's <c>window.zgf.postMessage</c> sends to the browser process.</summary>
     public const string QueryMessage = "zgf_query";
 
+    /// <summary>Key of the browser's extra info listing the scripts run before each document's own.</summary>
+    public const string DocumentStartScriptsKey = "zgf_document_start_scripts";
+
     private readonly ZgfRenderProcessHandler _renderProcessHandler = new();
 
     protected override CefRenderProcessHandler GetRenderProcessHandler() => _renderProcessHandler;
 
     private sealed class ZgfRenderProcessHandler : CefRenderProcessHandler
     {
+        private readonly Dictionary<int, string[]> _documentStartScripts = new();
+
+        protected override void OnBrowserCreated(CefBrowser browser, CefDictionaryValue? extraInfo)
+        {
+            var list = extraInfo?.GetList(DocumentStartScriptsKey);
+            if (list == null)
+                return;
+            var scripts = new string[list.Count];
+            for (var i = 0; i < scripts.Length; i++)
+                scripts[i] = list.GetString(i);
+            _documentStartScripts[browser.Identifier] = scripts;
+        }
+
+        protected override void OnBrowserDestroyed(CefBrowser browser) => _documentStartScripts.Remove(browser.Identifier);
+
         protected override void OnContextCreated(CefBrowser browser, CefFrame frame, CefV8Context context)
         {
+            if (!frame.IsMain)
+                return;
             var global = context.GetGlobal();
             var zgf = CefV8Value.CreateObject(null, null);
             zgf.SetValue("postMessage",
@@ -32,6 +52,10 @@ public sealed class ZgfCefRenderApp : CefApp
             // The page assigns window.zgf.onmessage = fn; the browser process calls it via injected JS.
             zgf.SetValue("onmessage", CefV8Value.CreateNull(), CefV8PropertyAttribute.None);
             global.SetValue("zgf", zgf, CefV8PropertyAttribute.None);
+            if (!_documentStartScripts.TryGetValue(browser.Identifier, out var scripts))
+                return;
+            foreach (var script in scripts)
+                context.TryEval(script, frame.Url, 1, out _, out _);
         }
     }
 

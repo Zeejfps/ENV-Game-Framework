@@ -24,11 +24,11 @@ public sealed class WebPage : IDisposable
     private bool _middleDown;
     private bool _disposed;
 
-    private WebPage(Ui ui, IWebViewFactory factory)
+    private WebPage(Ui ui, IWebViewFactory factory, WebViewSetup setup)
     {
         _ui = ui;
         ImageId = "webpage:" + Guid.NewGuid().ToString("N");
-        View = factory.Create(new FrameSink(this));
+        View = factory.Create(new FrameSink(this), setup);
         View.CursorChanged += cursor => Cursor = CursorOf(cursor);
     }
 
@@ -41,9 +41,9 @@ public sealed class WebPage : IDisposable
 
     internal MouseCursor Cursor { get; private set; } = MouseCursor.Default;
 
-    public static WebPage Open(Ui ui, IWebViewFactory factory, string url)
+    public static WebPage Open(Ui ui, IWebViewFactory factory, string url, WebViewSetup? setup = null)
     {
-        var page = new WebPage(ui, factory);
+        var page = new WebPage(ui, factory, setup ?? new WebViewSetup());
         page.View.Navigate(url);
         return page;
     }

@@ -159,7 +159,7 @@ public sealed class WebViewTests
         public FakeWebView? View { get; private set; }
         public IWebViewFrameSink? Sink { get; private set; }
 
-        public IWebView Create(IWebViewFrameSink frames)
+        public IWebView Create(IWebViewFrameSink frames, WebViewSetup setup)
         {
             Sink = frames;
             View = new FakeWebView();

@@ -15,9 +15,9 @@ internal sealed class CefWebViewFactory : IWebViewFactory
         _options = options;
     }
 
-    public IWebView Create(IWebViewFrameSink frames)
+    public IWebView Create(IWebViewFrameSink frames, WebViewSetup setup)
     {
-        var webView = new CefWebView(_host, frames, _options);
+        var webView = new CefWebView(_host, frames, _options, setup);
         _host.RegisterWebView(webView);
         return webView;
     }

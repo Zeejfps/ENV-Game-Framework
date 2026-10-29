@@ -71,6 +71,8 @@ internal sealed class CefWebViewClient : CefClient
     {
         if (message.Name == ZgfCefRenderApp.QueryMessage && message.Arguments.Count >= 1)
         {
+            if (!frame.IsMain)
+                return true;
             _owner.RaiseMessage(message.Arguments.GetString(0));
             return true;
         }

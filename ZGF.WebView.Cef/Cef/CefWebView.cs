@@ -17,6 +17,7 @@ internal sealed class CefWebView : IWebView
     private readonly CefRuntimeHost _host;
     private readonly IWebViewFrameSink _frames;
     private readonly CefWebViewOptions _options;
+    private readonly WebViewSetup _setup;
     private readonly CefWebViewClient _client;
     private readonly List<Action> _deferred = new();
 
@@ -36,8 +37,9 @@ internal sealed class CefWebView : IWebView
     private int _logicalHeight = 1;
     private float _dpi = 1f;
 
-    public CefWebView(CefRuntimeHost host, IWebViewFrameSink frames, CefWebViewOptions options)
+    public CefWebView(CefRuntimeHost host, IWebViewFrameSink frames, CefWebViewOptions options, WebViewSetup setup)
     {
+        _setup = setup;
         _host = host;
         _frames = frames;
         _options = options;
@@ -72,7 +74,21 @@ internal sealed class CefWebView : IWebView
         };
 
         CefLog.Write($"CreateBrowser url={_initialUrl} logical={_logicalWidth}x{_logicalHeight} paint={_paintPath}");
-        CefBrowserHost.CreateBrowser(windowInfo, _client, settings, _initialUrl, null, null);
+        CefBrowserHost.CreateBrowser(windowInfo, _client, settings, _initialUrl, ExtraInfo(), null);
+    }
+
+    private CefDictionaryValue? ExtraInfo()
+    {
+        var scripts = _setup.DocumentStartScripts;
+        if (scripts.Count == 0)
+            return null;
+        var list = CefListValue.Create();
+        list.SetSize(scripts.Count);
+        for (var i = 0; i < scripts.Count; i++)
+            list.SetString(i, scripts[i]);
+        var extraInfo = CefDictionaryValue.Create();
+        extraInfo.SetList(ZgfCefRenderApp.DocumentStartScriptsKey, list);
+        return extraInfo;
     }
 
     // --- Handler callbacks (all on the UI thread) -----------------------------

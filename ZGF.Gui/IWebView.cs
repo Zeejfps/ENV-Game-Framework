@@ -59,7 +59,15 @@ public interface IWebView : IDisposable
 public interface IWebViewFactory
 {
     /// <summary>Creates a web view that delivers its frames to <paramref name="frames"/>.</summary>
-    IWebView Create(IWebViewFrameSink frames);
+    IWebView Create(IWebViewFrameSink frames, WebViewSetup setup);
+}
+
+/// <summary>What a web view is created with, fixed for its life.</summary>
+public sealed record WebViewSetup
+{
+    /// <summary>Scripts run in the top frame of every document the view loads, in order, before any of the
+    /// page's own: for globals a page expects its host to have put there.</summary>
+    public IReadOnlyList<string> DocumentStartScripts { get; init; } = [];
 }
 
 /// <summary>Receives a web view's painted frames on the UI thread. Each frame is valid only for the

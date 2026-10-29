@@ -27,7 +27,7 @@ public sealed class WebViewView : View
         _canvas = canvas;
         if (factory == null)
             return;
-        var webView = factory.Create(new FrameSink(this));
+        var webView = factory.Create(new FrameSink(this), new WebViewSetup());
         WebView = webView;
         Behaviors.Add(new LifetimeBehavior(this, webView));
     }

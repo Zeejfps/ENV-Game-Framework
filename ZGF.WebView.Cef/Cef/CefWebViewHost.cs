@@ -28,7 +28,7 @@ public sealed class CefWebViewHost : IWebViewFactory, IDisposable
         return new CefWebViewHost(runtime, options ?? new CefWebViewOptions());
     }
 
-    public IWebView Create(IWebViewFrameSink frames) => _factory.Create(frames);
+    public IWebView Create(IWebViewFrameSink frames, WebViewSetup setup) => _factory.Create(frames, setup);
 
     public void Dispose() => _runtime.Dispose();
 }
