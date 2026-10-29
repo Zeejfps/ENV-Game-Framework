@@ -198,7 +198,7 @@ public sealed class PackageTests
         var calculator = TestAssemblyRoot(new AssemblyList().Open(packagePath).Root.Child(LibFolder)).Assembly.Calculator();
 
         var list = new AssemblyList();
-        var found = list.FindNode(calculator.Reference!);
+        var found = list.FindNode(calculator.Definition);
 
         Assert.Equal(calculator.Text, found!.Text);
         var listed = Assert.Single(list.Listed);

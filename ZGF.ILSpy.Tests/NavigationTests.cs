@@ -145,7 +145,7 @@ public sealed class NavigationTests
         var typeDocument = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
         var memberDocument = calculator.Child("Describe() : string").Decompile(DecompilationLanguage.CSharp);
 
-        var count = calculator.Child("Count : int").Reference;
+        var count = calculator.Child("Count : int").Definition;
         var countInType = typeDocument.SpansOf().Where(s => s.Text == "Count").Select(s => s.Span.Reference).ToArray();
         var countInMember = memberDocument.SpansOf().First(s => s.Text == "Count").Span.Reference;
 
@@ -188,8 +188,8 @@ public sealed class NavigationTests
     {
         var calculator = Trees.TestAssembly.Calculator();
         var document = Trees.CalculatorDocument(DecompilationLanguage.IL);
-        var add = calculator.Child("Add(T) : void").Reference!;
-        var items = calculator.Child("_items : List<T>").Reference!;
+        var add = calculator.Child("Add(T) : void").Definition;
+        var items = calculator.Child("_items : List<T>").Definition;
 
         var uses = document.SpansOf().Where(s => s.Span is { IsDefinition: false, Reference: not null }).Select(s => s.Span.Reference).ToArray();
 

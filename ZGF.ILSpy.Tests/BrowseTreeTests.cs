@@ -168,7 +168,7 @@ public sealed class BrowseTreeTests
     public void A_node_found_by_its_entity_is_the_one_its_parent_lists_whichever_thread_builds_it_first()
     {
         var (list, assembly) = Trees.OpenTestAssembly();
-        var reference = Assert.IsType<CodeReference>(Trees.TestAssembly.Calculator().Child("Add(T) : void").Reference);
+        var reference = Trees.TestAssembly.Calculator().Child("Add(T) : void").Definition;
 
         var nodes = Enumerable.Range(0, 16)
             .AsParallel()
@@ -197,10 +197,9 @@ public sealed class BrowseTreeTests
         var (list, assembly) = Trees.OpenTestAssembly();
         var add = assembly.Calculator().Child("Add(T) : void");
 
-        Assert.NotNull(add.Reference);
-        Assert.Equal(CodeReferenceKind.Method, add.Reference!.Kind);
-        Assert.Same(add, list.FindNode(add.Reference));
-        Assert.Null(assembly.Fixtures().Reference);
+        Assert.Equal(CodeReferenceKind.Method, add.Definition.Kind);
+        Assert.Same(add, list.FindNode(add.Definition));
+        Assert.Null(NodeDefinitions.ReferenceOf(assembly.Fixtures().Subject));
     }
 
     [Fact]

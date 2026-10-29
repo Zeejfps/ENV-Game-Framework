@@ -199,7 +199,7 @@ public static class NodeContentLoader
         {
             if (child.IsCompilerGenerated) continue;
             if (child.Subject is NodeSubject.TypeDefinition type)
-                entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, child.Reference));
+                entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, type.Definition.Address.ToReference()));
             if (child.Subject is NodeSubject.ForwardedType forwarded)
                 entries.Add(new NamespaceEntry.Forwarded(ForwardedLineOf(child, forwarded)));
         }

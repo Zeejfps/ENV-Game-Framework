@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
 using ICSharpCode.Decompiler.TypeSystem;
 using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
@@ -18,10 +17,10 @@ public sealed partial class BrowseNode
         switch (subject)
         {
             case NodeSubject.TypeDefinition type:
-                (Accessibility, IsPublicApi, IsCompilerGenerated, Reference, Token) = DescribeDefinition(parent, type.Definition.Symbol, type.Definition.Address);
+                (Accessibility, IsPublicApi, IsCompilerGenerated) = DescribeDefinition(parent, type.Definition.Symbol);
                 break;
             case NodeSubject.MemberDefinition member:
-                (Accessibility, IsPublicApi, IsCompilerGenerated, Reference, Token) = DescribeDefinition(parent, member.Definition.Symbol, member.Definition.Address);
+                (Accessibility, IsPublicApi, IsCompilerGenerated) = DescribeDefinition(parent, member.Definition.Symbol);
                 break;
             case NodeSubject.TypeReference type:
                 Namespace = type.Value.Namespace;
@@ -72,11 +71,10 @@ public sealed partial class BrowseNode
     }
 
     /// <summary>What the node of a definition says of it: its accessibility, whether it is seen outside its
-    /// assembly, whether the compiler made it or what holds it up, the reference to it and its token.</summary>
-    private static (NodeAccessibility, bool, bool, CodeReference, int?) DescribeDefinition(BrowseNode? parent, IEntity entity, NavigationAddress address) =>
+    /// assembly, and whether the compiler made it or what holds it up.</summary>
+    private static (NodeAccessibility, bool, bool) DescribeDefinition(BrowseNode? parent, IEntity entity) =>
         (EntityText.Map(entity.Accessibility), EntityText.IsPublicApi(entity),
-            (parent != null && parent.IsCompilerGenerated) || Members.IsCompilerGenerated(entity),
-            address.ToReference(), MetadataTokens.GetToken(entity.MetadataToken));
+            (parent != null && parent.IsCompilerGenerated) || Members.IsCompilerGenerated(entity));
 
     /// <summary>What the node stands for: its label, flags and children all follow from that.</summary>
     public NodeSubject Subject { get; }

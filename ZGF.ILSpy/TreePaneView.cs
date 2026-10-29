@@ -203,10 +203,11 @@ internal static class TreePaneView
         DocsItem(ui, node);
         if (Analyzers.Of(node) != null && ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
             AnalyzerPanelView.Analyze(ui.State, appState, node);
-        if (node.Reference != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
-            ShowInMetadata(appState, node.Reference, inNewTab: false);
-        if (IsType(node))
-            DiagramItems(ui, appState, node.Reference!);
+        var definition = NodeDefinitions.ReferenceOf(node.Subject);
+        if (definition != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
+            ShowInMetadata(appState, definition, inNewTab: false);
+        if (node.Subject is NodeSubject.TypeDefinition type)
+            DiagramItems(ui, appState, type.Definition.Address.ToReference());
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: new UiIcon(ui.State.Icons.ResourceExport)))
             ResourceImageView.PickExport(ui, appState, node);
         ExtractItems(ui, appState, node);
@@ -226,14 +227,6 @@ internal static class TreePaneView
             if (ui.MenuItem(t.TreeCloseAssembly, id: "close-assembly"))
                 CloseAssembly(appState, node.Assembly);
         }
-    }
-
-    /// <summary>Whether <paramref name="node"/> stands for a type defined in its assembly.</summary>
-    private static bool IsType(BrowseNode node)
-    {
-        if (node.Reference == null)
-            return false;
-        return node.Reference.Kind == CodeReferenceKind.Type;
     }
 
     /// <summary>The items that show the type <paramref name="type"/> points at on the diagram last worked in,

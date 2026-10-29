@@ -160,7 +160,13 @@ public sealed class DecompiledDocument
 
     /// <summary>The index of the line that defines the entity <paramref name="node"/> stands for, or -1
     /// if it has none or this document does not define it.</summary>
-    public int FindDefinitionLine(BrowseNode node) => node.Reference != null ? FindDefinitionLine(node.Reference) : -1;
+    public int FindDefinitionLine(BrowseNode node)
+    {
+        var reference = NodeDefinitions.ReferenceOf(node.Subject);
+        if (reference == null)
+            return -1;
+        return FindDefinitionLine(reference);
+    }
 
     /// <summary>What names <paramref name="line"/> so it can be found again: the statement starting on
     /// it, else the entity it defines; null for a line with neither, such as a brace or a blank line.</summary>

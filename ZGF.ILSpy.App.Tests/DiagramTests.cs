@@ -8,7 +8,7 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class DiagramTests
 {
-    private static CodeReference TypeOf(AppStateDriver d, string type) => d.Fixture(type).Reference!;
+    private static CodeReference TypeOf(AppStateDriver d, string type) => d.Fixture(type).Definition;
 
     private static List<string> CardNames(TypeDiagram diagram)
     {
@@ -229,7 +229,7 @@ public sealed class DiagramTests
     public void A_type_that_cannot_be_read_is_reported()
     {
         var d = AppStateDriver.Opened();
-        var member = d.Fixture("Greeter").Child("Twice() : int").Reference!;
+        var member = d.Fixture("Greeter").Child("Twice() : int").Definition;
 
         ShowInNewDiagram(d.AppState, member, Names.Diagram(member));
         d.Settle();

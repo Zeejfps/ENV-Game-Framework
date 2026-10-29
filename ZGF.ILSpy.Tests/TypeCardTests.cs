@@ -11,7 +11,7 @@ public sealed class TypeCardTests
 
     private static AssemblyList List => s_opened.Value.List;
 
-    private static CodeReference Zoo(string type) => s_opened.Value.Assembly.Root.Child(ZooNamespace, type).Reference!;
+    private static CodeReference Zoo(string type) => s_opened.Value.Assembly.Root.Child(ZooNamespace, type).Definition;
 
     private static TypeCard Card(string type) => TypeCards.Read(List, Zoo(type))!;
 
@@ -146,7 +146,7 @@ public sealed class TypeCardTests
     [Fact]
     public void A_reference_to_a_member_reads_as_no_card()
     {
-        var name = s_opened.Value.Assembly.Root.Child(ZooNamespace, "Animal", "Name : string").Reference!;
+        var name = s_opened.Value.Assembly.Root.Child(ZooNamespace, "Animal", "Name : string").Definition;
 
         Assert.Null(TypeCards.Read(List, name));
         Assert.Empty(TypeCards.ReadWithNeighbours(List, name, CancellationToken.None));

@@ -35,6 +35,12 @@ internal static class SessionQueries
 
         public IReadOnlyList<BrowseNode> InnerNamespaces => TestSession.Shared.InnerNamespaces(node);
 
+        /// <summary>A reference to the type or member the node defines; fails the test when it defines none.</summary>
+        public CodeReference Definition => Assert.IsType<CodeReference>(NodeDefinitions.ReferenceOf(node.Subject));
+
+        /// <summary>The metadata token of what the node defines; null when it defines nothing.</summary>
+        public int? Token => NodeDefinitions.TokenOf(node.Subject);
+
         /// <summary>Where activating the node goes; fails the test when it opens itself.</summary>
         public NavigationAddress Destination => Assert.IsType<Activation.Navigate>(Activation.Of(node.Subject)).Address;
     }

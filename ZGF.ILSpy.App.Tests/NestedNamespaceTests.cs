@@ -115,7 +115,7 @@ public sealed class NestedNamespaceTests
         var farewell = app.Fixture("Farewell");
         app.Ui.Tree.CollapseAll();
 
-        Navigate(app.AppState, farewell.Reference!, inNewTab: false);
+        Navigate(app.AppState, farewell.Definition, inNewTab: false);
         app.Settle(1);
 
         Assert.Same(farewell, app.AppState.Tabs.Active!.Node);

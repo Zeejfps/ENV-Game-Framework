@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using ZGF.ILSpy.Core;
@@ -87,7 +88,7 @@ public static class NodeText
     /// in hex. Null when the node has none or tokens are hidden.</summary>
     public static string? Token(BrowseNode node, TokenFormat format)
     {
-        if (node.Token == null)
+        if (NodeDefinitions.TokenOf(node.Subject) == null)
             return null;
         if (format == TokenFormat.Hex)
             return HexTokens.GetValue(node, WriteHexToken);
@@ -96,9 +97,12 @@ public static class NodeText
         return null;
     }
 
-    private static string WriteHexToken(BrowseNode node) => TokenPrefix + node.Token!.Value.ToString(HexTokenFormat, CultureInfo.InvariantCulture);
+    private static string WriteHexToken(BrowseNode node) => TokenPrefix + DefinedToken(node).ToString(HexTokenFormat, CultureInfo.InvariantCulture);
 
-    private static string WriteDecimalToken(BrowseNode node) => TokenPrefix + node.Token!.Value.ToString(CultureInfo.InvariantCulture);
+    private static string WriteDecimalToken(BrowseNode node) => TokenPrefix + DefinedToken(node).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>The token of what <paramref name="node"/> defines, asked for only of one that defines something.</summary>
+    private static int DefinedToken(BrowseNode node) => NodeDefinitions.TokenOf(node.Subject) ?? throw new UnreachableException();
 
     /// <summary>An assembly's version and framework; with a picked framework, which its row shows bold
     /// on its own, the version and the separator before it.</summary>

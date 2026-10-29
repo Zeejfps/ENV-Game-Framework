@@ -9,7 +9,7 @@ public sealed class TypeLayoutTests
     private const string ZooNamespace = Trees.FixturesNamespace;
     private const float Near = 1.5f;
 
-    private static CodeReference Zoo(string type) => Trees.TestAssembly.Root.Child(ZooNamespace, type).Reference!;
+    private static CodeReference Zoo(string type) => Trees.TestAssembly.Root.Child(ZooNamespace, type).Definition;
 
     private static readonly CodeReference Animal = Zoo("Animal");
     private static readonly CodeReference Lion = Zoo("Lion");

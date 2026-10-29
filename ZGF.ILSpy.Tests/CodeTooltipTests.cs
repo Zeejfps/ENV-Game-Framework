@@ -4,7 +4,7 @@ namespace ZGF.ILSpy.Tests;
 
 public sealed class CodeTooltipTests
 {
-    private static CodeTooltip TooltipOf(AssemblyList list, BrowseNode node) => list.Describe(node.Reference!)!;
+    private static CodeTooltip TooltipOf(AssemblyList list, BrowseNode node) => list.Describe(node.Definition)!;
 
     private static DocSection Section(CodeTooltip tooltip, DocSectionKind kind) => tooltip.Sections.Single(s => s.Kind == kind);
 
@@ -39,7 +39,7 @@ public sealed class CodeTooltipTests
         Assert.Equal("public void Calculator<T>.Add(T item)", signature.Text);
         Assert.Equal(SpanKind.Keyword, signature.SpanAt("public").Kind);
         Assert.Equal(SpanKind.Parameter, signature.SpanAt("item").Kind);
-        Assert.Equal(add.Reference, signature.SpanAt("Add").Reference);
+        Assert.Equal(add.Definition, signature.SpanAt("Add").Reference);
     }
 
     [Fact]

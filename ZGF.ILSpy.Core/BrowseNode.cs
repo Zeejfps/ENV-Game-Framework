@@ -119,12 +119,6 @@ public sealed partial class BrowseNode
     /// <summary>The assembly the node is read from.</summary>
     public LoadedAssembly Assembly { get; }
 
-    /// <summary>The entity this node defines, for type and member nodes; null otherwise.</summary>
-    public CodeReference? Reference { get; private init; }
-
-    /// <summary>The metadata token of the entity this node defines, for type and member nodes; null otherwise.</summary>
-    public int? Token { get; private init; }
-
     /// <summary>The namespace of a type used from a referenced assembly; null for other nodes.</summary>
     public string? Namespace { get; private init; }
 

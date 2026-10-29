@@ -33,7 +33,7 @@ public sealed class PackageBrowsingTests
         var app = OpenedPackage(temp);
         var greeter = Greeter(app);
 
-        Navigate(app.AppState, greeter.Reference!, inNewTab: false);
+        Navigate(app.AppState, greeter.Definition, inNewTab: false);
         app.Settle(2);
 
         Assert.Same(greeter, app.AppState.Tabs.Active!.Node);

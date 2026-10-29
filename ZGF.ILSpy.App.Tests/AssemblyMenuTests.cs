@@ -78,7 +78,7 @@ public sealed class AssemblyMenuTests
             .Where(r => r is { IsNavigable: true, Kind: CodeReferenceKind.Type })
             .ToList();
         var greeter = references.First(r => r!.Name == "Greeter")!;
-        var internalType = app.Fixture("Hidden").Reference!;
+        var internalType = app.Fixture("Hidden").Definition;
 
         ShowInApiReference(app.AppState, greeter);
         app.RunUntil(() => app.Frames.OpenedUrls.Count == 1);

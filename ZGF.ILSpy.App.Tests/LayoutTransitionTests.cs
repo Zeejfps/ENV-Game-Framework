@@ -11,7 +11,7 @@ public sealed class LayoutTransitionTests
 
     private static readonly Lazy<LoadedAssembly> s_fixtures = new(() => new AssemblyList().Open(AppStateDriver.FixturePath));
 
-    private static CodeReference TypeOf(string type) => s_fixtures.Value.Root.Child(AppStateDriver.FixturesNamespace, type).Reference!;
+    private static CodeReference TypeOf(string type) => s_fixtures.Value.Root.Child(AppStateDriver.FixturesNamespace, type).Definition;
 
     private static readonly CodeReference Car = TypeOf("Car");
     private static readonly CodeReference Vehicle = TypeOf("Vehicle");
