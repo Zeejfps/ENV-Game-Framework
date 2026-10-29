@@ -91,6 +91,18 @@ public sealed class WebViewTests
     }
 
     [Fact]
+    public void Keys_carry_the_scan_code_a_page_reads_their_physical_key_from()
+    {
+        _frames.Frame();
+        ClickPage(10f, 10f);
+        View.NativeKeyCodes.Clear();
+
+        _frames.Key(KeyboardKey.W).Key(KeyboardKey.UpArrow).Key(KeyboardKey.Space).Frame();
+
+        Assert.Equal([0x11, 0xE048, 0x39], View.NativeKeyCodes);
+    }
+
+    [Fact]
     public void An_unfocused_page_gets_no_keys()
     {
         _frames.Frame();
@@ -202,8 +214,13 @@ public sealed class WebViewTests
         public void SendMouseButton(float x, float y, WebMouseButton button, bool pressed, int clickCount, WebInputModifiers modifiers) =>
             Events.Add(pressed ? $"down {button} {clickCount}" : $"up {button}");
         public void SendMouseWheel(float x, float y, float deltaX, float deltaY, WebInputModifiers modifiers) => Events.Add($"wheel {deltaX},{deltaY}");
-        public void SendKey(WebKeyEventKind kind, int windowsKeyCode, int nativeKeyCode, char character, WebInputModifiers modifiers, bool isSystemKey) =>
+        public List<int> NativeKeyCodes { get; } = new();
+
+        public void SendKey(WebKeyEventKind kind, int windowsKeyCode, int nativeKeyCode, char character, WebInputModifiers modifiers, bool isSystemKey)
+        {
             Events.Add($"key {kind} {windowsKeyCode}");
+            NativeKeyCodes.Add(nativeKeyCode);
+        }
         public void SetFocus(bool focused) => Events.Add($"focus {focused}");
         public void Dispose() => Disposed = true;
     }

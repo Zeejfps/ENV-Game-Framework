@@ -118,8 +118,8 @@ public sealed class WebPage : IDisposable
         foreach (var stroke in input.Keys)
         {
             _heldKeys.Add(stroke.Key);
-            var code = WebKeys.VirtualKeyOf(stroke.Key);
-            View.SendKey(WebKeyEventKind.RawKeyDown, code, code, '\0', modifiers, isSystemKey: false);
+            var native = WebKeys.NativeKeyCodeOf(stroke.Key);
+            View.SendKey(WebKeyEventKind.RawKeyDown, WebKeys.VirtualKeyOf(stroke.Key), native, '\0', modifiers, isSystemKey: false);
         }
         foreach (var c in input.Text)
             View.SendKey(WebKeyEventKind.Char, c, c, c, WebInputModifiers.None, isSystemKey: false);
@@ -127,8 +127,8 @@ public sealed class WebPage : IDisposable
         {
             if (!_heldKeys.Remove(stroke.Key))
                 continue;
-            var code = WebKeys.VirtualKeyOf(stroke.Key);
-            View.SendKey(WebKeyEventKind.KeyUp, code, code, '\0', modifiers, isSystemKey: false);
+            var native = WebKeys.NativeKeyCodeOf(stroke.Key);
+            View.SendKey(WebKeyEventKind.KeyUp, WebKeys.VirtualKeyOf(stroke.Key), native, '\0', modifiers, isSystemKey: false);
         }
         input.TakeKey(KeyboardKey.Tab);
     }
@@ -154,8 +154,8 @@ public sealed class WebPage : IDisposable
     {
         foreach (var key in _heldKeys)
         {
-            var code = WebKeys.VirtualKeyOf(key);
-            View.SendKey(WebKeyEventKind.KeyUp, code, code, '\0', WebInputModifiers.None, isSystemKey: false);
+            var native = WebKeys.NativeKeyCodeOf(key);
+            View.SendKey(WebKeyEventKind.KeyUp, WebKeys.VirtualKeyOf(key), native, '\0', WebInputModifiers.None, isSystemKey: false);
         }
         _heldKeys.Clear();
     }

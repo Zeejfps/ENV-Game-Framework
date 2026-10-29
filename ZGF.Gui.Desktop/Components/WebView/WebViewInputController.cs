@@ -80,9 +80,9 @@ internal sealed class WebViewInputController : KeyboardMouseController, IProvide
         // command modifiers (Ctrl/Alt/Super) behave, and the natural press→text→release ordering
         // falls out of GLFW delivering OnKey(press) → OnText → OnKey(release).
         var pressed = e.State == InputState.Pressed;
-        var vk = WebKeys.VirtualKeyOf(e.Key);
-        _webView.SendKey(pressed ? WebKeyEventKind.RawKeyDown : WebKeyEventKind.KeyUp,
-            vk, vk, '\0', Modifiers(e.Modifiers), isSystemKey: false);
+        var kind = pressed ? WebKeyEventKind.RawKeyDown : WebKeyEventKind.KeyUp;
+        _webView.SendKey(kind, WebKeys.VirtualKeyOf(e.Key), WebKeys.NativeKeyCodeOf(e.Key), '\0',
+            Modifiers(e.Modifiers), isSystemKey: false);
         // Claim the keystroke (as text, so the character it produces still arrives) so it reaches the
         // page rather than bubbling to the app's own single-key shortcuts while the view is focused.
         if (pressed)
