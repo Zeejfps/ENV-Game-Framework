@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reflection.Metadata;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
@@ -12,11 +13,13 @@ namespace ZGF.ILSpy.Core;
 public sealed record PackagePlace(LoadedAssembly Container, PackageFile File);
 
 /// <summary>
-/// An assembly file known to an <see cref="AssemblyList"/>: one the user opened, or one loaded to
-/// resolve a reference. Its <see cref="Root"/> node, and every node under it, keep their identity
-/// for as long as this object lives.
+/// A file known to an <see cref="AssemblyList"/>: one the user opened, or one loaded to resolve a
+/// reference. It is a <see cref="LoadedModule"/> that was read, a <see cref="FailedAssembly"/> that
+/// could not be, or a <see cref="LoadedPackage"/> whose files are browsed; no other kind can be made.
+/// Its <see cref="Root"/> node, and every node under it, keep their identity for as long as this
+/// object lives.
 /// </summary>
-public sealed class LoadedAssembly
+public abstract class LoadedAssembly
 {
     private static readonly TypeSystemOptions DefaultTypeSystemOptions = DecompilerTypeSystem.GetOptions(Settings.Create());
     private const string NamespaceIdPrefix = "N:";
@@ -33,26 +36,7 @@ public sealed class LoadedAssembly
     private readonly AssemblyLoadException? _loadError;
     private BrowseNode? _rootInPackage;
 
-    internal LoadedAssembly(AssemblyList list, MetadataFile file) : this(list, file.FileName, file, null, null, null)
-    {
-    }
-
-    /// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why.</summary>
-    internal LoadedAssembly(AssemblyList list, AssemblyLoadException error) : this(list, error.FilePath, null, error, null, null)
-    {
-    }
-
-    /// <summary>A package of the list, whose files are browsed as folders.</summary>
-    internal LoadedAssembly(AssemblyList list, AssemblyPackage package) : this(list, package.FilePath, null, null, package, null)
-    {
-    }
-
-    /// <summary>An assembly read out of a package, known by the path <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
-    internal LoadedAssembly(AssemblyList list, MetadataFile file, PackagePlace place) : this(list, file.FileName, file, null, null, place)
-    {
-    }
-
-    private LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
+    private protected LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, AssemblyPackage? package, PackagePlace? place)
     {
         List = list;
         _file = file;
@@ -109,14 +93,13 @@ public sealed class LoadedAssembly
         return picked;
     }
 
-    private BrowseNode CreateRoot()
+    private BrowseNode CreateRoot() => this switch
     {
-        if (_loadError != null)
-            return new FailedAssemblyNode(this);
-        if (Package != null)
-            return new PackageNode(this, Package);
-        return new AssemblyNode(this, null);
-    }
+        FailedAssembly => new FailedAssemblyNode(this),
+        LoadedPackage when Package is { } files => new PackageNode(this, files),
+        LoadedModule => new AssemblyNode(this, null),
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>The absolute path of the file this was loaded from; for an assembly read out of a
     /// package, the path through the package, as <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
@@ -125,7 +108,7 @@ public sealed class LoadedAssembly
     /// <summary>The files of a package, when this is one; null for an assembly.</summary>
     public AssemblyPackage? Package { get; }
 
-    public bool IsPackage => Package != null;
+    public bool IsPackage => this is LoadedPackage;
 
     /// <summary>The package this assembly was read out of, and its file there; null for a file on disk.</summary>
     public PackagePlace? InPackage { get; }
@@ -251,7 +234,7 @@ public sealed class LoadedAssembly
     /// <summary>What went wrong reading the file, in full; null when it was read.</summary>
     public string? LoadErrorDetails => _loadError?.InnerException?.ToString();
 
-    public bool HasLoadError => _loadError != null;
+    public bool HasLoadError => this is FailedAssembly;
 
     /// <summary>The tree's root for this assembly. For an assembly read out of a package, it sits in
     /// the package's tree, under the folder holding its file.</summary>
@@ -307,10 +290,10 @@ public sealed class LoadedAssembly
     public bool CanGeneratePdb => _canGeneratePdb.Value;
 
     /// <summary>Whether a class diagram can be drawn of this assembly: it loaded, with types to read.</summary>
-    public bool CanCreateDiagram => _file != null;
+    public bool CanCreateDiagram => this is LoadedModule;
 
     /// <summary>Whether this assembly's API can be compared with another's: it loaded, with types to read.</summary>
-    public bool CanCompareApi => _file != null;
+    public bool CanCompareApi => this is LoadedModule;
 
     internal AssemblyList List { get; }
     internal MetadataFile File => _file ?? throw new InvalidOperationException($"'{FilePath}' is no assembly that loaded.");
@@ -434,4 +417,32 @@ public sealed class LoadedAssembly
     }
 
     public override string ToString() => FullName;
+}
+
+/// <summary>An assembly or WebCIL module that was read: a file on disk, or, when <see cref="LoadedAssembly.InPackage"/>
+/// says so, one read out of a package, known by the path <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
+public sealed class LoadedModule : LoadedAssembly
+{
+    internal LoadedModule(AssemblyList list, MetadataFile file, PackagePlace? place = null)
+        : base(list, file.FileName, file, null, null, place)
+    {
+    }
+}
+
+/// <summary>A file of the list that could not be read as a .NET assembly, kept listed to show why.</summary>
+public sealed class FailedAssembly : LoadedAssembly
+{
+    internal FailedAssembly(AssemblyList list, AssemblyLoadException error)
+        : base(list, error.FilePath, null, error, null, null)
+    {
+    }
+}
+
+/// <summary>A package of the list, whose files are browsed as folders.</summary>
+public sealed class LoadedPackage : LoadedAssembly
+{
+    internal LoadedPackage(AssemblyList list, AssemblyPackage package)
+        : base(list, package.FilePath, null, null, package, null)
+    {
+    }
 }

@@ -95,7 +95,7 @@ public sealed class AssemblyList
         }
         catch (AssemblyLoadException e)
         {
-            return FindListedFailure(path) ?? new LoadedAssembly(this, e);
+            return FindListedFailure(path) ?? new FailedAssembly(this, e);
         }
     }
 
@@ -770,7 +770,7 @@ public sealed class AssemblyList
             return ReadAssemblyOrPackage(path);
         var inPackage = AssemblyPackage.SplitPath(path);
         if (inPackage == null)
-            return new LoadedAssembly(this, ReadFile(path));
+            return new LoadedModule(this, ReadFile(path));
         var container = Load(inPackage.Value.Package, generation);
         return ReadOutOfPackage(container, path, inPackage.Value.FullName);
     }
@@ -781,7 +781,7 @@ public sealed class AssemblyList
     {
         try
         {
-            return new LoadedAssembly(this, ReadFile(path));
+            return new LoadedModule(this, ReadFile(path));
         }
         catch (AssemblyLoadException)
         {
@@ -796,11 +796,11 @@ public sealed class AssemblyList
     {
         var module = ReadWebCil(path);
         if (module != null)
-            return new LoadedAssembly(this, module);
+            return new LoadedModule(this, module);
         var package = ReadPackage(path);
         if (package == null)
             return null;
-        return new LoadedAssembly(this, package);
+        return new LoadedPackage(this, package);
     }
 
     /// <summary>The assembly <paramref name="path"/> holds as WebCIL, wrapped in WebAssembly the way
@@ -838,7 +838,7 @@ public sealed class AssemblyList
         if (file == null)
             throw new AssemblyLoadException(path, $"'{container.FilePath}' holds no '{fullName}'.");
         var image = ReadPackageFile(package, file);
-        return new LoadedAssembly(this, image, new PackagePlace(container, file));
+        return new LoadedModule(this, image, new PackagePlace(container, file));
     }
 
     private PEFile ReadPackageFile(AssemblyPackage package, PackageFile file)
