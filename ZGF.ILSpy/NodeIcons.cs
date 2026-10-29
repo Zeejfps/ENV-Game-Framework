@@ -1,8 +1,62 @@
+using System.Diagnostics;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy;
+
+/// <summary>The icon a row shows for what it stands for, drawn as the icon theme draws its <c>node.*</c>
+/// key: worked out from a node's subject, or from the kind a saved place or a result names.</summary>
+public enum NodeIcon
+{
+    Assembly,
+    ReferencesFolder,
+    AssemblyReference,
+    ResourcesFolder,
+    Resource,
+    Namespace,
+    Class,
+    Interface,
+    Struct,
+    Enum,
+    Delegate,
+    Record,
+    RecordStruct,
+    BaseTypes,
+    BaseType,
+    Field,
+    Constant,
+    Property,
+    Indexer,
+    Event,
+    Method,
+    Constructor,
+    Operator,
+    Metadata,
+    MetadataHeader,
+    MetadataDirectory,
+    MetadataTables,
+    MetadataTable,
+    MetadataHeap,
+    DerivedTypes,
+    DerivedType,
+    ResourcesFile,
+    ResourceImage,
+    FailedAssembly,
+    ForwardedType,
+    Package,
+    PackageFolder,
+    Bundle,
+    ReferencedTypes,
+    TypeReference,
+    MethodReference,
+    FieldReference,
+    PropertyReference,
+    EventReference,
+    ModuleReference,
+    ImportedMethod,
+}
 
 /// <summary>What a node kind's icon means, which picks its color from a <see cref="NodeIconPalette"/>.</summary>
 public enum NodeIconRole
@@ -18,106 +72,233 @@ public enum NodeIconRole
 /// that colors it.</summary>
 public static class NodeIcons
 {
-    /// <summary>What a node of <paramref name="kind"/> draws in <paramref name="icons"/>.</summary>
-    public static IconGlyph Glyph(NodeKind kind, AppIcons icons) => kind switch
+    /// <summary>The icon of a node of <paramref name="subject"/>.</summary>
+    public static NodeIcon Of(NodeSubject subject) => subject switch
     {
-        NodeKind.Assembly => icons.NodeAssembly,
-        NodeKind.ReferencesFolder => icons.NodeReferencesFolder,
-        NodeKind.AssemblyReference => icons.NodeAssemblyReference,
-        NodeKind.ResourcesFolder => icons.NodeResourcesFolder,
-        NodeKind.Resource => icons.NodeResource,
-        NodeKind.Namespace => icons.NodeNamespace,
-        NodeKind.Class => icons.NodeClass,
-        NodeKind.Interface => icons.NodeInterface,
-        NodeKind.Struct => icons.NodeStruct,
-        NodeKind.Enum => icons.NodeEnum,
-        NodeKind.Delegate => icons.NodeDelegate,
-        NodeKind.Record => icons.NodeRecord,
-        NodeKind.RecordStruct => icons.NodeRecordStruct,
-        NodeKind.BaseTypes => icons.NodeBaseTypes,
-        NodeKind.BaseType => icons.NodeBaseType,
-        NodeKind.Field => icons.NodeField,
-        NodeKind.Constant => icons.NodeConstant,
-        NodeKind.Property => icons.NodeProperty,
-        NodeKind.Indexer => icons.NodeIndexer,
-        NodeKind.Event => icons.NodeEvent,
-        NodeKind.Method => icons.NodeMethod,
-        NodeKind.Constructor => icons.NodeConstructor,
-        NodeKind.Operator => icons.NodeOperator,
-        NodeKind.Metadata => icons.NodeMetadata,
-        NodeKind.MetadataHeader => icons.NodeMetadataHeader,
-        NodeKind.MetadataDirectory => icons.NodeMetadataDirectory,
-        NodeKind.MetadataTables => icons.NodeMetadataTables,
-        NodeKind.MetadataTable => icons.NodeMetadataTable,
-        NodeKind.MetadataHeap => icons.NodeMetadataHeap,
-        NodeKind.DerivedTypes => icons.NodeDerivedTypes,
-        NodeKind.DerivedType => icons.NodeDerivedType,
-        NodeKind.ResourcesFile => icons.NodeResourcesFile,
-        NodeKind.ResourceImage => icons.NodeResourceImage,
-        NodeKind.FailedAssembly => icons.NodeFailedAssembly,
-        NodeKind.ForwardedType => icons.NodeForwardedType,
-        NodeKind.Package => icons.NodePackage,
-        NodeKind.PackageFolder => icons.NodePackageFolder,
-        NodeKind.Bundle => icons.NodeBundle,
-        NodeKind.ReferencedTypes => icons.NodeReferencedTypes,
-        NodeKind.TypeReference => icons.NodeTypeReference,
-        NodeKind.MethodReference => icons.NodeMethodReference,
-        NodeKind.FieldReference => icons.NodeFieldReference,
-        NodeKind.PropertyReference => icons.NodePropertyReference,
-        NodeKind.EventReference => icons.NodeEventReference,
-        NodeKind.ModuleReference => icons.NodeModuleReference,
-        NodeKind.ImportedMethod => icons.NodeImportedMethod,
+        NodeSubject.Module => NodeIcon.Assembly,
+        NodeSubject.FailedAssembly => NodeIcon.FailedAssembly,
+        NodeSubject.Namespace => NodeIcon.Namespace,
+        NodeSubject.TypeDefinition type => Of(type.Definition.Shape),
+        NodeSubject.MemberDefinition member => Of(member.Definition.Shape),
+        NodeSubject.References => NodeIcon.ReferencesFolder,
+        NodeSubject.AssemblyReference => NodeIcon.AssemblyReference,
+        NodeSubject.ReferencedTypes => NodeIcon.ReferencedTypes,
+        NodeSubject.TypeReference => NodeIcon.TypeReference,
+        NodeSubject.MemberReference member => member.Value.Shape switch
+        {
+            MemberShape.Field or MemberShape.Constant => NodeIcon.FieldReference,
+            MemberShape.Property or MemberShape.Indexer => NodeIcon.PropertyReference,
+            MemberShape.Event => NodeIcon.EventReference,
+            MemberShape.Method or MemberShape.Constructor or MemberShape.Operator => NodeIcon.MethodReference,
+            _ => throw new UnreachableException(),
+        },
+        NodeSubject.ModuleReference => NodeIcon.ModuleReference,
+        NodeSubject.ImportedMethod => NodeIcon.ImportedMethod,
+        NodeSubject.ForwardedType => NodeIcon.ForwardedType,
+        NodeSubject.BaseTypes => NodeIcon.BaseTypes,
+        NodeSubject.BaseType => NodeIcon.BaseType,
+        NodeSubject.DerivedTypes => NodeIcon.DerivedTypes,
+        NodeSubject.DerivedType => NodeIcon.DerivedType,
+        NodeSubject.Resources => NodeIcon.ResourcesFolder,
+        NodeSubject.ResourceContainer => NodeIcon.ResourcesFile,
+        NodeSubject.ResourceEntry entry => entry.Value.IsImage ? NodeIcon.ResourceImage : NodeIcon.Resource,
+        NodeSubject.Metadata => NodeIcon.Metadata,
+        NodeSubject.MetadataTables => NodeIcon.MetadataTables,
+        NodeSubject.MetadataTable table => table.Value.Role switch
+        {
+            MetadataGridRole.Header => NodeIcon.MetadataHeader,
+            MetadataGridRole.Directory => NodeIcon.MetadataDirectory,
+            MetadataGridRole.Table => NodeIcon.MetadataTable,
+            MetadataGridRole.Heap => NodeIcon.MetadataHeap,
+            _ => throw new UnreachableException(),
+        },
+        NodeSubject.Package package => !package.Value.IsRoot ? NodeIcon.PackageFolder
+            : package.Value.Package.Package.IsBundle ? NodeIcon.Bundle : NodeIcon.Package,
+        NodeSubject.PackageFile file => file.Value.IsImage ? NodeIcon.ResourceImage : NodeIcon.Resource,
+        _ => throw new UnreachableException(),
+    };
+
+    private static NodeIcon Of(TypeShape shape) => shape switch
+    {
+        TypeShape.Class => NodeIcon.Class,
+        TypeShape.Interface => NodeIcon.Interface,
+        TypeShape.Struct => NodeIcon.Struct,
+        TypeShape.Enum => NodeIcon.Enum,
+        TypeShape.Delegate => NodeIcon.Delegate,
+        TypeShape.Record => NodeIcon.Record,
+        TypeShape.RecordStruct => NodeIcon.RecordStruct,
+        _ => throw new UnreachableException(),
+    };
+
+    private static NodeIcon Of(MemberShape shape) => shape switch
+    {
+        MemberShape.Field => NodeIcon.Field,
+        MemberShape.Constant => NodeIcon.Constant,
+        MemberShape.Property => NodeIcon.Property,
+        MemberShape.Indexer => NodeIcon.Indexer,
+        MemberShape.Event => NodeIcon.Event,
+        MemberShape.Method => NodeIcon.Method,
+        MemberShape.Constructor => NodeIcon.Constructor,
+        MemberShape.Operator => NodeIcon.Operator,
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>The icon of what <paramref name="kind"/> names, for a place saved with its kind or a
+    /// result of a search, a comparison, an analysis or a diagram, which have no subject.</summary>
+    public static NodeIcon Of(NodeKind kind) => kind switch
+    {
+        NodeKind.Assembly => NodeIcon.Assembly,
+        NodeKind.ReferencesFolder => NodeIcon.ReferencesFolder,
+        NodeKind.AssemblyReference => NodeIcon.AssemblyReference,
+        NodeKind.ResourcesFolder => NodeIcon.ResourcesFolder,
+        NodeKind.Resource => NodeIcon.Resource,
+        NodeKind.Namespace => NodeIcon.Namespace,
+        NodeKind.Class => NodeIcon.Class,
+        NodeKind.Interface => NodeIcon.Interface,
+        NodeKind.Struct => NodeIcon.Struct,
+        NodeKind.Enum => NodeIcon.Enum,
+        NodeKind.Delegate => NodeIcon.Delegate,
+        NodeKind.Record => NodeIcon.Record,
+        NodeKind.RecordStruct => NodeIcon.RecordStruct,
+        NodeKind.BaseTypes => NodeIcon.BaseTypes,
+        NodeKind.BaseType => NodeIcon.BaseType,
+        NodeKind.Field => NodeIcon.Field,
+        NodeKind.Constant => NodeIcon.Constant,
+        NodeKind.Property => NodeIcon.Property,
+        NodeKind.Indexer => NodeIcon.Indexer,
+        NodeKind.Event => NodeIcon.Event,
+        NodeKind.Method => NodeIcon.Method,
+        NodeKind.Constructor => NodeIcon.Constructor,
+        NodeKind.Operator => NodeIcon.Operator,
+        NodeKind.Metadata => NodeIcon.Metadata,
+        NodeKind.MetadataHeader => NodeIcon.MetadataHeader,
+        NodeKind.MetadataDirectory => NodeIcon.MetadataDirectory,
+        NodeKind.MetadataTables => NodeIcon.MetadataTables,
+        NodeKind.MetadataTable => NodeIcon.MetadataTable,
+        NodeKind.MetadataHeap => NodeIcon.MetadataHeap,
+        NodeKind.DerivedTypes => NodeIcon.DerivedTypes,
+        NodeKind.DerivedType => NodeIcon.DerivedType,
+        NodeKind.ResourcesFile => NodeIcon.ResourcesFile,
+        NodeKind.ResourceImage => NodeIcon.ResourceImage,
+        NodeKind.FailedAssembly => NodeIcon.FailedAssembly,
+        NodeKind.ForwardedType => NodeIcon.ForwardedType,
+        NodeKind.Package => NodeIcon.Package,
+        NodeKind.PackageFolder => NodeIcon.PackageFolder,
+        NodeKind.Bundle => NodeIcon.Bundle,
+        NodeKind.ReferencedTypes => NodeIcon.ReferencedTypes,
+        NodeKind.TypeReference => NodeIcon.TypeReference,
+        NodeKind.MethodReference => NodeIcon.MethodReference,
+        NodeKind.FieldReference => NodeIcon.FieldReference,
+        NodeKind.PropertyReference => NodeIcon.PropertyReference,
+        NodeKind.EventReference => NodeIcon.EventReference,
+        NodeKind.ModuleReference => NodeIcon.ModuleReference,
+        NodeKind.ImportedMethod => NodeIcon.ImportedMethod,
+        _ => throw new UnreachableException(),
+    };
+
+    /// <summary>The icon of <paramref name="node"/> as the tree shows it, with the overlay of its accessibility.</summary>
+    public static UiIcon Icon(BrowseNode node, NodeIconPalette palette, AppIcons icons) => Icon(Of(node.Subject), node.Accessibility, palette, icons);
+
+    /// <summary>What a node of <paramref name="kind"/> draws in <paramref name="icons"/>.</summary>
+    public static IconGlyph Glyph(NodeIcon kind, AppIcons icons) => kind switch
+    {
+        NodeIcon.Assembly => icons.NodeAssembly,
+        NodeIcon.ReferencesFolder => icons.NodeReferencesFolder,
+        NodeIcon.AssemblyReference => icons.NodeAssemblyReference,
+        NodeIcon.ResourcesFolder => icons.NodeResourcesFolder,
+        NodeIcon.Resource => icons.NodeResource,
+        NodeIcon.Namespace => icons.NodeNamespace,
+        NodeIcon.Class => icons.NodeClass,
+        NodeIcon.Interface => icons.NodeInterface,
+        NodeIcon.Struct => icons.NodeStruct,
+        NodeIcon.Enum => icons.NodeEnum,
+        NodeIcon.Delegate => icons.NodeDelegate,
+        NodeIcon.Record => icons.NodeRecord,
+        NodeIcon.RecordStruct => icons.NodeRecordStruct,
+        NodeIcon.BaseTypes => icons.NodeBaseTypes,
+        NodeIcon.BaseType => icons.NodeBaseType,
+        NodeIcon.Field => icons.NodeField,
+        NodeIcon.Constant => icons.NodeConstant,
+        NodeIcon.Property => icons.NodeProperty,
+        NodeIcon.Indexer => icons.NodeIndexer,
+        NodeIcon.Event => icons.NodeEvent,
+        NodeIcon.Method => icons.NodeMethod,
+        NodeIcon.Constructor => icons.NodeConstructor,
+        NodeIcon.Operator => icons.NodeOperator,
+        NodeIcon.Metadata => icons.NodeMetadata,
+        NodeIcon.MetadataHeader => icons.NodeMetadataHeader,
+        NodeIcon.MetadataDirectory => icons.NodeMetadataDirectory,
+        NodeIcon.MetadataTables => icons.NodeMetadataTables,
+        NodeIcon.MetadataTable => icons.NodeMetadataTable,
+        NodeIcon.MetadataHeap => icons.NodeMetadataHeap,
+        NodeIcon.DerivedTypes => icons.NodeDerivedTypes,
+        NodeIcon.DerivedType => icons.NodeDerivedType,
+        NodeIcon.ResourcesFile => icons.NodeResourcesFile,
+        NodeIcon.ResourceImage => icons.NodeResourceImage,
+        NodeIcon.FailedAssembly => icons.NodeFailedAssembly,
+        NodeIcon.ForwardedType => icons.NodeForwardedType,
+        NodeIcon.Package => icons.NodePackage,
+        NodeIcon.PackageFolder => icons.NodePackageFolder,
+        NodeIcon.Bundle => icons.NodeBundle,
+        NodeIcon.ReferencedTypes => icons.NodeReferencedTypes,
+        NodeIcon.TypeReference => icons.NodeTypeReference,
+        NodeIcon.MethodReference => icons.NodeMethodReference,
+        NodeIcon.FieldReference => icons.NodeFieldReference,
+        NodeIcon.PropertyReference => icons.NodePropertyReference,
+        NodeIcon.EventReference => icons.NodeEventReference,
+        NodeIcon.ModuleReference => icons.NodeModuleReference,
+        NodeIcon.ImportedMethod => icons.NodeImportedMethod,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
-    public static NodeIconRole Role(NodeKind kind) => kind switch
+    public static NodeIconRole Role(NodeIcon kind) => kind switch
     {
-        NodeKind.Assembly => NodeIconRole.Neutral,
-        NodeKind.ReferencesFolder => NodeIconRole.Neutral,
-        NodeKind.AssemblyReference => NodeIconRole.Neutral,
-        NodeKind.ResourcesFolder => NodeIconRole.Neutral,
-        NodeKind.Resource => NodeIconRole.Neutral,
-        NodeKind.Namespace => NodeIconRole.Neutral,
-        NodeKind.Class => NodeIconRole.Type,
-        NodeKind.Interface => NodeIconRole.Type,
-        NodeKind.Struct => NodeIconRole.Type,
-        NodeKind.Enum => NodeIconRole.Type,
-        NodeKind.Delegate => NodeIconRole.Type,
-        NodeKind.Record => NodeIconRole.Type,
-        NodeKind.RecordStruct => NodeIconRole.Type,
-        NodeKind.BaseTypes => NodeIconRole.Neutral,
-        NodeKind.BaseType => NodeIconRole.Type,
-        NodeKind.Field => NodeIconRole.Data,
-        NodeKind.Constant => NodeIconRole.Data,
-        NodeKind.Property => NodeIconRole.Data,
-        NodeKind.Indexer => NodeIconRole.Data,
-        NodeKind.Event => NodeIconRole.Data,
-        NodeKind.Method => NodeIconRole.Method,
-        NodeKind.Constructor => NodeIconRole.Method,
-        NodeKind.Operator => NodeIconRole.Method,
-        NodeKind.Metadata => NodeIconRole.Neutral,
-        NodeKind.MetadataHeader => NodeIconRole.Neutral,
-        NodeKind.MetadataDirectory => NodeIconRole.Neutral,
-        NodeKind.MetadataTables => NodeIconRole.Neutral,
-        NodeKind.MetadataTable => NodeIconRole.Data,
-        NodeKind.MetadataHeap => NodeIconRole.Data,
-        NodeKind.DerivedTypes => NodeIconRole.Neutral,
-        NodeKind.DerivedType => NodeIconRole.Type,
-        NodeKind.ResourcesFile => NodeIconRole.Neutral,
-        NodeKind.ResourceImage => NodeIconRole.Neutral,
-        NodeKind.FailedAssembly => NodeIconRole.Error,
-        NodeKind.ForwardedType => NodeIconRole.Type,
-        NodeKind.Package => NodeIconRole.Neutral,
-        NodeKind.PackageFolder => NodeIconRole.Neutral,
-        NodeKind.Bundle => NodeIconRole.Neutral,
-        NodeKind.ReferencedTypes => NodeIconRole.Neutral,
-        NodeKind.TypeReference => NodeIconRole.Type,
-        NodeKind.MethodReference => NodeIconRole.Method,
-        NodeKind.FieldReference => NodeIconRole.Data,
-        NodeKind.PropertyReference => NodeIconRole.Data,
-        NodeKind.EventReference => NodeIconRole.Data,
-        NodeKind.ModuleReference => NodeIconRole.Neutral,
-        NodeKind.ImportedMethod => NodeIconRole.Method,
+        NodeIcon.Assembly => NodeIconRole.Neutral,
+        NodeIcon.ReferencesFolder => NodeIconRole.Neutral,
+        NodeIcon.AssemblyReference => NodeIconRole.Neutral,
+        NodeIcon.ResourcesFolder => NodeIconRole.Neutral,
+        NodeIcon.Resource => NodeIconRole.Neutral,
+        NodeIcon.Namespace => NodeIconRole.Neutral,
+        NodeIcon.Class => NodeIconRole.Type,
+        NodeIcon.Interface => NodeIconRole.Type,
+        NodeIcon.Struct => NodeIconRole.Type,
+        NodeIcon.Enum => NodeIconRole.Type,
+        NodeIcon.Delegate => NodeIconRole.Type,
+        NodeIcon.Record => NodeIconRole.Type,
+        NodeIcon.RecordStruct => NodeIconRole.Type,
+        NodeIcon.BaseTypes => NodeIconRole.Neutral,
+        NodeIcon.BaseType => NodeIconRole.Type,
+        NodeIcon.Field => NodeIconRole.Data,
+        NodeIcon.Constant => NodeIconRole.Data,
+        NodeIcon.Property => NodeIconRole.Data,
+        NodeIcon.Indexer => NodeIconRole.Data,
+        NodeIcon.Event => NodeIconRole.Data,
+        NodeIcon.Method => NodeIconRole.Method,
+        NodeIcon.Constructor => NodeIconRole.Method,
+        NodeIcon.Operator => NodeIconRole.Method,
+        NodeIcon.Metadata => NodeIconRole.Neutral,
+        NodeIcon.MetadataHeader => NodeIconRole.Neutral,
+        NodeIcon.MetadataDirectory => NodeIconRole.Neutral,
+        NodeIcon.MetadataTables => NodeIconRole.Neutral,
+        NodeIcon.MetadataTable => NodeIconRole.Data,
+        NodeIcon.MetadataHeap => NodeIconRole.Data,
+        NodeIcon.DerivedTypes => NodeIconRole.Neutral,
+        NodeIcon.DerivedType => NodeIconRole.Type,
+        NodeIcon.ResourcesFile => NodeIconRole.Neutral,
+        NodeIcon.ResourceImage => NodeIconRole.Neutral,
+        NodeIcon.FailedAssembly => NodeIconRole.Error,
+        NodeIcon.ForwardedType => NodeIconRole.Type,
+        NodeIcon.Package => NodeIconRole.Neutral,
+        NodeIcon.PackageFolder => NodeIconRole.Neutral,
+        NodeIcon.Bundle => NodeIconRole.Neutral,
+        NodeIcon.ReferencedTypes => NodeIconRole.Neutral,
+        NodeIcon.TypeReference => NodeIconRole.Type,
+        NodeIcon.MethodReference => NodeIconRole.Method,
+        NodeIcon.FieldReference => NodeIconRole.Data,
+        NodeIcon.PropertyReference => NodeIconRole.Data,
+        NodeIcon.EventReference => NodeIconRole.Data,
+        NodeIcon.ModuleReference => NodeIconRole.Neutral,
+        NodeIcon.ImportedMethod => NodeIconRole.Method,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -134,7 +315,7 @@ public static class NodeIcons
     /// <summary>The icon of a node of <paramref name="kind"/> as the tree shows it: drawn as
     /// <paramref name="icons"/> draw it, colored from <paramref name="palette"/>, with the overlay of its
     /// <paramref name="accessibility"/>.</summary>
-    public static UiIcon Icon(NodeKind kind, NodeAccessibility accessibility, NodeIconPalette palette, AppIcons icons) =>
+    public static UiIcon Icon(NodeIcon kind, NodeAccessibility accessibility, NodeIconPalette palette, AppIcons icons) =>
         new(Glyph(kind, icons), palette.For(kind), Overlay: Overlay(accessibility, icons), OverlayColor: palette.Restricted);
 
     /// <summary>The icon of the row shown while a node's children are being read.</summary>
@@ -145,7 +326,7 @@ public static class NodeIcons
 
     /// <summary>Records <paramref name="kind"/>'s <see cref="Icon"/> as the tree shows it, in the screen's
     /// icons and icon colors.</summary>
-    public static void Draw(Ui<UiState> ui, NodeKind kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
+    public static void Draw(Ui<UiState> ui, NodeIcon kind, NodeAccessibility accessibility = NodeAccessibility.None) =>
         ui.Icon(Icon(kind, accessibility, ui.State.NodeIconPalette, ui.State.Icons));
 }
 
@@ -173,5 +354,5 @@ public sealed partial class NodeIconPalette
         _ => Neutral,
     };
 
-    public uint For(NodeKind kind) => this[NodeIcons.Role(kind)];
+    public uint For(NodeIcon kind) => this[NodeIcons.Role(kind)];
 }

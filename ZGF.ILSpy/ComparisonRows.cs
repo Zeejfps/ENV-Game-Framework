@@ -163,7 +163,7 @@ public sealed class ComparisonRows : ITreeModel<ApiEntry>
 
     private TreeRow CreateRow(ApiEntry entry)
     {
-        var icon = NodeIcons.Icon(entry.Kind, entry.Accessibility, _iconColors, _icons);
+        var icon = NodeIcons.Icon(NodeIcons.Of(entry.Kind), entry.Accessibility, _iconColors, _icons);
         var color = ColorOf(entry);
         var tooltip = DescribeDeclarations(entry);
         var change = NameChange(entry.Change);

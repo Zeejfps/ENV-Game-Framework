@@ -157,7 +157,7 @@ public sealed class HistoryTests
 
         ClickBackDropdown(app);
         var row = app.Frames.Canvas.Texts.Last(t => t.Inputs.Text == "Outline").Inputs.Position;
-        var glyph = Text(NodeIcons.Glyph(outline.Kind, Icons));
+        var glyph = Text(NodeIcons.Glyph(NodeIcons.Of(outline.Subject), Icons));
 
         Assert.Contains(app.Frames.Canvas.Texts, t => t.Inputs.Text == glyph && t.Inputs.Position.Left < row.Left
             && MathF.Abs(t.Inputs.Position.Top - t.Inputs.Position.Height / 2 - (row.Top - row.Height / 2)) < 2f);

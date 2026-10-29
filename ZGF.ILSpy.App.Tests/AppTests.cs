@@ -464,7 +464,7 @@ public sealed class AppTests
         var assembliesTab = app.TextRect("Assemblies");
 
         Assert.True(DrewIconBefore(app, Icons.PanelAssemblies, assembliesTab));
-        Assert.True(DrewIconBefore(app, NodeIcons.Glyph(shown.Node!.Kind, Icons), documentTab));
+        Assert.True(DrewIconBefore(app, NodeIcons.Glyph(NodeIcons.Of(shown.Node!.Subject), Icons), documentTab));
     }
 
     [Fact]

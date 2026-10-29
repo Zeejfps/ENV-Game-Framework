@@ -211,7 +211,7 @@ internal sealed class DiagramFrame
 
     /// <summary>The icon of a node of <paramref name="kind"/> as the tree draws it, with the overlay of its
     /// <paramref name="accessibility"/>.</summary>
-    private void PaintIcon(UiPainter p, UiRect row, float left, NodeKind kind, NodeAccessibility accessibility)
+    private void PaintIcon(UiPainter p, UiRect row, float left, NodeIcon kind, NodeAccessibility accessibility)
     {
         var size = MathF.Round(Theme.IconSize * Zoom);
         if (size < MinIconSize)

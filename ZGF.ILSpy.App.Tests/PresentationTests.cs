@@ -9,7 +9,7 @@ public sealed class PresentationTests
     [Fact]
     public void Every_node_kind_has_its_own_icon_font_glyph_and_a_colored_role_in_both_palettes()
     {
-        var kinds = Enum.GetValues<NodeKind>();
+        var kinds = Enum.GetValues<NodeIcon>();
 
         foreach (var kind in kinds)
         {
@@ -20,6 +20,27 @@ public sealed class PresentationTests
             Assert.NotEqual(0u, BuiltInThemes.Light.Icons.For(kind));
         }
         Assert.Equal(kinds.Length, kinds.Select(k => NodeIcons.Glyph(k, Icons)).Distinct().Count());
+    }
+
+    [Fact]
+    public void Every_node_draws_the_icon_its_subject_names_as_its_kind_names_it()
+    {
+        var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
+        var pending = new Queue<BrowseNode>([root]);
+        var seen = new HashSet<NodeIcon>();
+
+        while (pending.Count > 0)
+        {
+            var node = pending.Dequeue();
+            Assert.Equal(NodeIcons.Of(node.Kind), NodeIcons.Of(node.Subject));
+            seen.Add(NodeIcons.Of(node.Subject));
+            if (node.Subject is NodeSubject.AssemblyReference)
+                continue;
+            foreach (var child in node.Children)
+                pending.Enqueue(child);
+        }
+
+        Assert.True(seen.Count > 25, $"{seen.Count} icons");
     }
 
     [Fact]

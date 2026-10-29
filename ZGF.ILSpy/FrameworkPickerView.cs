@@ -105,7 +105,7 @@ internal static class FrameworkPickerView
             using (var row = list.Row(i, ui.GetId("row"), new Box { Gap = theme.GapTight }))
             {
                 var nameColor = row.Selected ? theme.SelectionText : theme.Text;
-                NodeIcons.Draw(ui, NodeKind.Assembly);
+                NodeIcons.Draw(ui, NodeIcon.Assembly);
                 using (ui.Row(new Box { Gap = theme.Gap, AlignY = Align.Center }))
                 {
                     ui.Text(assembly.Name, new Box { Width = Sizing.Grow() }, color: nameColor, overflow: TextOverflow.Ellipsis);

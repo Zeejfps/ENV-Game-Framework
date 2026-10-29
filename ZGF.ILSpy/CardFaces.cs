@@ -28,7 +28,7 @@ public readonly record struct CardRow(
     float Height,
     float Indent,
     string Text,
-    NodeKind? Icon = null,
+    NodeIcon? Icon = null,
     NodeAccessibility Accessibility = NodeAccessibility.None,
     CodeReference? Target = null,
     CardFold? Fold = null,

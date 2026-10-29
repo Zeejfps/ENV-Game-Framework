@@ -38,6 +38,26 @@ internal static class EntityText
             _ => NodeKind.Method,
         };
 
+    /// <summary>What sort of type <paramref name="type"/> is.</summary>
+    public static TypeShape ShapeOf(ITypeDefinition type) => type.Kind switch
+    {
+        TypeKind.Interface => TypeShape.Interface,
+        TypeKind.Struct => type.IsRecord ? TypeShape.RecordStruct : TypeShape.Struct,
+        TypeKind.Enum => TypeShape.Enum,
+        TypeKind.Delegate => TypeShape.Delegate,
+        _ => type.IsRecord ? TypeShape.Record : TypeShape.Class,
+    };
+
+    /// <summary>What sort of member <paramref name="member"/> is.</summary>
+    public static MemberShape ShapeOf(IMember member) => member switch
+    {
+        IField field => field.IsConst ? MemberShape.Constant : MemberShape.Field,
+        IProperty property => property.IsIndexer ? MemberShape.Indexer : MemberShape.Property,
+        IEvent => MemberShape.Event,
+        IMethod method => method.IsConstructor ? MemberShape.Constructor : method.IsOperator ? MemberShape.Operator : MemberShape.Method,
+        _ => MemberShape.Method,
+    };
+
     public static string FullName(IEntity entity) =>
         entity is ITypeDefinition type
             ? type.DeclaringTypeDefinition != null

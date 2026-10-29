@@ -113,7 +113,7 @@ internal static class OmnibarView
             Radius = theme.CornerRadius,
         }))
         {
-            NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+            NodeIcons.Draw(ui, NodeIcons.Of(node.Subject), node.Accessibility);
             ui.Text(crumb.Label, new Box { Width = Sizing.Shrink() }, color: CrumbColor(theme, node), overflow: TextOverflow.Ellipsis);
         }
         ui.Tooltip(i.Id, NodeText.Tooltip(node));
@@ -305,7 +305,7 @@ internal static class OmnibarView
         using var id = ui.Id(RuntimeHelpers.GetHashCode(child));
         using var row = list.Row(index, ui.GetId("child"), new Box { Gap = theme.GapTight });
         var color = row.Selected ? theme.SelectionText : CrumbColor(theme, child);
-        NodeIcons.Draw(ui, child.Kind, child.Accessibility);
+        NodeIcons.Draw(ui, NodeIcons.Of(child.Subject), child.Accessibility);
         ui.Text(ui.State.Tree.RowLabel(child), new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
         if (row.Interaction.Clicked)
             return new PickedChild(child, IsCommandHeld(ui));
@@ -437,7 +437,7 @@ internal static class OmnibarView
         var nameColor = selected ? theme.SelectionText : theme.Text;
         using (ui.Row(i.Id, SuggestionBox(theme, selected, i.Hovered)))
         {
-            NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+            NodeIcons.Draw(ui, NodeIcons.Of(node.Subject), node.Accessibility);
             ui.Text(match.Text, new Box { Width = Sizing.Grow() with { Priority = 1 } }, color: nameColor, overflow: TextOverflow.Ellipsis);
             ui.Text(match.Location, new Box { Width = Sizing.Shrink() }, color: theme.TextMuted, size: theme.FontSizeSmall, overflow: TextOverflow.EllipsisMiddle);
         }

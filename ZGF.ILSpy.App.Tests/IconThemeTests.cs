@@ -66,7 +66,7 @@ public sealed class BuiltInIconThemeTests
     {
         var icons = BuiltInIconThemes.Reference.Icons;
 
-        foreach (var kind in Enum.GetValues<NodeKind>())
+        foreach (var kind in Enum.GetValues<NodeIcon>())
         {
             var key = "node." + char.ToLowerInvariant(kind.ToString()[0]) + kind.ToString().Substring(1);
             Assert.Equal(BuiltInIconThemes.Reference.Set.Find(key), NodeIcons.Glyph(kind, icons));

@@ -385,7 +385,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     public TreeRow Row(BrowseNode node) => new(
         RowLabel(node),
-        NodeIcons.Icon(node.Kind, node.Accessibility, _iconColors, _icons),
+        NodeIcons.Icon(node, _iconColors, _icons),
         node.IsPublicApi ? 0u : _theme.TextMuted,
         Tooltip: NodeText.Tooltip(node),
         Secondary: SecondaryOf(node),

@@ -5,6 +5,31 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
+/// <summary>What sort of type a type is.</summary>
+public enum TypeShape
+{
+    Class,
+    Interface,
+    Struct,
+    Enum,
+    Delegate,
+    Record,
+    RecordStruct,
+}
+
+/// <summary>What sort of member a member is.</summary>
+public enum MemberShape
+{
+    Field,
+    Constant,
+    Property,
+    Indexer,
+    Event,
+    Method,
+    Constructor,
+    Operator,
+}
+
 /// <summary>What a node of the browse tree stands for.</summary>
 public abstract class NodeSubject
 {
@@ -209,6 +234,9 @@ public sealed class MemberReferenceInfo
     public IMember Declared { get; }
 
     public string FullName { get; }
+
+    /// <summary>What sort of member is used, as its type declares it.</summary>
+    public MemberShape Shape => EntityText.ShapeOf(Declared);
 }
 
 /// <summary>A module <see cref="Module"/> references: a native library it calls into, or another module
@@ -432,6 +460,8 @@ public sealed class DefinedType
 
     public NavigationAddress Address { get; }
 
+    public TypeShape Shape => EntityText.ShapeOf(Symbol);
+
     /// <summary>The definition of <paramref name="type"/> in <paramref name="module"/>; null when it has no
     /// metadata file or token, as a type the decompiler made up has not.</summary>
     internal static DefinedType? Of(LoadedModule module, ITypeDefinition type)
@@ -462,6 +492,8 @@ public sealed class DefinedMember
     public EntityHandle Handle => Address.Handle;
 
     public NavigationAddress Address { get; }
+
+    public MemberShape Shape => EntityText.ShapeOf(Symbol);
 
     /// <summary>The definition of <paramref name="member"/> in <paramref name="module"/>; null when it has
     /// no metadata file or token.</summary>

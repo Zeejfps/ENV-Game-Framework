@@ -36,6 +36,9 @@ public sealed class ResourceEntryInfo : IResourceData
 
     internal ResourceSource Source { get; }
 
+    /// <summary>Whether it is shown as a picture: named as a picture is, and no BAML.</summary>
+    public bool IsImage => Source is not ResourceSource.Baml && ResourceImage.IsImageName(Name);
+
     public string Description => Source switch
     {
         ResourceSource.Manifest manifest => ResourceNodes.Describe(manifest.Resource),

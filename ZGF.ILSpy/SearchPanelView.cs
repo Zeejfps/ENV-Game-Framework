@@ -237,7 +237,7 @@ internal static class SearchPanelView
         var color = row.Selected ? theme.SelectionText : theme.Text;
         using (row.Cell(0))
         {
-            NodeIcons.Draw(ui, node.Kind, node.Accessibility);
+            NodeIcons.Draw(ui, NodeIcons.Of(node.Subject), node.Accessibility);
             ui.Text(result.Text, new Box { Width = Sizing.Grow() }, color: color, overflow: TextOverflow.Ellipsis);
         }
     }
@@ -257,18 +257,18 @@ internal static class SearchPanelView
         _ => throw new UnreachableException(),
     };
 
-    private static NodeKind KindNode(SearchKinds kind) => kind switch
+    private static NodeIcon KindNode(SearchKinds kind) => kind switch
     {
-        SearchKinds.Types => NodeKind.Class,
-        SearchKinds.Methods => NodeKind.Method,
-        SearchKinds.Fields => NodeKind.Field,
-        SearchKinds.Properties => NodeKind.Property,
-        SearchKinds.Events => NodeKind.Event,
-        SearchKinds.Literals => NodeKind.Constant,
-        SearchKinds.Tokens => NodeKind.MetadataTable,
-        SearchKinds.Resources => NodeKind.Resource,
-        SearchKinds.Assemblies => NodeKind.Assembly,
-        SearchKinds.Namespaces => NodeKind.Namespace,
+        SearchKinds.Types => NodeIcon.Class,
+        SearchKinds.Methods => NodeIcon.Method,
+        SearchKinds.Fields => NodeIcon.Field,
+        SearchKinds.Properties => NodeIcon.Property,
+        SearchKinds.Events => NodeIcon.Event,
+        SearchKinds.Literals => NodeIcon.Constant,
+        SearchKinds.Tokens => NodeIcon.MetadataTable,
+        SearchKinds.Resources => NodeIcon.Resource,
+        SearchKinds.Assemblies => NodeIcon.Assembly,
+        SearchKinds.Namespaces => NodeIcon.Namespace,
         _ => throw new UnreachableException(),
     };
 }

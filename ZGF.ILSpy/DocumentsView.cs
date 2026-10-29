@@ -156,7 +156,7 @@ internal static class DocumentsView
         var node = tab.Node;
         if (node == null)
             return new UiIcon(screen.Icons.TabPage);
-        return NodeIcons.Icon(node.Kind, node.Accessibility, screen.NodeIconPalette, screen.Icons);
+        return NodeIcons.Icon(node, screen.NodeIconPalette, screen.Icons);
     }
 
     /// <summary>The tab's title: its node's name as the tree labels it, a report's, else its own title, else a new tab's.</summary>

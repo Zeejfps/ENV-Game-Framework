@@ -71,7 +71,7 @@ public sealed class BuiltInThemeTests
 
         foreach (var kind in Enum.GetValues<SpanKind>())
             Assert.NotEqual(0u, theme.Code[kind]);
-        foreach (var kind in Enum.GetValues<NodeKind>())
+        foreach (var kind in Enum.GetValues<NodeIcon>())
             Assert.NotEqual(0u, theme.Icons.For(kind));
         Assert.NotEqual(0u, theme.Icons.Restricted);
         Assert.NotEqual(0u, theme.Code.CurrentLine);

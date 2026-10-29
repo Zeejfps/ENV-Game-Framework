@@ -43,6 +43,9 @@ public sealed class PackageFileInfo : IResourceData
 
     public PackageFile File { get; }
 
+    /// <summary>Whether it is shown as a picture, being named as one is.</summary>
+    public bool IsImage => ResourceImage.IsImageName(File.Name);
+
     public string Description => $"{File.FullName} ({File.Length} bytes)";
 
     public string FileName => File.Name;

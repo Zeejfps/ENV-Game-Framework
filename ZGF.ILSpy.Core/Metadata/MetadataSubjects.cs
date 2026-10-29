@@ -110,6 +110,16 @@ public sealed class MetadataTableInfo
 
     internal MetadataPart Part { get; }
 
+    /// <summary>What the part lists as a grid would: the debug directory a directory, and a table shown
+    /// by its row count or a debug entry a table.</summary>
+    public MetadataGridRole Role => Part switch
+    {
+        MetadataPart.Grid grid => grid.Role,
+        MetadataPart.DebugDirectory => MetadataGridRole.Directory,
+        MetadataPart.RowCount or MetadataPart.DecodedDebugEntry or MetadataPart.RawDebugEntry => MetadataGridRole.Table,
+        _ => throw new UnreachableException(),
+    };
+
     /// <summary>The grid shown, made the first time it is asked for; null for a part shown as text.</summary>
     public MetadataGrid? Grid => Part switch
     {

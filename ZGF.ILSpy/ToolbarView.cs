@@ -189,7 +189,7 @@ internal static class ToolbarView
 
     private static UiIcon IconOf(UiState screen, HistoryEntry entry) => entry switch
     {
-        HistoryEntry.Node node => NodeIcons.Icon(node.Place.Kind, node.Accessibility, screen.NodeIconPalette, screen.Icons),
+        HistoryEntry.Node node => NodeIcons.Icon(NodeIcons.Of(node.Place.Kind), node.Accessibility, screen.NodeIconPalette, screen.Icons),
         HistoryEntry.Diagram => new UiIcon(screen.Icons.TabDiagram),
         _ => throw new UnreachableException(),
     };
