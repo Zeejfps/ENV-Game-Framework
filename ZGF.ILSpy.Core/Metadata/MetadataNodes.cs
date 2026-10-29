@@ -6,9 +6,11 @@ using ICSharpCode.Decompiler.Metadata;
 namespace ZGF.ILSpy.Core.Metadata;
 
 /// <summary>A metadata node shown as comment lines rather than a grid.</summary>
-internal abstract class MetadataTextNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, string text)
-    : BrowseNode(assembly, parent, kind, text)
+internal abstract class MetadataTextNode(LoadedModule assembly, BrowseNode parent, NodeKind kind, string text)
+    : BrowseNode(assembly, parent, kind, text), IModuleNode
 {
+    public LoadedModule Module { get; } = assembly;
+
     internal abstract IEnumerable<string> Lines();
 }
 
@@ -16,7 +18,7 @@ internal abstract class MetadataTextNode(LoadedAssembly assembly, BrowseNode par
 /// ILSpy's "Metadata" folder: the raw CLI metadata of <see cref="File"/> — for a PE file its
 /// headers and debug directory, then the tables and the four heaps.
 /// </summary>
-internal sealed class MetadataFolderNode(LoadedAssembly assembly, BrowseNode parent, MetadataFile file, string title)
+internal sealed class MetadataFolderNode(LoadedModule assembly, BrowseNode parent, MetadataFile file, string title)
     : MetadataTextNode(assembly, parent, NodeKind.Metadata, title)
 {
     public MetadataFile File { get; } = file;
@@ -52,20 +54,20 @@ internal sealed class MetadataFolderNode(LoadedAssembly assembly, BrowseNode par
         if (File is PEFile pe)
         {
             foreach (var header in (ReadOnlySpan<GridSchema>)[PEHeaderEntries.Dos(pe), PEHeaderEntries.Coff(pe), PEHeaderEntries.Optional(pe)])
-                result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeader, header.Key, File, header));
+                result.Add(new MetadataGridNode(Module, this, NodeKind.MetadataHeader, header.Key, File, header));
             var directories = PEHeaderEntries.DataDirectories(pe);
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataDirectory, directories.Key, File, directories));
-            result.Add(new DebugDirectoryNode(Assembly, this, pe));
+            result.Add(new MetadataGridNode(Module, this, NodeKind.MetadataDirectory, directories.Key, File, directories));
+            result.Add(new DebugDirectoryNode(Module, this, pe));
         }
-        result.Add(new MetadataTablesNode(Assembly, this, File));
+        result.Add(new MetadataTablesNode(Module, this, File));
         foreach (var (title, heap) in MetadataHeaps.Create(File))
-            result.Add(new MetadataGridNode(Assembly, this, NodeKind.MetadataHeap, title, File, heap));
+            result.Add(new MetadataGridNode(Module, this, NodeKind.MetadataHeap, title, File, heap));
         return result.ToArray();
     }
 }
 
 /// <summary>ILSpy's "Tables" folder: one node per table with rows.</summary>
-internal sealed class MetadataTablesNode(LoadedAssembly assembly, BrowseNode parent, MetadataFile file)
+internal sealed class MetadataTablesNode(LoadedModule assembly, BrowseNode parent, MetadataFile file)
     : MetadataTextNode(assembly, parent, NodeKind.MetadataTables, "Tables")
 {
     private protected override bool MayHaveChildren => true;
@@ -99,17 +101,17 @@ internal sealed class MetadataTablesNode(LoadedAssembly assembly, BrowseNode par
     private BrowseNode CreateTableNode(TableIndex index, int rows)
     {
         if (rows == 0)
-            return new TableRowCountNode(Assembly, this, index, rows) { IsEmptyTable = true };
+            return new TableRowCountNode(Module, this, index, rows) { IsEmptyTable = true };
         var table = MetadataTables.Create(index, file);
         if (table == null)
-            return new TableRowCountNode(Assembly, this, index, rows);
-        return new MetadataGridNode(Assembly, this, NodeKind.MetadataTable, $"{(byte)index:X2} {index} ({rows})", file, table);
+            return new TableRowCountNode(Module, this, index, rows);
+        return new MetadataGridNode(Module, this, NodeKind.MetadataTable, $"{(byte)index:X2} {index} ({rows})", file, table);
     }
 }
 
 /// <summary>A table shown only by how many rows it has: one that is empty, or one whose rows ILSpy
 /// does not list.</summary>
-internal sealed class TableRowCountNode(LoadedAssembly assembly, BrowseNode parent, TableIndex table, int rows)
+internal sealed class TableRowCountNode(LoadedModule assembly, BrowseNode parent, TableIndex table, int rows)
     : MetadataTextNode(assembly, parent, NodeKind.MetadataTable, $"{(byte)table:X2} {table} ({rows})")
 {
     internal override IEnumerable<string> Lines() => [$"{table}: {rows} rows"];
@@ -117,9 +119,11 @@ internal sealed class TableRowCountNode(LoadedAssembly assembly, BrowseNode pare
 
 /// <summary>A node shown as a grid: a metadata header, directory, table or heap, or the entries
 /// of a <c>.resources</c> file.</summary>
-internal class MetadataGridNode(LoadedAssembly assembly, BrowseNode parent, NodeKind kind, string text, MetadataFile file, GridSchema schema)
-    : BrowseNode(assembly, parent, kind, text)
+internal class MetadataGridNode(LoadedModule assembly, BrowseNode parent, NodeKind kind, string text, MetadataFile file, GridSchema schema)
+    : BrowseNode(assembly, parent, kind, text), IModuleNode
 {
+    public LoadedModule Module { get; } = assembly;
+
     private readonly Lock _gate = new();
     private MetadataGrid? _grid;
 
@@ -152,7 +156,7 @@ internal class MetadataGridNode(LoadedAssembly assembly, BrowseNode parent, Node
 }
 
 /// <summary>ILSpy's "Debug Directory": its entries as a grid, and each as a node of its own.</summary>
-internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode parent, PEFile file)
+internal sealed class DebugDirectoryNode(LoadedModule assembly, BrowseNode parent, PEFile file)
     : MetadataGridNode(assembly, parent, NodeKind.MetadataDirectory, "Debug Directory", file, PEHeaderEntries.DebugDirectory(file))
 {
     private protected override bool MayHaveChildren => true;
@@ -169,24 +173,24 @@ internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode par
                 {
                     case DebugDirectoryEntryType.CodeView:
                         var codeView = reader.ReadCodeViewDebugDirectoryData(entry);
-                        result.Add(new DebugEntryNode(Assembly, this, file, entry, [$"GUID: {codeView.Guid}", $"Age: {codeView.Age}", $"Path: {codeView.Path}"]));
+                        result.Add(new DebugEntryNode(Module, this, file, entry, [$"GUID: {codeView.Guid}", $"Age: {codeView.Age}", $"Path: {codeView.Path}"]));
                         continue;
                     case DebugDirectoryEntryType.PdbChecksum:
                         var checksum = reader.ReadPdbChecksumDebugDirectoryData(entry);
-                        result.Add(new DebugEntryNode(Assembly, this, file, entry,
+                        result.Add(new DebugEntryNode(Module, this, file, entry,
                             [$"AlgorithmName: {checksum.AlgorithmName}", $"Checksum: {Convert.ToHexStringLower(checksum.Checksum.AsSpan())}"]));
                         continue;
                     case DebugDirectoryEntryType.EmbeddedPortablePdb:
                         var symbols = EmbeddedSymbols();
                         if (symbols != null)
-                            result.Add(new MetadataFolderNode(Assembly, this, symbols.File, symbols.Title));
+                            result.Add(new MetadataFolderNode(Module, this, symbols.File, symbols.Title));
                         continue;
                 }
             }
             catch (BadImageFormatException)
             {
             }
-            result.Add(new DebugEntryNode(Assembly, this, file, entry, null));
+            result.Add(new DebugEntryNode(Module, this, file, entry, null));
         }
         return result.ToArray();
     }
@@ -194,7 +198,7 @@ internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode par
     /// <summary>The embedded PDB the assembly already loaded, or null when it could not be read.</summary>
     private DebugSymbols? EmbeddedSymbols()
     {
-        var symbols = Assembly.DebugSymbols;
+        var symbols = Module.DebugSymbols;
         if (symbols == null)
             return null;
         if (!symbols.File.IsEmbedded)
@@ -204,7 +208,7 @@ internal sealed class DebugDirectoryNode(LoadedAssembly assembly, BrowseNode par
 }
 
 /// <summary>One entry of the debug directory: what ILSpy decodes of it, else its raw bytes.</summary>
-internal sealed class DebugEntryNode(LoadedAssembly assembly, BrowseNode parent, PEFile file, DebugDirectoryEntry entry, string[]? decoded)
+internal sealed class DebugEntryNode(LoadedModule assembly, BrowseNode parent, PEFile file, DebugDirectoryEntry entry, string[]? decoded)
     : MetadataTextNode(assembly, parent, NodeKind.MetadataTable, entry.Type.ToString())
 {
     internal override IEnumerable<string> Lines()

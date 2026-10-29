@@ -11,16 +11,26 @@ using MetadataResource = ICSharpCode.Decompiler.Metadata.Resource;
 
 namespace ZGF.ILSpy.Core;
 
-internal sealed class AssemblyNode : BrowseNode
+/// <summary>A node of a module that was read: one under its <see cref="AssemblyNode"/>, showing what
+/// <see cref="Module"/> holds.</summary>
+internal interface IModuleNode
+{
+    LoadedModule Module { get; }
+}
+
+internal sealed class AssemblyNode : BrowseNode, IModuleNode
 {
     private Dictionary<string, NamespaceNode>? _namespaces;
     private BrowseNode[]? _nested;
 
-    public AssemblyNode(LoadedAssembly assembly, BrowseNode? parent) : base(assembly, parent, NodeKind.Assembly, LabelOf(assembly))
+    public LoadedModule Module { get; }
+
+    public AssemblyNode(LoadedModule assembly, BrowseNode? parent) : base(assembly, parent, NodeKind.Assembly, LabelOf(assembly))
     {
+        Module = assembly;
     }
 
-    public override string FullName => Assembly.FullName;
+    public override string FullName => Module.FullName;
 
     private protected override bool MayHaveChildren => true;
 
@@ -38,7 +48,7 @@ internal sealed class AssemblyNode : BrowseNode
             return null;
         var metadata = Children
             .OfType<MetadataFolderNode>()
-            .FirstOrDefault(f => ReferenceEquals(f.File, Assembly.File));
+            .FirstOrDefault(f => ReferenceEquals(f.File, Module.File));
         if (metadata == null)
             return null;
         var table = metadata.FindTable(index);
@@ -50,17 +60,17 @@ internal sealed class AssemblyNode : BrowseNode
 
     private protected override BrowseNode[] CreateChildren()
     {
-        var file = Assembly.File;
-        var result = new List<BrowseNode> { new MetadataFolderNode(Assembly, this, file, "Metadata") };
-        var symbols = Assembly.DebugSymbols;
+        var file = Module.File;
+        var result = new List<BrowseNode> { new MetadataFolderNode(Module, this, file, "Metadata") };
+        var symbols = Module.DebugSymbols;
         if (symbols != null)
-            result.Add(new MetadataFolderNode(Assembly, this, symbols.File, symbols.Title));
-        result.Add(new ReferencesFolderNode(Assembly, this));
+            result.Add(new MetadataFolderNode(Module, this, symbols.File, symbols.Title));
+        result.Add(new ReferencesFolderNode(Module, this));
         if (!file.Resources.IsEmpty)
-            result.Add(new ResourcesFolderNode(Assembly, this));
+            result.Add(new ResourcesFolderNode(Module, this));
 
         var byNamespace = new Dictionary<string, List<ITypeDefinition>>(StringComparer.Ordinal);
-        foreach (var type in Assembly.Module.TopLevelTypeDefinitions)
+        foreach (var type in Module.Module.TopLevelTypeDefinitions)
         {
             if (Members.IsMissing(type)) continue;
             if (!byNamespace.TryGetValue(type.Namespace, out var types))
@@ -80,7 +90,7 @@ internal sealed class AssemblyNode : BrowseNode
             var types = byNamespace.GetValueOrDefault(name, []);
             var forwarded = forwardedByNamespace.GetValueOrDefault(name, []);
             var enclosing = FindEnclosing(namespaces, name);
-            var node = new NamespaceNode(Assembly, this, name, enclosing, types, forwarded);
+            var node = new NamespaceNode(Module, this, name, enclosing, types, forwarded);
             if (enclosing != null)
                 enclosing.Enclose(node);
             namespaces.Add(name, node);
@@ -114,13 +124,13 @@ internal sealed class AssemblyNode : BrowseNode
     /// <summary>The assembly's name, version and the framework it was built for. The framework picked
     /// to resolve its references against is left out, so that the label, by which paths find the node,
     /// stays the same when another is picked.</summary>
-    private static string LabelOf(LoadedAssembly assembly)
+    private static string LabelOf(LoadedModule assembly)
     {
         var details = new[] { assembly.Version?.ToString(), BuiltForName(assembly) }.OfType<string>().ToArray();
         return details.Length == 0 ? assembly.Name : $"{assembly.Name} ({string.Join(", ", details)})";
     }
 
-    private static string? BuiltForName(LoadedAssembly assembly)
+    private static string? BuiltForName(LoadedModule assembly)
     {
         if (assembly.DetectedTargetFramework == null)
             return null;
@@ -136,12 +146,14 @@ internal sealed class FailedAssemblyNode(LoadedAssembly assembly)
     public override string FullName => Assembly.FilePath;
 }
 
-internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode parent)
-    : BrowseNode(assembly, parent, NodeKind.ReferencesFolder, "References")
+internal sealed class ReferencesFolderNode(LoadedModule assembly, BrowseNode parent)
+    : BrowseNode(assembly, parent, NodeKind.ReferencesFolder, "References"), IModuleNode
 {
-    private protected override bool MayHaveChildren => HasReferences(Assembly);
+    public LoadedModule Module { get; } = assembly;
 
-    private static bool HasReferences(LoadedAssembly assembly)
+    private protected override bool MayHaveChildren => HasReferences(Module);
+
+    private static bool HasReferences(LoadedModule assembly)
     {
         if (!assembly.File.AssemblyReferences.IsEmpty)
             return true;
@@ -151,8 +163,8 @@ internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode p
     /// <summary>The assemblies referenced, then the modules, each sorted by name.</summary>
     private protected override BrowseNode[] CreateChildren()
     {
-        var assemblies = AssemblyReferenceNode.ListReferences(Assembly, this);
-        var modules = ModuleReferenceNode.ListReferences(Assembly, this);
+        var assemblies = AssemblyReferenceNode.ListReferences(Module, this);
+        var modules = ModuleReferenceNode.ListReferences(Module, this);
         return assemblies
             .Concat(modules)
             .ToArray();
@@ -162,13 +174,16 @@ internal sealed class ReferencesFolderNode(LoadedAssembly assembly, BrowseNode p
 /// <summary>A module an assembly references: a native library it calls into, or another module of the
 /// assembly, which holds metadata when the assembly's file table says so. It lists the methods the
 /// assembly imports from it, sorted by name.</summary>
-internal sealed class ModuleReferenceNode : BrowseNode
+internal sealed class ModuleReferenceNode : BrowseNode, IModuleNode
 {
     private readonly IReadOnlyList<MethodDefinitionHandle> _imports;
 
-    private ModuleReferenceNode(LoadedAssembly assembly, BrowseNode parent, string name, IReadOnlyList<MethodDefinitionHandle> imports)
+    public LoadedModule Module { get; }
+
+    private ModuleReferenceNode(LoadedModule assembly, BrowseNode parent, string name, IReadOnlyList<MethodDefinitionHandle> imports)
         : base(assembly, parent, NodeKind.ModuleReference, name)
     {
+        Module = assembly;
         _imports = imports;
         ContainsMetadata = IsModuleWithMetadata(assembly.File.Metadata, name);
     }
@@ -180,9 +195,9 @@ internal sealed class ModuleReferenceNode : BrowseNode
 
     private protected override BrowseNode[] CreateChildren()
     {
-        var module = Assembly.TypeSystem.MainModule;
+        var module = Module.TypeSystem.MainModule;
         return _imports
-            .Select(h => new ImportedMethodNode(Assembly, this, module.GetDefinition(h)))
+            .Select(h => new ImportedMethodNode(Module, this, module.GetDefinition(h)))
             .OrderBy(n => n.Text, NaturalStringComparer.Instance)
             .ThenBy(n => n.DeclaringTypeName, NaturalStringComparer.Instance)
             .Cast<BrowseNode>()
@@ -203,7 +218,7 @@ internal sealed class ModuleReferenceNode : BrowseNode
     /// <summary>The modules <paramref name="assembly"/> references, sorted by name, under <paramref name="parent"/>.
     /// Which methods import from each is read here, off the UI thread, so that their rows can tell whether
     /// they have children without reading it there.</summary>
-    internal static BrowseNode[] ListReferences(LoadedAssembly assembly, BrowseNode parent)
+    internal static BrowseNode[] ListReferences(LoadedModule assembly, BrowseNode parent)
     {
         var metadata = assembly.File.Metadata;
         var imports = ListImports(metadata);
@@ -215,7 +230,7 @@ internal sealed class ModuleReferenceNode : BrowseNode
             .ToArray();
     }
 
-    private static ModuleReferenceNode Create(LoadedAssembly assembly, BrowseNode parent, ModuleReferenceHandle handle,
+    private static ModuleReferenceNode Create(LoadedModule assembly, BrowseNode parent, ModuleReferenceHandle handle,
         Dictionary<ModuleReferenceHandle, List<MethodDefinitionHandle>> imports)
     {
         var metadata = assembly.File.Metadata;
@@ -261,13 +276,16 @@ internal sealed class ModuleReferenceNode : BrowseNode
 /// labels the method, beside the type declaring it, and going to the method. A stub the compiler generates
 /// as a local function, as <c>[LibraryImport]</c> does, is labelled and goes as the method declaring it,
 /// with the stub's own parameters, the ones the module is called with.</summary>
-internal sealed class ImportedMethodNode : BrowseNode
+internal sealed class ImportedMethodNode : BrowseNode, IModuleNode
 {
     private const string LocalFunctionMarker = ">g__";
 
-    public ImportedMethodNode(LoadedAssembly assembly, BrowseNode parent, IMethod method)
+    public LoadedModule Module { get; }
+
+    public ImportedMethodNode(LoadedModule assembly, BrowseNode parent, IMethod method)
         : base(assembly, parent, NodeKind.ImportedMethod, LabelOf(method))
     {
+        Module = assembly;
         var declaring = method.DeclaringTypeDefinition!;
         var shown = FindEnclosingMethod(method);
         Accessibility = EntityText.Map(shown.Accessibility);
@@ -334,11 +352,14 @@ internal sealed class ImportedMethodNode : BrowseNode
 /// <summary>A reference of an assembly: the types the assembly uses from it, then the references of the
 /// assembly it resolves to, found where following it finds it but not listed; only the types when it
 /// resolves to none.</summary>
-internal sealed class AssemblyReferenceNode : BrowseNode
+internal sealed class AssemblyReferenceNode : BrowseNode, IModuleNode
 {
-    public AssemblyReferenceNode(LoadedAssembly assembly, BrowseNode parent, AssemblyReference reference)
+    public LoadedModule Module { get; }
+
+    public AssemblyReferenceNode(LoadedModule assembly, BrowseNode parent, AssemblyReference reference)
         : base(assembly, parent, NodeKind.AssemblyReference, reference.Name)
     {
+        Module = assembly;
         AssemblyReference = reference;
         Target = CodeReference.ToEntity(CodeReferenceKind.Assembly, reference.Name, assembly.FilePath, reference.Handle);
     }
@@ -352,8 +373,8 @@ internal sealed class AssemblyReferenceNode : BrowseNode
     private protected override BrowseNode[] CreateChildren()
     {
         var children = new List<BrowseNode>();
-        if (Assembly.ReferenceUsage.Uses(AssemblyReference.Handle))
-            children.Add(new ReferencedTypesNode(Assembly, this, AssemblyReference.Handle));
+        if (Module.ReferenceUsage.Uses(AssemblyReference.Handle))
+            children.Add(new ReferencedTypesNode(Module, this, AssemblyReference.Handle));
         var referenced = ResolveReferenced();
         if (referenced != null)
             children.AddRange(ListReferences(referenced, this));
@@ -361,12 +382,9 @@ internal sealed class AssemblyReferenceNode : BrowseNode
     }
 
     /// <summary>The assembly the reference resolves to, loaded if it is not; null when it cannot be found or read.</summary>
-    private LoadedAssembly? ResolveReferenced()
+    private LoadedModule? ResolveReferenced()
     {
-        var referenced = Assembly.Resolver.ResolveAssembly(AssemblyReference);
-        if (referenced == null)
-            return null;
-        if (referenced.HasLoadError)
+        if (Module.Resolver.ResolveAssembly(AssemblyReference) is not LoadedModule referenced)
             return null;
         return referenced;
     }
@@ -374,7 +392,7 @@ internal sealed class AssemblyReferenceNode : BrowseNode
     /// <summary>The references of <paramref name="assembly"/>, sorted by name, under <paramref name="parent"/>.
     /// What the assembly uses of them is read here, off the UI thread, so that listing what each holds
     /// never reads it there.</summary>
-    internal static BrowseNode[] ListReferences(LoadedAssembly assembly, BrowseNode parent)
+    internal static BrowseNode[] ListReferences(LoadedModule assembly, BrowseNode parent)
     {
         assembly.ReadReferenceUsage();
         return assembly.File.AssemblyReferences
@@ -384,15 +402,17 @@ internal sealed class AssemblyReferenceNode : BrowseNode
     }
 }
 
-internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode parent)
-    : BrowseNode(assembly, parent, NodeKind.ResourcesFolder, "Resources")
+internal sealed class ResourcesFolderNode(LoadedModule assembly, BrowseNode parent)
+    : BrowseNode(assembly, parent, NodeKind.ResourcesFolder, "Resources"), IModuleNode
 {
+    public LoadedModule Module { get; } = assembly;
+
     private protected override bool MayHaveChildren => true;
 
     private protected override BrowseNode[] CreateChildren() =>
-        Assembly.File.Resources
+        Module.File.Resources
             .OrderBy(r => r.Name, NaturalStringComparer.Instance)
-            .Select(r => ResourceNodes.Create(Assembly, this, r))
+            .Select(r => ResourceNodes.Create(Module, this, r))
             .ToArray();
 }
 
@@ -400,7 +420,7 @@ internal sealed class ResourcesFolderNode(LoadedAssembly assembly, BrowseNode pa
 /// there to other assemblies, sorted together by name, then by how many type parameters they have.
 /// When the tree nests namespaces, the namespaces nested in it sit among them, each where ILSpy sorts
 /// the full names of the types in it.</summary>
-internal sealed class NamespaceNode : BrowseNode
+internal sealed class NamespaceNode : BrowseNode, IModuleNode
 {
     private const string NestedSortMark = ".";
 
@@ -409,10 +429,13 @@ internal sealed class NamespaceNode : BrowseNode
     private readonly List<NamespaceNode> _inner = new();
     private BrowseNode[]? _nested;
 
-    public NamespaceNode(LoadedAssembly assembly, BrowseNode parent, string name, NamespaceNode? enclosing, List<ITypeDefinition> types,
+    public LoadedModule Module { get; }
+
+    public NamespaceNode(LoadedModule assembly, BrowseNode parent, string name, NamespaceNode? enclosing, List<ITypeDefinition> types,
         List<ForwardedType> forwarded)
         : base(assembly, parent, NodeKind.Namespace, name.Length == 0 ? "-" : name)
     {
+        Module = assembly;
         Name = name;
         _types = types;
         _forwarded = forwarded;
@@ -451,9 +474,9 @@ internal sealed class NamespaceNode : BrowseNode
     private List<SortedChild> SortChildren()
     {
         var defined = _types
-            .Select(t => new SortedChild(t.Name, t.TypeParameterCount, new TypeNode(Assembly, this, t)));
+            .Select(t => new SortedChild(t.Name, t.TypeParameterCount, new TypeNode(Module, this, t)));
         var forwarded = _forwarded
-            .Select(f => new SortedChild(f.SortName, f.Arity, new ForwardedTypeNode(Assembly, this, f)));
+            .Select(f => new SortedChild(f.SortName, f.Arity, new ForwardedTypeNode(Module, this, f)));
         return defined
             .Concat(forwarded)
             .OrderBy(static c => c.Name, NaturalStringComparer.Instance)
@@ -507,11 +530,14 @@ internal sealed class NamespaceNode : BrowseNode
 
 /// <summary>A type the assembly forwards to another: named as <c>typeof</c> names an open generic
 /// type, and going to the type where it is defined.</summary>
-internal sealed class ForwardedTypeNode : BrowseNode
+internal sealed class ForwardedTypeNode : BrowseNode, IModuleNode
 {
-    public ForwardedTypeNode(LoadedAssembly assembly, BrowseNode parent, ForwardedType type)
+    public LoadedModule Module { get; }
+
+    public ForwardedTypeNode(LoadedModule assembly, BrowseNode parent, ForwardedType type)
         : base(assembly, parent, NodeKind.ForwardedType, type.Label)
     {
+        Module = assembly;
         FullName = type.Namespace.Length == 0 ? type.Label : $"{type.Namespace}.{type.Label}";
         ForwardedTo = type.Destination;
         Target = CodeReference.ToEntity(CodeReferenceKind.Type, type.Label, assembly.FilePath, type.Handle);
@@ -520,11 +546,14 @@ internal sealed class ForwardedTypeNode : BrowseNode
     public override string FullName { get; }
 }
 
-internal abstract class EntityNode : BrowseNode
+internal abstract class EntityNode : BrowseNode, IModuleNode
 {
-    private protected EntityNode(LoadedAssembly assembly, BrowseNode parent, IEntity entity)
+    public LoadedModule Module { get; }
+
+    private protected EntityNode(LoadedModule assembly, BrowseNode parent, IEntity entity)
         : base(assembly, parent, EntityText.KindOf(entity), EntityText.Label(entity))
     {
+        Module = assembly;
         Entity = entity;
         Accessibility = EntityText.Map(entity.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(entity);
@@ -539,7 +568,7 @@ internal abstract class EntityNode : BrowseNode
     public override string FullName => EntityText.FullName(Entity);
 }
 
-internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+internal sealed class TypeNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
     : EntityNode(assembly, parent, type)
 {
     public ITypeDefinition Type => (ITypeDefinition)Entity;
@@ -548,7 +577,7 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
     {
         get
         {
-            var definition = Assembly.File.Metadata.GetTypeDefinition((TypeDefinitionHandle)Type.MetadataToken);
+            var definition = Module.File.Metadata.GetTypeDefinition((TypeDefinitionHandle)Type.MetadataToken);
             return !definition.BaseType.IsNil || definition.GetInterfaceImplementations().Count > 0 || definition.GetNestedTypes().Length > 0 || DerivedTypesNode.CanHave(Type) ||
                    definition.GetFields().Count > 0 || definition.GetMethods().Count > 0 || definition.GetProperties().Count > 0 ||
                    definition.GetEvents().Count > 0;
@@ -560,33 +589,33 @@ internal sealed class TypeNode(LoadedAssembly assembly, BrowseNode parent, IType
         var type = Type;
         var result = new List<BrowseNode>();
         if (type.DirectBaseTypes.Any())
-            result.Add(new BaseTypesNode(Assembly, this, type));
+            result.Add(new BaseTypesNode(Module, this, type));
         if (DerivedTypesNode.CanHave(type))
-            result.Add(new DerivedTypesNode(Assembly, this, type));
+            result.Add(new DerivedTypesNode(Module, this, type));
 
         foreach (var nested in type.NestedTypes.Where(t => !Members.IsMissing(t)).OrderBy(t => t.Name, NaturalStringComparer.Instance))
-            result.Add(new TypeNode(Assembly, this, nested));
+            result.Add(new TypeNode(Module, this, nested));
 
         var fields = type.Fields.Where(f => !Members.IsMissing(f) && !(type.Kind == TypeKind.Enum && !f.IsStatic));
         if (type.Kind != TypeKind.Enum)
             fields = fields.OrderBy(f => f.Name, NaturalStringComparer.Instance);
         foreach (var field in fields)
-            result.Add(new MemberNode(Assembly, this, field));
+            result.Add(new MemberNode(Module, this, field));
 
         foreach (var property in type.Properties.Where(p => !Members.IsMissing(p)).OrderBy(p => p.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Assembly, this, property));
+            result.Add(new MemberNode(Module, this, property));
 
         foreach (var @event in type.Events.Where(e => !Members.IsMissing(e)).OrderBy(e => e.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Assembly, this, @event));
+            result.Add(new MemberNode(Module, this, @event));
 
         foreach (var method in type.Methods.Where(m => !m.IsAccessor && !Members.IsMissing(m)).OrderBy(m => m.Name, NaturalStringComparer.Instance))
-            result.Add(new MemberNode(Assembly, this, method));
+            result.Add(new MemberNode(Module, this, method));
 
         return result.ToArray();
     }
 }
 
-internal sealed class MemberNode(LoadedAssembly assembly, BrowseNode parent, IMember member)
+internal sealed class MemberNode(LoadedModule assembly, BrowseNode parent, IMember member)
     : EntityNode(assembly, parent, member)
 {
     public IMember Member => (IMember)Entity;
@@ -596,26 +625,31 @@ internal sealed class MemberNode(LoadedAssembly assembly, BrowseNode parent, IMe
     private protected override BrowseNode[] CreateChildren() =>
         Members.Accessors(Member)
             .Where(a => !a.MetadataToken.IsNil)
-            .Select(a => (BrowseNode)new MemberNode(Assembly, this, a))
+            .Select(a => (BrowseNode)new MemberNode(Module, this, a))
             .ToArray();
 }
 
-internal sealed class BaseTypesNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
-    : BrowseNode(assembly, parent, NodeKind.BaseTypes, "Base Types")
+internal sealed class BaseTypesNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
+    : BrowseNode(assembly, parent, NodeKind.BaseTypes, "Base Types"), IModuleNode
 {
+    public LoadedModule Module { get; } = assembly;
+
     public ITypeDefinition Type { get; } = type;
 
     private protected override bool MayHaveChildren => true;
 
     private protected override BrowseNode[] CreateChildren() =>
-        Type.DirectBaseTypes.Select(t => (BrowseNode)new BaseTypeNode(Assembly, this, t)).ToArray();
+        Type.DirectBaseTypes.Select(t => (BrowseNode)new BaseTypeNode(Module, this, t)).ToArray();
 }
 
-internal sealed class BaseTypeNode : BrowseNode
+internal sealed class BaseTypeNode : BrowseNode, IModuleNode
 {
-    public BaseTypeNode(LoadedAssembly assembly, BrowseNode parent, IType type)
+    public LoadedModule Module { get; }
+
+    public BaseTypeNode(LoadedModule assembly, BrowseNode parent, IType type)
         : base(assembly, parent, NodeKind.BaseType, EntityText.TypeName(type))
     {
+        Module = assembly;
         Type = type;
         if (type.GetDefinition() is { } definition && CodeReference.To(definition) is { } target)
         {
@@ -630,14 +664,16 @@ internal sealed class BaseTypeNode : BrowseNode
 
 /// <summary>ILSpy's "Derived Types": the types of the open assemblies that name
 /// <see cref="Type"/> among their direct base types, found when first expanded.</summary>
-internal sealed class DerivedTypesNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
-    : BrowseNode(assembly, parent, NodeKind.DerivedTypes, "Derived Types")
+internal sealed class DerivedTypesNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
+    : BrowseNode(assembly, parent, NodeKind.DerivedTypes, "Derived Types"), IModuleNode
 {
+    public LoadedModule Module { get; } = assembly;
+
     public ITypeDefinition Type { get; } = type;
 
     private protected override bool MayHaveChildren => true;
 
-    private protected override BrowseNode[] CreateChildren() => Find(Assembly, this, Type);
+    private protected override BrowseNode[] CreateChildren() => Find(Module, this, Type);
 
     /// <summary>Whether anything can derive from <paramref name="type"/>: a class that is not sealed,
     /// or an interface.</summary>
@@ -645,7 +681,7 @@ internal sealed class DerivedTypesNode(LoadedAssembly assembly, BrowseNode paren
 
     /// <summary>The types in scope of <paramref name="type"/> that derive from it directly, as
     /// <see cref="DerivedTypes"/> finds them.</summary>
-    internal static BrowseNode[] Find(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    internal static BrowseNode[] Find(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
     {
         return DerivedTypes.Find(assembly.List, type, CancellationToken.None)
             .Select(t => (BrowseNode)new DerivedTypeNode(assembly, parent, t))
@@ -655,11 +691,14 @@ internal sealed class DerivedTypesNode(LoadedAssembly assembly, BrowseNode paren
 
 /// <summary>A type deriving from the one a <see cref="DerivedTypesNode"/> belongs to: it goes to
 /// that type, and expands to the types deriving from it in turn.</summary>
-internal sealed class DerivedTypeNode : BrowseNode
+internal sealed class DerivedTypeNode : BrowseNode, IModuleNode
 {
-    public DerivedTypeNode(LoadedAssembly assembly, BrowseNode parent, ITypeDefinition type)
+    public LoadedModule Module { get; }
+
+    public DerivedTypeNode(LoadedModule assembly, BrowseNode parent, ITypeDefinition type)
         : base(assembly, parent, NodeKind.DerivedType, EntityText.TypeName(type))
     {
+        Module = assembly;
         Type = type;
         Accessibility = EntityText.Map(type.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(type);
@@ -670,7 +709,7 @@ internal sealed class DerivedTypeNode : BrowseNode
 
     private protected override bool MayHaveChildren => !Type.IsSealed;
 
-    private protected override BrowseNode[] CreateChildren() => DerivedTypesNode.Find(Assembly, this, Type);
+    private protected override BrowseNode[] CreateChildren() => DerivedTypesNode.Find(Module, this, Type);
 }
 
 internal sealed class ErrorNode(LoadedAssembly assembly, BrowseNode parent, Exception error)

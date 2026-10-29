@@ -36,7 +36,6 @@ public abstract class LoadedAssembly
     private readonly Lazy<BrowseNode> _root;
     private readonly MetadataFile? _file;
     private readonly AssemblyLoadException? _loadError;
-    private BrowseNode? _rootInPackage;
 
     private protected LoadedAssembly(AssemblyList list, string filePath, MetadataFile? file, AssemblyLoadException? error, PackagePlace? place)
     {
@@ -97,7 +96,7 @@ public abstract class LoadedAssembly
     {
         FailedAssembly => new FailedAssemblyNode(this),
         LoadedPackage package => package.PackageRoot,
-        LoadedModule => new AssemblyNode(this, null),
+        LoadedModule module => new AssemblyNode(module, null),
         _ => throw new UnreachableException(),
     };
 
@@ -199,31 +198,10 @@ public abstract class LoadedAssembly
     {
         get
         {
-            if (InPackage == null)
-                return _root.Value;
-            return RootInPackage(InPackage);
+            if (this is LoadedModule { InPackage: { } place } module)
+                return module.RootInPackage(place);
+            return _root.Value;
         }
-    }
-
-    private BrowseNode RootInPackage(PackagePlace place)
-    {
-        var placed = Volatile.Read(ref _rootInPackage);
-        if (placed != null)
-            return placed;
-        var folder = place.Container.PackageRoot.FindFolderNode(place.File.Folder);
-        folder.LoadChildren();
-        return PlaceInPackage(folder);
-    }
-
-    /// <summary>The root of this assembly, read out of a package, under <paramref name="folder"/>:
-    /// made the first time, then kept.</summary>
-    internal BrowseNode PlaceInPackage(BrowseNode folder)
-    {
-        var root = new AssemblyNode(this, folder);
-        var placed = Interlocked.CompareExchange(ref _rootInPackage, root, null);
-        if (placed != null)
-            return placed;
-        return root;
     }
 
     /// <summary>Whether a PDB can be picked for this assembly: one that loaded with PE headers, which
@@ -379,9 +357,32 @@ public abstract class LoadedAssembly
 /// says so, one read out of a package, known by the path <see cref="AssemblyPackage.PathOf"/> gives it.</summary>
 public sealed class LoadedModule : LoadedAssembly
 {
+    private BrowseNode? _rootInPackage;
+
     internal LoadedModule(AssemblyList list, MetadataFile file, PackagePlace? place = null)
         : base(list, file.FileName, file, null, place)
     {
+    }
+
+    internal BrowseNode RootInPackage(PackagePlace place)
+    {
+        var placed = Volatile.Read(ref _rootInPackage);
+        if (placed != null)
+            return placed;
+        var folder = place.Container.PackageRoot.FindFolderNode(place.File.Folder);
+        folder.LoadChildren();
+        return PlaceInPackage(folder);
+    }
+
+    /// <summary>The root of this assembly, read out of a package, under <paramref name="folder"/>:
+    /// made the first time, then kept.</summary>
+    internal BrowseNode PlaceInPackage(BrowseNode folder)
+    {
+        var root = new AssemblyNode(this, folder);
+        var placed = Interlocked.CompareExchange(ref _rootInPackage, root, null);
+        if (placed != null)
+            return placed;
+        return root;
     }
 }
 

@@ -5,17 +5,19 @@ namespace ZGF.ILSpy.Core;
 
 /// <summary>The types an assembly uses from one of its references, sorted by namespace, then name,
 /// and after them the types it forwards there.</summary>
-internal sealed class ReferencedTypesNode(LoadedAssembly assembly, BrowseNode parent, AssemblyReferenceHandle reference)
-    : BrowseNode(assembly, parent, NodeKind.ReferencedTypes, "Referenced types")
+internal sealed class ReferencedTypesNode(LoadedModule assembly, BrowseNode parent, AssemblyReferenceHandle reference)
+    : BrowseNode(assembly, parent, NodeKind.ReferencedTypes, "Referenced types"), IModuleNode
 {
-    private protected override bool MayHaveChildren => Assembly.ReferenceUsage.Uses(reference);
+    public LoadedModule Module { get; } = assembly;
+
+    private protected override bool MayHaveChildren => Module.ReferenceUsage.Uses(reference);
 
     private protected override BrowseNode[] CreateChildren()
     {
-        var usage = Assembly.ReferenceUsage;
-        var metadata = Assembly.File.Metadata;
+        var usage = Module.ReferenceUsage;
+        var metadata = Module.File.Metadata;
         var used = usage.TypesIn(reference)
-            .Select(h => new TypeReferenceNode(Assembly, this, h))
+            .Select(h => new TypeReferenceNode(Module, this, h))
             .OrderBy(n => n.Namespace, NaturalStringComparer.Instance)
             .ThenBy(n => n.Text, NaturalStringComparer.Instance)
             .Cast<BrowseNode>();
@@ -23,7 +25,7 @@ internal sealed class ReferencedTypesNode(LoadedAssembly assembly, BrowseNode pa
             .Select(h => ForwardedTypes.Read(metadata, h))
             .OrderBy(f => f.Namespace, NaturalStringComparer.Instance)
             .ThenBy(f => f.Label, NaturalStringComparer.Instance)
-            .Select(f => new ForwardedTypeNode(Assembly, this, f));
+            .Select(f => new ForwardedTypeNode(Module, this, f));
         return used
             .Concat(forwarded)
             .ToArray();
@@ -33,13 +35,16 @@ internal sealed class ReferencedTypesNode(LoadedAssembly assembly, BrowseNode pa
 /// <summary>A type an assembly uses from one of its references: named as <c>typeof</c> names an open
 /// generic type, holding the types nested in it and the members of it that the assembly uses, and going
 /// to where it is defined.</summary>
-internal sealed class TypeReferenceNode : BrowseNode
+internal sealed class TypeReferenceNode : BrowseNode, IModuleNode
 {
     private readonly TypeReferenceHandle _handle;
 
-    public TypeReferenceNode(LoadedAssembly assembly, BrowseNode parent, TypeReferenceHandle handle)
+    public LoadedModule Module { get; }
+
+    public TypeReferenceNode(LoadedModule assembly, BrowseNode parent, TypeReferenceHandle handle)
         : base(assembly, parent, NodeKind.TypeReference, LabelOf(assembly.File.Metadata, handle))
     {
+        Module = assembly;
         _handle = handle;
         var metadata = assembly.File.Metadata;
         Namespace = metadata.GetString(metadata.GetTypeReference(handle).Namespace);
@@ -70,7 +75,7 @@ internal sealed class TypeReferenceNode : BrowseNode
     {
         get
         {
-            var usage = Assembly.ReferenceUsage;
+            var usage = Module.ReferenceUsage;
             if (usage.TypesIn(_handle).Count > 0)
                 return true;
             return usage.MembersOf(_handle).Count > 0;
@@ -79,14 +84,14 @@ internal sealed class TypeReferenceNode : BrowseNode
 
     private protected override BrowseNode[] CreateChildren()
     {
-        var usage = Assembly.ReferenceUsage;
-        var module = Assembly.TypeSystem.MainModule;
+        var usage = Module.ReferenceUsage;
+        var module = Module.TypeSystem.MainModule;
         var nested = usage.TypesIn(_handle)
-            .Select(h => new TypeReferenceNode(Assembly, this, h))
+            .Select(h => new TypeReferenceNode(Module, this, h))
             .OrderBy(n => n.Text, NaturalStringComparer.Instance)
             .Cast<BrowseNode>();
         var members = usage.MembersOf(_handle)
-            .Select(h => new MemberReferenceNode(Assembly, this, h, MemberReferenceNode.Resolve(module, h)))
+            .Select(h => new MemberReferenceNode(Module, this, h, MemberReferenceNode.Resolve(module, h)))
             .DistinctBy(n => n.Text)
             .OrderBy(n => n.Text, NaturalStringComparer.Instance);
         return nested
@@ -98,11 +103,14 @@ internal sealed class TypeReferenceNode : BrowseNode
 /// <summary>A member an assembly uses of a type from one of its references, labelled as the type
 /// declares it, whatever the type arguments it is used with (<c>Add(T) : void</c> for
 /// <c>List&lt;string&gt;.Add</c>), an accessor as its property or event, and going to where it is defined.</summary>
-internal sealed class MemberReferenceNode : BrowseNode
+internal sealed class MemberReferenceNode : BrowseNode, IModuleNode
 {
-    public MemberReferenceNode(LoadedAssembly assembly, BrowseNode parent, MemberReferenceHandle handle, IMember member)
+    public LoadedModule Module { get; }
+
+    public MemberReferenceNode(LoadedModule assembly, BrowseNode parent, MemberReferenceHandle handle, IMember member)
         : base(assembly, parent, KindOf(member), EntityText.Label(member))
     {
+        Module = assembly;
         FullName = $"{parent.FullName}.{Text}";
         Target = CodeReference.ToEntity(CodeReference.KindOf(member.SymbolKind), member.Name, assembly.FilePath, handle);
     }
