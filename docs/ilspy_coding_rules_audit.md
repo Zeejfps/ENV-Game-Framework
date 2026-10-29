@@ -87,6 +87,12 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - `ExportsPanelView.cs:105-133` snapshots runs once per frame, so Delete then an arrow key in the same frame moves against a stale list.
 - `AssemblyList.UseLoadOptions` (`:166-176`) checks and sets two volatile fields without the lock.
 
+## Follow-ups from the LoadedAssembly split
+
+- The nodes under an assembly name their `LoadedModule` parameter `assembly` (`Nodes.cs`, `ReferenceNodes.cs`, `Resources/ResourceNodes.cs`, `Metadata/MetadataNodes.cs`). Rename it `module`, minding the locals already called `module` in some of those classes.
+- `BrowseNode`'s optional fields and its `NodeKind` set apart from the subclass (Rule 1, Assemblies and nodes) are next: nodes are now typed by the module, package or failure they show, which a split can build on.
+- The Core cycles under Rule 2 now run through `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; the split did not aim at them.
+
 ## Suggested order
 
 1. Introduce `ThemeId`, `IconThemeId`, `PanelId`, and an `AssemblyPath` with one comparer for the ~150 places paths are passed as strings.
