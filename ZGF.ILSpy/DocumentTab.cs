@@ -131,7 +131,7 @@ public sealed class DocumentTab
             return false;
         if (IsBusy)
             return false;
-        if (!node.DependsOnLanguage)
+        if (!NodeContentLoader.DependsOnLanguage(node))
             return true;
         return IsCurrent(language, options);
     }

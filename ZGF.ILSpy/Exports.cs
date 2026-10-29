@@ -23,7 +23,7 @@ public static class Exports
             return false;
         if (node.HasResource)
             return true;
-        return node.DependsOnLanguage;
+        return NodeContentLoader.DependsOnLanguage(node);
     }
 
     /// <summary>Saves <paramref name="node"/> to the file at <paramref name="path"/>: a resource's
@@ -96,7 +96,7 @@ public static class Exports
     private static bool SaveCodeFile(BrowseNode node, DecompilationLanguage language, DecompilerOptions options, string path,
         CancellationToken cancellationToken)
     {
-        node.SaveCode(language, options, path, cancellationToken);
+        NodeContentLoader.SaveCode(node, language, options, path, cancellationToken);
         return true;
     }
 

@@ -293,6 +293,7 @@ internal sealed class ImportedMethodNode : BrowseNode, IModuleNode
         Accessibility = EntityText.Map(shown.Accessibility);
         IsPublicApi = EntityText.IsPublicApi(shown);
         DeclaringTypeName = EntityText.FullName(declaring);
+        ModuleName = parent.Text;
         FullName = $"{DeclaringTypeName}.{Text}";
         EntryPoint = ReadEntryPoint(assembly.File.Metadata, method);
         Target = CodeReference.To(shown);
@@ -336,6 +337,9 @@ internal sealed class ImportedMethodNode : BrowseNode, IModuleNode
             return method;
         return declared;
     }
+
+    /// <summary>The name of the module the method is imported from.</summary>
+    public string ModuleName { get; }
 
     /// <summary>The name of the function the method calls in the module.</summary>
     public string EntryPoint { get; }

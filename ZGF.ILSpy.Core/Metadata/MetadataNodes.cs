@@ -134,7 +134,7 @@ internal class MetadataGridNode(LoadedModule assembly, BrowseNode parent, NodeKi
     public TableIndex? Table => schema.Table;
 
     /// <summary>The "Metadata" folder this belongs to.</summary>
-    public MetadataFolderNode? Folder
+    private MetadataFolderNode? Folder
     {
         get
         {
@@ -146,13 +146,39 @@ internal class MetadataGridNode(LoadedModule assembly, BrowseNode parent, NodeKi
         }
     }
 
+    /// <summary>The node of the table <paramref name="address"/> names, among the tables of the
+    /// metadata this grid lists, and the row there.</summary>
+    internal MetadataTarget? Find(MetadataAddress address)
+    {
+        var table = Folder?.FindTable(address.Table);
+        if (table == null) return null;
+        return new MetadataTarget(table, address.Row);
+    }
+
     public MetadataGrid Grid
     {
         get
         {
             lock (_gate)
-                return _grid ??= new MetadataGrid(this, schema);
+                return _grid ??= new MetadataGrid(Text, Module, File, schema);
         }
+    }
+}
+
+/// <summary>Where a token cell leads: a row of a table node.</summary>
+public readonly record struct MetadataTarget(BrowseNode Node, int Row);
+
+/// <summary>Where the links of a grid lead in the tree.</summary>
+public static class MetadataLinks
+{
+    /// <summary>The table node and row that <paramref name="address"/>, a link of the grid
+    /// <paramref name="shown"/> shows, leads to; null when <paramref name="shown"/> shows no grid of
+    /// metadata, or its metadata lists no such table.</summary>
+    public static MetadataTarget? Find(BrowseNode shown, MetadataAddress address)
+    {
+        if (shown is not MetadataGridNode grid)
+            return null;
+        return grid.Find(address);
     }
 }
 

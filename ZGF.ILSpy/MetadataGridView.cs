@@ -12,7 +12,7 @@ namespace ZGF.ILSpy;
 /// <param name="Target">The table row a token cell leads to.</param>
 /// <param name="Definition">What a row stands for in the code, to decompile.</param>
 /// <param name="InNewTab">Whether to show either in a new tab.</param>
-public readonly record struct MetadataGridResult(MetadataTarget? Target, CodeReference? Definition, bool InNewTab);
+public readonly record struct MetadataGridResult(MetadataAddress? Target, CodeReference? Definition, bool InNewTab);
 
 public static class MetadataGridWidget
 {

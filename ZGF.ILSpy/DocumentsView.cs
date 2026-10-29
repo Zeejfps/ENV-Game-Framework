@@ -42,7 +42,7 @@ internal static class DocumentsView
             case TabContent.Comparison comparison:
                 ComparisonView.Render(ui, appState, tab, comparison.Assemblies);
                 break;
-            case TabContent.Loading loading when !loading.Node.DependsOnLanguage:
+            case TabContent.Loading loading when !NodeContentLoader.DependsOnLanguage(loading.Node):
                 Hint(ui, t.MetadataLoading);
                 break;
             case TabContent.Code or TabContent.Report or TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Gone:
@@ -57,8 +57,8 @@ internal static class DocumentsView
     {
         var view = ui.State.Documents.ViewOf(tab);
         var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
-        if (picked.Target != null)
-            ShowMetadataTarget(appState, picked.Target.Value, picked.InNewTab);
+        if (picked.Target != null && tab.Node != null)
+            ShowMetadataLink(appState, tab.Node, picked.Target.Value, picked.InNewTab);
         if (picked.Definition != null)
             Navigate(appState, picked.Definition, picked.InNewTab);
     }

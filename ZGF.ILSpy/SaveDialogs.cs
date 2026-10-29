@@ -29,7 +29,7 @@ internal static class SaveDialogs
             return;
         }
         var t = ui.State.Strings;
-        var fileName = node.SuggestCodeFileName(appState.Language);
+        var fileName = NodeContentLoader.SuggestCodeFileName(node, appState.Language);
         ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, appState.Language), path => SaveCode(appState, node, path));
     }
 

@@ -287,7 +287,7 @@ internal static class TreePaneView
     {
         if (node.HasResource)
             return false;
-        return node.DependsOnLanguage;
+        return NodeContentLoader.DependsOnLanguage(node);
     }
 
     /// <summary>What only an assembly's node offers: exporting it, its PDBs, a diagram of it, comparing it

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
+using ICSharpCode.Decompiler.Metadata;
 
 namespace ZGF.ILSpy.Core.Metadata;
 
@@ -48,8 +49,8 @@ public sealed record MetadataFlagGroup(string? Header, bool IsChoice, IReadOnlyL
 /// <summary>What hovering a cell explains: text, or a flags value broken down into its groups.</summary>
 public sealed record MetadataTooltip(string? Text, IReadOnlyList<MetadataFlagGroup> Groups);
 
-/// <summary>Where a token cell leads: a row of a table node.</summary>
-public readonly record struct MetadataTarget(BrowseNode Node, int Row);
+/// <summary>A row of a table of the metadata a grid lists, as a token cell names it.</summary>
+public readonly record struct MetadataAddress(TableIndex Table, int Row);
 
 /// <summary>
 /// The rows of a metadata node as ILSpy shows them in a grid: a header, a directory, a table or a
@@ -60,19 +61,25 @@ public sealed class MetadataGrid
 {
     private static readonly ConcurrentDictionary<string, Regex?> Patterns = new();
 
-    private readonly MetadataGridNode _owner;
+    private readonly LoadedModule _module;
+    private readonly MetadataFile _file;
     private readonly GridSchema _schema;
     private readonly IReadOnlyList<object> _rows;
     private readonly IReadOnlyList<GridColumn> _columns;
     private readonly Dictionary<int, MetadataTooltip?> _tooltips = new();
-    private readonly Dictionary<int, MetadataTarget?> _links = new();
+    private readonly Dictionary<int, MetadataAddress?> _links = new();
+    private readonly Dictionary<TableIndex, bool> _listed = new();
     private readonly Dictionary<int, MetadataRowDetails?> _details = new();
     private string?[]? _text;
     private (string FirstLine, int MoreLines)?[]? _lines;
 
-    internal MetadataGrid(MetadataGridNode owner, GridSchema schema)
+    /// <summary>The grid titled <paramref name="title"/> of what <paramref name="schema"/> reads from
+    /// <paramref name="file"/>, which is <paramref name="module"/>'s own metadata or its debug metadata.</summary>
+    internal MetadataGrid(string title, LoadedModule module, MetadataFile file, GridSchema schema)
     {
-        _owner = owner;
+        Title = title;
+        _module = module;
+        _file = file;
         _schema = schema;
         _rows = schema.LoadRows();
         _columns = schema.Columns;
@@ -88,7 +95,7 @@ public sealed class MetadataGrid
     public bool HasDetails => _schema.Details != null;
 
     /// <summary>What the grid lists, as its node is labelled.</summary>
-    public string Title => _owner.Text;
+    public string Title { get; }
 
     public IReadOnlyList<MetadataColumn> Columns { get; }
 
@@ -193,9 +200,9 @@ public sealed class MetadataGrid
     }
 
     /// <summary>The row a token cell points at, in the table of this metadata it names; null for a
-    /// cell that is not a token, a nil token or a table this metadata does not have. A row past
+    /// cell that is not a token, a nil token or a table this metadata lists no rows of. A row past
     /// the table's end, as the end of an empty member list is, leads to the last row.</summary>
-    public MetadataTarget? Link(int row, int column)
+    public MetadataAddress? Link(int row, int column)
     {
         if (!_columns[column].Column.IsToken) return null;
         var index = row * _columns.Count + column;
@@ -205,13 +212,23 @@ public sealed class MetadataGrid
         return result;
     }
 
-    private MetadataTarget? FindLink(int row, int column)
+    private MetadataAddress? FindLink(int row, int column)
     {
         if (Value(row, column) is not int token || (token & 0xFFFFFF) == 0) return null;
-        var table = _owner.Folder?.FindTable((TableIndex)(token >>> 24));
-        if (table == null) return null;
-        var count = table.File.Metadata.GetTableRowCount(table.Table!.Value);
-        return new MetadataTarget(table, Math.Min(token & 0xFFFFFF, count) - 1);
+        var table = (TableIndex)(token >>> 24);
+        if (!IsListed(table)) return null;
+        var count = _file.Metadata.GetTableRowCount(table);
+        return new MetadataAddress(table, Math.Min(token & 0xFFFFFF, count) - 1);
+    }
+
+    /// <summary>Whether this metadata's tables list <paramref name="table"/> as a grid of rows, as they
+    /// do a table they can read that has rows.</summary>
+    private bool IsListed(TableIndex table)
+    {
+        if (_listed.TryGetValue(table, out var known)) return known;
+        var listed = Enum.IsDefined(table) && _file.Metadata.GetTableRowCount(table) > 0 && MetadataTables.Create(table, _file) != null;
+        _listed[table] = listed;
+        return listed;
     }
 
     /// <summary>The row of <paramref name="token"/>'s table it is, or -1 when this does not list
@@ -225,13 +242,13 @@ public sealed class MetadataGrid
     /// </summary>
     public CodeReference? Definition(int row)
     {
-        var file = _owner.File;
-        if (!ReferenceEquals(file, _owner.Module.File) || _schema.Table == null) return null;
+        var file = _file;
+        if (!ReferenceEquals(file, _module.File) || _schema.Table == null) return null;
         var token = (int)_schema.Table << 24 | row + 1;
         var handle = MetadataTokens.EntityHandle(token);
         var kind = CodeReference.KindOf(file.Metadata, handle);
         if (kind == null) return null;
-        var name = handle.Kind == HandleKind.AssemblyDefinition ? _owner.Assembly.Name
+        var name = handle.Kind == HandleKind.AssemblyDefinition ? _module.Name
             : _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn)
             : token.ToString("X8");
         return CodeReference.ToEntity(kind.Value, name, AssemblyPath.Of(file), handle);

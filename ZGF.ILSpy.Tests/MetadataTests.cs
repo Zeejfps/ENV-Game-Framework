@@ -86,8 +86,12 @@ public sealed class MetadataTests
                     {
                         Assert.NotNull(grid.Text(row, column));
                         grid.Tooltip(row, column);
-                        if (grid.Link(row, column) is { } target)
+                        var link = grid.Link(row, column);
+                        if (link != null)
+                        {
+                            var target = Assert.IsType<MetadataTarget>(MetadataLinks.Find(node, link.Value));
                             Assert.InRange(target.Row, 0, Grid(target.Node).RowCount - 1);
+                        }
                     }
                     grid.Definition(row);
                 }
@@ -158,10 +162,12 @@ public sealed class MetadataTests
     public void A_token_cell_links_to_the_row_of_the_table_it_names()
     {
         var assembly = Trees.TestAssembly;
-        var grid = Grid(Table(assembly, "TypeDef"));
+        var types = Table(assembly, "TypeDef");
+        var grid = Grid(types);
         var row = grid.RowNamed("Calculator`1");
 
-        var target = grid.Link(row, grid.Column("BaseType"))!.Value;
+        var link = Assert.IsType<MetadataAddress>(grid.Link(row, grid.Column("BaseType")));
+        var target = Assert.IsType<MetadataTarget>(MetadataLinks.Find(types, link));
 
         Assert.Same(Table(assembly, "TypeRef"), target.Node);
         var typeRefs = Grid(target.Node);
@@ -438,7 +444,8 @@ public sealed class MetadataTests
         Assert.Equal(nameof(EditAndContinueOperation.AddMethod), log.Tooltip(1, log.Column("FuncCode"))!.Text);
         Assert.Equal(1, map.RowCount);
         Assert.Equal(type, Hex(map, 0, "Handle"));
-        Assert.Equal(new MetadataTarget(Table(assembly, "TypeDef"), 0), map.Link(0, map.Column("Handle")));
+        Assert.Equal(new MetadataAddress(TableIndex.TypeDef, 0), map.Link(0, map.Column("Handle")));
+        Assert.Equal(new MetadataTarget(Table(assembly, "TypeDef"), 0), MetadataLinks.Find(Table(assembly, "EncMap"), new MetadataAddress(TableIndex.TypeDef, 0)));
     }
 
     /// <summary>An assembly whose metadata logs two changes to its one type, as an edit and continue

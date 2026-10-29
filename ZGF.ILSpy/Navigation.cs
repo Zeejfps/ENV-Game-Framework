@@ -183,6 +183,16 @@ public static class Navigation
         ShowRowIn(appState, ChooseDestination(appState, inNewTab), target);
     }
 
+    /// <summary>Shows the table row <paramref name="address"/>, a link of the grid <paramref name="grid"/>
+    /// shows, leads to, as <see cref="ShowMetadataTarget"/> does; nothing when it leads nowhere.</summary>
+    public static void ShowMetadataLink(AppState appState, BrowseNode grid, MetadataAddress address, bool inNewTab)
+    {
+        var target = MetadataLinks.Find(grid, address);
+        if (target == null)
+            return;
+        ShowMetadataTarget(appState, target.Value, inNewTab);
+    }
+
     /// <summary>Resolves <paramref name="reference"/> in the background, as <see cref="Navigate"/> does,
     /// then shows the metadata table row that defines it in the tab it was asked from, or a new one.</summary>
     public static async void ShowInMetadata(AppState appState, CodeReference reference, bool inNewTab)

@@ -41,7 +41,7 @@ public sealed class ExportTests : IDisposable
         var calculator = Trees.TestAssembly.Calculator();
         var path = _temp.PathOf("Calculator.cs");
 
-        calculator.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(calculator, DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
 
         var shown = Trees.CalculatorDocument(DecompilationLanguage.CSharp).GetText();
         Assert.Equal(shown, File.ReadAllText(path));
@@ -53,7 +53,7 @@ public sealed class ExportTests : IDisposable
         var fixtures = Trees.TestAssembly.Fixtures();
         var path = _temp.PathOf("Fixtures.cs");
 
-        fixtures.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(fixtures, DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
 
         var code = File.ReadAllText(path);
         Assert.Contains("public class Calculator<T>", code);
@@ -65,7 +65,7 @@ public sealed class ExportTests : IDisposable
     {
         var path = _temp.PathOf("Fixtures.il");
 
-        Trees.TestAssembly.Fixtures().SaveCode(DecompilationLanguage.ILWithCSharp, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(Trees.TestAssembly.Fixtures(), DecompilationLanguage.ILWithCSharp, DecompilerOptions.Default, path);
 
         var code = File.ReadAllText(path);
         Assert.Contains("// double grown = Radius;", code);
@@ -77,7 +77,7 @@ public sealed class ExportTests : IDisposable
     {
         var path = _temp.PathOf("Tests.il");
 
-        Trees.TestAssembly.Root.SaveCode(DecompilationLanguage.IL, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(Trees.TestAssembly.Root, DecompilationLanguage.IL, DecompilerOptions.Default, path);
 
         var code = File.ReadAllText(path);
         Assert.Contains(".assembly ZGF.ILSpy.Tests", code);
@@ -90,7 +90,7 @@ public sealed class ExportTests : IDisposable
         var root = Trees.TestAssembly.Root;
         var path = _temp.PathOf("Tests.cs");
 
-        root.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(root, DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
 
         var shown = root.Decompile(DecompilationLanguage.CSharp).GetText();
         var saved = File.ReadAllText(path);
@@ -106,7 +106,7 @@ public sealed class ExportTests : IDisposable
         var fixtures = Trees.TestAssembly.Fixtures();
         var path = _temp.PathOf("Fixtures.cs");
 
-        fixtures.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
+        NodeContentLoader.SaveCode(fixtures, DecompilationLanguage.CSharp, DecompilerOptions.Default, path);
 
         var shown = fixtures.Decompile(DecompilationLanguage.CSharp).GetText();
         var saved = File.ReadAllText(path);
@@ -120,9 +120,9 @@ public sealed class ExportTests : IDisposable
     {
         var calculator = Trees.TestAssembly.Calculator();
 
-        Assert.Equal("Calculator.cs", calculator.SuggestCodeFileName(DecompilationLanguage.CSharp));
-        Assert.Equal("Calculator.il", calculator.SuggestCodeFileName(DecompilationLanguage.IL));
-        Assert.Equal("ZGF.ILSpy.Tests.cs", Trees.TestAssembly.Root.SuggestCodeFileName(DecompilationLanguage.CSharp));
+        Assert.Equal("Calculator.cs", NodeContentLoader.SuggestCodeFileName(calculator, DecompilationLanguage.CSharp));
+        Assert.Equal("Calculator.il", NodeContentLoader.SuggestCodeFileName(calculator, DecompilationLanguage.IL));
+        Assert.Equal("ZGF.ILSpy.Tests.cs", NodeContentLoader.SuggestCodeFileName(Trees.TestAssembly.Root, DecompilationLanguage.CSharp));
         Assert.Equal("ZGF.ILSpy.Tests.pdb", Trees.TestAssembly.PdbFileName);
     }
 
@@ -266,7 +266,7 @@ public sealed class ExportTests : IDisposable
         cancel.Cancel();
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            Trees.TestAssembly.Root.SaveCode(DecompilationLanguage.CSharp, DecompilerOptions.Default, path, cancel.Token));
+            NodeContentLoader.SaveCode(Trees.TestAssembly.Root, DecompilationLanguage.CSharp, DecompilerOptions.Default, path, cancel.Token));
 
         Assert.Empty(Directory.EnumerateFileSystemEntries(_temp.Path));
     }

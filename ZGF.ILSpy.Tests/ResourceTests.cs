@@ -122,9 +122,9 @@ public sealed class ResourceTests
 
         Assert.Equal(NodeKind.ResourceImage, resources.Child("logo.png").Kind);
         Assert.IsType<ImageContent>(resources.Child("red.gif").Content());
-        Assert.False(resources.Child("red.gif").DependsOnLanguage);
+        Assert.False(NodeContentLoader.DependsOnLanguage(resources.Child("red.gif")));
         Assert.IsType<DocumentContent>(resources.Child("sample.xml").Content());
-        Assert.True(resources.Child("sample.xml").DependsOnLanguage);
+        Assert.True(NodeContentLoader.DependsOnLanguage(resources.Child("sample.xml")));
         Assert.Equal(NodeKind.ResourcesFile, resources.Child("Mixed.resources").Kind);
         Assert.All(resources.Children, c => Assert.True(c.HasResource));
 
@@ -141,7 +141,7 @@ public sealed class ResourceTests
 
         var document = Assert.IsType<DocumentContent>(broken.Content(DecompilationLanguage.IL)).Document;
 
-        Assert.False(broken.DependsOnLanguage);
+        Assert.False(NodeContentLoader.DependsOnLanguage(broken));
         Assert.Equal("// This is no PNG, JPEG, BMP, GIF, ICO, CUR or SVG picture.", document.Lines[0].Text);
         Assert.Equal(SpanKind.Comment, document.Lines[0].Spans[0].Kind);
         Assert.Contains("not a picture", document.GetText());
@@ -224,7 +224,7 @@ public sealed class ResourceTests
         Assert.Equal("Mixed.resources", file.ResourceFileName);
         Assert.True(file.HasChildren);
         Assert.IsType<GridContent>(file.Content(DecompilationLanguage.IL));
-        Assert.False(file.DependsOnLanguage);
+        Assert.False(NodeContentLoader.DependsOnLanguage(file));
         Assert.Null(file.FolderInPackage);
     }
 
@@ -236,7 +236,7 @@ public sealed class ResourceTests
         var document = Assert.IsType<DocumentContent>(baml.Content(DecompilationLanguage.IL)).Document;
 
         Assert.Equal(NodeKind.Resource, baml.Kind);
-        Assert.True(baml.DependsOnLanguage);
+        Assert.True(NodeContentLoader.DependsOnLanguage(baml));
         Assert.Contains("x:Class=\"SampleApp.MainWindow\"", document.GetText());
     }
 

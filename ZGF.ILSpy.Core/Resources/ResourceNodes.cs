@@ -133,6 +133,9 @@ internal sealed class BamlEntryNode(LoadedModule assembly, BrowseNode parent, st
 {
     public LoadedModule Module { get; } = assembly;
 
+    /// <summary>The compiled XAML, as the entry holds it.</summary>
+    public byte[] Data => baml;
+
     public string Description => $"{Text} ({baml.Length} bytes)";
 
     public string FileName => Baml.XamlName(System.IO.Path.GetFileName(Text));

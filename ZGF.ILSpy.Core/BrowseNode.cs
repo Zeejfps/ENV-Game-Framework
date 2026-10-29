@@ -1,4 +1,3 @@
-using ZGF.ILSpy.Core.Metadata;
 using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
@@ -251,64 +250,6 @@ public abstract class BrowseNode
 
     private protected virtual BrowseNode[] CreateChildren() => NoChildren;
 
-    /// <summary>Decompiles this node. Throws <see cref="OperationCanceledException"/> when cancelled;
-    /// any other failure becomes a document describing it. Safe to call concurrently.</summary>
-    public DecompiledDocument Decompile(DecompilationLanguage language, CancellationToken cancellationToken = default) =>
-        Decompile(language, DecompilerOptions.Default, cancellationToken);
-
-    /// <summary>Decompiles this node with <paramref name="options"/>, which only C# reads.</summary>
-    public DecompiledDocument Decompile(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
-        NodeDecompiler.Decompile(this, language, options, cancellationToken);
-
-    /// <summary>The name a file of this node's code in <paramref name="language"/> is offered under.</summary>
-    public string SuggestCodeFileName(DecompilationLanguage language) => NodeDecompiler.SuggestCodeFileName(this, language);
-
-    /// <summary>Writes this node's code in <paramref name="language"/> to the file at
-    /// <paramref name="path"/>: for an assembly its whole module, for a namespace all its types, else
-    /// what the node shows. Throws when decompiling or writing fails.</summary>
-    public void SaveCode(DecompilationLanguage language, DecompilerOptions options, string path, CancellationToken cancellationToken = default) =>
-        NodeDecompiler.SaveCode(this, language, options, path, cancellationToken);
-
-    /// <summary>Whether <see cref="LoadContentAsync"/> gives decompiled code, which changes with the
-    /// language and options, rather than a grid, a picture or why the file failed to load, which do not.</summary>
-    public bool DependsOnLanguage => this is not MetadataGridNode and not FailedAssemblyNode && !IsImage;
-
-    private bool IsImage => Kind == NodeKind.ResourceImage && this is IResourceData;
-
-    /// <summary>What this node shows, made on the thread pool: for metadata its grid of rows, read
-    /// the first time and kept; for a resource named as a PNG, JPEG, BMP, GIF, ICO, CUR or SVG file its
-    /// picture, or when that cannot be decoded the resource as a document with why first; else the
-    /// node decompiled with <paramref name="options"/>, which only C# reads.</summary>
-    public Task<NodeContent> LoadContentAsync(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken = default) =>
-        Task.Run(() => LoadContent(language, options, cancellationToken), cancellationToken);
-
-    private NodeContent LoadContent(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
-    {
-        if (this is MetadataGridNode grid) return new GridContent(grid.Grid);
-        if (IsImage)
-        {
-            try
-            {
-                return LoadImage(language, options, cancellationToken);
-            }
-            catch (Exception e) when (e is not OperationCanceledException)
-            {
-                return new DocumentContent(NodeDecompiler.Decompile(this, language, options, cancellationToken, e.Message));
-            }
-        }
-        return new DocumentContent(Decompile(language, options, cancellationToken));
-    }
-
-    /// <summary>The picture, with the markup it is stored as when it is drawn from shapes.</summary>
-    private ImageContent LoadImage(DecompilationLanguage language, DecompilerOptions options, CancellationToken cancellationToken)
-    {
-        var image = ResourceImage.Decode(ReadResource());
-        if (!image.IsVector)
-            return new ImageContent(image);
-        var source = Decompile(language, options, cancellationToken);
-        return new ImageContent(image, source);
-    }
-
     /// <summary>Whether this node stands for a resource's bytes, which <see cref="ReadResource"/>
     /// reads, to save them.</summary>
     public bool HasResource => this is IResourceData;
@@ -337,16 +278,5 @@ public abstract class BrowseNode
 
     public override string ToString() => Text;
 }
-
-/// <summary>What a <see cref="BrowseNode"/> shows: a <see cref="DocumentContent"/>, a
-/// <see cref="GridContent"/> or an <see cref="ImageContent"/>.</summary>
-public abstract record NodeContent;
-
-public sealed record DocumentContent(DecompiledDocument Document) : NodeContent;
-
-public sealed record GridContent(MetadataGrid Grid) : NodeContent;
-
-/// <summary>A picture, and for one stored as markup, such as SVG, that markup as a document.</summary>
-public sealed record ImageContent(ResourceImage Image, DecompiledDocument? Source = null) : NodeContent;
 
 internal sealed class LoadingNode(LoadedAssembly assembly, BrowseNode parent) : BrowseNode(assembly, parent, NodeKind.Loading, "Loading…");
