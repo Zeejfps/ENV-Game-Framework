@@ -38,6 +38,12 @@ internal static class SessionQueries
         /// <summary>A reference to the type or member the node defines; fails the test when it defines none.</summary>
         public CodeReference Definition => Assert.IsType<CodeReference>(NodeDefinitions.ReferenceOf(node.Subject));
 
+        public NodeAccessibility Accessibility => NodeVisibility.Of(node.Subject).Accessibility;
+
+        public bool IsPublicApi => NodeVisibility.Of(node.Subject).IsPublicApi;
+
+        public bool IsCompilerGenerated => NodeVisibility.Of(node.Subject).IsCompilerGenerated;
+
         /// <summary>The metadata token of what the node defines; null when it defines nothing.</summary>
         public int? Token => NodeDefinitions.TokenOf(node.Subject);
 

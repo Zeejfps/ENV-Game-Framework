@@ -141,7 +141,7 @@ public static class NodeText
         if (node.Subject is NodeSubject.FailedAssembly failed)
             return failed.Value.Error.Message;
         var name = node.FullName;
-        var accessibility = Accessibility(node.Accessibility);
+        var accessibility = Accessibility(NodeVisibility.Of(node.Subject).Accessibility);
         return accessibility != null ? $"{name}\n{accessibility}" : name;
     }
 

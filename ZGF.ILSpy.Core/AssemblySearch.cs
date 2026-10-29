@@ -333,7 +333,7 @@ public static class AssemblySearch
             var node = Find(assembly, handle);
             if (node == null)
                 return;
-            if (node.IsCompilerGenerated)
+            if (NodeVisibility.Of(node.Subject).IsCompilerGenerated)
                 return;
             if (!BrowseNode.IsMember(node.Parent))
                 Add(node);
@@ -361,7 +361,7 @@ public static class AssemblySearch
         /// when the compiler made it up, such as the type that holds a lambda's closure class.</summary>
         private static BrowseNode? SourceDeclaredAncestor(BrowseNode? node)
         {
-            while (node != null && node.IsCompilerGenerated)
+            while (node != null && NodeVisibility.Of(node.Subject).IsCompilerGenerated)
                 node = node.Parent;
             return node;
         }

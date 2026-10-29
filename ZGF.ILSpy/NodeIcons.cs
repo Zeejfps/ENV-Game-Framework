@@ -206,7 +206,12 @@ public static class NodeIcons
     };
 
     /// <summary>The icon of <paramref name="node"/> as the tree shows it, with the overlay of its accessibility.</summary>
-    public static UiIcon Icon(BrowseNode node, NodeIconPalette palette, AppIcons icons) => Icon(Of(node.Subject), node.Accessibility, palette, icons);
+    public static UiIcon Icon(BrowseNode node, NodeIconPalette palette, AppIcons icons) =>
+        Icon(Of(node.Subject), NodeVisibility.Of(node.Subject).Accessibility, palette, icons);
+
+    /// <summary>Records <paramref name="node"/>'s <see cref="Icon(BrowseNode, NodeIconPalette, AppIcons)"/>, in the
+    /// screen's icons and icon colors.</summary>
+    public static void Draw(Ui<UiState> ui, BrowseNode node) => ui.Icon(Icon(node, ui.State.NodeIconPalette, ui.State.Icons));
 
     /// <summary>What a node of <paramref name="kind"/> draws in <paramref name="icons"/>.</summary>
     public static IconGlyph Glyph(NodeIcon kind, AppIcons icons) => kind switch

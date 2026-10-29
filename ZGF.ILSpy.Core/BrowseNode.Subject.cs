@@ -14,57 +14,7 @@ public sealed partial class BrowseNode
         Kind = KindOf(subject);
         Text = TextOf(subject);
         Subject = subject;
-        switch (subject)
-        {
-            case NodeSubject.TypeDefinition type:
-                (Accessibility, IsPublicApi, IsCompilerGenerated) = DescribeDefinition(parent, type.Definition.Symbol);
-                break;
-            case NodeSubject.MemberDefinition member:
-                (Accessibility, IsPublicApi, IsCompilerGenerated) = DescribeDefinition(parent, member.Definition.Symbol);
-                break;
-            case NodeSubject.ImportedMethod import:
-                var shown = import.Value.Shown;
-                Accessibility = EntityText.Map(shown.Symbol.Accessibility);
-                IsPublicApi = EntityText.IsPublicApi(shown.Symbol);
-                break;
-            case NodeSubject.BaseType baseType:
-                if (baseType.Value.Target is BaseTypeTarget.Navigable navigable)
-                {
-                    Accessibility = EntityText.Map(navigable.Definition.Accessibility);
-                    IsPublicApi = EntityText.IsPublicApi(navigable.Definition);
-                }
-                break;
-            case NodeSubject.DerivedType derived:
-                Accessibility = EntityText.Map(derived.Value.Symbol.Accessibility);
-                IsPublicApi = EntityText.IsPublicApi(derived.Value.Symbol);
-                break;
-            case NodeSubject.ResourceContainer container:
-                (IsPublicApi, Accessibility) = ResourceNodes.Visibility(container.Value.Resource);
-                break;
-            case NodeSubject.ResourceEntry entry:
-                if (entry.Value.Source is ResourceSource.Manifest manifest)
-                    (IsPublicApi, Accessibility) = ResourceNodes.Visibility(manifest.Resource);
-                break;
-            case NodeSubject.Namespace ns:
-                IsPublicApi = ns.Value.IsPublicApi;
-                IsCompilerGenerated = ns.Value.IsCompilerGenerated;
-                break;
-            case NodeSubject.AssemblyReference or NodeSubject.MemberReference or NodeSubject.TypeReference or NodeSubject.ForwardedType
-                or NodeSubject.References or NodeSubject.ReferencedTypes
-                or NodeSubject.ModuleReference or NodeSubject.BaseTypes
-                or NodeSubject.DerivedTypes or NodeSubject.Resources or NodeSubject.Metadata or NodeSubject.MetadataTables
-                or NodeSubject.Package or NodeSubject.PackageFile or NodeSubject.Module or NodeSubject.FailedAssembly or NodeSubject.MetadataTable:
-                break;
-            default:
-                throw new UnreachableException();
-        }
     }
-
-    /// <summary>What the node of a definition says of it: its accessibility, whether it is seen outside its
-    /// assembly, and whether the compiler made it or what holds it up.</summary>
-    private static (NodeAccessibility, bool, bool) DescribeDefinition(BrowseNode? parent, IEntity entity) =>
-        (EntityText.Map(entity.Accessibility), EntityText.IsPublicApi(entity),
-            (parent != null && parent.IsCompilerGenerated) || Members.IsCompilerGenerated(entity));
 
     /// <summary>What the node stands for: its label, flags and children all follow from that.</summary>
     public NodeSubject Subject { get; }

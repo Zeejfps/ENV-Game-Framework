@@ -79,17 +79,6 @@ public sealed partial class BrowseNode
     /// <summary>The label: a name, or for members an ILSpy-style signature such as <c>Add(T) : void</c>.</summary>
     public string Text { get; }
 
-    public NodeAccessibility Accessibility { get; private init; }
-
-    /// <summary>Whether this is visible outside its assembly, taking enclosing types into account.
-    /// Non-public nodes are usually shown dimmed.</summary>
-    public bool IsPublicApi { get; private init; } = true;
-
-    /// <summary>Whether the compiler made this up rather than the source declaring it, such as a
-    /// lambda's closure class or a property's backing field, or it sits inside something the
-    /// compiler made up. Such nodes are usually hidden.</summary>
-    public bool IsCompilerGenerated { get; private init; }
-
     /// <summary>For a namespace, the one whose name it extends by a segment, which holds it when the
     /// tree nests namespaces; null for an outermost namespace and for any other node.</summary>
     public BrowseNode? EnclosingNamespace { get; private init; }

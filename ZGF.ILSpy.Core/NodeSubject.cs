@@ -341,11 +341,12 @@ public sealed class ForwardedTypeInfo
 /// <summary>A type a type derives from directly, as <see cref="Module"/> names it, and what it resolves to.</summary>
 public sealed class BaseTypeInfo
 {
-    private BaseTypeInfo(LoadedModule module, IType type, BaseTypeTarget target)
+    private BaseTypeInfo(LoadedModule module, IType type, BaseTypeTarget target, NodeVisibility visibility)
     {
         Module = module;
         Type = type;
         Target = target;
+        Visibility = visibility;
     }
 
     public LoadedModule Module { get; }
@@ -355,17 +356,20 @@ public sealed class BaseTypeInfo
 
     public BaseTypeTarget Target { get; }
 
+    /// <summary>How visible the type is, when it can be navigated to; else as visible as anything is.</summary>
+    public NodeVisibility Visibility { get; }
+
     /// <summary>The base type <paramref name="type"/> as <paramref name="module"/> names it, navigable when
     /// its definition is found and has an address.</summary>
     internal static BaseTypeInfo Of(LoadedModule module, IType type)
     {
         var definition = type.GetDefinition();
         if (definition == null)
-            return new BaseTypeInfo(module, type, new BaseTypeTarget.Unresolved());
+            return new BaseTypeInfo(module, type, new BaseTypeTarget.Unresolved(), NodeVisibility.Open);
         var address = NavigationAddress.Of(definition);
         if (address == null)
-            return new BaseTypeInfo(module, type, new BaseTypeTarget.Unaddressed(definition));
-        return new BaseTypeInfo(module, type, new BaseTypeTarget.Navigable(definition, address));
+            return new BaseTypeInfo(module, type, new BaseTypeTarget.Unaddressed(definition), NodeVisibility.Open);
+        return new BaseTypeInfo(module, type, new BaseTypeTarget.Navigable(definition, address), NodeVisibility.OfReferenced(definition));
     }
 }
 
@@ -392,7 +396,10 @@ public sealed class DerivedTypeInfo
         Module = module;
         Symbol = symbol;
         Address = address;
+        Visibility = NodeVisibility.OfReferenced(symbol);
     }
+
+    public NodeVisibility Visibility { get; }
 
     /// <summary>The module whose tree lists the type, under a type of its own.</summary>
     public LoadedModule Module { get; }
@@ -467,6 +474,7 @@ public sealed class DefinedType
         Symbol = symbol;
         Handle = handle;
         Address = address;
+        Visibility = NodeVisibility.OfDefinition(symbol);
     }
 
     public LoadedModule Module { get; }
@@ -478,6 +486,9 @@ public sealed class DefinedType
     public NavigationAddress Address { get; }
 
     public TypeShape Shape => EntityText.ShapeOf(Symbol);
+
+    /// <summary>How visible the type is: compiler-generated when the compiler made it up, or a type it is nested in.</summary>
+    public NodeVisibility Visibility { get; }
 
     /// <summary>The definition of <paramref name="type"/> in <paramref name="module"/>; null when it has no
     /// metadata file or token, as a type the decompiler made up has not.</summary>
@@ -500,6 +511,7 @@ public sealed class DefinedMember
         Module = module;
         Symbol = symbol;
         Address = address;
+        Visibility = NodeVisibility.OfDefinition(symbol);
     }
 
     public LoadedModule Module { get; }
@@ -511,6 +523,10 @@ public sealed class DefinedMember
     public NavigationAddress Address { get; }
 
     public MemberShape Shape => EntityText.ShapeOf(Symbol);
+
+    /// <summary>How visible the member is: compiler-generated when the compiler made it up, or the property,
+    /// event or type that holds it.</summary>
+    public NodeVisibility Visibility { get; }
 
     /// <summary>The definition of <paramref name="member"/> in <paramref name="module"/>; null when it has
     /// no metadata file or token.</summary>
@@ -533,6 +549,8 @@ public sealed class NamespaceInfo
         Name = name;
         Types = types;
         Forwarded = forwarded;
+        IsPublicApi = forwarded.Count > 0 || types.Any(EntityText.IsPublicApi);
+        IsCompilerGenerated = forwarded.Count == 0 && types.All(Members.IsCompilerGenerated);
     }
 
     public LoadedModule Module { get; }
@@ -551,8 +569,8 @@ public sealed class NamespaceInfo
     public bool IsEnclosingOnly => Types.Count == 0 && Forwarded.Count == 0;
 
     /// <summary>Whether a type here is visible outside the module: one it forwards, or a public one.</summary>
-    public bool IsPublicApi => Forwarded.Count > 0 || Types.Any(EntityText.IsPublicApi);
+    public bool IsPublicApi { get; }
 
     /// <summary>Whether everything here is something the compiler made up.</summary>
-    public bool IsCompilerGenerated => Forwarded.Count == 0 && Types.All(Members.IsCompilerGenerated);
+    public bool IsCompilerGenerated { get; }
 }

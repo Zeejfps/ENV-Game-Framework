@@ -47,7 +47,7 @@ public sealed class NavigationHistory
         var place = node.Path;
         if (IsCurrentPlace(place))
             return;
-        Add(new HistoryEntry.Node(place, node.Accessibility, language, null));
+        Add(new HistoryEntry.Node(place, NodeVisibility.Of(node.Subject).Accessibility, language, null));
     }
 
     /// <summary>Whether the place being shown is <paramref name="place"/>.</summary>
