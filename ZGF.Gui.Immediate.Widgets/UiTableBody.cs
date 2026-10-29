@@ -330,14 +330,18 @@ public static partial class UiWidgets
         return true;
     }
 
+    private static readonly KeyChord CopyCell = Shortcut.Command(KeyboardKey.C).First;
+
     private static bool ApplyCellKey(TableState state, TableCellSelection cells, KeyStroke stroke)
     {
+        if (CopyCell.Matches(stroke.Key, stroke.Modifiers))
+        {
+            state.Copy = true;
+            return true;
+        }
         var modifiers = stroke.Modifiers & (KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Super);
         switch (modifiers, stroke.Key)
         {
-            case (KeyModifiers.Control, KeyboardKey.C):
-                state.Copy = true;
-                return true;
             case (0, KeyboardKey.LeftArrow):
                 cells.SelectColumn(state.Columns.StepSelectable(cells.Column, -1));
                 return true;

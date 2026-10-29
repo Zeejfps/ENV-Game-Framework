@@ -1,3 +1,5 @@
+using ZGF.Desktop;
+
 namespace ZGF.Gui.Hosting;
 
 /// <summary>Where the system puts a menu of the menu bar to its own use: macOS fills the
@@ -48,15 +50,14 @@ public sealed class AppMenu(string key, string title, AppMenuRole role) : AppMen
 /// <summary>An item the app acts on when picked, or the system acts on when it has a
 /// <see cref="SystemAction"/>. <see cref="IsEnabled"/> and <see cref="IsChecked"/> change in place, as
 /// the app's state does, and are read as the menu is shown.</summary>
-public sealed class AppMenuItem(string key, string title, string? shortcut, AppMenuSystemAction systemAction) : AppMenuEntry
+public sealed class AppMenuItem(string key, string title, Shortcut? shortcut, AppMenuSystemAction systemAction) : AppMenuEntry
 {
     /// <summary>Names the item among its siblings, from one menu bar to the next.</summary>
     public string Key { get; } = key;
     public string Title { get; } = title;
 
-    /// <summary>The keys that pick the item, written as <c>Ctrl+Shift+E</c>, Ctrl being the platform's
-    /// command key; null for none.</summary>
-    public string? Shortcut { get; } = shortcut;
+    /// <summary>The keys that pick the item; null for none.</summary>
+    public Shortcut? Shortcut { get; } = shortcut;
 
     public AppMenuSystemAction SystemAction { get; } = systemAction;
     public bool IsEnabled { get; set; } = true;

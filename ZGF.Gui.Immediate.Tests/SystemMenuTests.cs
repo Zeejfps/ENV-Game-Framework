@@ -1,5 +1,7 @@
+using ZGF.Desktop;
 using ZGF.Gui.Hosting;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Tests;
 
@@ -11,6 +13,7 @@ public sealed class SystemMenuTests
     private bool _dark;
     private bool _canSave;
     private string _openLabel = "Open";
+    private static readonly Shortcut Open = Shortcut.Command(KeyboardKey.O);
 
     public SystemMenuTests() => _frames = new UiFrames(new DefaultUiState(), body: Body).UseSystemMenuBar(_bar);
 
@@ -22,7 +25,7 @@ public sealed class SystemMenuTests
             {
                 if (file.IsOpen)
                 {
-                    if (ui.MenuItem(_openLabel, "Ctrl+O", id: "open")) _picks.Add("Open");
+                    if (ui.MenuItem(_openLabel, Open, id: "open")) _picks.Add("Open");
                     ui.MenuSeparator();
                     if (ui.MenuItem("Save", enabled: _canSave)) _picks.Add("Save");
                     using (var recent = ui.SubMenu("Recent"))
@@ -37,7 +40,7 @@ public sealed class SystemMenuTests
                     ui.MenuItem("Dark", ref _dark);
             }
             using (ui.Menu("Window", role: AppMenuRole.Window))
-                ui.SystemMenuItem("Minimize", AppMenuSystemAction.Minimize, "Cmd+M");
+                ui.SystemMenuItem("Minimize", AppMenuSystemAction.Minimize, Shortcut.Command(KeyboardKey.M));
         }
     }
 
@@ -49,7 +52,7 @@ public sealed class SystemMenuTests
         Assert.False(_frames.Drew("File"));
         Assert.Equal(["File", "View", "Window"], _bar.Menus.Select(m => m.Title));
         Assert.Equal(AppMenuRole.Window, _bar.Menu("Window").Role);
-        Assert.Equal("Ctrl+O", _bar.Item("File", "Open").Shortcut);
+        Assert.Equal(Open, _bar.Item("File", "Open").Shortcut);
         Assert.IsType<AppMenuSeparator>(_bar.Menu("File").Entries[1]);
         Assert.False(_bar.Item("File", "Save").IsEnabled);
         Assert.Equal("a.dll", _bar.Item("File", "Recent", "a.dll").Title);
@@ -102,7 +105,7 @@ public sealed class SystemMenuTests
         _frames.Frame();
 
         Assert.Equal(2, _bar.Showings);
-        Assert.Equal("Ctrl+O", _bar.Item("File", "Öffnen").Shortcut);
+        Assert.Equal(Open, _bar.Item("File", "Öffnen").Shortcut);
     }
 
     [Fact]
@@ -145,5 +148,43 @@ public sealed class SystemMenuTests
 
         Assert.True(frames.Drew("Window"));
         Assert.False(frames.Drew("Minimize"));
+    }
+}
+
+public sealed class ShortcutPressTests
+{
+    private static readonly Shortcut ToggleFold = Shortcut.Key(KeyboardKey.M, ShortcutModifiers.Control).Then(KeyboardKey.M);
+    private readonly UiFrames _frames = new(new DefaultUiState());
+
+    [Fact]
+    public void A_shortcut_of_two_chords_is_pressed_when_its_second_follows_its_first_in_a_later_frame()
+    {
+        _frames.Key(KeyboardKey.M, KeyModifiers.Control);
+        var afterFirst = _frames.Run(0f, ui => ui.IsPressed(ToggleFold));
+        _frames.Key(KeyboardKey.LeftControl, KeyModifiers.Control).Key(KeyboardKey.M);
+        var afterSecond = _frames.Run(0f, ui => ui.IsPressed(ToggleFold));
+
+        Assert.False(afterFirst);
+        Assert.True(afterSecond);
+    }
+
+    [Fact]
+    public void Another_key_between_the_chords_breaks_the_shortcut()
+    {
+        _frames.Key(KeyboardKey.M, KeyModifiers.Control);
+        _frames.Run(0f, _ => { });
+        _frames.Key(KeyboardKey.X).Key(KeyboardKey.M);
+
+        Assert.False(_frames.Run(0f, ui => ui.IsPressed(ToggleFold)));
+    }
+
+    [Fact]
+    public void Pressing_a_shortcut_presses_its_platforms_keys()
+    {
+        var export = Shortcut.Command(KeyboardKey.E, ShortcutModifiers.Shift);
+
+        _frames.Key(export);
+
+        Assert.True(_frames.Run(0f, ui => ui.IsPressed(export)));
     }
 }

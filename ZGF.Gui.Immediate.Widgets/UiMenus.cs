@@ -401,7 +401,7 @@ public static partial class UiWidgets
 
     /// <summary>An item the window system acts on itself, such as macOS's Hide and Quit, recorded into
     /// its menu bar; nothing in a menu drawn in the window, which has no such items.</summary>
-    public static void SystemMenuItem(this Ui ui, string label, AppMenuSystemAction action, string? shortcut = null)
+    public static void SystemMenuItem(this Ui ui, string label, AppMenuSystemAction action, Shortcut? shortcut = null)
     {
         RecordingSystemMenus(ui)?.Item(label, label, shortcut, enabled: true, check: false, action);
     }
@@ -575,18 +575,19 @@ public static partial class UiWidgets
     /// with <paramref name="icon"/>, when given, between it and the label. Without a check the
     /// icon sits where the mark would, unless another item of the menu has an icon beside its mark,
     /// when every icon and label lines up after the marks. <paramref name="shortcut"/> is only
-    /// displayed. Ids work as for <see cref="Button"/>.</summary>
-    public static bool MenuItem(this Ui ui, string label, string? shortcut = null, bool enabled = true, bool? check = null, string? id = null,
-        UiIcon? icon = null)
+    /// displayed, in the platform's spelling; the window system's menu bar also picks the item by it.
+    /// <paramref name="detail"/> is shown where a shortcut would be, in a menu drawn in the window. Ids work as for <see cref="Button"/>.</summary>
+    public static bool MenuItem(this Ui ui, string label, Shortcut? shortcut = null, bool enabled = true, bool? check = null, string? id = null,
+        UiIcon? icon = null, string? detail = null)
     {
         var mark = check == true ? MenuMark.Check : MenuMark.None;
-        return ui.MenuItem(label, shortcut, enabled, mark, check != null, id, icon, keepOpen: false);
+        return ui.MenuItem(label, shortcut, enabled, mark, check != null, id, icon, keepOpen: false, detail);
     }
 
     /// <summary>One choice of a set: shows a dot when <paramref name="selected"/> and leaves room
     /// for one otherwise, with <paramref name="icon"/>, when given, between it and the label.
-    /// Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, string?, bool, bool?, string?, UiIcon?)"/>.</summary>
-    public static bool MenuRadioItem(this Ui ui, string label, bool selected, string? shortcut = null, bool enabled = true, string? id = null,
+    /// Returns true on the frame it is picked, like <see cref="MenuItem(Ui, string, Shortcut?, bool, bool?, string?, UiIcon?, string?)"/>.</summary>
+    public static bool MenuRadioItem(this Ui ui, string label, bool selected, Shortcut? shortcut = null, bool enabled = true, string? id = null,
         UiIcon? icon = null)
     {
         var mark = selected ? MenuMark.Dot : MenuMark.None;
@@ -602,8 +603,8 @@ public static partial class UiWidgets
 
     /// <summary>An item of a menu: a <paramref name="markable"/> one keeps its mark column for the
     /// mark and shows <paramref name="icon"/> in the icon column after it.</summary>
-    private static bool MenuItem(this Ui ui, string label, string? shortcut, bool enabled, MenuMark mark, bool markable, string? id, UiIcon? icon,
-        bool keepOpen)
+    private static bool MenuItem(this Ui ui, string label, Shortcut? shortcut, bool enabled, MenuMark mark, bool markable, string? id, UiIcon? icon,
+        bool keepOpen, string? detail = null)
     {
         if (RecordingSystemMenus(ui) is { } system)
             return system.Item(id ?? label, label, shortcut, enabled, mark != MenuMark.None);
@@ -644,8 +645,9 @@ public static partial class UiWidgets
             }
             ui.Text(label, color: color);
             ui.Leaf(new Box { Width = Sizing.Grow(theme.MenuShortcutGap), Height = 0f });
-            if (shortcut != null)
-                ui.Text(shortcut, color: enabled ? theme.TextMuted : theme.TextDisabled);
+            var trailing = shortcut?.Label ?? detail;
+            if (trailing != null)
+                ui.Text(trailing, color: enabled ? theme.TextMuted : theme.TextDisabled);
         }
 
         if (picked && !keepOpen)
@@ -688,7 +690,7 @@ public static partial class UiWidgets
     /// <summary>A checkable item: picking it flips <paramref name="value"/>. With
     /// <paramref name="keepOpen"/> the menu stays open, so several items can be flipped in a row.
     /// An <paramref name="icon"/> is drawn between the check and the label.</summary>
-    public static bool MenuItem(this Ui ui, string label, ref bool value, string? shortcut = null, bool enabled = true, string? id = null,
+    public static bool MenuItem(this Ui ui, string label, ref bool value, Shortcut? shortcut = null, bool enabled = true, string? id = null,
         bool keepOpen = false, UiIcon? icon = null)
     {
         var mark = value ? MenuMark.Check : MenuMark.None;

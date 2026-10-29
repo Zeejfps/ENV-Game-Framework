@@ -349,9 +349,9 @@ public sealed class TableTests
         var y = cell.Y + cell.Height / 2;
         grid.Frames.Drag(new PointF(cell.X + 1f, y), new PointF(cell.X + advance * 3, y)).Release().Frame();
 
-        grid.Frames.Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        grid.Frames.Key(Shortcut.Command(KeyboardKey.C)).Frame();
         var part = grid.Copied;
-        grid.Frames.Key(KeyboardKey.DownArrow).Key(KeyboardKey.C, KeyModifiers.Control).Frame();
+        grid.Frames.Key(KeyboardKey.DownArrow).Key(Shortcut.Command(KeyboardKey.C)).Frame();
 
         Assert.Equal(CellTable.Text(1, 1).Substring(0, 3), part);
         Assert.Equal(CellTable.Text(2, 1), grid.Copied);

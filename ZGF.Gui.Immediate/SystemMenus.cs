@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Hosting;
 
 namespace ZGF.Gui.Immediate;
@@ -121,7 +122,7 @@ public sealed class SystemMenus
     }
 
     /// <summary>Records an item of the menu being recorded; true on the frame after the user picked it.</summary>
-    public bool Item(string key, string title, string? shortcut, bool enabled, bool check,
+    public bool Item(string key, string title, Shortcut? shortcut, bool enabled, bool check,
         AppMenuSystemAction systemAction = AppMenuSystemAction.None)
     {
         var level = _levels[_depth - 1];

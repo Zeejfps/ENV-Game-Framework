@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using ZGF.Desktop;
+using ZGF.KeyboardModule;
 using static ZGF.Rendering.Metal.Objc;
 
 namespace ZGF.Gui.Hosting;
@@ -150,62 +152,44 @@ internal sealed unsafe class MacMenuBar : ISystemMenuBar
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 
-    /// <summary>The key equivalent and modifier mask of <paramref name="shortcut"/>, Ctrl standing for
-    /// Command and Alt for Option; none for no shortcut, a key this cannot name, or one with neither
-    /// Command nor a function key, which a text field must still get, as Option+Left moves by word.</summary>
-    internal static (string Key, ulong Modifiers) KeyEquivalent(string? shortcut)
+    /// <summary>The key equivalent and modifier mask of <paramref name="shortcut"/>; none for no
+    /// shortcut, one of two chords or a key this cannot name, which only the app's own key handling
+    /// sees, or one with neither Command nor a function key, which a text field must still get, as
+    /// Option+Left moves by word.</summary>
+    internal static (string Key, ulong Modifiers) KeyEquivalent(Shortcut? shortcut)
     {
-        if (string.IsNullOrEmpty(shortcut))
+        if (shortcut is not { Second: null } single)
             return ("", 0);
-        var parts = shortcut.Split('+');
-        var key = KeyOf(parts[^1]);
+        var chord = single.First;
+        var key = KeyOf(chord);
         if (key == null)
             return ("", 0);
-        ulong modifiers = 0;
-        foreach (var part in parts.AsSpan(0, parts.Length - 1))
-        {
-            var mask = ModifierOf(part);
-            if (mask == null)
-                return ("", 0);
-            modifiers |= mask.Value;
-        }
-        var isFunctionKey = key[0] >= F1 && key[0] < F1 + FunctionKeys;
-        if ((modifiers & CommandMask) == 0 && !isFunctionKey)
+        var modifiers = chord.Modifiers;
+        if (!modifiers.HasFlag(ShortcutModifiers.Command) && chord.FunctionKey == 0)
             return ("", 0);
-        return (key, modifiers);
+        ulong mask = 0;
+        if (modifiers.HasFlag(ShortcutModifiers.Command)) mask |= CommandMask;
+        if (modifiers.HasFlag(ShortcutModifiers.Control)) mask |= ControlMask;
+        if (modifiers.HasFlag(ShortcutModifiers.Alt)) mask |= OptionMask;
+        if (modifiers.HasFlag(ShortcutModifiers.Shift)) mask |= ShiftMask;
+        return (key, mask);
     }
 
-    private static string? KeyOf(string name)
+    private static string? KeyOf(KeyChord chord)
     {
-        if (name.Length == 1)
-            return char.ToLowerInvariant(name[0]).ToString();
-        return name switch
+        if (chord.Character is { } character)
+            return character.ToString();
+        if (chord.FunctionKey is > 0 and <= FunctionKeys)
+            return ((char)(F1 + chord.FunctionKey - 1)).ToString();
+        return chord.Key switch
         {
-            "Up" => UpArrow.ToString(),
-            "Down" => DownArrow.ToString(),
-            "Left" => LeftArrow.ToString(),
-            "Right" => RightArrow.ToString(),
-            _ => FunctionKeyOf(name),
+            KeyboardKey.UpArrow => UpArrow.ToString(),
+            KeyboardKey.DownArrow => DownArrow.ToString(),
+            KeyboardKey.LeftArrow => LeftArrow.ToString(),
+            KeyboardKey.RightArrow => RightArrow.ToString(),
+            _ => null,
         };
     }
-
-    private static string? FunctionKeyOf(string name)
-    {
-        if (name[0] != 'F' || !int.TryParse(name.AsSpan(1), out var number))
-            return null;
-        if (number < 1 || number > FunctionKeys)
-            return null;
-        return ((char)(F1 + number - 1)).ToString();
-    }
-
-    private static ulong? ModifierOf(string name) => name switch
-    {
-        "Ctrl" or "Cmd" => CommandMask,
-        "Shift" => ShiftMask,
-        "Alt" or "Option" => OptionMask,
-        "Control" => ControlMask,
-        _ => null,
-    };
 
     /// <summary>The item of this menu bar with <paramref name="tag"/>, or null for a tag of a menu
     /// bar shown before.</summary>

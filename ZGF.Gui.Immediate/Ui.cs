@@ -368,6 +368,7 @@ public abstract partial class Ui
 
     internal void EndFrame()
     {
+        KeepPresses();
         Close();
         EnsureScopesClosed();
 

@@ -6,6 +6,7 @@ using ZGF.Gui;
 using ZGF.Gui.Benchmarks;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.KeyboardModule;
 
 /// <summary>
 /// One immediate-mode frame end to end — record, solve, emit into the canvas — for a screen
@@ -255,6 +256,11 @@ public class ImmediateMenuBenchmarks
     private double _time;
     private bool _wrap = true;
 
+    private static readonly Shortcut Open = Shortcut.Command(KeyboardKey.O);
+    private static readonly Shortcut Save = Shortcut.Command(KeyboardKey.S);
+    private static readonly Shortcut SaveAs = Shortcut.Command(KeyboardKey.S, ShortcutModifiers.Shift);
+    private static readonly Shortcut Exit = Shortcut.Key(KeyboardKey.F4, ShortcutModifiers.Alt);
+
     [GlobalSetup]
     public void Setup()
     {
@@ -307,9 +313,9 @@ public class ImmediateMenuBenchmarks
             {
                 if (file.IsOpen)
                 {
-                    ui.MenuItem("Open…", "Ctrl+O");
-                    ui.MenuItem("Save", "Ctrl+S");
-                    ui.MenuItem("Save as…", "Ctrl+Shift+S");
+                    ui.MenuItem("Open…", Open);
+                    ui.MenuItem("Save", Save);
+                    ui.MenuItem("Save as…", SaveAs);
                     ui.Tooltip(ui.GetId("Save as…"), "Saves the document under a new name");
                     ui.MenuSeparator();
                     using (var recent = ui.SubMenu("Recent"))
@@ -318,7 +324,7 @@ public class ImmediateMenuBenchmarks
                             ui.MenuItem("One");
                     }
                     ui.MenuItem("Word wrap", ref _wrap);
-                    ui.MenuItem("Exit", "Alt+F4");
+                    ui.MenuItem("Exit", Exit);
                 }
             }
             using (var view = ui.Menu("View"))

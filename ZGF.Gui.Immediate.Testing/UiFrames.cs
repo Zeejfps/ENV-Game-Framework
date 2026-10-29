@@ -279,6 +279,16 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>Presses <paramref name="shortcut"/>'s chords in turn, with the modifiers they take on
+    /// the platform the tests run on.</summary>
+    public UiFrames<TState> Key(Shortcut shortcut)
+    {
+        Key(shortcut.First.Key, shortcut.First.Held);
+        if (shortcut.Second is { } second)
+            Key(second.Key, second.Held);
+        return this;
+    }
+
     public UiFrames<TState> Type(string text)
     {
         foreach (var rune in text.EnumerateRunes())

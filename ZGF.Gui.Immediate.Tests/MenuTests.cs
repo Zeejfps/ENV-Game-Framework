@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.KeyboardModule;
 
@@ -20,7 +21,7 @@ public sealed class MenuTests
             {
                 if (file.IsOpen)
                 {
-                    if (ui.MenuItem("Open", "Ctrl+O")) _picks.Add("Open");
+                    if (ui.MenuItem("Open", Shortcut.Command(KeyboardKey.O))) _picks.Add("Open");
                     ui.MenuSeparator();
                     if (ui.MenuItem("Save", enabled: false)) _picks.Add("Save");
                 }
@@ -47,7 +48,7 @@ public sealed class MenuTests
         OpenFile();
 
         Assert.True(Open("Open"));
-        Assert.True(_frames.Drew("Ctrl+O"));
+        Assert.True(_frames.Drew(Shortcut.Command(KeyboardKey.O).Label));
         Assert.False(_frames.Drew("Dark"));
     }
 
