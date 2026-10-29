@@ -1,30 +1,37 @@
 namespace ZGF.Gui.Immediate.Widgets;
 
-/// <summary>How a <see cref="UiWidgets.Button"/> is emphasized: <see cref="Neutral"/> on the control
-/// fill with an outline, <see cref="Primary"/> filled with the accent for the action a dialog or
-/// screen exists for, <see cref="Ghost"/> with no fill until the pointer is over it.</summary>
-public enum ButtonVariant
-{
-    Neutral,
-    Primary,
-    Ghost,
-}
-
 public static partial class UiWidgets
 {
     /// <summary>A square button of <see cref="UiTheme.IconButtonSize"/> showing one icon
     /// <paramref name="glyph"/>, centered at <see cref="UiTheme.IconSize"/>, with an optional tooltip: <see cref="ButtonVariant.Ghost"/> unless
     /// <paramref name="variant"/> says otherwise. Returns true on the frame it is clicked, or activated
-    /// with Enter or Space while focused. <paramref name="id"/> is scoped like any other.</summary>
+    /// with Enter or Space while focused. <paramref name="id"/> is scoped like any other. It is drawn by
+    /// the theme's <see cref="UiTheme.IconButtonPainter"/>, or as <see cref="PaintIconButton"/> draws one.</summary>
     public static bool IconButton(this Ui ui, string id, IconGlyph glyph, string? tooltip = null, bool enabled = true,
         ButtonVariant variant = ButtonVariant.Ghost)
     {
+        var state = ui.ButtonBehavior(id, enabled);
+        var face = new IconButtonFace(glyph, variant);
+        var painter = ui.Theme.IconButtonPainter;
+        if (painter != null)
+            painter(ui, state, face);
+        else
+            ui.PaintIconButton(state, face);
+        if (tooltip != null)
+            ui.Tooltip(state.Id, tooltip);
+        return state.Activated;
+    }
+
+    /// <summary>The stock look of an <see cref="IconButton"/>: <see cref="UiTheme.IconButtonSize"/>
+    /// square on its variant's colors, the glyph in its text color — for a painter of an app's own to
+    /// fall back to.</summary>
+    public static void PaintIconButton(this Ui ui, in ButtonState state, in IconButtonFace face)
+    {
         var theme = ui.Theme;
-        var i = Pressable(ui, id, enabled, out var activated, out var ring);
-        var (fill, border, text) = ButtonColors(theme, variant, enabled, i.Held || activated, i.Hovered);
+        var (fill, border, text) = ButtonColors(theme, face.Variant, state);
         var size = theme.IconButtonSize;
 
-        using (ui.Box(i.Id, new Box
+        using (ui.Box(state.Id, new Box
         {
             Width = size,
             Height = size,
@@ -36,12 +43,9 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
-            ui.Glyph(glyph, text, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
-            if (ring) FocusRing(ui, theme.CornerRadius);
+            ui.Glyph(face.Glyph, text, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
+            if (state.FocusVisible) FocusRing(ui, theme.CornerRadius);
         }
-        if (tooltip != null)
-            ui.Tooltip(i.Id, tooltip);
-        return i.Clicked || activated;
     }
 
     /// <summary>A square ghost button showing a cross, the theme's <see cref="UiTheme.TabCloseSize"/>

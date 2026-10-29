@@ -281,6 +281,17 @@ public sealed partial record UiTheme
     /// glides there instead, carrying its speed from notch to notch.</summary>
     public Spring? ScrollGlide { get; init; }
 
+    /// <summary>Draws every <c>Button</c> in place of the stock look, which null keeps; the button's
+    /// behavior stays the framework's.</summary>
+    public ButtonPainter? ButtonPainter { get; init; }
+
+    /// <summary>Draws every <c>IconButton</c> in place of the stock look, which null keeps.</summary>
+    public IconButtonPainter? IconButtonPainter { get; init; }
+
+    /// <summary>Draws the bars of every scroll in place of the stock thumb, which null keeps. The bars'
+    /// gutters, grab areas and thumb lengths still come from the metrics above.</summary>
+    public ScrollBarPainter? ScrollBarPainter { get; init; }
+
     /// <summary>This theme's palette with <paramref name="density"/>'s control geometry and type
     /// sizes; everything else is kept.</summary>
     public UiTheme WithDensity(UiDensity density) => density == UiDensity.Compact

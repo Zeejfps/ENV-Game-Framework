@@ -77,18 +77,46 @@ public static partial class UiWidgets
     /// <paramref name="id"/> is given. An <paramref name="icon"/> leads the label, in the label's
     /// color unless it has its own. While <paramref name="busy"/>, the work it started is under way: a
     /// <see cref="Spinner"/> leads the label in the icon's place, and the button keeps its colors but
-    /// takes no input.</summary>
+    /// takes no input. It is drawn by the theme's <see cref="UiTheme.ButtonPainter"/>, or as
+    /// <see cref="PaintButton"/> draws one.</summary>
     public static bool Button(this Ui ui, string label, Sizing? width = null, bool enabled = true, string? id = null,
         ButtonVariant variant = ButtonVariant.Neutral, UiIcon? icon = null, bool busy = false)
     {
-        var theme = ui.Theme;
-        var key = id ?? label;
-        var i = Pressable(ui, key, enabled && !busy, out var activated, out var ring);
-        var (fill, border, text) = ButtonColors(theme, variant, enabled || busy, i.Held || activated, i.Hovered);
+        var state = ui.ButtonBehavior(id ?? label, enabled, busy);
+        var face = new ButtonFace(label, variant, icon, width);
+        var painter = ui.Theme.ButtonPainter;
+        if (painter != null)
+            painter(ui, state, face);
+        else
+            ui.PaintButton(state, face);
+        return state.Activated;
+    }
 
-        using (ui.Row(i.Id, new Box
+    /// <summary>What a button does, without drawing it: under the pointer it shows the hand cursor,
+    /// it is a Tab stop, and Enter or Space activates it while it holds focus; it takes no input
+    /// unless <paramref name="enabled"/> and not <paramref name="busy"/>. Record its element with the
+    /// returned <see cref="ButtonState.Id"/> this frame, so it is hit-testable on the next.</summary>
+    public static ButtonState ButtonBehavior(this Ui ui, int id, bool enabled = true, bool busy = false)
+    {
+        var i = Pressable(ui, id, enabled && !busy, out var keyed, out var ring);
+        var availability = busy ? ButtonAvailability.Busy : enabled ? ButtonAvailability.Enabled : ButtonAvailability.Disabled;
+        return new ButtonState(i.Id, availability, i.Hovered, i.Held || keyed, ring, i.Clicked || keyed);
+    }
+
+    public static ButtonState ButtonBehavior(this Ui ui, string id, bool enabled = true, bool busy = false) =>
+        ui.ButtonBehavior(ui.GetId(id), enabled, busy);
+
+    /// <summary>The stock look of a <see cref="Button"/>: <see cref="UiTheme.ControlHeight"/> tall on
+    /// its variant's colors, a <see cref="Spinner"/> leading the label while busy — for a painter of an
+    /// app's own to fall back to.</summary>
+    public static void PaintButton(this Ui ui, in ButtonState state, in ButtonFace face)
+    {
+        var theme = ui.Theme;
+        var (fill, border, text) = ButtonColors(theme, face.Variant, state);
+
+        using (ui.Row(state.Id, new Box
         {
-            Width = width ?? Sizing.Fit(),
+            Width = face.Width ?? Sizing.Fit(),
             Height = theme.ControlHeight,
             Padding = new Spacing(theme.ControlPaddingX, 0f),
             Gap = theme.GapTight,
@@ -100,15 +128,17 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
-            if (busy)
+            if (state.Availability == ButtonAvailability.Busy)
                 ui.Spinner(fill, color: text);
-            else if (icon is { } shown)
-                ui.Icon(shown.Color != 0 && enabled ? shown : shown with { Color = text });
-            ui.Text(label, color: text, overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
-            if (ring) FocusRing(ui, theme.CornerRadius);
+            else if (face.Icon != null)
+                ui.Icon(IconIn(face.Icon.Value, text, state.Availability == ButtonAvailability.Enabled));
+            ui.Text(face.Label, color: text, overflow: face.Width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
+            if (state.FocusVisible) FocusRing(ui, theme.CornerRadius);
         }
-        return i.Clicked || activated;
     }
+
+    private static UiIcon IconIn(UiIcon icon, uint text, bool enabled) =>
+        icon.Color != 0 && enabled ? icon : icon with { Color = text };
 
     /// <summary>Returns true on the frame <paramref name="value"/> changes, by a click or by Space
     /// while focused. Ids work as for <see cref="Button"/>. When not <paramref name="enabled"/> it
@@ -322,6 +352,9 @@ public static partial class UiWidgets
         var space = input.TakeKey(KeyboardKey.Space);
         return enter || space;
     }
+
+    private static (uint Fill, uint Border, uint Text) ButtonColors(UiTheme theme, ButtonVariant variant, in ButtonState state) =>
+        ButtonColors(theme, variant, state.Availability != ButtonAvailability.Disabled, state.Down, state.Hovered);
 
     private static (uint Fill, uint Border, uint Text) ButtonColors(UiTheme theme, ButtonVariant variant, bool enabled, bool pressed, bool hovered)
     {
