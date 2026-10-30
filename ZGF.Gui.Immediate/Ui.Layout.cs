@@ -850,6 +850,7 @@ public abstract partial class Ui
             Shadow = box.Shadow ?? default,
             Clip = box.Clip,
             TransformSlot = box.Transform != null ? _tree.AddTransform(box.Transform.Value) : 0,
+            Opacity = Math.Clamp(box.Opacity ?? 1f, 0f, 1f),
         };
 
         if (!string.IsNullOrEmpty(text) && style != null)
