@@ -64,10 +64,10 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         _shadowInstanceBuffer = NewSharedBuffer(device, _shadowCap * sizeof(ShadowInstance));
         _shapeInstanceBuffer = NewSharedBuffer(device, _shapeCap * sizeof(ShapeInstance));
         _globalsBuffer = NewSharedBuffer(device, sizeof(CanvasGlobals));
-        // MaxClips genuinely IS a ceiling, unlike the instance capacities above: the clip rects are a
-        // shader-declared `array<float4, 256>` in the .gen.metal fragment shaders, so this buffer
-        // cannot grow without regenerating them. See UploadClips.
-        _clipBuffer = NewSharedBuffer(device, MaxClips * sizeof(Vector4));
+        // MaxClips genuinely IS a ceiling, unlike the instance capacities above: the clip rects, rounded
+        // rects and radii are each a shader-declared `array<float4, 256>` in the .gen.metal fragment
+        // shaders, so this buffer cannot grow without changing them. See UploadClips.
+        _clipBuffer = NewSharedBuffer(device, MaxClips * 3 * sizeof(Vector4));
 
         UploadProjectionToBuffer();
     }
@@ -174,14 +174,14 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
             Buffer.MemoryCopy(src, dst, _shapeCap * sizeof(ShapeInstance), count * sizeof(ShapeInstance));
     }
 
-    protected override void UploadClips(List<Vector4> clips)
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
     {
-        if (clips.Count == 0) return;
+        if (clips.Length == 0) return;
         var dst = (Vector4*)msg_IntPtr(_clipBuffer, Sel("contents"));
-        // Clamped, not grown: u_clipRects is `array<float4, 256>` in the generated fragment shaders,
-        // so MaxClips is fixed by them and not by this allocation. Writing past it corrupted the heap
+        // Clamped, not grown: the clip arrays are each `array<float4, 256>` in the fragment shaders, so
+        // MaxClips is fixed by them and not by this allocation. Writing past it corrupted the heap
         // silently, which is a worse failure than the clipping being wrong past 256 nested regions.
-        var n = Math.Min(clips.Count, MaxClips);
+        var n = Math.Min(clips.Length, MaxClips * 3);
         for (var i = 0; i < n; i++) dst[i] = clips[i];
     }
 

@@ -4,7 +4,11 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui.Testing;
 
-public abstract record DrawCommand(int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY);
+public abstract record DrawCommand(int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY)
+{
+    /// <summary>The rounded rect the clip also cut it to, as pushed; null while the clip was not rounded.</summary>
+    public RoundedClip? Round { get; init; }
+}
 
 public sealed record RecordedRect(DrawRectInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
 public sealed record RecordedText(DrawTextInputs Inputs, int Sequence, RectF? Clip, float Opacity, float TranslationX, float TranslationY, float ScaleX, float ScaleY) : DrawCommand(Sequence, Clip, Opacity, TranslationX, TranslationY, ScaleX, ScaleY);
@@ -47,6 +51,7 @@ public sealed class RecordingCanvas : ICanvas
 {
     private readonly ITextMeasurer _measurer;
     private readonly Stack<RectF> _clips = new();
+    private readonly Stack<RoundedClip?> _rounds = new();
     private readonly Stack<float> _opacities = new();
     private readonly Stack<Vector2> _translations = new();
     private readonly Stack<Vector2> _scales = new();
@@ -100,6 +105,8 @@ public sealed class RecordingCanvas : ICanvas
     public void SetImageSize(string imageId, int width, int height) => _imageSizes[imageId] = (width, height);
 
     private RectF? CurrentClip() => _clips.Count > 0 ? _clips.Peek() : null;
+
+    private RoundedClip? CurrentRound() => _rounds.Count > 0 ? _rounds.Peek() : null;
     private float CurrentOpacity() => _opacities.Count > 0 ? _opacities.Peek() : 1f;
     private Vector2 CurrentTranslation() => _translations.Count > 0 ? _translations.Peek() : Vector2.Zero;
     private Vector2 CurrentScale() => _scales.Count > 0 ? _scales.Peek() : Vector2.One;
@@ -133,7 +140,7 @@ public sealed class RecordingCanvas : ICanvas
             Style = Snapshot(inputs.Style),
             ZIndex = inputs.ZIndex,
         };
-        var cmd = new RecordedRect(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedRect(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _rects.Add(cmd);
         _all.Add(cmd);
     }
@@ -150,7 +157,7 @@ public sealed class RecordingCanvas : ICanvas
             Style = Snapshot(inputs.Style),
             ZIndex = inputs.ZIndex,
         };
-        var cmd = new RecordedText(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedText(recorded, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _texts.Add(cmd);
         _all.Add(cmd);
     }
@@ -163,7 +170,7 @@ public sealed class RecordingCanvas : ICanvas
         var cmd = new RecordedGlyphRun(
             inputs.Origin, inputs.CodePoints.ToArray(), inputs.CellAdvance, Snapshot(inputs.Style), inputs.ZIndex,
             inputs.Underline, inputs.StrikeThrough,
-            _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+            _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _glyphRuns.Add(cmd);
         _all.Add(cmd);
     }
@@ -173,7 +180,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedImage(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedImage(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _images.Add(cmd);
         _all.Add(cmd);
     }
@@ -183,7 +190,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedBoxShadow(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedBoxShadow(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _boxShadows.Add(cmd);
         _all.Add(cmd);
     }
@@ -193,7 +200,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedLine(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedLine(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _lines.Add(cmd);
         _all.Add(cmd);
     }
@@ -203,7 +210,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedCircle(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedCircle(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _circles.Add(cmd);
         _all.Add(cmd);
     }
@@ -213,7 +220,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _beziers.Add(cmd);
         _all.Add(cmd);
     }
@@ -223,7 +230,7 @@ public sealed class RecordingCanvas : ICanvas
         if (Skip()) return;
         var t = CurrentTranslation();
         var s = CurrentScale();
-        var cmd = new RecordedCubicBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y);
+        var cmd = new RecordedCubicBezier(inputs, _sequence++, CurrentClip(), CurrentOpacity(), t.X, t.Y, s.X, s.Y) { Round = CurrentRound() };
         _cubicBeziers.Add(cmd);
         _all.Add(cmd);
     }
@@ -239,12 +246,31 @@ public sealed class RecordingCanvas : ICanvas
         return false;
     }
 
-    public void PushClip(RectF rect) => _clips.Push(rect);
+    public void PushClip(RectF rect)
+    {
+        _clips.Push(rect);
+        _rounds.Push(CurrentRound());
+    }
+
+    public void PushClip(RectF rect, float radius)
+    {
+        _clips.Push(rect);
+        _rounds.Push(radius > 0f ? new RoundedClip(rect, radius) : CurrentRound());
+    }
+
+    public bool TryGetRoundedClip(out RoundedClip clip)
+    {
+        var round = CurrentRound();
+        clip = round ?? default;
+        return round != null;
+    }
 
     public void PopClip()
     {
         if (_clips.Count > 0)
             _clips.Pop();
+        if (_rounds.Count > 0)
+            _rounds.Pop();
     }
 
     public void PushOpacity(float opacity) => _opacities.Push(CurrentOpacity() * Math.Clamp(opacity, 0f, 1f));
@@ -328,6 +354,7 @@ public sealed class RecordingCanvas : ICanvas
         _cubicBeziers.Clear();
         _all.Clear();
         _clips.Clear();
+        _rounds.Clear();
         _opacities.Clear();
         _translations.Clear();
         _scales.Clear();

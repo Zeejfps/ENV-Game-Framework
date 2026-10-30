@@ -47,10 +47,10 @@ internal sealed class CaptureCanvas : RenderedCanvasBase
     protected override void UploadShadowInstances(ShadowInstance[] data, int count) => Keep(Shadows, data, count);
     protected override void UploadShapeInstances(ShapeInstance[] data, int count) => Keep(Shapes, data, count);
 
-    protected override void UploadClips(List<Vector4> clips)
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
     {
         Clips.Clear();
-        Clips.AddRange(clips);
+        Clips.AddRange(clips[..count]);
     }
 
     private static void Keep<T>(List<T> kept, T[] data, int count)

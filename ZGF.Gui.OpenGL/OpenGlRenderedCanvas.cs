@@ -146,26 +146,12 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
             glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(ShapeInstance), ptr);
     }
 
-    protected override void UploadClips(List<Vector4> clips)
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
     {
         glBindBuffer(GL_UNIFORM_BUFFER, _clipUbo);
-        if (clips.Count == 0) return;
-
-        var n = clips.Count;
-        if (n <= 256)
-        {
-            Span<Vector4> tmp = stackalloc Vector4[n];
-            for (var i = 0; i < n; i++) tmp[i] = clips[i];
-            fixed (Vector4* ptr = &tmp[0])
-                glBufferSubData(GL_UNIFORM_BUFFER, 0, n * sizeof(Vector4), ptr);
-        }
-        else
-        {
-            var arr = new Vector4[n];
-            for (var i = 0; i < n; i++) arr[i] = clips[i];
-            fixed (Vector4* ptr = &arr[0])
-                glBufferSubData(GL_UNIFORM_BUFFER, 0, n * sizeof(Vector4), ptr);
-        }
+        if (clips.Length == 0) return;
+        fixed (Vector4* ptr = &clips[0])
+            glBufferSubData(GL_UNIFORM_BUFFER, 0, clips.Length * sizeof(Vector4), ptr);
     }
 
     protected override void UpdateAtlasIfDirty()
@@ -528,7 +514,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         uint ubo;
         glGenBuffers(1, &ubo);
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        glBufferData(GL_UNIFORM_BUFFER, MaxClips * sizeof(Vector4), (void*)0, GL_DYNAMIC_DRAW);
+        // The rects, the rounded rects and the radii of the ClipRects block, MaxClips of each.
+        glBufferData(GL_UNIFORM_BUFFER, MaxClips * 3 * sizeof(Vector4), (void*)0, GL_DYNAMIC_DRAW);
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
         AssertNoGlError();
         _clipUbo = ubo;

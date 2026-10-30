@@ -128,10 +128,11 @@ internal readonly record struct CanvasTransform(float Dx, float Dy, float Scale,
 /// <summary>An element taken out of the flow, emitted after the rest. <see cref="Clip"/> is the clip in layout
 /// space it keeps, for hit testing; <see cref="CanvasClip"/> the clip the canvas had where it was recorded, as
 /// drawn, when that was inside a transform, which moved it; <see cref="Transforms"/> those transforms;
-/// <see cref="Opacity"/> the opacity of the boxes it is inside, which it is drawn at too.</summary>
+/// <see cref="Opacity"/> the opacity of the boxes it is inside, which it is drawn at too; <see cref="Round"/> the
+/// rounded rect, as drawn, a rounded box around it cut it to, which it is cut to too.</summary>
 internal readonly record struct FloatingEntry(
     int Index, int Z, int Layer, bool PassThrough, UiRect? Clip, RectF? CanvasClip, CanvasTransform[]? Transforms,
-    float Opacity = 1f);
+    float Opacity = 1f, RoundedClip? Round = null);
 
 /// <summary>One frame's recorded elements: sized, positioned, then emitted to the canvas.</summary>
 internal sealed class LayoutTree
@@ -354,13 +355,15 @@ internal sealed class LayoutTree
 
         for (var k = 0; k < _floating.Count; k++)
         {
-            var (index, z, layer, passThrough, clip, canvasClip, transforms, opacity) = _floating[k];
+            var (index, z, layer, passThrough, clip, canvasClip, transforms, opacity, round) = _floating[k];
             UseSurface(layer);
             if (clip != null)
             {
                 var inner = _clips[^1].Intersect(clip.Value);
                 _clips.Add(inner);
                 // Pushed before the transforms are, so a clip a transform moved is pushed as it was drawn.
+                if (round != null)
+                    _canvas.PushClip(round.Value.Rect, round.Value.Radius);
                 _canvas.PushClip(canvasClip ?? _origin.ToCanvas(inner));
             }
             // A float drawn inside a transformed element moves and scales with it, as its children do.
@@ -384,6 +387,8 @@ internal sealed class LayoutTree
             {
                 _clips.RemoveAt(_clips.Count - 1);
                 _canvas.PopClip();
+                if (round != null)
+                    _canvas.PopClip();
             }
         }
     }
@@ -393,10 +398,11 @@ internal sealed class LayoutTree
     private FloatingEntry Floating(int index, int z, int layer, bool passThrough, bool keepsClip)
     {
         UiRect? clip = keepsClip ? _clips[^1] : null;
+        RoundedClip? round = keepsClip && _canvas.TryGetRoundedClip(out var rounded) ? rounded : null;
         if (_applied.Count == 0)
-            return new FloatingEntry(index, z, layer, passThrough, clip, null, null, _opacity);
+            return new FloatingEntry(index, z, layer, passThrough, clip, null, null, _opacity, round);
         RectF? drawnClip = keepsClip && _canvas.TryGetClip(out var drawn) ? drawn : null;
-        return new FloatingEntry(index, z, layer, passThrough, clip, drawnClip, _applied.ToArray(), _opacity);
+        return new FloatingEntry(index, z, layer, passThrough, clip, drawnClip, _applied.ToArray(), _opacity, round);
     }
 
     /// <summary>What painting is culled against: the clip in layout space, which a transform can move content
@@ -485,7 +491,11 @@ internal sealed class LayoutTree
             _clips.Add(inner);
             // Under a transform the canvas moves the clip with the element and meets it with the clips
             // around it itself, which were not moved; the rect met with them here is in neither space.
-            _canvas.PushClip(_origin.ToCanvas(_applied.Count > 0 ? rect : inner));
+            // A rounded box is cut to its own rounded rect, which the canvas meets with the clips around it.
+            if (e.Radius > 0f)
+                _canvas.PushClip(_origin.ToCanvas(rect), e.Radius);
+            else
+                _canvas.PushClip(_origin.ToCanvas(_applied.Count > 0 ? rect : inner));
         }
 
         if (drawn)

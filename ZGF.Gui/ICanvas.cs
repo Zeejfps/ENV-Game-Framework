@@ -2,6 +2,10 @@ using ZGF.Geometry;
 
 namespace ZGF.Gui;
 
+/// <summary>A clip's rounded rect, in canvas coordinates: what is drawn is also cut to <see cref="Rect"/> with its
+/// corners rounded by <see cref="Radius"/>.</summary>
+public readonly record struct RoundedClip(RectF Rect, float Radius);
+
 public interface ICanvas
 {
     void DrawRect(in DrawRectInputs inputs);
@@ -34,6 +38,20 @@ public interface ICanvas
 
     bool TryGetClip(out RectF rect);
     void PushClip(RectF rect);
+
+    /// <summary>Clips to <paramref name="rect"/> as <see cref="PushClip(RectF)"/> does, and also to it with its
+    /// corners rounded by <paramref name="radius"/>, smoothly over the device pixel the curve crosses, until
+    /// popped. A rounded clip inside another takes its place; a plain one inside keeps it. A canvas that cannot
+    /// round clips clips to the rect.</summary>
+    void PushClip(RectF rect, float radius) => PushClip(rect);
+
+    /// <summary>The rounded rect the current clip also cuts to, as drawn; false while it is not rounded.</summary>
+    bool TryGetRoundedClip(out RoundedClip clip)
+    {
+        clip = default;
+        return false;
+    }
+
     void PopClip();
 
     /// <summary>Multiplies a render-only opacity onto everything drawn until the matching

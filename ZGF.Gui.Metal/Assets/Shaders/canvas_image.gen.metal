@@ -13,6 +13,8 @@ struct Globals
 struct ClipRects
 {
     array<float4, 256> u_clipRects;
+    array<float4, 256> u_clipRounds;
+    array<float4, 256> u_clipRadii;
 };
 
 struct VertexInput
@@ -82,6 +84,21 @@ static float4 unpackARGB(uint c)
     return out;
 }
 
+// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over the
+// device pixel, pixel wide, its edge crosses. Always 1 for a clip that is not rounded. Written by hand, as the
+// twin of clipCoverage in the GLSL shaders.
+static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
+{
+    if (r <= 0.0)
+    {
+        return 1.0;
+    }
+    float2 halfSize = (rounded.zw - rounded.xy) * 0.5;
+    float2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - float2(r));
+    float d = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+    return clamp(0.5 - d / pixel, 0.0, 1.0);
+}
+
 [[fragment]] float4 fragmentMain(
     Varyings in [[stage_in]],
     constant Globals& globals [[buffer(0)]],
@@ -89,6 +106,11 @@ static float4 unpackARGB(uint c)
     texture2d<float, access::sample> u_texture [[texture(0)]],
     sampler u_sampler [[sampler(0)]])
 {
+    float clipCover_0 = clipCoverage(in.pixelPos, clipRects.u_clipRounds[in.clipIndex], clipRects.u_clipRadii[in.clipIndex].x, max(fwidth(in.pixelPos.x), 0.0001));
+    if (clipCover_0 <= 0.0)
+    {
+        discard_fragment();
+    }
     float4 clip = clipRects.u_clipRects[in.clipIndex];
     if (in.pixelPos.x < clip.x || in.pixelPos.x >= clip.z ||
         in.pixelPos.y < clip.y || in.pixelPos.y >= clip.w)
@@ -124,5 +146,5 @@ static float4 unpackARGB(uint c)
     float2 uvEnd = in.srcUV.xy + in.srcUV.zw;
     float2 uv = clamp(in.uv, min(in.srcUV.xy, uvEnd), max(in.srcUV.xy, uvEnd));
     float4 sample0 = u_texture.sample(u_sampler, uv);
-    return sample0 * unpackARGB(in.tint) * float4(1.0, 1.0, 1.0, coverage);
+    return sample0 * unpackARGB(in.tint) * float4(1.0, 1.0, 1.0, coverage * clipCover_0);
 }
