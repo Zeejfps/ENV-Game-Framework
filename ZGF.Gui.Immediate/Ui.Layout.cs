@@ -55,6 +55,8 @@ public abstract partial class Ui
         public ScrollBar Bar;
         public bool ShowsBars = true;
         public int RevealRow = -1;
+        public readonly ScrollGlide GlideX = new();
+        public readonly ScrollGlide GlideY = new();
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
         public float Max => Horizontal ? MaxX : MaxY;
@@ -368,10 +370,18 @@ public abstract partial class Ui
         state.Parent = _openScrolls.Count > 0 ? _openScrolls.Peek().Id : 0;
         state.ShowsBars = showBars;
         var step = Theme.ScrollWheelStep;
+        var glide = Theme.ScrollGlide;
+        state.GlideX.StopIfMoved(state.OffsetX);
+        state.GlideY.StopIfMoved(state.OffsetY);
         if (id == _wheelX)
-            state.OffsetX = Wheel(state.OffsetX, _wheelDeltaX * step, state.MaxX);
+            state.OffsetX = TurnWheel(state.GlideX, state.OffsetX, _wheelDeltaX * step, state.MaxX, glide);
         if (id == _wheelY)
-            state.OffsetY = Wheel(state.OffsetY, _wheelDeltaY * step, state.MaxY);
+            state.OffsetY = TurnWheel(state.GlideY, state.OffsetY, _wheelDeltaY * step, state.MaxY, glide);
+        if (glide != null)
+        {
+            state.OffsetX = state.GlideX.Step(this, state.OffsetX, glide.Value);
+            state.OffsetY = state.GlideY.Step(this, state.OffsetY, glide.Value);
+        }
 
         var thumbX = state.ScrollsX && showBars ? Interact(HorizontalThumbId(id, axes)) : default;
         var thumbY = state.ScrollsY && showBars ? Interact(VerticalThumbId(id)) : default;
@@ -472,6 +482,16 @@ public abstract partial class Ui
     {
         if (_previousContentRects.TryGetValue(id, out rect)) return true;
         return _previousRects.TryGetValue(id, out rect);
+    }
+
+    /// <summary>Moves <paramref name="offset"/> by a turn of the wheel: there at once without a
+    /// <paramref name="glide"/>, otherwise to where <paramref name="axis"/> glides it.</summary>
+    private static float TurnWheel(ScrollGlide axis, float offset, float by, float max, Spring? glide)
+    {
+        if (glide == null)
+            return Wheel(offset, by, max);
+        axis.Retarget(offset, MathF.Max(0f, Wheel(axis.From(offset), by, max)));
+        return offset;
     }
 
     /// <summary>Where a wheel moving <paramref name="by"/> takes <paramref name="offset"/>: never

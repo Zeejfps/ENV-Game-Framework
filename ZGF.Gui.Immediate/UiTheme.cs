@@ -277,6 +277,10 @@ public sealed partial record UiTheme
     public float ScrollThumbMinLength { get; init; } = 24f;
     public float ScrollWheelStep { get; init; } = 40f;
 
+    /// <summary>How the wheel moves a scroll: null jumps <see cref="ScrollWheelStep"/> a notch; a spring
+    /// glides there instead, carrying its speed from notch to notch.</summary>
+    public Spring? ScrollGlide { get; init; }
+
     /// <summary>This theme's palette with <paramref name="density"/>'s control geometry and type
     /// sizes; everything else is kept.</summary>
     public UiTheme WithDensity(UiDensity density) => density == UiDensity.Compact
