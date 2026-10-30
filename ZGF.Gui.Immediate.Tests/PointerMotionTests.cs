@@ -46,6 +46,23 @@ public sealed class PointerMotionTests
     }
 
     [Fact]
+    public void A_press_of_a_locked_pointer_keeps_the_keyboard_focus()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            var field = ui.GetId("field");
+            ui.TabStop(field);
+            ui.Leaf(field, new Box { Width = Sizing.Fixed(100f), Height = Sizing.Fixed(20f) });
+        });
+        frames.Frame(ui => ui.Focus(ui.GetId("field")));
+
+        frames.LockPointer(true).Press().Frame().Release().Frame();
+
+        Assert.True(frames.Frame(ui => ui.HasFocus(ui.GetId("field"))));
+    }
+
+    [Fact]
     public void A_lock_is_asked_for_only_by_the_frames_that_ask()
     {
         Assert.True(_frames.Frame(ui =>

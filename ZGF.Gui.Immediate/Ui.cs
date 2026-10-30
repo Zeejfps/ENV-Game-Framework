@@ -405,7 +405,7 @@ public abstract partial class Ui
 
         if (_active != 0 && !_activeSeen)
             _active = 0;
-        if (_focused != 0 && (!_focusSeen || (_input.WasPressed(PointerButton.Left) && !_focusClaimed)))
+        if (_focused != 0 && (!_focusSeen || (_input.WasPressed(PointerButton.Left) && !_input.PointerLocked && !_focusClaimed)))
             _focused = 0;
         TraverseFocus();
         EndLayers();
