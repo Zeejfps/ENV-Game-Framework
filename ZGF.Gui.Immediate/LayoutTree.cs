@@ -507,7 +507,7 @@ internal sealed class LayoutTree
             if (child.Layer != 0)
                 _floating.Add(new FloatingEntry(c, child.Z, child.Layer, child.PassThrough, null, null, null));
             else if (child.Floating)
-                _floating.Add(Floating(c, z + child.Z, layer, passThrough, child.KeepsClip));
+                _floating.Add(Floating(c, z + child.Z, layer, passThrough || child.PassThrough, child.KeepsClip));
             else
                 EmitElement(c, z, layer, passThrough, hits, rects);
         }

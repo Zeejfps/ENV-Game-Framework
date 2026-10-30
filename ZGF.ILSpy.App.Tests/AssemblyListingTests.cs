@@ -1,4 +1,5 @@
 using ZGF.Gui.Immediate;
+using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Assemblies;
@@ -610,6 +611,8 @@ public sealed class AssemblyListingTests
 
         app.ClickLast(Icons.ListsDelete).Frame(2);
         app.Frames.Key(KeyboardKey.Escape).Frame(2);
+        app.Frames.FrameTime = UiWidgets.DialogOutSeconds;
+        app.Frames.Frame(2);
 
         Assert.False(app.Frames.Drew("Delete assembly list"));
         Assert.Null(app.Ui.ListsDialog.Deleting);
