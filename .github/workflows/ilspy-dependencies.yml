@@ -1,0 +1,36 @@
+# Checks the dependency graph of ZGF.ILSpy.Core's browse tree: no arrow points back up, so a new back edge
+# fails the build instead of waiting on review. The test reads the built Core assembly's metadata and IL;
+# the graph and its rules are in ZGF.ILSpy.Tests/DependencyTests.cs.
+name: ilspy-dependencies
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "ZGF.ILSpy.Core/**"
+      - "ZGF.ILSpy.Tests/DependencyTests.cs"
+      - ".github/workflows/ilspy-dependencies.yml"
+  pull_request:
+    paths:
+      - "ZGF.ILSpy.Core/**"
+      - "ZGF.ILSpy.Tests/DependencyTests.cs"
+      - ".github/workflows/ilspy-dependencies.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          lfs: true
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Dependency test
+        run: dotnet test ZGF.ILSpy.Tests/ZGF.ILSpy.Tests.csproj --filter "FullyQualifiedName~ZGF.ILSpy.Tests.DependencyTests"

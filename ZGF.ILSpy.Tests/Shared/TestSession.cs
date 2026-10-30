@@ -35,6 +35,29 @@ internal static class SessionQueries
 
         public IReadOnlyList<BrowseNode> InnerNamespaces => TestSession.Shared.InnerNamespaces(node);
 
+        /// <summary>What sort of type the node defines; fails the test when it defines none.</summary>
+        public TypeShape TypeShape => Assert.IsType<NodeSubject.TypeDefinition>(node.Subject).Definition.Shape;
+
+        /// <summary>What sort of member the node defines; fails the test when it defines none.</summary>
+        public MemberShape MemberShape => Assert.IsType<NodeSubject.MemberDefinition>(node.Subject).Definition.Shape;
+
+        /// <summary>What the part of metadata the node stands for lists; fails the test when it stands for none.</summary>
+        public MetadataGridRole MetadataRole => Assert.IsType<NodeSubject.MetadataTable>(node.Subject).Value.Role;
+
+        public bool Is(TypeShape shape) => node.Subject is NodeSubject.TypeDefinition type && type.Definition.Shape == shape;
+
+        public bool Is(MemberShape shape) => node.Subject is NodeSubject.MemberDefinition member && member.Definition.Shape == shape;
+
+        public bool Is(MetadataGridRole role) => node.Subject is NodeSubject.MetadataTable table && table.Value.Role == role;
+
+        /// <summary>Whether the node is a resource or a package's file shown as a picture.</summary>
+        public bool IsImage => node.Subject switch
+        {
+            NodeSubject.ResourceEntry entry => entry.Value.IsImage,
+            NodeSubject.PackageFile file => file.Value.IsImage,
+            _ => false,
+        };
+
         /// <summary>A reference to the type or member the node defines; fails the test when it defines none.</summary>
         public CodeReference Definition => Assert.IsType<CodeReference>(NodeDefinitions.ReferenceOf(node.Subject));
 

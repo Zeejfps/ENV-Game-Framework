@@ -12,7 +12,7 @@ public sealed class ReferencedTypesTests
     {
         return assembly.Root.Child("References").Children
             .SelectMany(r => r.Children)
-            .Where(c => c.Kind == NodeKind.ReferencedTypes)
+            .Where(c => c.Subject is NodeSubject.ReferencedTypes)
             .SelectMany(t => t.Children)
             .Single(IsList);
     }
@@ -31,10 +31,10 @@ public sealed class ReferencedTypesTests
 
         var list = UsedList(assembly);
 
-        Assert.Equal(NodeKind.TypeReference, list.Kind);
+        Assert.IsType<NodeSubject.TypeReference>(list.Subject);
         Assert.Equal("System.Collections.Generic.List<>", list.FullName);
-        Assert.Equal(NodeKind.MethodReference, list.Child("Add(T) : void").Kind);
-        Assert.Equal(NodeKind.TypeReference, list.Child("Enumerator").Kind);
+        Assert.Equal(MemberShape.Method, Assert.IsType<NodeSubject.MemberReference>(list.Child("Add(T) : void").Subject).Value.Shape);
+        Assert.IsType<NodeSubject.TypeReference>(list.Child("Enumerator").Subject);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class ReferencedTypesTests
 
         var current = list.Child("Enumerator", "Current : T");
 
-        Assert.Equal(NodeKind.PropertyReference, current.Kind);
+        Assert.Equal(MemberShape.Property, Assert.IsType<NodeSubject.MemberReference>(current.Subject).Value.Shape);
         Assert.DoesNotContain(list.Children, IsSpecialized);
     }
 
@@ -62,7 +62,7 @@ public sealed class ReferencedTypesTests
         var definition = list.FindNode(UsedList(assembly).Destination);
 
         Assert.NotNull(definition);
-        Assert.Equal(NodeKind.Class, definition.Kind);
+        Assert.Equal(TypeShape.Class, definition.TypeShape);
         Assert.Equal("List<T>", definition.Text);
     }
 

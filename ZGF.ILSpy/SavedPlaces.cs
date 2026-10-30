@@ -34,17 +34,6 @@ public static class SavedPlaces
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>The steps to <paramref name="node"/> as builds before versioned paths read them, one per
-    /// node down from the root of its tree.</summary>
-    public static List<LegacyPlaceStep> LegacyPlaceOf(BrowseNode node)
-    {
-        var steps = new List<LegacyPlaceStep>();
-        for (var n = node; n.Parent != null; n = n.Parent)
-            steps.Add(new LegacyPlaceStep(n.Kind.ToString(), n.Text));
-        steps.Reverse();
-        return steps;
-    }
-
     /// <summary>The path <paramref name="steps"/> lead along from the root of the file at
     /// <paramref name="filePath"/>; null when a step names a kind no build saved.</summary>
     public static NodePath.Legacy? LegacyPathOf(AssemblyPath filePath, List<LegacyPlaceStep> steps)

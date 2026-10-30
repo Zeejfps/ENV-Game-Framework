@@ -17,9 +17,9 @@ public sealed class ReferenceReferencesTests
 
         var children = RuntimeReference(assembly).Children;
 
-        Assert.Equal(NodeKind.ReferencedTypes, children[0].Kind);
+        Assert.IsType<NodeSubject.ReferencedTypes>(children[0].Subject);
         var coreLib = Assert.Single(children, c => c.Text == CoreLib);
-        Assert.Equal(NodeKind.AssemblyReference, coreLib.Kind);
+        Assert.IsType<NodeSubject.AssemblyReference>(coreLib.Subject);
         Assert.Equal(Runtime, coreLib.Assembly.Name);
     }
 
@@ -41,7 +41,7 @@ public sealed class ReferenceReferencesTests
 
         var forwarded = coreLib.Child("Referenced types").Children;
 
-        Assert.Contains(forwarded, f => f.Kind == NodeKind.ForwardedType && f.Text == "Object");
+        Assert.Contains(forwarded, f => f.Subject is NodeSubject.ForwardedType && f.Text == "Object");
     }
 
     [Fact]

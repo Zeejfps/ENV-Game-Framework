@@ -18,8 +18,8 @@ public sealed record DocumentsRecord(List<DocumentRecord> Tabs, string? Active, 
 public abstract record DocumentRecord(string Panel, string? Title);
 
 /// <summary>A tab showing the node at <see cref="Location"/>, in <see cref="Language"/>, its view standing
-/// at <see cref="Position"/>. The file keeps the location as <see cref="Path"/>, and as <see cref="Place"/>
-/// for builds before versioned paths: written from the node when it was found, else as it was read.</summary>
+/// at <see cref="Position"/>. The file keeps the location as <see cref="Path"/>; a tab saved by a build before
+/// versioned paths and not shown since keeps the <see cref="Place"/> it was read with.</summary>
 public sealed record NodeDocumentRecord(
     string Panel,
     string? Title,

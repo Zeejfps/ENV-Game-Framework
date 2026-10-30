@@ -46,11 +46,4 @@ public sealed partial class BrowseNode
             return new BrowseNode(this, new NodeSubject.PackageFile(new PackageFileInfo(package, file)));
         return ModuleRoot(assembly, this);
     }
-
-    private static NodeKind KindOf(PackageFolderInfo folder)
-    {
-        if (!folder.IsRoot)
-            return NodeKind.PackageFolder;
-        return folder.Package.Package.IsBundle ? NodeKind.Bundle : NodeKind.Package;
-    }
 }

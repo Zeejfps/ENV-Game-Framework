@@ -18,6 +18,6 @@ public sealed class LoadOptionTests
         var runtime = app.Node("References", "System.Runtime");
 
         Assert.NotSame(before, app.Node().Assembly);
-        Assert.All(runtime.Children, c => Assert.Equal(NodeKind.ReferencedTypes, c.Kind));
+        Assert.All(runtime.Children, c => Assert.Equal(NodeIcon.ReferencedTypes, c.Icon));
     }
 }

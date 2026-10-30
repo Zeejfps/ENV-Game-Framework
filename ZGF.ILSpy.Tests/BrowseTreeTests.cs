@@ -10,13 +10,13 @@ public sealed class BrowseTreeTests
         var assembly = Trees.TestAssembly;
         var root = assembly.Root;
 
-        Assert.Equal(NodeKind.Assembly, root.Kind);
+        Assert.IsType<NodeSubject.Module>(root.Subject);
         Assert.Equal("ZGF.ILSpy.Tests (0.0.0.0, .NETCoreApp, v10.0)", root.Text);
-        Assert.Equal(NodeKind.Metadata, root.Children[0].Kind);
-        Assert.Equal(NodeKind.ReferencesFolder, root.Children.First(c => c.Kind != NodeKind.Metadata).Kind);
-        var namespaces = root.Children.Where(c => c.Kind == NodeKind.Namespace).Select(c => c.Text).ToArray();
+        Assert.IsType<NodeSubject.Metadata>(root.Children[0].Subject);
+        Assert.IsType<NodeSubject.References>(root.Children.First(c => c.Subject is not NodeSubject.Metadata).Subject);
+        var namespaces = root.Children.Where(c => c.Subject is NodeSubject.Namespace).Select(c => c.Text).ToArray();
         Assert.Equal(["-", "ZGF", "ZGF.ILSpy", "ZGF.ILSpy.Tests", "ZGF.ILSpy.Tests.Fixtures"], namespaces);
-        Assert.Contains(root.Child("References").Children, r => r.Kind == NodeKind.AssemblyReference && r.Text == "System.Runtime");
+        Assert.Contains(root.Child("References").Children, r => r.Subject is NodeSubject.AssemblyReference && r.Text == "System.Runtime");
     }
 
     [Fact]
@@ -27,12 +27,12 @@ public sealed class BrowseTreeTests
 
         Assert.Equal(
             [
-                ("Animal", NodeKind.Class), ("Calculator<T>", NodeKind.Class), ("Callback", NodeKind.Delegate), ("Circle", NodeKind.Class),
-                ("Enclosure", NodeKind.Struct), ("IFeeds", NodeKind.Interface), ("IShape", NodeKind.Interface), ("Keeper", NodeKind.Class),
-                ("Lion", NodeKind.Class), ("NativeImports", NodeKind.Class), ("Parrot", NodeKind.Class), ("Point", NodeKind.Record),
-                ("Size", NodeKind.Struct), ("Visits", NodeKind.Class),
+                ("Animal", TypeShape.Class), ("Calculator<T>", TypeShape.Class), ("Callback", TypeShape.Delegate), ("Circle", TypeShape.Class),
+                ("Enclosure", TypeShape.Struct), ("IFeeds", TypeShape.Interface), ("IShape", TypeShape.Interface), ("Keeper", TypeShape.Class),
+                ("Lion", TypeShape.Class), ("NativeImports", TypeShape.Class), ("Parrot", TypeShape.Class), ("Point", TypeShape.Record),
+                ("Size", TypeShape.Struct), ("Visits", TypeShape.Class),
             ],
-            fixtures.Children.Select(c => (c.Text, c.Kind)));
+            fixtures.Children.Select(c => (c.Text, c.TypeShape)));
         var circle = fixtures.Child("Circle");
         Assert.Equal(NodeAccessibility.Internal, circle.Accessibility);
         Assert.False(circle.IsPublicApi);
@@ -48,26 +48,26 @@ public sealed class BrowseTreeTests
 
         var children = assembly.Calculator().Children
             .Where(c => !c.IsCompilerGenerated)
-            .Select(c => (c.Kind, c.Text))
             .ToArray();
 
+        Assert.Equal(["Base Types", "Derived Types", "Mode"], children.Take(3).Select(static c => c.Text));
+        Assert.IsType<NodeSubject.BaseTypes>(children[0].Subject);
+        Assert.IsType<NodeSubject.DerivedTypes>(children[1].Subject);
+        Assert.Equal(TypeShape.Enum, children[2].TypeShape);
         Assert.Equal(
             [
-                (NodeKind.BaseTypes, "Base Types"),
-                (NodeKind.DerivedTypes, "Derived Types"),
-                (NodeKind.Enum, "Mode"),
-                (NodeKind.Constant, "Answer : int"),
-                (NodeKind.Field, "_items : List<T>"),
-                (NodeKind.Property, "Count : int"),
-                (NodeKind.Indexer, "this[int] : T"),
-                (NodeKind.Event, "Changed : EventHandler?"),
-                (NodeKind.Constructor, "Calculator()"),
-                (NodeKind.Method, "Add(T) : void"),
-                (NodeKind.Method, "Describe() : string"),
-                (NodeKind.Operator, "operator +(Calculator<T>, T) : Calculator<T>"),
-                (NodeKind.Method, "TryGet(int, out T?) : bool"),
+                (MemberShape.Constant, "Answer : int"),
+                (MemberShape.Field, "_items : List<T>"),
+                (MemberShape.Property, "Count : int"),
+                (MemberShape.Indexer, "this[int] : T"),
+                (MemberShape.Event, "Changed : EventHandler?"),
+                (MemberShape.Constructor, "Calculator()"),
+                (MemberShape.Method, "Add(T) : void"),
+                (MemberShape.Method, "Describe() : string"),
+                (MemberShape.Operator, "operator +(Calculator<T>, T) : Calculator<T>"),
+                (MemberShape.Method, "TryGet(int, out T?) : bool"),
             ],
-            children);
+            children.Skip(3).Select(static c => (c.MemberShape, c.Text)));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class BrowseTreeTests
 
         Assert.Equal(["get_Count"], calculator.Child("Count : int").Children.Select(c => c.Text));
         Assert.Equal(["add_Changed", "remove_Changed"], calculator.Child("Changed : EventHandler?").Children.Select(c => c.Text));
-        Assert.All(calculator.Child("Count : int").Children, c => Assert.Equal(NodeKind.Method, c.Kind));
+        Assert.All(calculator.Child("Count : int").Children, c => Assert.Equal(MemberShape.Method, c.MemberShape));
     }
 
     [Fact]
@@ -100,12 +100,13 @@ public sealed class BrowseTreeTests
         var derived = fixtures.Child("IShape").Child("Derived Types").Children;
 
         var circle = Assert.Single(derived);
-        Assert.Equal((NodeKind.DerivedType, "Circle"), (circle.Kind, circle.Text));
+        Assert.IsType<NodeSubject.DerivedType>(circle.Subject);
+        Assert.Equal("Circle", circle.Text);
         Assert.Equal(NodeAccessibility.Internal, circle.Accessibility);
         Assert.False(circle.HasChildren);
         Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Destination));
-        Assert.DoesNotContain(fixtures.Child("Circle").Children, c => c.Kind == NodeKind.DerivedTypes);
-        Assert.DoesNotContain(fixtures.Child("Size").Children, c => c.Kind == NodeKind.DerivedTypes);
+        Assert.DoesNotContain(fixtures.Child("Circle").Children, c => c.Subject is NodeSubject.DerivedTypes);
+        Assert.DoesNotContain(fixtures.Child("Size").Children, c => c.Subject is NodeSubject.DerivedTypes);
         Assert.Empty(assembly.Calculator().Child("Derived Types").Children);
         Assert.Equal("Circle", ZGF.ILSpy.Core.Analysis.Analyzers.Of(circle)!.Label);
     }
@@ -120,7 +121,7 @@ public sealed class BrowseTreeTests
         var system = exception.Child("Derived Types").Children.Single(c => c.Text.EndsWith("SystemException", StringComparison.Ordinal));
         var argument = system.Children.Single(c => c.Text.EndsWith("ArgumentException", StringComparison.Ordinal));
 
-        Assert.Equal(NodeKind.DerivedType, argument.Kind);
+        Assert.IsType<NodeSubject.DerivedType>(argument.Subject);
         Assert.Contains(argument.Children, c => c.Text.EndsWith("ArgumentNullException", StringComparison.Ordinal));
         Assert.Contains(system.Text, exception.Child("Derived Types").Decompile(DecompilationLanguage.CSharp).GetText());
     }
@@ -133,7 +134,7 @@ public sealed class BrowseTreeTests
         var bases = assembly.Fixtures().Child("Circle").Child("Base Types").Children;
 
         Assert.Equal(["object", "IShape"], bases.Select(b => b.Text));
-        Assert.All(bases, b => Assert.Equal(NodeKind.BaseType, b.Kind));
+        Assert.All(bases, b => Assert.IsType<NodeSubject.BaseType>(b.Subject));
         Assert.Same(assembly.Fixtures().Child("IShape"), list.FindNode(bases[1].Destination));
     }
 
@@ -212,7 +213,7 @@ public sealed class BrowseTreeTests
         var dictionary = generic.Child("Dictionary<TKey, TValue>");
 
         Assert.Contains(dictionary.Children, c => c.Text == "TryGetValue(TKey, out TValue) : bool");
-        Assert.Contains(dictionary.Children, c => c.Kind == NodeKind.Struct && c.Text == "Enumerator");
-        Assert.Contains(coreLib.Root.Children, c => c.Kind == NodeKind.ResourcesFolder);
+        Assert.Contains(dictionary.Children, c => c.Is(TypeShape.Struct) && c.Text == "Enumerator");
+        Assert.Contains(coreLib.Root.Children, c => c.Subject is NodeSubject.Resources);
     }
 }

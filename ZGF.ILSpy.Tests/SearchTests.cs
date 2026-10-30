@@ -31,7 +31,7 @@ public sealed class SearchTests
         Assert.Same(assembly.Calculator().Child("TryGet(int, out T?) : bool"), hit.Node);
         Assert.Equal(Trees.FixturesNamespace + ".Calculator<T>", hit.Location);
         Assert.Equal([Trees.FixturesNamespace + ".Circle", Trees.FixturesNamespace + ".IShape"], area.Select(r => r.Location).Order());
-        Assert.All(area, r => Assert.Equal(NodeKind.Property, r.Node.Kind));
+        Assert.All(area, r => Assert.Equal(MemberShape.Property, r.Node.MemberShape));
     }
 
     [Fact]
@@ -42,8 +42,8 @@ public sealed class SearchTests
         var results = await Collect(list.SearchAsync("mode"));
         var precise = await Collect(list.SearchAsync("precise"));
 
-        Assert.Contains(results, r => r.Node.Kind == NodeKind.Enum && r.Location == Trees.FixturesNamespace + ".Calculator<T>");
-        Assert.Contains(precise, r => r.Node.Kind == NodeKind.Constant && r.Location == Trees.FixturesNamespace + ".Mode");
+        Assert.Contains(results, r => r.Node.Is(TypeShape.Enum) && r.Location == Trees.FixturesNamespace + ".Calculator<T>");
+        Assert.Contains(precise, r => r.Node.Is(MemberShape.Constant) && r.Location == Trees.FixturesNamespace + ".Mode");
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class SearchTests
         stopwatch.Stop();
 
         Assert.Contains(results, r => r.Text == "Dictionary<TKey, TValue>" && r.Location == "System.Collections.Generic");
-        Assert.Contains(results, r => r.Node.Kind == NodeKind.Method);
+        Assert.Contains(results, r => r.Node.Is(MemberShape.Method));
         Assert.True(stopwatch.ElapsedMilliseconds < 500, $"Search took {stopwatch.ElapsedMilliseconds} ms for {results.Count} results");
     }
 
@@ -101,8 +101,8 @@ public sealed class SearchTests
 
         Assert.Empty(types);
         Assert.Contains(properties, r => r.Node == assembly.Calculator().Child("Count : int"));
-        Assert.All(properties, r => Assert.Equal(NodeKind.Property, r.Node.Kind));
-        Assert.Equal([NodeKind.Event], events.Select(r => r.Node.Kind).Distinct());
+        Assert.All(properties, r => Assert.Equal(MemberShape.Property, r.Node.MemberShape));
+        Assert.Equal([MemberShape.Event], events.Select(r => r.Node.MemberShape).Distinct());
     }
 
     [Fact]

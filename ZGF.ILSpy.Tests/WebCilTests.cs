@@ -1,4 +1,5 @@
 using ZGF.ILSpy.Core;
+using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy.Tests;
 
@@ -26,10 +27,10 @@ public sealed class WebCilTests
     {
         var assembly = new AssemblyList().Open(Trees.WebCilSamplePath);
 
-        var metadata = assembly.Root.Child("Metadata").Children.Select(c => c.Kind);
+        var metadata = assembly.Root.Child("Metadata").Children;
 
-        Assert.DoesNotContain(NodeKind.MetadataHeader, metadata);
-        Assert.Contains(NodeKind.MetadataTables, metadata);
+        Assert.DoesNotContain(metadata, static c => c.Is(MetadataGridRole.Header));
+        Assert.Contains(metadata, static c => c.Subject is NodeSubject.MetadataTables);
     }
 
     [Fact]

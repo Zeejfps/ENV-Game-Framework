@@ -164,7 +164,7 @@ public sealed class AssemblyListingTests
         SaveSettings(d.AppState);
 
         var roots = d.Ui.Tree.Roots;
-        Assert.Equal([NodeKind.FailedAssembly, NodeKind.Assembly], roots.Select(r => r.Kind));
+        Assert.Equal([NodeIcon.FailedAssembly, NodeIcon.Assembly], roots.Select(r => r.Icon));
         Assert.Empty(d.AppState.Errors.Entries);
         Assert.Equal([gone, AppStateDriver.FixturePath], Assert.Single(temp.Settings().AssemblyLists).Assemblies.Select(static p => p.Text));
     }

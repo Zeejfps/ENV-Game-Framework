@@ -48,11 +48,4 @@ public sealed partial class BrowseNode
         ResourceSource source = Baml.IsBamlName(name) ? new ResourceSource.Baml(data) : new ResourceSource.Entry(data);
         return new BrowseNode(this, new NodeSubject.ResourceEntry(new ResourceEntryInfo(module, name, source)));
     }
-
-    private static NodeKind KindOf(ResourceEntryInfo entry) => entry.Source switch
-    {
-        ResourceSource.Baml => NodeKind.Resource,
-        ResourceSource.Manifest or ResourceSource.Entry => ResourceNodes.KindOf(entry.Name),
-        _ => throw new System.Diagnostics.UnreachableException(),
-    };
 }

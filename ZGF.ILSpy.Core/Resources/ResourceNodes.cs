@@ -23,8 +23,6 @@ internal interface IResourceData
 
 internal static class ResourceNodes
 {
-    public static NodeKind KindOf(string name) => ResourceImage.IsImageName(name) ? NodeKind.ResourceImage : NodeKind.Resource;
-
     public static string Describe(MetadataResource resource)
     {
         var length = resource.TryGetLength();

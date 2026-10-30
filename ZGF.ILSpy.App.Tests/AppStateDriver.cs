@@ -107,6 +107,15 @@ internal static class AppErrors
     public static ProblemText Words(this AppError error) => ProblemTexts.Describe(Strings.En, error.Problem);
 }
 
+internal static class NodeIconQueries
+{
+    extension(BrowseNode node)
+    {
+        /// <summary>The icon the tree draws the node with.</summary>
+        public NodeIcon Icon => NodeIcons.Of(node.Subject);
+    }
+}
+
 internal static class TempSettings
 {
     public static AppSettings Settings(this TempDir temp) => AppSettings.Load(temp.PathOf("settings.json")).Settings;
@@ -233,7 +242,7 @@ internal sealed class AppStateDriver
     public LoadedModule OpenFixtures()
     {
         OpenAssembly(AppState, FixturePath);
-        RunUntil(() => AppState.Tabs.Active?.Node?.Kind == NodeKind.Assembly);
+        RunUntil(() => AppState.Tabs.Active?.Node?.Icon == NodeIcon.Assembly);
         Settle();
         return Assert.IsType<LoadedModule>(AppState.Tabs.Active!.Node!.Assembly);
     }

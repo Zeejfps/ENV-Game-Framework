@@ -19,7 +19,7 @@ public sealed class ModuleReferenceTests
     public void The_references_list_the_modules_an_assembly_calls_into_sorted_by_name()
     {
         var modules = CoreLibReferences().Children
-            .Where(c => c.Kind == NodeKind.ModuleReference)
+            .Where(c => c.Subject is NodeSubject.ModuleReference)
             .Select(c => c.Text)
             .ToList();
 
@@ -30,13 +30,13 @@ public sealed class ModuleReferenceTests
     [Fact]
     public void Module_references_come_after_the_assembly_references()
     {
-        var kinds = ReferencesOf("System.IO.Compression").Children
-            .Select(c => c.Kind)
+        var modules = ReferencesOf("System.IO.Compression").Children
+            .Select(static c => c.Subject is NodeSubject.ModuleReference)
             .ToList();
 
-        Assert.Contains(NodeKind.AssemblyReference, kinds);
-        Assert.Contains(NodeKind.ModuleReference, kinds);
-        Assert.Equal(kinds.OrderBy(k => k == NodeKind.ModuleReference), kinds);
+        Assert.Contains(false, modules);
+        Assert.Contains(true, modules);
+        Assert.Equal(modules.Order(), modules);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class ModuleReferenceTests
 
         var answer = assembly.Root.Child("References", "fixture-native").Child("Answer() : int");
 
-        Assert.Equal(NodeKind.ImportedMethod, answer.Kind);
+        Assert.IsType<NodeSubject.ImportedMethod>(answer.Subject);
         Assert.Equal("ZGF.ILSpy.Tests.Fixtures.NativeImports", Assert.IsType<NodeSubject.ImportedMethod>(answer.Subject).Value.DeclaringTypeName);
     }
 
@@ -97,6 +97,6 @@ public sealed class ModuleReferenceTests
         Assert.DoesNotContain(qcall.Children, i => i.Text.Contains(">g__", StringComparison.Ordinal));
         Assert.Equal("System.GC", Assert.IsType<NodeSubject.ImportedMethod>(collect.Subject).Value.DeclaringTypeName);
         Assert.StartsWith("_Collect(", definition.Text, StringComparison.Ordinal);
-        Assert.Equal(NodeKind.Method, definition.Kind);
+        Assert.Equal(MemberShape.Method, definition.MemberShape);
     }
 }

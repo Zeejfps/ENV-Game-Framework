@@ -31,7 +31,7 @@ public sealed class UnresolvedReferenceTests : IDisposable
 
         var core = assembly.Root.Child("References", Core);
 
-        Assert.Equal([NodeKind.ReferencedTypes], core.Children.Select(c => c.Kind));
+        Assert.IsType<NodeSubject.ReferencedTypes>(Assert.Single(core.Children).Subject);
         Assert.Null(list.FindNode(core.Destination));
         Assert.Contains("// Not found", core.Decompile(DecompilationLanguage.CSharp).GetText());
     }
@@ -45,7 +45,7 @@ public sealed class UnresolvedReferenceTests : IDisposable
         var unresolved = BaseTypes(alone).Child(nameof(NodeContent));
         var resolved = BaseTypes(beside).Child(nameof(NodeContent));
 
-        Assert.Equal(NodeKind.BaseType, unresolved.Kind);
+        Assert.IsType<NodeSubject.BaseType>(unresolved.Subject);
         Assert.IsType<Activation.OpenSelf>(Activation.Of(unresolved.Subject));
         Assert.Equal(NodeAccessibility.None, unresolved.Accessibility);
         Assert.True(unresolved.IsPublicApi);
@@ -61,7 +61,7 @@ public sealed class UnresolvedReferenceTests : IDisposable
 
         var used = assembly.Root.Child("References", Core, "Referenced types", nameof(NodeContent));
 
-        Assert.Equal(NodeKind.TypeReference, used.Kind);
+        Assert.IsType<NodeSubject.TypeReference>(used.Subject);
         Assert.Equal(typeof(NodeContent).FullName, used.FullName);
         Assert.Null(list.FindNode(used.Destination));
         Assert.NotEmpty(used.Children);

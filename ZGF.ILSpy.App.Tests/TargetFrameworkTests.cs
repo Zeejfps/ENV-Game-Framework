@@ -110,11 +110,11 @@ public sealed class TargetFrameworkTests
         using var temp = new TempDir();
         var app = new AppDriver();
         OpenAssembly(app.AppState, WritePackage(temp));
-        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Kind == NodeKind.Package);
+        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Icon == NodeIcon.Package);
         app.Settle(2);
         var package = app.AppState.Assemblies.Listed[0].Root;
         var folder = package.Child("lib/net10.0");
-        var assembly = folder.Children.Single(c => c.Kind == NodeKind.Assembly);
+        var assembly = folder.Children.Single(c => c.Icon == NodeIcon.Assembly);
         var tree = app.Ui.Tree;
         foreach (var node in new[] { package, folder, assembly, assembly.Child(AppStateDriver.FixturesNamespace) })
             tree.View.SetExpanded(node, true);

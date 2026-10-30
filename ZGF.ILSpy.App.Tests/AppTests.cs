@@ -409,7 +409,7 @@ public sealed class AppTests
     public void Search_kinds_are_checked_on_and_off_in_one_open_menu()
     {
         var app = Searching("Greet", moreRowsThan: 0);
-        Assert.Contains(app.Ui.Search.Rows, r => r.Node.Kind == NodeKind.Class);
+        Assert.Contains(app.Ui.Search.Rows, r => r.Node.Icon == NodeIcon.Class);
 
         app.Click("Types and members").Frame();
         foreach (var kind in new[] { "Types", "Fields", "Properties", "Events" })
@@ -423,7 +423,7 @@ public sealed class AppTests
         app.RunUntil(() => app.Ui.Search is { IsBusy: false, Rows.Count: > 0 });
 
         Assert.Equal(SearchKinds.Methods, app.Ui.Search.Kinds);
-        Assert.All(app.Ui.Search.Rows, r => Assert.Equal(NodeKind.Method, r.Node.Kind));
+        Assert.All(app.Ui.Search.Rows, r => Assert.Equal(NodeIcon.Method, r.Node.Icon));
         Assert.True(app.Frames.Drew("Methods"));
         Assert.False(app.Frames.Drew("Namespaces"));
     }
@@ -585,7 +585,7 @@ public sealed class AppTests
         var app = Searching("Greeter", moreRowsThan: 0, width: 560f);
         app.Run(2);
 
-        var row = app.Ui.Search.Rows.First(r => r.Node.Kind == NodeKind.Class);
+        var row = app.Ui.Search.Rows.First(r => r.Node.Icon == NodeIcon.Class);
         var header = app.LastTextRect(Icons.SearchField);
         var texts = app.Frames.TextRects().ToList();
         var name = texts.Single(t => t.Text == row.Text && t.Rect.Y > header.Bottom).Rect;

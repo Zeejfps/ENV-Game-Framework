@@ -48,7 +48,7 @@ public sealed class LoadOptionsTests
 
         var children = RuntimeReference(assembly).Children;
 
-        Assert.All(children, c => Assert.Equal(NodeKind.ReferencedTypes, c.Kind));
+        Assert.All(children, c => Assert.IsType<NodeSubject.ReferencedTypes>(c.Subject));
     }
 
     [Fact]

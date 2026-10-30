@@ -39,7 +39,7 @@ public sealed class BrowseSessionTests : IDisposable
     {
         var session = new BrowseSession();
         var assembly = new AssemblyList().Open(BrokenAssemblies.WriteUnreadableAvaloniaContainer(_temp));
-        var resources = session.ChildrenOf(session.RootOf(assembly)).Single(c => c.Kind == NodeKind.ResourcesFolder);
+        var resources = session.ChildrenOf(session.RootOf(assembly)).Single(c => c.Subject is NodeSubject.Resources);
         var container = Assert.Single(session.ChildrenOf(resources));
 
         var failed = Assert.IsType<ChildrenState.Failed>(session.LoadChildren(container));

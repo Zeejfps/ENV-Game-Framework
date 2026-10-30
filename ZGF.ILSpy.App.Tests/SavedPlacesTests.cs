@@ -185,7 +185,7 @@ public sealed class SavedPlacesTests : IDisposable
     }
 
     [Fact]
-    public void A_tab_found_by_its_old_place_is_saved_with_a_versioned_path_and_the_place_older_builds_read()
+    public void A_tab_found_by_its_old_place_is_saved_with_a_versioned_path_alone()
     {
         var d = Restored(WithTab($"\"Place\": {FarewellPlace}"));
 
@@ -193,11 +193,11 @@ public sealed class SavedPlacesTests : IDisposable
 
         Assert.Equal(SavedPath.CurrentVersion, tab.GetProperty("Path").GetProperty("Version").GetInt32());
         Assert.Equal([$"Namespace {Fixtures}", $"Definition T:{Fixtures}.Farewell"], StepsOf(tab.GetProperty("Path")));
-        Assert.Equal(["Namespace", "Class"], KindsOf(tab.GetProperty("Place")));
+        Assert.Equal(JsonValueKind.Null, tab.GetProperty("Place").ValueKind);
     }
 
     [Fact]
-    public void A_bookmark_keeps_its_old_place_as_read_until_it_is_gone_to_then_is_saved_with_a_versioned_path()
+    public void A_bookmark_keeps_its_old_place_as_read_until_it_is_gone_to_then_is_saved_with_a_versioned_path_alone()
     {
         var d = Restored(WithBookmark($"\"Place\": {FarewellPlace}"));
 
@@ -210,7 +210,7 @@ public sealed class SavedPlacesTests : IDisposable
         Assert.Equal(["Namespace", "Class"], KindsOf(unvisited.GetProperty("Place")));
         Assert.Same(d.Fixture("Farewell"), d.AppState.Tabs.Active?.Node);
         Assert.Equal([$"Namespace {Fixtures}", $"Definition T:{Fixtures}.Farewell"], StepsOf(visited.GetProperty("Path")));
-        Assert.Equal(["Namespace", "Class"], KindsOf(visited.GetProperty("Place")));
+        Assert.Equal(JsonValueKind.Null, visited.GetProperty("Place").ValueKind);
     }
 
     [Fact]

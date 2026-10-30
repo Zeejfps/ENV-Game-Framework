@@ -28,7 +28,7 @@ public sealed class Bookmark
 
     /// <summary>The bookmark made in the document of <paramref name="node"/>.</summary>
     public static Bookmark At(BrowseNode node, DecompilationLanguage language, int line, CodeAnchor? anchor, string name, ILSpyBookmarkInfo ilspy) =>
-        new(node.Path, SavedPlaces.LegacyPlaceOf(node), language, line, anchor, name, ilspy);
+        new(node.Path, null, language, line, anchor, name, ilspy);
 
     /// <summary>The bookmark <paramref name="record"/> describes, made in the document of <paramref name="place"/>,
     /// which builds before versioned paths find at <paramref name="legacyPlace"/>.</summary>
@@ -73,8 +73,8 @@ public sealed class Bookmark
     /// where its node was found.</summary>
     public NodePath Place { get; internal set; }
 
-    /// <summary>Where builds before versioned paths find the document it was made in, as it was read, or
-    /// as the node was found; null when neither said.</summary>
+    /// <summary>Where builds before versioned paths find the document it was made in, kept as it was read
+    /// until the bookmark is gone to; null once it is, and for a bookmark made here.</summary>
     public List<LegacyPlaceStep>? LegacyPlace { get; internal set; }
 
     /// <summary>The language of the document it was made in.</summary>
@@ -271,11 +271,11 @@ public sealed class BookmarkList
             .OfType<Bookmark>(), BookmarkImportMode.Replace);
 
     /// <summary>Takes <paramref name="node"/>, found where <paramref name="bookmark"/> was made, as its place,
-    /// so that it is saved as the node was found.</summary>
+    /// so that it is saved with the path to the node, and no longer as it was read.</summary>
     public void Resolve(Bookmark bookmark, BrowseNode node)
     {
         bookmark.Place = node.Path;
-        bookmark.LegacyPlace = SavedPlaces.LegacyPlaceOf(node);
+        bookmark.LegacyPlace = null;
         Revision++;
     }
 

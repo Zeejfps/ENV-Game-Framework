@@ -18,7 +18,7 @@ public sealed class NestedNamespaceTests
         var root = Trees.TestAssembly.Root;
 
         var namespaces = root.Children
-            .Where(c => c.Kind == NodeKind.Namespace)
+            .Where(c => c.Subject is NodeSubject.Namespace)
             .ToList();
 
         Assert.Equal(["-", "ZGF", "ZGF.ILSpy", TestsNamespace, Trees.FixturesNamespace], namespaces.Select(n => n.Text));
@@ -52,13 +52,13 @@ public sealed class NestedNamespaceTests
         var root = Trees.TestAssembly.Root;
 
         var outermost = NestedChildren(root)
-            .Where(c => c.Kind == NodeKind.Namespace)
+            .Where(c => c.Subject is NodeSubject.Namespace)
             .Select(c => c.Text);
 
         Assert.Equal(["-", "ZGF"], outermost);
         Assert.Equal([root.Child("ZGF.ILSpy")], NestedChildren(root.Child("ZGF")));
         Assert.Equal([root.Child(TestsNamespace)], NestedChildren(root.Child("ZGF.ILSpy")));
-        Assert.Equal(root.Children.Where(c => c.Kind != NodeKind.Namespace), NestedChildren(root).Where(c => c.Kind != NodeKind.Namespace));
+        Assert.Equal(root.Children.Where(c => c.Subject is not NodeSubject.Namespace), NestedChildren(root).Where(c => c.Subject is not NodeSubject.Namespace));
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public sealed class NavigationTests
 
         Assert.NotNull(node);
         Assert.Equal("List<T>", node!.Text);
-        Assert.Equal(NodeKind.Class, node.Kind);
+        Assert.Equal(TypeShape.Class, node.TypeShape);
         Assert.Equal("System.Private.CoreLib", node.Assembly.Name);
         Assert.Contains(node.Assembly, list.Assemblies);
         Assert.Same(node, node.Assembly.Root.Child("System.Collections.Generic").Child("List<T>"));

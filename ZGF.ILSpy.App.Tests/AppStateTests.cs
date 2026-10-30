@@ -116,7 +116,7 @@ public sealed class AppStateTests
 
         Assert.Null(Assert.Single(d.AppState.Tabs).Location);
         d.RunUntil(() => d.AppState.Tabs.Active?.Node != null);
-        Assert.Equal(NodeKind.Assembly, d.AppState.Tabs.Active!.Node!.Kind);
+        Assert.Equal(NodeIcon.Assembly, d.AppState.Tabs.Active!.Node!.Icon);
     }
 
     [Fact]
@@ -563,6 +563,6 @@ public sealed class NamespacePageTests
 
         Assert.False(span.IsDefinition);
         Assert.Equal("Greeter", tab.Node!.Text);
-        Assert.Equal(NodeKind.Class, tab.Node.Kind);
+        Assert.Equal(NodeIcon.Class, tab.Node.Icon);
     }
 }

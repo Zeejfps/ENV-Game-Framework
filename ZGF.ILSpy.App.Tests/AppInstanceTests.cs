@@ -68,7 +68,7 @@ public sealed class AppInstanceTests
         Assert.True(later.TryHandOver(CommandLine.Parse(["--navigateto=" + GreetId, AppStateDriver.FixturePath])));
         app.Run();
         var front = app.Frames.FrontRequested;
-        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Kind == NodeKind.Method);
+        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Icon == NodeIcon.Method);
         app.Settle(1);
 
         Assert.True(front);

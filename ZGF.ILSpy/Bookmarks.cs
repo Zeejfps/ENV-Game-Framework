@@ -147,7 +147,7 @@ public static class Bookmarks
         var node = ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token, record.MemberName);
         if (node == null)
             return new FoundBookmark(record, null, null);
-        return new FoundBookmark(record, node.Path, SavedPlaces.LegacyPlaceOf(node));
+        return new FoundBookmark(record, node.Path, null);
     }
 
     private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)

@@ -26,10 +26,13 @@ public sealed class MetadataTests
     {
         var assembly = Trees.TestAssembly;
 
-        var first = assembly.Root.Children.Take(3).Select(c => (c.Kind, c.Text));
+        var first = assembly.Root.Children.Take(3).Select(static c => (c.Subject.GetType(), c.Text));
 
         Assert.Equal(
-            [(NodeKind.Metadata, "Metadata"), (NodeKind.Metadata, "Debug Metadata (From portable PDB)"), (NodeKind.ReferencesFolder, "References")],
+            [
+                (typeof(NodeSubject.Metadata), "Metadata"), (typeof(NodeSubject.Metadata), "Debug Metadata (From portable PDB)"),
+                (typeof(NodeSubject.References), "References"),
+            ],
             first);
     }
 
@@ -42,12 +45,14 @@ public sealed class MetadataTests
 
         Assert.Equal(
             [
-                (NodeKind.MetadataHeader, "DOS Header"), (NodeKind.MetadataHeader, "COFF Header"), (NodeKind.MetadataHeader, "Optional Header"),
-                (NodeKind.MetadataDirectory, "Data Directories"), (NodeKind.MetadataDirectory, "Debug Directory"), (NodeKind.MetadataTables, "Tables"),
+                (MetadataGridRole.Header, "DOS Header"), (MetadataGridRole.Header, "COFF Header"), (MetadataGridRole.Header, "Optional Header"),
+                (MetadataGridRole.Directory, "Data Directories"), (MetadataGridRole.Directory, "Debug Directory"),
             ],
-            children.Take(6).Select(c => (c.Kind, c.Text)));
+            children.Take(5).Select(static c => (c.MetadataRole, c.Text)));
+        Assert.IsType<NodeSubject.MetadataTables>(children[5].Subject);
+        Assert.Equal("Tables", children[5].Text);
         Assert.Equal(["String Heap", "UserString Heap", "Guid Heap", "Blob Heap"], children.Skip(6).Select(c => c.Text[..c.Text.IndexOf(" (")]));
-        Assert.All(children.Skip(6), c => Assert.Equal(NodeKind.MetadataHeap, c.Kind));
+        Assert.All(children.Skip(6), c => Assert.Equal(MetadataGridRole.Heap, c.MetadataRole));
         Assert.Contains(Metadata(assembly).Child("Tables").Children, c => c.Text.StartsWith("02 TypeDef (", StringComparison.Ordinal));
     }
 
@@ -72,7 +77,7 @@ public sealed class MetadataTests
         var assembly = Trees.TestAssembly;
         var grids = 0;
 
-        foreach (var root in assembly.Root.Children.Where(c => c.Kind == NodeKind.Metadata))
+        foreach (var root in assembly.Root.Children.Where(c => c.Subject is NodeSubject.Metadata))
             grids += Sweep(root);
 
         Assert.True(grids > 20, $"{grids} grids");
@@ -478,7 +483,7 @@ public sealed class MetadataTests
         var list = new AssemblyList();
         var corelib = list.Open(Trees.CoreLibPath);
 
-        foreach (var node in Metadata(corelib).Child("Tables").Children.Concat(Metadata(corelib).Children.Where(c => c.Kind == NodeKind.MetadataHeap)))
+        foreach (var node in Metadata(corelib).Child("Tables").Children.Concat(Metadata(corelib).Children.Where(c => c.Is(MetadataGridRole.Heap))))
         {
             if (node.Content() is not GridContent { Grid: var grid }) continue;
             for (var row = 0; row < Math.Min(grid.RowCount, 50); row++)

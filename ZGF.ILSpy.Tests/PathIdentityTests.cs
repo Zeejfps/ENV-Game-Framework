@@ -54,7 +54,7 @@ public sealed class PathIdentityTests : IDisposable
             .ToArray();
 
         AssertSameLabelAndEachFoundAgain(Trees.PathsBeforePath, changed);
-        Assert.Equal([NodeKind.Field, NodeKind.Event], changed.Select(static c => c.Kind).Order());
+        Assert.Equal([MemberShape.Field, MemberShape.Event], changed.Select(static c => c.MemberShape).Order());
     }
 
     [Fact]
@@ -93,7 +93,8 @@ public sealed class PathIdentityTests : IDisposable
         Assert.All(found, Assert.NotNull);
         Assert.Equal(places.Select(static p => p.Path), found.Select(static f => f!.Path));
         Assert.Equal(["Box<TItem>", "Put(TItem) : void"], found.Take(2).Select(static f => f!.Text));
-        Assert.Equal([NodeKind.Record, NodeKind.Constant], [found[2]!.Kind, found[3]!.Kind]);
+        Assert.Equal(TypeShape.Record, found[2]!.TypeShape);
+        Assert.Equal(MemberShape.Constant, found[3]!.MemberShape);
         Assert.NotEqual(places[4].Text, found[4]!.Text);
     }
 
@@ -109,7 +110,7 @@ public sealed class PathIdentityTests : IDisposable
         var counterpart = TestSession.Shared.FindLoadedChildLike(ns, shape);
 
         Assert.NotNull(counterpart);
-        Assert.Equal(NodeKind.Record, counterpart.Kind);
+        Assert.Equal(TypeShape.Record, counterpart.TypeShape);
     }
 
     [Fact]

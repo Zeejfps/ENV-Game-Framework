@@ -106,19 +106,4 @@ public sealed partial class BrowseNode
             return null;
         return symbols;
     }
-
-    private static NodeKind KindOf(MetadataTableInfo part) => part.Part switch
-    {
-        MetadataPart.Grid grid => grid.Role switch
-        {
-            MetadataGridRole.Header => NodeKind.MetadataHeader,
-            MetadataGridRole.Directory => NodeKind.MetadataDirectory,
-            MetadataGridRole.Table => NodeKind.MetadataTable,
-            MetadataGridRole.Heap => NodeKind.MetadataHeap,
-            _ => throw new System.Diagnostics.UnreachableException(),
-        },
-        MetadataPart.DebugDirectory => NodeKind.MetadataDirectory,
-        MetadataPart.RowCount or MetadataPart.DecodedDebugEntry or MetadataPart.RawDebugEntry => NodeKind.MetadataTable,
-        _ => throw new System.Diagnostics.UnreachableException(),
-    };
 }

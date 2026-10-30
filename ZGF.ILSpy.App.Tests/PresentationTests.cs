@@ -23,7 +23,7 @@ public sealed class PresentationTests
     }
 
     [Fact]
-    public void Every_node_draws_the_icon_its_subject_names_as_its_kind_names_it()
+    public void Every_node_of_a_tree_draws_the_icon_its_subject_names_and_the_tree_draws_many()
     {
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var pending = new Queue<BrowseNode>([root]);
@@ -32,7 +32,6 @@ public sealed class PresentationTests
         while (pending.Count > 0)
         {
             var node = pending.Dequeue();
-            Assert.Equal(NodeIcons.Of(node.Kind), NodeIcons.Of(node.Subject));
             seen.Add(NodeIcons.Of(node.Subject));
             if (node.Subject is NodeSubject.AssemblyReference)
                 continue;
@@ -98,7 +97,7 @@ public sealed class PresentationTests
     {
         var root = new AssemblyList().Open(AppStateDriver.FixturePath).Root;
         var ns = root.Child(AppStateDriver.FixturesNamespace);
-        var privateField = ns.Child("Outline").Children.Single(c => c.Kind == NodeKind.Field && c.Accessibility == NodeAccessibility.Private);
+        var privateField = ns.Child("Outline").Children.Single(c => c.Icon == NodeIcon.Field && c.Accessibility == NodeAccessibility.Private);
         var tree = new BrowseTree(TestSession.Shared);
         tree.SetStyle(UiTheme.Light, BuiltInThemes.Light.Icons, Icons);
 
@@ -158,7 +157,7 @@ public sealed class PresentationTests
         var assembly = new AssemblyList().Open(AppStateDriver.FixturePath);
         var used = assembly.Root.Child("References").Children
             .SelectMany(r => r.Children)
-            .Where(c => c.Kind == NodeKind.ReferencedTypes)
+            .Where(c => c.Icon == NodeIcon.ReferencedTypes)
             .SelectMany(t => t.Children)
             .First(c => c.Text == "List<>");
         var tree = new BrowseTree(TestSession.Shared);

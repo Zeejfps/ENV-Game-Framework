@@ -2,57 +2,6 @@ using ZGF.ILSpy.Core.Resources;
 
 namespace ZGF.ILSpy.Core;
 
-/// <summary>What a <see cref="BrowseNode"/> stands for; picks its icon.</summary>
-public enum NodeKind
-{
-    Assembly,
-    ReferencesFolder,
-    AssemblyReference,
-    ResourcesFolder,
-    Resource,
-    Namespace,
-    Class,
-    Interface,
-    Struct,
-    Enum,
-    Delegate,
-    Record,
-    RecordStruct,
-    BaseTypes,
-    BaseType,
-    Field,
-    Constant,
-    Property,
-    Indexer,
-    Event,
-    Method,
-    Constructor,
-    Operator,
-    Metadata,
-    MetadataHeader,
-    MetadataDirectory,
-    MetadataTables,
-    MetadataTable,
-    MetadataHeap,
-    DerivedTypes,
-    DerivedType,
-    ResourcesFile,
-    ResourceImage,
-    FailedAssembly,
-    ForwardedType,
-    Package,
-    PackageFolder,
-    Bundle,
-    ReferencedTypes,
-    TypeReference,
-    MethodReference,
-    FieldReference,
-    PropertyReference,
-    EventReference,
-    ModuleReference,
-    ImportedMethod,
-}
-
 /// <summary>The declared accessibility of the entity a <see cref="BrowseNode"/> stands for.</summary>
 public enum NodeAccessibility
 {
@@ -74,8 +23,6 @@ public sealed partial class BrowseNode
 {
     private NodePath.Semantic? _path;
     private NodePathSegment? _segment;
-
-    public NodeKind Kind { get; }
 
     /// <summary>The label: a name, or for members an ILSpy-style signature such as <c>Add(T) : void</c>.</summary>
     public string Text { get; }

@@ -139,7 +139,7 @@ public sealed class AssemblyListTests
         var root = list.Open(text).Root;
         var document = root.Decompile(DecompilationLanguage.CSharp);
 
-        Assert.Equal(NodeKind.FailedAssembly, root.Kind);
+        Assert.IsType<NodeSubject.FailedAssembly>(root.Subject);
         Assert.Equal("text.dll", root.Text);
         Assert.Empty(root.Children);
         Assert.True(document.IsError);

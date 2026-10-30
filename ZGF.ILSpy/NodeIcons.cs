@@ -153,58 +153,6 @@ public static class NodeIcons
         _ => throw new UnreachableException(),
     };
 
-    /// <summary>The icon of what <paramref name="kind"/> names, for a place saved with its kind, which has no subject.</summary>
-    public static NodeIcon Of(NodeKind kind) => kind switch
-    {
-        NodeKind.Assembly => NodeIcon.Assembly,
-        NodeKind.ReferencesFolder => NodeIcon.ReferencesFolder,
-        NodeKind.AssemblyReference => NodeIcon.AssemblyReference,
-        NodeKind.ResourcesFolder => NodeIcon.ResourcesFolder,
-        NodeKind.Resource => NodeIcon.Resource,
-        NodeKind.Namespace => NodeIcon.Namespace,
-        NodeKind.Class => NodeIcon.Class,
-        NodeKind.Interface => NodeIcon.Interface,
-        NodeKind.Struct => NodeIcon.Struct,
-        NodeKind.Enum => NodeIcon.Enum,
-        NodeKind.Delegate => NodeIcon.Delegate,
-        NodeKind.Record => NodeIcon.Record,
-        NodeKind.RecordStruct => NodeIcon.RecordStruct,
-        NodeKind.BaseTypes => NodeIcon.BaseTypes,
-        NodeKind.BaseType => NodeIcon.BaseType,
-        NodeKind.Field => NodeIcon.Field,
-        NodeKind.Constant => NodeIcon.Constant,
-        NodeKind.Property => NodeIcon.Property,
-        NodeKind.Indexer => NodeIcon.Indexer,
-        NodeKind.Event => NodeIcon.Event,
-        NodeKind.Method => NodeIcon.Method,
-        NodeKind.Constructor => NodeIcon.Constructor,
-        NodeKind.Operator => NodeIcon.Operator,
-        NodeKind.Metadata => NodeIcon.Metadata,
-        NodeKind.MetadataHeader => NodeIcon.MetadataHeader,
-        NodeKind.MetadataDirectory => NodeIcon.MetadataDirectory,
-        NodeKind.MetadataTables => NodeIcon.MetadataTables,
-        NodeKind.MetadataTable => NodeIcon.MetadataTable,
-        NodeKind.MetadataHeap => NodeIcon.MetadataHeap,
-        NodeKind.DerivedTypes => NodeIcon.DerivedTypes,
-        NodeKind.DerivedType => NodeIcon.DerivedType,
-        NodeKind.ResourcesFile => NodeIcon.ResourcesFile,
-        NodeKind.ResourceImage => NodeIcon.ResourceImage,
-        NodeKind.FailedAssembly => NodeIcon.FailedAssembly,
-        NodeKind.ForwardedType => NodeIcon.ForwardedType,
-        NodeKind.Package => NodeIcon.Package,
-        NodeKind.PackageFolder => NodeIcon.PackageFolder,
-        NodeKind.Bundle => NodeIcon.Bundle,
-        NodeKind.ReferencedTypes => NodeIcon.ReferencedTypes,
-        NodeKind.TypeReference => NodeIcon.TypeReference,
-        NodeKind.MethodReference => NodeIcon.MethodReference,
-        NodeKind.FieldReference => NodeIcon.FieldReference,
-        NodeKind.PropertyReference => NodeIcon.PropertyReference,
-        NodeKind.EventReference => NodeIcon.EventReference,
-        NodeKind.ModuleReference => NodeIcon.ModuleReference,
-        NodeKind.ImportedMethod => NodeIcon.ImportedMethod,
-        _ => throw new UnreachableException(),
-    };
-
     /// <summary>The icon of <paramref name="node"/> as the tree shows it, with the overlay of its accessibility.</summary>
     public static UiIcon Icon(BrowseNode node, NodeIconPalette palette, AppIcons icons) =>
         Icon(Of(node.Subject), NodeVisibility.Of(node.Subject).Accessibility, palette, icons);

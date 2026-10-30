@@ -10,11 +10,9 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Optional-field bags that should be sum types
 
-- **Assemblies and nodes**
-    - `BrowseNode` (`BrowseNode.cs:96-160`) has 7 nullable fields marked "null for other nodes", and a 50-value `NodeKind` set independently of the subclass. Planned in [ilspy/browse_tree_architecture.md](ilspy/browse_tree_architecture.md).
 - **References and documents**
     - `CodeReference` (`CodeReference.cs:31`): entity and local references share one class, and `Kind` is not tied to `FilePath`.
-    - `DecompiledDocument` marks failure with `isError: bool` (`:106`, `:127`); the exception is flattened to text in `NodeDecompiler.cs:41`.
+    - `DecompiledDocument` marks failure with `isError: bool` (`:106`, `:127`); the exception is flattened to text in `NodeDecompiler.cs:43`.
 - **App state**
     - `ExportQueue.cs:254-266` spreads idle-or-running over `_cancel?`, `Running?`, `IsCancelling`, `Progress?`, forcing `_cancel!` at `:347`. `ExportStart.IsWithdrawn` is a flag every caller must check.
     - `IconValue` and `IconFont` (`IconThemeFile.cs:12-19`) have public constructors that accept invalid combinations.
@@ -39,7 +37,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Escape hatches
 
-- Swallowed: swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseNode.cs:182`, `NodeDecompiler.cs:41`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.
+- Swallowed: swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseSession.cs:258`, `NodeDecompiler.cs:43`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.
 - Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:194, 202` tie enum order to column order.
 - `(LanguageVersion)options.LanguageVersion` casts numerically between two mirrored enums.
 - Reflection: `DecompilerOptions.cs:45/72` reads `DecompilerSettings` properties by name.
@@ -57,8 +55,8 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 - `AppState` is a god object: referenced from 50 files, about 35 public members, 7 mutable public fields. Its constructor does file I/O through functions that take `AppState` back (`AppState.cs:187-191`). `UiState` is referenced from 54 files with about 45 members.
 - Views take the whole `AppState` even when they use one member: `ErrorDialogView` (`.Errors`), `ExportStatusView` (`.Export`), `AssemblyLists*DialogView` (`.Lists`), `BookmarkImportDialogView` (`.Imports`), `AnalyzerPanelView` (`.Analyzer`). In effect a service locator.
-- Core cycles: `LoadedAssembly` ↔ `AssemblyList` ↔ `AssemblyResolver`; `LoadedAssembly` → `AssemblyExport` → `LoadedAssembly`; `BrowseNode` → `NodeDecompiler` → every node subclass → `BrowseNode`. The `BrowseNode` base type-tests its own subclasses.
-- `AssemblyList` is the Core hub: search, tooltips, docs, metadata rows, node lookup and analyzer type systems all route through it.
+- Core cycles: `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; `LoadedModule` → `AssemblyExport` → `LoadedModule`.
+- `AssemblyList` is the Core hub: search, tooltips, docs, metadata rows and analyzer type systems all route through it.
 - Static mutable caches: `ConditionalWeakTable`s in `NodeText.cs:16`, `DisplayOptionsPanelView.cs:33`, `SearchPanelView.cs:25`; `MetadataGrid.Patterns`; `FlagsSchemaInferer.cache`. Harmless memoization. The exception is the unsynchronized `_headersFor`/`_headers` in `BookmarksPanelView.cs:22`.
 - `AssemblyList.Changed` is an ambient `event Action`.
 
@@ -72,9 +70,3 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - Cross-frame layout: `CodeView.cs:292-320` hit-tests with the previous frame's rect; `Position`/`TopAnchor` do nothing until the first draw sets `RowHeight`; `BookmarksPanelView.cs:61, 66` call `Selection.TakeFrom` before and after the rows, an order nothing enforces.
 - `ExportsPanelView.cs:105-133` snapshots runs once per frame, so Delete then an arrow key in the same frame moves against a stale list.
 - `AssemblyList.UseLoadOptions` (`:166-176`) checks and sets two volatile fields without the lock.
-
-## Follow-ups from the LoadedAssembly split
-
-- The nodes under an assembly name their `LoadedModule` parameter `assembly` (`Nodes.cs`, `ReferenceNodes.cs`, `Resources/ResourceNodes.cs`, `Metadata/MetadataNodes.cs`). Rename it `module`, minding the locals already called `module` in some of those classes.
-- `BrowseNode`'s optional fields and its `NodeKind` set apart from the subclass (Rule 1, Assemblies and nodes) are next, planned in [ilspy/browse_tree_architecture.md](ilspy/browse_tree_architecture.md).
-- The Core cycles under Rule 2 now run through `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; the split did not aim at them.

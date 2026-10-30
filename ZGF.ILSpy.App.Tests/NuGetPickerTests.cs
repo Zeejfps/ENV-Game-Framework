@@ -387,7 +387,7 @@ public sealed class NuGetPickerTests : IDisposable
         app.Settle(2);
 
         Assert.False(picker.IsOpen);
-        Assert.Equal(NodeKind.Package, Assert.Single(app.Ui.Tree.Roots).Kind);
+        Assert.Equal(NodeIcon.Package, Assert.Single(app.Ui.Tree.Roots).Icon);
         Assert.True(app.Frames.Drew("fixtures.2.0.0.nupkg"));
     }
 

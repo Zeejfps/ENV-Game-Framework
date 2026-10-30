@@ -18,10 +18,10 @@ public sealed class PackageBrowsingTests
         var app = new AppDriver();
 
         OpenAssembly(app.AppState, WritePackage(temp));
-        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Kind == NodeKind.Package);
+        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Icon == NodeIcon.Package);
         app.Settle(2);
 
-        Assert.Equal(NodeKind.Package, Assert.Single(app.Ui.Tree.Roots).Kind);
+        Assert.Equal(NodeIcon.Package, Assert.Single(app.Ui.Tree.Roots).Icon);
         Assert.True(app.Frames.Drew(PackageName));
         Assert.Contains($"{LibFolder}/", app.AppState.Tabs.Active!.Document.GetText());
     }
@@ -138,7 +138,7 @@ public sealed class PackageBrowsingTests
     {
         var app = new AppDriver();
         OpenAssembly(app.AppState, WritePackage(temp));
-        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Kind == NodeKind.Package);
+        app.RunUntil(() => app.AppState.Tabs.Active?.Node?.Icon == NodeIcon.Package);
         app.Settle(2);
         return app;
     }
@@ -152,7 +152,7 @@ public sealed class PackageBrowsingTests
 
     private static bool IsAssembly(BrowseNode node)
     {
-        return node.Kind == NodeKind.Assembly;
+        return node.Icon == NodeIcon.Assembly;
     }
 
     /// <summary>A NuGet package of the fixture assembly, beside a text file.</summary>

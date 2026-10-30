@@ -11,7 +11,6 @@ public sealed partial class BrowseNode
     {
         Assembly = AssemblyOf(subject);
         Parent = parent;
-        Kind = KindOf(subject);
         Text = TextOf(subject);
         Subject = subject;
     }
@@ -112,42 +111,6 @@ public sealed partial class BrowseNode
             or NodeSubject.BaseType or NodeSubject.DerivedTypes or NodeSubject.DerivedType or NodeSubject.Resources
             or NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.Metadata or NodeSubject.MetadataTables
             or NodeSubject.MetadataTable => Text,
-        _ => throw new UnreachableException(),
-    };
-
-    private static NodeKind KindOf(NodeSubject subject) => subject switch
-    {
-        NodeSubject.TypeDefinition type => EntityText.KindOf(type.Definition.Symbol),
-        NodeSubject.MemberDefinition member => EntityText.KindOf(member.Definition.Symbol),
-        NodeSubject.References => NodeKind.ReferencesFolder,
-        NodeSubject.AssemblyReference => NodeKind.AssemblyReference,
-        NodeSubject.ReferencedTypes => NodeKind.ReferencedTypes,
-        NodeSubject.TypeReference => NodeKind.TypeReference,
-        NodeSubject.MemberReference member => member.Value.Declared switch
-        {
-            IField => NodeKind.FieldReference,
-            IProperty => NodeKind.PropertyReference,
-            IEvent => NodeKind.EventReference,
-            _ => NodeKind.MethodReference,
-        },
-        NodeSubject.ModuleReference => NodeKind.ModuleReference,
-        NodeSubject.ImportedMethod => NodeKind.ImportedMethod,
-        NodeSubject.ForwardedType => NodeKind.ForwardedType,
-        NodeSubject.BaseTypes => NodeKind.BaseTypes,
-        NodeSubject.BaseType => NodeKind.BaseType,
-        NodeSubject.DerivedTypes => NodeKind.DerivedTypes,
-        NodeSubject.DerivedType => NodeKind.DerivedType,
-        NodeSubject.Resources => NodeKind.ResourcesFolder,
-        NodeSubject.ResourceContainer => NodeKind.ResourcesFile,
-        NodeSubject.ResourceEntry entry => KindOf(entry.Value),
-        NodeSubject.Metadata => NodeKind.Metadata,
-        NodeSubject.MetadataTables => NodeKind.MetadataTables,
-        NodeSubject.MetadataTable table => KindOf(table.Value),
-        NodeSubject.Package package => KindOf(package.Value),
-        NodeSubject.PackageFile file => ResourceNodes.KindOf(file.Value.File.Name),
-        NodeSubject.Module => NodeKind.Assembly,
-        NodeSubject.Namespace => NodeKind.Namespace,
-        NodeSubject.FailedAssembly => NodeKind.FailedAssembly,
         _ => throw new UnreachableException(),
     };
 

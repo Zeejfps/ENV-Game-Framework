@@ -25,7 +25,7 @@ public sealed class PackageTests
         Assert.Equal([package], list.Listed);
         Assert.Equal(["ZGF.ILSpy.Core", TestAssemblyName], list.Assemblies.Select(a => a.Name));
         Assert.All(list.Assemblies, a => Assert.Same(package, ContainerOf(a)));
-        Assert.Equal(NodeKind.Package, package.Root.Kind);
+        Assert.False(Assert.IsType<NodeSubject.Package>(package.Root.Subject).Value.Package.Package.IsBundle);
         Assert.Equal("Sample.1.0.0.nupkg", package.Root.Text);
         Assert.Equal([LibFolder, "runtimes/win-x64/native", "readme.txt"], package.Root.Children.Select(c => c.Text));
     }
@@ -139,7 +139,7 @@ public sealed class PackageTests
         Assert.Same(package, ContainerOf(assembly));
         Assert.Same(root, assembly.Root);
         Assert.Same(folder, root.Parent);
-        Assert.Equal(NodeKind.Class, assembly.Calculator().Kind);
+        Assert.Equal(TypeShape.Class, assembly.Calculator().TypeShape);
     }
 
     [Fact]
@@ -249,7 +249,8 @@ public sealed class PackageTests
         var native = package.Root.Child("runtimes/win-x64/native", "native.dll");
 
         Assert.Equal("Read me", Encoding.UTF8.GetString(readme.ReadResource()));
-        Assert.Equal(NodeKind.Resource, native.Kind);
+        Assert.IsType<NodeSubject.PackageFile>(native.Subject);
+        Assert.False(native.IsImage);
         Assert.Contains("Read me", readme.Decompile(DecompilationLanguage.CSharp).GetText());
     }
 
@@ -386,7 +387,7 @@ public sealed class PackageTests
 
     private static bool IsTestAssembly(BrowseNode node)
     {
-        if (node.Kind != NodeKind.Assembly)
+        if (node.Subject is not NodeSubject.Module)
             return false;
         return node.Assembly.Name == TestAssemblyName;
     }

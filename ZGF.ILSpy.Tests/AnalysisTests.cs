@@ -36,7 +36,7 @@ public sealed class AnalysisTests
         Assert.Equal(new SymbolShape.Member(MemberShape.Operator), plus.Shape);
         Assert.StartsWith("operator +", plus.Label);
         Assert.Equal(Trees.FixturesNamespace + ".Calculator<T> (ZGF.ILSpy.Tests)", plus.Location);
-        Assert.Same(add.Parent!.Children.Single(c => c.Kind == NodeKind.Operator), list.FindNode(plus.Reference!));
+        Assert.Same(add.Parent!.Children.Single(c => c.Is(MemberShape.Operator)), list.FindNode(plus.Reference!));
     }
 
     [Fact]

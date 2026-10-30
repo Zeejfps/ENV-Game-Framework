@@ -79,7 +79,7 @@ public sealed class ResourceTests
     {
         var svg = Resources(Trees.TestAssembly).Child("shape.svg");
 
-        Assert.Equal(NodeKind.ResourceImage, svg.Kind);
+        Assert.True(svg.IsImage);
         Assert.Equal("SVG", Assert.IsType<ImageContent>(svg.Content()).Image.Format);
     }
 
@@ -120,12 +120,12 @@ public sealed class ResourceTests
         var assembly = Trees.TestAssembly;
         var resources = Resources(assembly);
 
-        Assert.Equal(NodeKind.ResourceImage, resources.Child("logo.png").Kind);
+        Assert.True(resources.Child("logo.png").IsImage);
         Assert.IsType<ImageContent>(resources.Child("red.gif").Content());
         Assert.False(NodeContentLoader.DependsOnLanguage(resources.Child("red.gif")));
         Assert.IsType<DocumentContent>(resources.Child("sample.xml").Content());
         Assert.True(NodeContentLoader.DependsOnLanguage(resources.Child("sample.xml")));
-        Assert.Equal(NodeKind.ResourcesFile, resources.Child("Mixed.resources").Kind);
+        Assert.IsType<NodeSubject.ResourceContainer>(resources.Child("Mixed.resources").Subject);
         Assert.All(resources.Children, c => Assert.True(c.HasResource));
 
         var image = Assert.IsType<ImageContent>(resources.Child("logo.png").Content()).Image;
@@ -209,7 +209,7 @@ public sealed class ResourceTests
         Assert.Equal(("Hello", 0), grid.Lines(1, 1));
         Assert.False(grid.HasDetails);
         Assert.Null(grid.Tooltip(1, 1));
-        Assert.Equal([("Notes.xml", NodeKind.Resource), ("Picture.png", NodeKind.ResourceImage)], file.Children.Select(c => (c.Text, c.Kind)));
+        Assert.Equal([("Notes.xml", false), ("Picture.png", true)], file.Children.Select(static c => (c.Text, c.IsImage)));
         Assert.Equal(Expected, Assert.IsType<ImageContent>(file.Child("Picture.png").Content()).Image.Rgba);
         Assert.Contains(("root", SpanKind.Keyword), file.Child("Notes.xml").Decompile(DecompilationLanguage.CSharp).SpansOf().Select(s => (s.Text, s.Span.Kind)));
     }
@@ -235,7 +235,7 @@ public sealed class ResourceTests
 
         var document = Assert.IsType<DocumentContent>(baml.Content(DecompilationLanguage.IL)).Document;
 
-        Assert.Equal(NodeKind.Resource, baml.Kind);
+        Assert.False(baml.IsImage);
         Assert.True(NodeContentLoader.DependsOnLanguage(baml));
         Assert.Contains("x:Class=\"SampleApp.MainWindow\"", document.GetText());
     }
@@ -280,12 +280,12 @@ public sealed class ResourceTests
         var assembly = new AssemblyList().Open(Trees.AvaloniaSamplePath);
         var container = Resources(assembly).Child("!AvaloniaResources");
 
-        var entries = container.Children.Select(c => (c.Text, c.Kind)).ToList();
+        var entries = container.Children.Select(static c => (c.Text, c.IsImage)).ToList();
 
         Assert.Equal(
             [
-                ("/!AvaloniaResourceXamlInfo", NodeKind.Resource), ("/Assets/icon.svg", NodeKind.ResourceImage),
-                ("/Assets/logo.png", NodeKind.ResourceImage), ("/Assets/notes.json", NodeKind.Resource),
+                ("/!AvaloniaResourceXamlInfo", false), ("/Assets/icon.svg", true),
+                ("/Assets/logo.png", true), ("/Assets/notes.json", false),
             ],
             entries);
         Assert.Equal((64, 64, "SVG"), Picture(container.Child("/Assets/icon.svg")));

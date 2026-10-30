@@ -29,9 +29,10 @@ public sealed class BundleTests
         var bundle = list.Open(WriteBundle(temp));
 
         Assert.IsType<LoadedPackage>(bundle);
-        Assert.Equal(NodeKind.Bundle, bundle.Root.Kind);
+        Assert.True(Assert.IsType<NodeSubject.Package>(bundle.Root.Subject).Value.Package.Package.IsBundle);
         Assert.Equal(BundleName, bundle.Root.Text);
-        Assert.Equal([NodeKind.Resource, NodeKind.Assembly, NodeKind.Assembly], bundle.Root.Children.Select(c => c.Kind));
+        Assert.Equal([typeof(NodeSubject.PackageFile), typeof(NodeSubject.Module), typeof(NodeSubject.Module)],
+            bundle.Root.Children.Select(static c => c.Subject.GetType()));
         Assert.Equal("App.deps.json", bundle.Root.Children[0].Text);
         Assert.Equal(["ZGF.ILSpy.Core", TestAssemblyName], list.Assemblies.Select(a => a.Name));
     }
@@ -72,7 +73,7 @@ public sealed class BundleTests
 
         var broken = bundle.Root.Child("Broken.dll");
 
-        Assert.Equal(NodeKind.Resource, broken.Kind);
+        Assert.IsType<NodeSubject.PackageFile>(broken.Subject);
         Assert.Throws<InvalidDataException>(() => broken.ReadResource());
     }
 
