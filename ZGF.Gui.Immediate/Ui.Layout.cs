@@ -99,6 +99,13 @@ public abstract partial class Ui
     private float _wheelDeltaX;
     private float _wheelDeltaY;
 
+    /// <summary>How long the wheel may rest and still be in the same gesture: a trackpad swipe and the
+    /// momentum after it send deltas far closer together than this.</summary>
+    private const double WheelGestureGap = 0.3;
+
+    private bool _wheelGestureSideways;
+    private double _wheelTurnedAt = double.NegativeInfinity;
+
     /// <summary>True when the element being recorded lays its children out left to right.</summary>
     public bool InRow => _open.Count > 0 && _tree[_open.Peek()].Horizontal;
 
@@ -684,6 +691,24 @@ public abstract partial class Ui
         var target = Topmost(_previousHits, _previousScrollIds, out var targetZ);
         if (target == 0 || targetZ < topZ) return;
 
+        var gestureSideways = WheelGestureSideways();
+        var across = _input.ScrollX != 0f ? WheelTarget(target, x: true) : 0;
+        var down = _input.ScrollY != 0f ? WheelTarget(target, x: false) : 0;
+        if (across != 0 && down != 0 && across != down)
+        {
+            if (gestureSideways)
+            {
+                _wheelX = across;
+                _wheelDeltaX = _input.ScrollX;
+            }
+            else
+            {
+                _wheelY = down;
+                _wheelDeltaY = _input.ScrollY;
+            }
+            return;
+        }
+
         if (_input.ScrollX != 0f && WheelTarget(target, x: true) is var x and not 0)
         {
             _wheelX = x;
@@ -701,6 +726,17 @@ public abstract partial class Ui
             _wheelX = sideways;
             _wheelDeltaX += _input.ScrollY;
         }
+    }
+
+    /// <summary>Whether the gesture the wheel is turning in went sideways rather than up or down when it began.
+    /// Where the two would move different scrolls, as a row of cards on a page, only that one moves for the
+    /// whole gesture: a trackpad swipe is never quite straight.</summary>
+    private bool WheelGestureSideways()
+    {
+        if (RealTime - _wheelTurnedAt > WheelGestureGap)
+            _wheelGestureSideways = MathF.Abs(_input.ScrollX) > MathF.Abs(_input.ScrollY);
+        _wheelTurnedAt = RealTime;
+        return _wheelGestureSideways;
     }
 
     /// <summary>Whether the wheel turns with Ctrl held, which zooms what is under the pointer, for it
