@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+        <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
+        <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
+        <!-- The single opt-in reference. Everything CEF (natives + the cef-helper subprocess) flows in
+             transitively; no other csproj change is needed. -->
+        <ProjectReference Include="..\ZGF.WebView.Cef\ZGF.WebView.Cef.csproj" />
+    </ItemGroup>
+
+</Project>

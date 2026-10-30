@@ -1,6 +1,60 @@
 # Native Web View
 
-Status: **plan** (not yet implemented). Drafted 2026-07-21.
+Status: **phases 1–3 implemented** (Windows), plus a GPU shared-texture spike. Drafted 2026-07-21; implemented 2026-07-21.
+
+## Implementation status
+
+Windows-first phases 1–3 of the [phasing](#phasing) below are built and verified end-to-end
+against `CefGlue.Common` 120.6099.211 (Chromium 120):
+
+- **Phase 1 — spike:** `ZGF.WebView.Cef` + the `zgf-cef-helper` subprocess, `CefHostedService`
+  bootstrap, OSR `OnPaint` → BGRA→RGBA swizzle → `CreateOrUpdateRgbaImage` → composited in a ZGF
+  `WebView`. Verified: a page renders correctly (colors, orientation, full-window) into the canvas.
+- **Phase 2 — interactivity:** mouse move/click/wheel, focus (`StealFocus` + CEF `SetFocus`),
+  keyboard (RawKeyDown→Char→KeyUp), resize, DPI (`GetScreenInfo` device scale), and cursor
+  (`OnCursorChange` → `IProvidesCursor`). Verified: driver click focuses a field and typed text
+  inserts and renders.
+- **Phase 3 — JS bridge:** page→C# via `window.zgf.postMessage` (V8 binding in the render process →
+  process message → `IWebView.MessageReceived`); C#→page via `PostMessage`/`ExecuteScript`. Verified:
+  page-load and per-keystroke messages arrive in C#.
+
+Where things landed: interfaces + the texture `WebViewView` in core `ZGF.Gui` (`IWebView.cs`,
+`Views/WebViewView.cs`); the interactive `WebView` widget + its `WebViewController` in
+`ZGF.Gui.Desktop/Components/WebView/` (alongside `TextInput`, since input needs the desktop input
+system — a deliberate refinement of the "widget in core" table row below); all CEF code in
+`ZGF.WebView.Cef/Cef/`; the helper in `ZGF.WebView.Cef.SubProcess`; a runnable sample in
+`ZGF.WebView.Demo`. `UseCefWebView()` is the only CEF-referencing symbol an app touches.
+
+**Notable deviations from the original design, and why:**
+- **Message pump:** driven by a steady periodic `DoMessageLoopWork` pump (plan piece 2's "once per
+  tick"), *not* purely by `OnScheduleMessagePumpWork` — the pure-schedule approach stalled after the
+  first cycles (CEF stopped rescheduling once pumping paused). `OnScheduleMessagePumpWork` still nudges
+  sub-interval work. Idling the pump when no browser needs work is the documented follow-up.
+- **JS bridge:** hand-rolled (V8 `window.zgf` binding + process messages), because this CefGlue build
+  ships no `CefMessageRouterBrowserSide` wrapper. Fire-and-forget both directions, matching `IWebView`.
+- **Helper sharing:** the subprocess links `ZgfCefRenderApp.cs` as shared source instead of
+  project-referencing `ZGF.WebView.Cef`, avoiding a reference cycle so the lib can build+stage the
+  helper as transitive copy-local content (zero csproj work for consuming apps — verified).
+
+Not yet done: IME/preedit, in-page clipboard shortcuts, `PET_POPUP` (`<select>` dropdowns),
+transparent pages, DevTools, Linux/macOS packaging.
+
+### Since then (spike, 2026-10-29)
+
+- **Binding:** `CefGlue.Common` (Chromium 120) is replaced by our own CEF 150 binding, vendored at
+  `CefGlue/` (`Xilium.CefGlue` project, generator, `CEF_VERSION`, `fetch-cef.ps1`; history in
+  `CefGlue/PLAN.md`). The payload is fetched into `CefGlue/cef/` (gitignored) and staged by
+  `ZGF.WebView.Cef.targets`.
+- **Renderer crash fixed:** the `STATUS_STACK_BUFFER_OVERRUN` renderer deaths were CET shadow-stack
+  faults (fastfail 0x39): the .NET apphost is CET-compatible by default and V8 rewrites return
+  addresses. Chromium's sandbox turns CET off for renderers, but we run without it, so the helper sets
+  `CetCompat=false`. Games that crashed every load now run.
+- **GPU path (phase 7, Windows/OpenGL):** frames arrive as `OnAcceleratedPaint` D3D11 shared textures.
+  `IWebView` pushes frames to an `IWebViewFrameSink` (pixels or a `SharedTexture`); the canvas imports a
+  `SharedTexture` with `ICanvas.CreateOrUpdateSharedTextureImage`, which on the GL backend opens the
+  handle on a D3D11 device on the GL adapter and copies it into a texture registered with GL through
+  `WGL_NV_DX_interop2` (`ZGF.Gui.OpenGL/Windows/`). It draws through the normal image path with flipped
+  UVs. `CefPaintPath.Software` (or a canvas without support) falls back to `OnPaint`.
 
 Embeds a fully-interactive native web view into ZGF, rendered **off-screen into a texture**
 and drawn through the ordinary `ICanvas` image path so it composes with the rest of the UI

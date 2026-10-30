@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
@@ -6,6 +7,7 @@ using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Hosting;
 using ZGF.KeyboardModule;
+using ZGF.Observable;
 
 namespace ZGF.Gui.Immediate;
 
@@ -25,6 +27,15 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         public bool Used;
         public bool Shown;
         public (int X, int Y, int Width, int Height) Screen;
+    }
+
+    private sealed class TickDispatcher(ImmediateGuiAppHost<TUiState> host) : IUiDispatcher
+    {
+        public void Post(Action action)
+        {
+            host._ticked.Enqueue(action);
+            host._render.App.Wake();
+        }
     }
 
     private sealed class DialogWindow(int id, IWindow window, RenderedCanvasBase canvas, Action wake)
@@ -57,6 +68,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly List<Popup> _popups = new();
     private readonly List<DialogWindow> _windows = new();
     private readonly List<UiRect> _dragAreas = new();
+    private readonly ConcurrentQueue<Action> _ticked = new();
     private readonly List<RectI> _dragAreasOnWindow = new();
     private TitleBarContent? _titleBar;
     private readonly PopupPool _pool;
@@ -97,6 +109,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         if (OperatingSystem.IsMacOS())
             _ui.SystemMenus = new SystemMenus(new MacMenuBar(), Invalidate);
         _filePicker = NativeFilePicker.Create(_ui.Post);
+        Dispatcher = new TickDispatcher(this);
         _clearColor = _ui.WindowBackground;
         WireMainFrame();
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
@@ -148,6 +161,19 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     /// <summary>The window's bounds: where it sits and how big it is when not maximized, and once it
     /// has closed, where it was left — save them and reopen with <see cref="WindowBounds.ApplyTo"/>.</summary>
+    /// <summary>Runs work on the UI thread between frames without drawing one, for an engine pumped from
+    /// outside the UI, such as a web view's; it asks for a frame itself when it has something to show.
+    /// Safe from any thread.</summary>
+    public IUiDispatcher Dispatcher { get; }
+
+    /// <summary>Writes the main window's next frame to <paramref name="path"/> as a PNG, where the render
+    /// backend can read frames back; <paramref name="onComplete"/> runs once it has tried.</summary>
+    public void RequestScreenshot(string path, Action? onComplete = null)
+    {
+        _render.RequestScreenshot(path, onComplete);
+        Invalidate();
+    }
+
     public WindowBounds WindowBounds => new(_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height, _window.IsMaximized);
 
     /// <summary>Schedules an update after the app's state changed outside a frame. Safe from any thread,
@@ -475,6 +501,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private void Tick()
     {
+        while (!_disposed && _ticked.TryDequeue(out var work))
+            work();
         if (_backgroundPending)
         {
             _backgroundPending = false;

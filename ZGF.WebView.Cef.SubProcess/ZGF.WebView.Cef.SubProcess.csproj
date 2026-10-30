@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>zgf-cef-helper</AssemblyName>
+        <!-- V8 rewrites return addresses, which CET shadow stacks kill the renderer for (fastfail 0x39).
+             Chromium's sandbox turns CET off for renderers; without the sandbox the helper must opt out. -->
+        <CetCompat>false</CetCompat>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj" />
+    </ItemGroup>
+
+    <!-- Linked, not referenced: ZGF.WebView.Cef builds this project, so a reference back would be a cycle. -->
+    <ItemGroup>
+        <Compile Include="..\ZGF.WebView.Cef\Cef\ZgfCefRenderApp.cs">
+            <Link>Shared\ZgfCefRenderApp.cs</Link>
+        </Compile>
+    </ItemGroup>
+
+</Project>

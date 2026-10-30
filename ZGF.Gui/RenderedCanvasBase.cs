@@ -1080,7 +1080,7 @@ public abstract class RenderedCanvasBase : ICanvas
             Inst = new ImageInstance
             {
                 Rect = Transformed(snappedLeft, snappedBottom, snappedRight - snappedLeft, snappedTop - snappedBottom),
-                SrcUV = new Vector4(0f, 0f, 1f, 1f),
+                SrcUV = GetImageSrcUv(imageId),
                 Tint = Tint(inputs.TintColor),
                 ClipIndex = (uint)_clipStack.Peek(),
                 Rotation = inputs.Rotation,
@@ -1265,6 +1265,8 @@ public abstract class RenderedCanvasBase : ICanvas
     // Dynamic image surface (rasterized SVGs and other generated pixels). Same override
     // contract as LoadImageFromFile: backends with an image manager forward to it.
     public virtual bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => false;
+    public virtual bool SupportsSharedTextures(SharedTextureKind kind) => false;
+    public virtual bool CreateOrUpdateSharedTextureImage(string imageId, in SharedTexture texture) => false;
     public virtual bool HasImage(string imageId) => false;
     public virtual void RemoveImage(string imageId) { }
 
@@ -1690,4 +1692,8 @@ public abstract class RenderedCanvasBase : ICanvas
     protected abstract void OnResize(int width, int height);
     protected abstract Size GetImageSizeImpl(string imageId);
     protected abstract uint GetImageTextureId(string imageId);
+
+    /// <summary>The texture rectangle (u, v, width, height) that draws the image upright; a texture
+    /// stored top row first is drawn with a negative height.</summary>
+    protected virtual Vector4 GetImageSrcUv(string imageId) => new(0f, 0f, 1f, 1f);
 }

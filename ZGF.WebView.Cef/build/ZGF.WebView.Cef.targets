@@ -1,0 +1,51 @@
+<Project>
+
+    <!--
+      Stages the zgf-cef-helper subprocess under cef-helper/ and the pinned CEF payload in the app root,
+      as copy-local content of this project, so any app referencing ZGF.WebView.Cef gets both with no
+      csproj work. The helper is a build-only reference (no assembly reference, no cycle).
+    -->
+
+    <ItemGroup>
+        <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\ZGF.WebView.Cef.SubProcess.csproj">
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+            <Private>false</Private>
+        </ProjectReference>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <_ZgfCefHelperOutDir>$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\bin\$(Configuration)\net10.0\</_ZgfCefHelperOutDir>
+        <_ZgfCefPayloadDir>$(MSBuildThisFileDirectory)..\..\CefGlue\cef\win-x64\</_ZgfCefPayloadDir>
+    </PropertyGroup>
+
+    <Target Name="StageZgfCefHelper"
+            BeforeTargets="AssignTargetPaths"
+            DependsOnTargets="ResolveProjectReferences">
+        <ItemGroup>
+            <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)zgf-cef-helper.*" />
+            <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)*CefGlue*.dll" />
+            <None Include="@(_ZgfCefHelperFile)">
+                <Link>cef-helper\%(Filename)%(Extension)</Link>
+                <TargetPath>cef-helper\%(Filename)%(Extension)</TargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Visible>false</Visible>
+            </None>
+        </ItemGroup>
+    </Target>
+
+    <Target Name="StageZgfCefPayload" BeforeTargets="AssignTargetPaths">
+        <Error Condition="!Exists('$(_ZgfCefPayloadDir)Release\libcef.dll')"
+               Text="CEF payload not found at $(_ZgfCefPayloadDir). Run CefGlue/fetch-cef.ps1 first." />
+        <ItemGroup>
+            <_ZgfCefPayloadFile Include="$(_ZgfCefPayloadDir)Release\**\*" />
+            <_ZgfCefPayloadFile Include="$(_ZgfCefPayloadDir)Resources\**\*" />
+            <None Include="@(_ZgfCefPayloadFile)">
+                <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+                <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Visible>false</Visible>
+            </None>
+        </ItemGroup>
+    </Target>
+
+</Project>

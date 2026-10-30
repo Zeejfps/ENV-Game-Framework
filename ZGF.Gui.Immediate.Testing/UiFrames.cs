@@ -279,6 +279,12 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    public UiFrames<TState> ReleaseKey(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        _pending.Key(key, InputAction.Release, modifiers);
+        return this;
+    }
+
     /// <summary>Presses <paramref name="shortcut"/>'s chords in turn, with the modifiers they take on
     /// the platform the tests run on.</summary>
     public UiFrames<TState> Key(Shortcut shortcut)

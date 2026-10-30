@@ -1,5 +1,7 @@
+using System.Numerics;
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
+using ZGF.Gui.OpenGL.Windows;
 using static GL46;
 using static OpenGLSandbox.OpenGlUtils;
 
@@ -11,6 +13,16 @@ public sealed unsafe class GlImageManager : IDisposable
     private readonly Dictionary<string, Size> _sizeByImageId = new();
     private readonly List<uint> _ownedTextures = new();
     private readonly List<uint> _ownedFrameBuffers = new();
+    private readonly Dictionary<string, D3D11GlTexture> _sharedByImageId = new();
+    private readonly GetProcAddressDelegate? _getProcAddress;
+    private SharedTextureBridge _bridge = new SharedTextureBridge.NotCreated();
+
+    /// <param name="getProcAddress">Resolves GL and WGL entry points for the shared-texture bridge;
+    /// without it the manager imports no shared textures.</param>
+    public GlImageManager(GetProcAddressDelegate? getProcAddress = null)
+    {
+        _getProcAddress = getProcAddress;
+    }
 
     public void LoadImageFromFile(string pathToImageFile)
     {
@@ -93,12 +105,98 @@ public sealed unsafe class GlImageManager : IDisposable
 
     public bool HasImage(string imageId) => _textureIdByImageId.ContainsKey(imageId);
 
+    /// <summary>Shared textures are stored top row first, so they are drawn with flipped UVs.</summary>
+    public Vector4 GetSrcUv(string imageId) =>
+        _sharedByImageId.ContainsKey(imageId) ? new Vector4(0f, 1f, 1f, -1f) : new Vector4(0f, 0f, 1f, 1f);
+
+    public bool SupportsSharedTextures(SharedTextureKind kind) => kind switch
+    {
+        SharedTextureKind.D3D11NtHandle => GetBridge() is SharedTextureBridge.Created,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
+
+    /// <summary>
+    /// Copies <paramref name="texture"/> into the image under <paramref name="imageId"/>, creating or
+    /// resizing it as needed. Needs a context of this manager's share group current.
+    /// </summary>
+    public bool CreateOrUpdateSharedTextureImage(string imageId, in SharedTexture texture)
+    {
+        switch (texture.Kind)
+        {
+            case SharedTextureKind.D3D11NtHandle:
+                return CopyD3D11Texture(imageId, texture.Handle);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(texture), texture.Kind, null);
+        }
+    }
+
+    private bool CopyD3D11Texture(string imageId, nint ntHandle)
+    {
+        if (GetBridge() is not SharedTextureBridge.Created created)
+            return false;
+
+        _sharedByImageId.TryGetValue(imageId, out var current);
+        var target = current;
+        if (!created.Bridge.TryCopy(ntHandle, ref target, out var failure))
+        {
+            if (current != null && target == null)
+                ForgetSharedImage(imageId);
+            Console.Error.WriteLine($"[GlImageManager] shared texture for '{imageId}': {failure}");
+            return false;
+        }
+
+        if (!ReferenceEquals(target, current))
+        {
+            if (current != null)
+                _textureIdByImageId.Remove(imageId);
+            else if (_textureIdByImageId.Remove(imageId, out var replaced))
+                DeleteOwnedTexture(imageId, replaced);
+            _sharedByImageId[imageId] = target!;
+            _textureIdByImageId[imageId] = target!.GlTexture;
+        }
+        _sizeByImageId[imageId] = new Size { Width = target!.Width, Height = target.Height };
+        return true;
+    }
+
+    private SharedTextureBridge GetBridge()
+    {
+        if (_bridge is not SharedTextureBridge.NotCreated)
+            return _bridge;
+        if (_getProcAddress == null || !OperatingSystem.IsWindows())
+        {
+            _bridge = new SharedTextureBridge.Unavailable("no WGL loader");
+            return _bridge;
+        }
+        var bridge = D3D11GlBridge.TryCreate(_getProcAddress, out var failure);
+        if (bridge == null)
+            Console.Error.WriteLine($"[GlImageManager] shared textures unavailable: {failure}");
+        _bridge = bridge == null
+            ? new SharedTextureBridge.Unavailable(failure)
+            : new SharedTextureBridge.Created(bridge);
+        return _bridge;
+    }
+
+    private void ForgetSharedImage(string imageId)
+    {
+        _sharedByImageId.Remove(imageId);
+        _textureIdByImageId.Remove(imageId);
+        _sizeByImageId.Remove(imageId);
+    }
+
+    private void DeleteOwnedTexture(string imageId, uint textureId)
+    {
+        _sizeByImageId.Remove(imageId);
+        _ownedTextures.Remove(textureId);
+        glDeleteTextures(1, &textureId);
+    }
+
     /// <summary>
     /// Creates or replaces a dynamic image from straight-alpha RGBA8, top-down rows.
     /// The manager flips to the bottom-up convention the canvas_image shader samples with.
     /// </summary>
     public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
     {
+        RemoveSharedImage(imageId);
         var flipped = FlipRows(rgbaTopDown, width, height);
 
         if (_textureIdByImageId.TryGetValue(imageId, out var textureId))
@@ -130,11 +228,20 @@ public sealed unsafe class GlImageManager : IDisposable
 
     public void RemoveImage(string imageId)
     {
+        if (RemoveSharedImage(imageId))
+            return;
         if (!_textureIdByImageId.Remove(imageId, out var textureId))
             return;
-        _sizeByImageId.Remove(imageId);
-        _ownedTextures.Remove(textureId);
-        glDeleteTextures(1, &textureId);
+        DeleteOwnedTexture(imageId, textureId);
+    }
+
+    private bool RemoveSharedImage(string imageId)
+    {
+        if (!_sharedByImageId.TryGetValue(imageId, out var shared))
+            return false;
+        ForgetSharedImage(imageId);
+        shared.Dispose();
+        return true;
     }
 
     private byte[] _flipScratch = [];
@@ -226,6 +333,13 @@ public sealed unsafe class GlImageManager : IDisposable
 
     public void Dispose()
     {
+        foreach (var shared in _sharedByImageId.Values)
+            shared.Dispose();
+        _sharedByImageId.Clear();
+        if (_bridge is SharedTextureBridge.Created created)
+            created.Bridge.Dispose();
+        _bridge = new SharedTextureBridge.Unavailable("disposed");
+
         foreach (var fb in _ownedFrameBuffers)
         {
             var id = fb;
@@ -242,4 +356,12 @@ public sealed unsafe class GlImageManager : IDisposable
         _textureIdByImageId.Clear();
         _sizeByImageId.Clear();
     }
+}
+
+internal abstract record SharedTextureBridge
+{
+    public sealed record NotCreated : SharedTextureBridge;
+    public sealed record Unavailable(string Reason) : SharedTextureBridge;
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public sealed record Created(D3D11GlBridge Bridge) : SharedTextureBridge;
 }

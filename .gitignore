@@ -17,3 +17,11 @@ riderModule.iml
 
 # Bytecode left by the icon build scripts
 __pycache__/
+
+# CEF/Chromium GPU & WebGPU shader caches, dropped in the launch dir if a cache path is misconfigured.
+# The web view directs these to %LocalAppData%/ZGF/WebViewCache; these lines are a belt-and-suspenders.
+GPUCache/
+DawnCache/
+GrShaderCache/
+ShaderCache/
+debug.log

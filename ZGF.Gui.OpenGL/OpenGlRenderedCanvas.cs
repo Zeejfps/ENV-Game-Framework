@@ -81,6 +81,9 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
     public override void LoadImageFromFile(string path) => _shared.ImageManager.LoadImageFromFile(path);
     public override bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => _shared.ImageManager.CreateOrUpdateRgbaImage(imageId, widthPx, heightPx, rgbaTopDown);
+    public override bool SupportsSharedTextures(SharedTextureKind kind) => _shared.ImageManager.SupportsSharedTextures(kind);
+    public override bool CreateOrUpdateSharedTextureImage(string imageId, in SharedTexture texture) => _shared.ImageManager.CreateOrUpdateSharedTextureImage(imageId, texture);
+    protected override Vector4 GetImageSrcUv(string imageId) => _shared.ImageManager.GetSrcUv(imageId);
     public override bool HasImage(string imageId) => _shared.ImageManager.HasImage(imageId);
     public override void RemoveImage(string imageId) => _shared.ImageManager.RemoveImage(imageId);
 

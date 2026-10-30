@@ -8,6 +8,17 @@ public abstract partial class Ui
     public bool SetImage(string imageId, int width, int height, ReadOnlySpan<byte> rgba) =>
         _canvas.CreateOrUpdateRgbaImage(imageId, width, height, rgba);
 
+    /// <summary>Whether <see cref="SetSharedTextureImage"/> can import textures of <paramref name="kind"/>.</summary>
+    public bool SupportsSharedTextures(SharedTextureKind kind) => _canvas.SupportsSharedTextures(kind);
+
+    /// <summary>Creates or replaces the image <paramref name="imageId"/> from a GPU texture another API
+    /// hands over, copied before this returns; false when it could not be imported.</summary>
+    public bool SetSharedTextureImage(string imageId, in SharedTexture texture) =>
+        _canvas.CreateOrUpdateSharedTextureImage(imageId, texture);
+
+    /// <summary>How many device pixels one UI point covers: the monitor's scale times <see cref="Scale"/>.</summary>
+    public float PixelScale => _canvas.DpiScale;
+
     public bool HasImage(string imageId) => _canvas.HasImage(imageId);
 
     /// <summary>Frees the image <paramref name="imageId"/>; drawing it afterwards shows nothing.</summary>

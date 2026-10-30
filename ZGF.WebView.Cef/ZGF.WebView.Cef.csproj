@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <!-- The only project that drags in Chromium; no common ZGF project references it. -->
+    <ItemGroup>
+        <ProjectReference Include="..\CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj" />
+        <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+        <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
+        <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
+    </ItemGroup>
+
+    <Import Project="build\ZGF.WebView.Cef.targets" />
+
+    <ItemGroup>
+        <None Include="build\ZGF.WebView.Cef.targets" Pack="true" PackagePath="build\" />
+    </ItemGroup>
+
+</Project>
