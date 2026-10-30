@@ -28,7 +28,7 @@ internal sealed class CefWebView : IWebView
     private bool _disposed;
 
     private byte[] _pixels = [];
-    private PaintPath _paintPath = PaintPath.Software;
+    private PaintPath _paintPath = new PaintPath.Software();
     private PaintStats _stats;
     private bool _reportedImportFailure;
 
@@ -64,7 +64,7 @@ internal sealed class CefWebView : IWebView
         var windowInfo = CefWindowInfo.Create();
         windowInfo.SetAsWindowless(IntPtr.Zero, transparent: false);
         windowInfo.WindowlessRenderingEnabled = true;
-        windowInfo.SharedTextureEnabled = _paintPath == PaintPath.Accelerated;
+        windowInfo.SharedTextureEnabled = _paintPath is PaintPath.Accelerated;
 
         var settings = new CefBrowserSettings
         {
@@ -182,15 +182,31 @@ internal sealed class CefWebView : IWebView
         return true;
     }
 
-    private PaintPath ChoosePaintPath() =>
-        _options.PaintPath switch
+    private PaintPath ChoosePaintPath()
+    {
+        switch (_options.PaintPath)
         {
-            CefPaintPath.Software => PaintPath.Software,
-            CefPaintPath.PreferAccelerated => OperatingSystem.IsWindows() && _frames.AcceptsSharedTextures(SharedTextureKind.D3D11NtHandle)
-                ? PaintPath.Accelerated
-                : PaintPath.Software,
-            _ => throw new ArgumentOutOfRangeException(nameof(_options.PaintPath), _options.PaintPath, null),
-        };
+            case CefPaintPath.Software:
+                return new PaintPath.Software();
+            case CefPaintPath.PreferAccelerated:
+                var kind = PlatformSharedTextureKind();
+                return kind != null && _frames.AcceptsSharedTextures(kind.Value)
+                    ? new PaintPath.Accelerated(kind.Value)
+                    : new PaintPath.Software();
+            default:
+                throw new ArgumentOutOfRangeException(nameof(_options.PaintPath), _options.PaintPath, null);
+        }
+    }
+
+    /// <summary>What CEF's <c>OnAcceleratedPaint</c> hands over on this platform, if it is one we import.</summary>
+    private static SharedTextureKind? PlatformSharedTextureKind()
+    {
+        if (OperatingSystem.IsWindows())
+            return SharedTextureKind.D3D11NtHandle;
+        if (OperatingSystem.IsMacOS())
+            return SharedTextureKind.IOSurface;
+        return null;
+    }
 
     internal unsafe void OnPaint(CefPaintElementType type, IntPtr buffer, int width, int height)
     {
@@ -222,13 +238,13 @@ internal sealed class CefWebView : IWebView
 
     internal void OnAcceleratedPaint(CefPaintElementType type, in CefAcceleratedPaintInfo info)
     {
-        if (_disposed || type != CefPaintElementType.View)
+        if (_disposed || type != CefPaintElementType.View || _paintPath is not PaintPath.Accelerated accelerated)
             return;
 
         var started = Stopwatch.GetTimestamp();
         if (_stats.Total == 0)
             CefLog.Write($"OnAcceleratedPaint format={info.Format} coded={info.CodedSize.Width}x{info.CodedSize.Height} visible={info.VisibleRect.Width}x{info.VisibleRect.Height}");
-        var imported = _frames.OnSharedTexture(new SharedTexture(SharedTextureKind.D3D11NtHandle, info.SharedTextureHandle));
+        var imported = _frames.OnSharedTexture(new SharedTexture(accelerated.Kind, info.SharedTextureHandle));
         if (!imported && !_reportedImportFailure)
         {
             _reportedImportFailure = true;
@@ -394,10 +410,10 @@ internal sealed class CefWebView : IWebView
         _ => WebCursor.Default,
     };
 
-    private enum PaintPath
+    private abstract record PaintPath
     {
-        Software,
-        Accelerated,
+        public sealed record Software : PaintPath;
+        public sealed record Accelerated(SharedTextureKind Kind) : PaintPath;
     }
 
     private readonly record struct PaintStats(long WindowStart, long InWindow = 0, long Total = 0, long TicksInWindow = 0, long MaxTicks = 0)

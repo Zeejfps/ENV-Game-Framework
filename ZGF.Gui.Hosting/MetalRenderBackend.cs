@@ -23,7 +23,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         var dpiScale = _app.MainWindow.DpiScale;
         Fonts = new FreeTypeFontBackend();
         DefaultFont = GuiFonts.LoadDefault(Fonts, dpiScale);
-        _images = new MetalImageManager(_app.Device);
+        _images = new MetalImageManager(_app.Device, _app.CommandQueue);
         _shared = new MetalSharedResources(_app.Device, _app.CommandQueue, Fonts, _images);
         _mainCanvas = new MetalRenderedCanvas(config.WindowWidth, config.WindowHeight, Fonts, DefaultFont, _shared, dpiScale);
     }

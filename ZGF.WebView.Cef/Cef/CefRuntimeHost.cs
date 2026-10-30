@@ -62,8 +62,6 @@ internal sealed class CefRuntimeHost : IDisposable
             MultiThreadedMessageLoop = false,
             NoSandbox = true,
             BrowserSubprocessPath = CefPaths.HelperExe,
-            ResourcesDirPath = CefPaths.ResourcesDir,
-            LocalesDirPath = CefPaths.LocalesDir,
             // Both must be set: CachePath (a subdir of RootCachePath) is what relocates the GPU/Dawn
             // shader caches out of the working directory into the app-data profile.
             RootCachePath = _options.ProfileFolder,
@@ -71,6 +69,21 @@ internal sealed class CefRuntimeHost : IDisposable
             LogSeverity = CefLog.Enabled ? CefLogSeverity.Verbose : CefLogSeverity.Info,
             LogFile = logFile,
         };
+
+        // macOS reads resources and locales from the framework bundle and ignores the two paths. The
+        // helper bundle stands in as the main bundle, so the browser and its children agree on the
+        // bundle ID their Mach port rendezvous is named after.
+        if (OperatingSystem.IsMacOS())
+        {
+            settings.FrameworkDirPath = CefPaths.FrameworkDir;
+            settings.MainBundlePath = CefPaths.HelperBundle;
+            MacApplication.AdoptCefAppProtocol();
+        }
+        else
+        {
+            settings.ResourcesDirPath = CefPaths.ResourcesDir;
+            settings.LocalesDirPath = CefPaths.LocalesDir;
+        }
 
         Directory.CreateDirectory(profile);
 

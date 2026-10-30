@@ -76,6 +76,8 @@
             {
                 if (Platform == CefRuntimePlatform.Windows)
                     LoadLibraryWindows(path);
+                else if (Platform == CefRuntimePlatform.MacOS)
+                    LoadLibraryMacOS(path);
                 else
                     throw new PlatformNotSupportedException("CEF Runtime can't be initialized on altered path on this platform. Use CefRuntime.Load() instead.");
             }
@@ -93,6 +95,18 @@
                 Xilium.CefGlue.Platform.Windows.LoadLibraryFlags.LOAD_WITH_ALTERED_SEARCH_PATH
                 );
         }
+
+        /// <summary>On macOS libcef is the binary inside the framework bundle in <paramref name="path"/>,
+        /// which no <c>libcef</c> probe finds, so this assembly's imports resolve to it directly.</summary>
+        private static void LoadLibraryMacOS(string path)
+        {
+            var binary = System.IO.Path.Combine(path, MacFrameworkName + ".framework", MacFrameworkName);
+            var handle = NativeLibrary.Load(binary);
+            NativeLibrary.SetDllImportResolver(typeof(CefRuntime).Assembly,
+                (name, _, _) => name == libcef.DllName ? handle : IntPtr.Zero);
+        }
+
+        public const string MacFrameworkName = "Chromium Embedded Framework";
 
         #region cef_version
 

@@ -112,6 +112,7 @@ public sealed unsafe class GlImageManager : IDisposable
     public bool SupportsSharedTextures(SharedTextureKind kind) => kind switch
     {
         SharedTextureKind.D3D11NtHandle => GetBridge() is SharedTextureBridge.Created,
+        SharedTextureKind.IOSurface => false,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -125,6 +126,8 @@ public sealed unsafe class GlImageManager : IDisposable
         {
             case SharedTextureKind.D3D11NtHandle:
                 return CopyD3D11Texture(imageId, texture.Handle);
+            case SharedTextureKind.IOSurface:
+                return false;
             default:
                 throw new ArgumentOutOfRangeException(nameof(texture), texture.Kind, null);
         }
