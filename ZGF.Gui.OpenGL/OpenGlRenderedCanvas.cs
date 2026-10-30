@@ -376,6 +376,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         AddUintInstanceAttrib(3, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
         AddUintInstanceAttrib(4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
         AddFloatInstanceAttrib(5, 1, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
+        AddFloatInstanceAttrib(6, 4, stride, OffsetOf<ImageInstance>(nameof(ImageInstance.CornerRadius)));
         glBindVertexArray(0);
         AssertNoGlError();
         return vao;
@@ -490,6 +491,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetUintInstancePointer(3, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Tint)));
         SetUintInstancePointer(4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.ClipIndex)));
         SetFloatInstancePointer(5, 1, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.Rotation)));
+        SetFloatInstancePointer(6, 4, stride, baseBytes + OffsetOf<ImageInstance>(nameof(ImageInstance.CornerRadius)));
     }
 
     private void RebindShadowInstancePointers(int firstInstance)

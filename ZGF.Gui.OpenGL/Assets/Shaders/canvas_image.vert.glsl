@@ -9,6 +9,7 @@ layout(location = 2) in vec4 i_srcUV;       // u, v, w, h (normalized texture co
 layout(location = 3) in uint i_tint;        // ARGB packed
 layout(location = 4) in uint i_clipIndex;
 layout(location = 5) in float i_rotation;   // radians, rotation about the rect's center
+layout(location = 6) in vec4 i_cornerRadius; // tl, tr, br, bl
 
 uniform mat4 u_projection;
 // Logical canvas size followed by the actual, rounded framebuffer size.
@@ -25,6 +26,7 @@ flat out vec4 v_srcUV;
 flat out float v_fadesEdges;
 flat out uint v_tint;
 flat out uint v_clipIndex;
+flat out vec4 v_cornerRadius;
 
 void main() {
     // An unrotated image a transform left between device pixels grows a pixel on that axis, so the
@@ -57,4 +59,5 @@ void main() {
     v_fadesEdges = outset.x > 0.0 || outset.y > 0.0 ? 1.0 : 0.0;
     v_tint = i_tint;
     v_clipIndex = i_clipIndex;
+    v_cornerRadius = min(i_cornerRadius, vec4(min(i_rect.z, i_rect.w) * 0.5));
 }

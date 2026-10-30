@@ -83,6 +83,7 @@ public sealed class TransformSnapTests : IDisposable
             TintColor = 0xFFFFFFFFu,
             ZIndex = 0,
             Rotation = 0f,
+            CornerRadius = new Vector4(6f, 6f, 0f, 2f),
         });
         c.DrawLine(new DrawLineInputs { Start = new PointF(20f, 150f), End = new PointF(90f, 170f), Thickness = 2f, Color = Red, ZIndex = 0 });
         c.DrawCircle(new DrawCircleInputs { Center = new PointF(150f, 150f), Radius = 10f, Thickness = 0f, Color = Blue, ZIndex = 0 });
@@ -208,6 +209,7 @@ public sealed class TransformSnapTests : IDisposable
         AssertAll(rest.Rects, scaled.Rects, (a, b) => AssertNear(a.BorderRadius * scale, b.BorderRadius));
         AssertAll(rest.Rects, scaled.Rects, (a, b) => AssertNear(a.BorderSize * scale, b.BorderSize));
         AssertAll(rest.Images, scaled.Images, (a, b) => AssertNear(About(a.Rect), b.Rect));
+        AssertAll(rest.Images, scaled.Images, (a, b) => AssertNear(a.CornerRadius * scale, b.CornerRadius));
         AssertAll(rest.Shadows, scaled.Shadows, (a, b) => AssertNear(About(a.ShadowRect), b.ShadowRect));
         AssertAll(rest.Shadows, scaled.Shadows, (a, b) => Assert.Equal(a.Sigma * scale, b.Sigma, Tolerance));
 

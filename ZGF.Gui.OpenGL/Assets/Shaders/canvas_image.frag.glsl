@@ -8,6 +8,7 @@ flat in vec4 v_srcUV;
 flat in float v_fadesEdges;
 flat in uint v_tint;
 flat in uint v_clipIndex;
+flat in vec4 v_cornerRadius;
 
 layout(std140) uniform ClipRects {
     vec4 u_clipRects[256];
@@ -40,6 +41,19 @@ void main() {
         vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
         vec2 inside = (v_halfSize - abs(v_local)) * devicePerLogical;
         coverage = clamp(inside.x + 0.5, 0.0, 1.0) * clamp(inside.y + 0.5, 0.0, 1.0);
+        if (coverage <= 0.0) discard;
+    }
+
+    // Rounded corners cut the image to their shape, smoothing its edge there over a device pixel. The
+    // canvas's y runs up, so a positive local y is the image's upper half.
+    float radius = v_local.y > 0.0
+        ? (v_local.x > 0.0 ? v_cornerRadius.y : v_cornerRadius.x)
+        : (v_local.x > 0.0 ? v_cornerRadius.z : v_cornerRadius.w);
+    if (radius > 0.0) {
+        vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
+        vec2 q = abs(v_local) - (v_halfSize - vec2(radius));
+        float distance = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+        coverage *= clamp(0.5 - distance * devicePerLogical.x, 0.0, 1.0);
         if (coverage <= 0.0) discard;
     }
 

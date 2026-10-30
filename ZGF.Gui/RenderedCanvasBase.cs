@@ -42,6 +42,7 @@ public abstract class RenderedCanvasBase : ICanvas
         public uint Tint;
         public uint ClipIndex;
         public float Rotation; // radians, rotation about the rect's center
+        public Vector4 CornerRadius; // tl, tr, br, bl
         public uint TextureId; // not uploaded to GPU; used only for batching
     }
 
@@ -1084,6 +1085,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 Tint = Tint(inputs.TintColor),
                 ClipIndex = (uint)_clipStack.Peek(),
                 Rotation = inputs.Rotation,
+                CornerRadius = Vector4.Max(inputs.CornerRadius, Vector4.Zero) * ((_scale.X + _scale.Y) * 0.5f),
                 TextureId = GetImageTextureId(imageId),
             }
         });

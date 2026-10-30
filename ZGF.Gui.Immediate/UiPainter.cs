@@ -222,11 +222,20 @@ public sealed class UiPainter
 
     /// <summary>Draws the image <paramref name="imageId"/>, set with <see cref="Ui.SetImage"/>,
     /// fitted into <paramref name="rect"/> keeping its aspect and multiplied by
-    /// <paramref name="tint"/>; nothing when there is no such image.</summary>
-    public void Image(UiRect rect, string imageId, uint tint = 0xFFFFFFFF)
+    /// <paramref name="tint"/>, its corners rounded by <paramref name="radii"/>; nothing when there is no
+    /// such image. Metal draws its corners square for now.</summary>
+    public void Image(UiRect rect, string imageId, uint tint = 0xFFFFFFFF, Corners radii = default)
     {
         if (_canvas.HasImage(imageId))
-            _canvas.DrawImage(new DrawImageInputs { Position = _origin.ToCanvas(rect), ImageId = imageId, TintColor = tint, Rotation = 0f, ZIndex = _z });
+            _canvas.DrawImage(new DrawImageInputs
+            {
+                Position = _origin.ToCanvas(rect),
+                ImageId = imageId,
+                TintColor = tint,
+                Rotation = 0f,
+                CornerRadius = new System.Numerics.Vector4(radii.TopLeft, radii.TopRight, radii.BottomRight, radii.BottomLeft),
+                ZIndex = _z,
+            });
     }
 
     /// <summary>Draws <paramref name="glyph"/> at <paramref name="size"/> centered in <paramref name="rect"/>,
