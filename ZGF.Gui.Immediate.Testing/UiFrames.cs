@@ -272,6 +272,13 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>The main window is minimized to the dock or taskbar, or restored from it.</summary>
+    public UiFrames<TState> Minimized(bool minimized)
+    {
+        _pending.SetMinimized(minimized);
+        return this;
+    }
+
     /// <summary>The app lost focus: held buttons come up without the user releasing them.</summary>
     public UiFrames<TState> LoseFocus()
     {

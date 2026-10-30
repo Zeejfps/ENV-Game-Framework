@@ -67,6 +67,7 @@ internal sealed class FakeWindow : IWindow
     public event Action<float>? OnContentScaleChanged;
     public event Action<int, int>? OnMove;
     public event Action<bool>? OnFocusChanged;
+    public event Action<bool>? OnMinimizedChanged;
     public event Action? OnClose;
     public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
     public event Action<uint>? OnText;
@@ -111,13 +112,20 @@ internal sealed class FakeWindow : IWindow
     public void Show() => IsVisible = true;
     public void Hide() => IsVisible = false;
     public void Focus() { IsFocused = true; OnFocusChanged?.Invoke(true); }
-    public void Minimize() => IsMinimized = true;
+    public void Minimize()
+    {
+        IsMinimized = true;
+        OnMinimizedChanged?.Invoke(true);
+    }
     public void Maximize() => IsMaximized = true;
 
     public void Restore()
     {
         IsMaximized = false;
+        if (!IsMinimized)
+            return;
         IsMinimized = false;
+        OnMinimizedChanged?.Invoke(false);
     }
 
     public void SetMousePassThrough(bool passThrough) => MousePassThrough = passThrough;
