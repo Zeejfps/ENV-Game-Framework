@@ -143,7 +143,9 @@ public abstract partial class Ui
     /// <summary>Called, from any thread, when <see cref="Post"/> queues work.</summary>
     internal Action? Wake { get; set; }
     internal MouseCursor Cursor { get; private set; }
-    internal bool UpdateRequested { get; private set; }
+    /// <summary>Whether something recorded so far this frame asked for the next at once, as an animation under way
+    /// does; read at the end of a frame, whether what it drew is still moving.</summary>
+    public bool UpdateRequested { get; private set; }
     internal double WakeAt { get; private set; } = double.PositiveInfinity;
 
     /// <summary>Draws another frame after this one, for animation or state that settles over

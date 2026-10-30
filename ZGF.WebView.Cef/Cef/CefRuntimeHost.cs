@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Xilium.CefGlue;
 using ZGF.Observable;
@@ -10,9 +11,12 @@ namespace ZGF.WebView.Cef;
 /// <para>Bootstrap uses the <b>separate subprocess</b> model — <see cref="CefSettings.BrowserSubprocessPath"/>
 /// points at <c>zgf-cef-helper</c>, so there is no <c>ExecuteProcess</c> gate in the app's <c>Main</c>
 /// and the whole lifecycle fits in a hosted service. The pump is driven by CEF's
-/// <c>OnScheduleMessagePumpWork</c> callback: it arms a timer that posts
-/// <see cref="CefRuntime.DoMessageLoopWork"/> onto the UI thread via the dispatcher, so CEF's browser
-/// callbacks (including <c>OnPaint</c>) all run on ZGF's main thread and the loop stays idle-friendly.</para>
+/// <c>OnScheduleMessagePumpWork</c> callback, as cefclient's external pump is: work wanted now posts one
+/// <see cref="CefRuntime.DoMessageLoopWork"/> onto the UI thread, however often it is asked for before it runs,
+/// and work wanted later arms a timer that posts it then. After each pump a fallback is armed, a thirtieth of a
+/// second away while a browser is open and a quarter of a second while none is, in case CEF asks for nothing.
+/// So CEF's browser callbacks (including <c>OnPaint</c>) all run on ZGF's main thread, and each pump, which
+/// holds that thread for some milliseconds, runs only as often as there is work for it.</para>
 /// </summary>
 internal sealed class CefRuntimeHost : IDisposable
 {
@@ -25,6 +29,20 @@ internal sealed class CefRuntimeHost : IDisposable
     private int _openBrowsers;
 
     private readonly CefWebViewOptions _options;
+
+    /// <summary>When, in <see cref="Stopwatch"/> ticks, the pump timer is due; <see cref="long.MaxValue"/> while
+    /// it is not armed. Guarded by <see cref="_gate"/>, as CEF schedules pumps from its own threads.</summary>
+    private long _timerDueAt = long.MaxValue;
+
+    /// <summary>1 while a pump is posted and has not run, so asking again does not post another.</summary>
+    private int _pumpPosted;
+
+    /// <summary>Whether a pump is running, which CEF asks for more work from.</summary>
+    private bool _pumping;
+
+    /// <summary>How soon a pump CEF asks for at once, from inside a pump, runs: not at once, as the UI thread
+    /// runs what is posted to it until none is left, and a pump posting the next would keep it from drawing.</summary>
+    private const int ReentrantPumpMs = 1;
 
     public CefRuntimeHost(IUiDispatcher dispatcher, CefWebViewOptions options)
     {
@@ -104,16 +122,19 @@ internal sealed class CefRuntimeHost : IDisposable
         foreach (var wv in pending)
             wv.CreateBrowser();
 
-        // Drive CEF's browser-UI-thread work by pumping DoMessageLoopWork on the UI thread at a steady
-        // cadence (plan piece 2: "call DoMessageLoopWork() once per tick"). A periodic pump keeps the
-        // browser making progress even when OnScheduleMessagePumpWork goes quiet; idling it when no
-        // browser needs work is a later optimization.
-        _pumpTimer = new Timer(_ => _dispatcher.Post(Pump), null, 0, PumpIntervalMs);
+        _pumpTimer = new Timer(_ => TimerFired(), null, Timeout.Infinite, Timeout.Infinite);
         Pump();
     }
 
-    private const int PumpIntervalMs = 15;
+    /// <summary>The longest CEF waits for a pump while a browser is open and it asks for none, as in cefclient.</summary>
+    private const int FallbackPumpMs = 1000 / 30;
+
+    /// <summary>The longest it waits while no browser is open.</summary>
+    private const int IdleFallbackPumpMs = 250;
     private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(2);
+
+    /// <summary>Runs <paramref name="action"/> at a later turn of the UI thread.</summary>
+    internal void Post(Action action) => _dispatcher.Post(action);
 
     internal void BrowserOpened() => _openBrowsers++;
 
@@ -141,29 +162,76 @@ internal sealed class CefRuntimeHost : IDisposable
         if (_disposed)
             return;
         if (_scheduleCount++ < 8) CefLog.Write($"schedule pump #{_scheduleCount} in {delayMs}ms");
-        // The periodic pump already covers work within one interval; only nudge an extra immediate pump
-        // for "do it now" requests so sub-interval work isn't delayed. Never reconfigure the periodic
-        // timer here — that would turn it into a one-shot and stall the loop.
-        if (delayMs <= 0)
+        if (delayMs <= 0 && !_pumping)
+            PostPump();
+        else
+            ArmTimer(Math.Clamp(delayMs, ReentrantPumpMs, FallbackPumpMs));
+    }
+
+    /// <summary>Posts a pump to the UI thread, unless one is posted already and has not run.</summary>
+    private void PostPump()
+    {
+        if (Interlocked.Exchange(ref _pumpPosted, 1) == 0)
             _dispatcher.Post(Pump);
+    }
+
+    /// <summary>Arms the timer to post a pump in <paramref name="delayMs"/>, unless it is due sooner already.</summary>
+    private void ArmTimer(long delayMs)
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+                return;
+            var due = Stopwatch.GetTimestamp() + delayMs * Stopwatch.Frequency / 1000;
+            if (due >= _timerDueAt)
+                return;
+            _timerDueAt = due;
+            _pumpTimer?.Change(delayMs, Timeout.Infinite);
+        }
+    }
+
+    private void TimerFired()
+    {
+        lock (_gate)
+            _timerDueAt = long.MaxValue;
+        PostPump();
     }
 
     private void Pump()
     {
-        if (_initialized && !_disposed)
+        Interlocked.Exchange(ref _pumpPosted, 0);
+        if (!_initialized || _disposed)
+            return;
+        // A pump now does the work a timer was armed for, as cefclient's DoWork does; CEF arms it again,
+        // inside the pump, for work it wants later.
+        lock (_gate)
         {
-            if (_pumpCount++ < 8) CefLog.Write($"pump #{_pumpCount}");
+            _timerDueAt = long.MaxValue;
+            _pumpTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+        if (_pumpCount++ < 8) CefLog.Write($"pump #{_pumpCount}");
+        _pumping = true;
+        try
+        {
             CefRuntime.DoMessageLoopWork();
         }
+        finally
+        {
+            _pumping = false;
+        }
+        ArmTimer(_openBrowsers > 0 ? FallbackPumpMs : IdleFallbackPumpMs);
     }
 
     public void Dispose()
     {
         if (_disposed)
             return;
-        _disposed = true;
-        _pumpTimer?.Dispose();
-        _pumpTimer = null;
+        lock (_gate)
+        {
+            _disposed = true;
+            _pumpTimer?.Dispose();
+            _pumpTimer = null;
+        }
         if (_initialized)
         {
             PumpUntilBrowsersClose();

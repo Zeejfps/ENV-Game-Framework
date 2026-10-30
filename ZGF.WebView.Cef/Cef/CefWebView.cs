@@ -101,7 +101,10 @@ internal sealed class CefWebView : IWebView
         _host.BrowserOpened();
         if (_disposed)
         {
-            _browserHost.CloseBrowser(forceClose: true);
+            // Closing it inside the callback that reports it made crashes CEF's message loop; close it at the
+            // next turn of the UI thread instead.
+            var browserHost = _browserHost;
+            _host.Post(() => browserHost.CloseBrowser(forceClose: true));
             return;
         }
         _browserHost.WasResized();
@@ -199,7 +202,7 @@ internal sealed class CefWebView : IWebView
     }
 
     /// <summary>What CEF's <c>OnAcceleratedPaint</c> hands over on this platform, if it is one we import.</summary>
-    private static SharedTextureKind? PlatformSharedTextureKind()
+    internal static SharedTextureKind? PlatformSharedTextureKind()
     {
         if (OperatingSystem.IsWindows())
             return SharedTextureKind.D3D11NtHandle;
