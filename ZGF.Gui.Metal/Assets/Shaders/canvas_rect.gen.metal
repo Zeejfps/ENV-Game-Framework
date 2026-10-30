@@ -33,6 +33,7 @@ struct pixelInput_0
     [[flat]] uint borderColorBottom_0 [[user(COLOR_3)]];
     [[flat]] uint borderColorLeft_0 [[user(COLOR_4)]];
     [[flat]] uint clipIndex_0 [[user(COLOR_5)]];
+    [[flat]] float fadesEdges_0 [[user(TEXCOORD_5)]];
 };
 
 
@@ -371,9 +372,38 @@ struct KernelContext_0
 
 #line 114
     }
+    else if(_S1.fadesEdges_0 > 0.0)
+    {
+        // Straight edges a transform left between device pixels: the outer edge and the border's inner
+        // edge each fade the pixels they partly cover, so the rect moves smoothly instead of a pixel at a
+        // time. A side with no border lets the fill run to the outer edge.
+        float2 devicePerLogical = metrics.zw / metrics.xy;
+        float2 inside = (float2(halfW_0, halfH_0) - mirror_0) * devicePerLogical;
+        coverage_0 = clamp(inside.x + 0.5, 0.0, 1.0) * clamp(inside.y + 0.5, 0.0, 1.0);
+        if(coverage_0 <= 0.0)
+        {
+            discard_fragment();
+        }
+        const float noBorder = 1.0e6;
+        float fromLeft = _S1.borderSize_0.w > 0.0 ? localPos.x - _S1.borderSize_0.w : noBorder;
+        float fromRight = _S1.borderSize_0.y > 0.0 ? rectW_0 - _S1.borderSize_0.y - localPos.x : noBorder;
+        float fromBottom = _S1.borderSize_0.z > 0.0 ? localPos.y - _S1.borderSize_0.z : noBorder;
+        float fromTop = _S1.borderSize_0.x > 0.0 ? rectH_0 - _S1.borderSize_0.x - localPos.y : noBorder;
+        float2 intoFill = float2(min(fromLeft, fromRight), min(fromBottom, fromTop)) * devicePerLogical;
+        fillFactor_0 = clamp(intoFill.x + 0.5, 0.0, 1.0) * clamp(intoFill.y + 0.5, 0.0, 1.0);
+        // A pixel whose center is just inside the fill takes the nearest side's border color for its share.
+        if(!(inBottom_0 || inTop_0 || inRight_0 || inLeft_0))
+        {
+            float nearest = min(min(fromLeft, fromRight), min(fromBottom, fromTop));
+            inBottom_0 = nearest == fromBottom && _S1.borderSize_0.z > 0.0;
+            inTop_0 = !inBottom_0 && nearest == fromTop && _S1.borderSize_0.x > 0.0;
+            inRight_0 = !inBottom_0 && !inTop_0 && nearest == fromRight && _S1.borderSize_0.y > 0.0;
+            inLeft_0 = !inBottom_0 && !inTop_0 && !inRight_0 && nearest == fromLeft && _S1.borderSize_0.w > 0.0;
+        }
+    }
     else
     {
-
+        // Straight-edge zone on the pixel grid: axis-aligned, needs no antialiasing.
         fillFactor_0 = (inBottom_0 || inTop_0 || inRight_0 || inLeft_0) ? 0.0 : 1.0;
         coverage_0 = 1.0;
     }
@@ -511,6 +541,7 @@ struct vertexMain_Result_0
     uint borderColorBottom_1 [[user(COLOR_3)]];
     uint borderColorLeft_1 [[user(COLOR_4)]];
     uint clipIndex_1 [[user(COLOR_5)]];
+    [[flat]] float fadesEdges_1 [[user(TEXCOORD_5)]];
 };
 
 
@@ -565,10 +596,18 @@ struct Varyings_0
     float2 _S13 = _S12.rect_0.zw;
 
 #line 52
-    float2 _S14 = _S12.unitPos_0 * _S13;
-
-#line 52
-    float2 pixelPos_3 = _S12.rect_0.xy + _S14;
+    // Same growth as canvas_rect.vert.glsl: a rect moved or scaled by a transform can have an edge
+    // between device pixels, so the quad grows a pixel on that axis for the fragment stage to fade.
+    float4 vmetrics = Globals_2->u_canvasMetrics_0;
+    float2 devicePerLogical = vmetrics.zw / vmetrics.xy;
+    float2 low = _S12.rect_0.xy * devicePerLogical;
+    float2 high = (_S12.rect_0.xy + _S13) * devicePerLogical;
+    float2 offGrid = max(abs(low - round(low)), abs(high - round(high)));
+    // A rect with no area stays without one rather than growing into a faint line.
+    bool hasArea = _S13.x > 0.0 && _S13.y > 0.0;
+    float2 outset = hasArea ? step(1.0 / 256.0, offGrid) / devicePerLogical : float2(0.0);
+    float fadesEdges = outset.x > 0.0 || outset.y > 0.0 ? 1.0 : 0.0;
+    float2 pixelPos_3 = _S12.rect_0.xy - outset + _S12.unitPos_0 * (_S13 + 2.0 * outset);
 
 #line 51
     thread Varyings_0 o_0;
@@ -624,6 +663,7 @@ struct Varyings_0
 
 #line 64
     (&_S15)->clipIndex_1 = o_0.clipIndex_3;
+    (&_S15)->fadesEdges_1 = fadesEdges;
 
 #line 64
     return _S15;
