@@ -332,6 +332,15 @@ internal sealed class CefWebView : IWebView
     public void SendKey(WebKeyEventKind kind, int windowsKeyCode, int nativeKeyCode, char character, WebInputModifiers modifiers, bool isSystemKey)
     {
         if (_browserHost == null) return;
+        // macOS reads the physical key from the native code and the DOM key from the characters. A Char
+        // carries no physical key, and a key down or up arrives without its characters.
+        if (OperatingSystem.IsMacOS())
+        {
+            if (kind == WebKeyEventKind.Char)
+                nativeKeyCode = WebKeys.NoMacKeyCode;
+            else if (character == '\0')
+                character = MacKeyCharacters.Of(windowsKeyCode, modifiers.HasFlag(WebInputModifiers.Shift));
+        }
         _browserHost.SendKeyEvent(new CefKeyEvent
         {
             EventType = MapKeyKind(kind),

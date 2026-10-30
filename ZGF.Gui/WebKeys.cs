@@ -68,16 +68,141 @@ public static class WebKeys
     }
 
     /// <summary>
-    /// The native key code CEF on Windows takes a key event's physical key from: its set-1 scan code, with
-    /// <c>0xE000</c> added for the keys sent with an <c>E0</c> prefix. Chromium turns it into the DOM
-    /// <c>KeyboardEvent.code</c> (<c>"KeyW"</c>, <c>"ArrowUp"</c>), which games read for movement; given
-    /// anything else, such as the virtual-key code, a page reads W as <c>"F11"</c>. 0 for keys without one.
+    /// The native key code a browser takes a key event's physical key from, for the platform this runs on.
+    /// Chromium turns it into the DOM <c>KeyboardEvent.code</c> (<c>"KeyW"</c>, <c>"ArrowUp"</c>), which
+    /// games read for movement; given another platform's code, a page reads W as some other key.
     /// </summary>
-    public static int NativeKeyCodeOf(KeyboardKey key)
+    public static int NativeKeyCodeOf(KeyboardKey key) =>
+        OperatingSystem.IsMacOS() ? MacKeyCodeOf(key) : WindowsNativeKeyCodeOf(key);
+
+    /// <summary>Windows: the set-1 scan code, with <c>0xE000</c> added for the keys sent with an
+    /// <c>E0</c> prefix; given the virtual-key code instead, a page reads W as <c>"F11"</c>. 0 for keys
+    /// without one.</summary>
+    public static int WindowsNativeKeyCodeOf(KeyboardKey key)
     {
         var scan = ScanCodeOf(key);
         return (scan & Extended) != 0 ? 0xE000 | (scan & 0xFF) : scan;
     }
+
+    /// <summary>A macOS key code no key has; <c>0</c> is <c>kVK_ANSI_A</c>.</summary>
+    public const int NoMacKeyCode = 0xFF;
+
+    /// <summary>macOS: the Carbon virtual key code (<c>kVK_*</c>) of the key at <paramref name="key"/>'s
+    /// position on an ANSI keyboard; <see cref="NoMacKeyCode"/> for keys without one.</summary>
+    public static int MacKeyCodeOf(KeyboardKey key) => key switch
+    {
+        KeyboardKey.A => 0x00,
+        KeyboardKey.S => 0x01,
+        KeyboardKey.D => 0x02,
+        KeyboardKey.F => 0x03,
+        KeyboardKey.H => 0x04,
+        KeyboardKey.G => 0x05,
+        KeyboardKey.Z => 0x06,
+        KeyboardKey.X => 0x07,
+        KeyboardKey.C => 0x08,
+        KeyboardKey.V => 0x09,
+        KeyboardKey.B => 0x0B,
+        KeyboardKey.Q => 0x0C,
+        KeyboardKey.W => 0x0D,
+        KeyboardKey.E => 0x0E,
+        KeyboardKey.R => 0x0F,
+        KeyboardKey.Y => 0x10,
+        KeyboardKey.T => 0x11,
+        KeyboardKey.Alpha1 => 0x12,
+        KeyboardKey.Alpha2 => 0x13,
+        KeyboardKey.Alpha3 => 0x14,
+        KeyboardKey.Alpha4 => 0x15,
+        KeyboardKey.Alpha6 => 0x16,
+        KeyboardKey.Alpha5 => 0x17,
+        KeyboardKey.Equals => 0x18,
+        KeyboardKey.Alpha9 => 0x19,
+        KeyboardKey.Alpha7 => 0x1A,
+        KeyboardKey.Minus => 0x1B,
+        KeyboardKey.Alpha8 => 0x1C,
+        KeyboardKey.Alpha0 => 0x1D,
+        KeyboardKey.RightBracket => 0x1E,
+        KeyboardKey.O => 0x1F,
+        KeyboardKey.U => 0x20,
+        KeyboardKey.LeftBracket => 0x21,
+        KeyboardKey.I => 0x22,
+        KeyboardKey.P => 0x23,
+        KeyboardKey.Enter => 0x24,
+        KeyboardKey.L => 0x25,
+        KeyboardKey.J => 0x26,
+        KeyboardKey.Apostrophe => 0x27,
+        KeyboardKey.K => 0x28,
+        KeyboardKey.SemiColon => 0x29,
+        KeyboardKey.Backslash => 0x2A,
+        KeyboardKey.Comma => 0x2B,
+        KeyboardKey.Slash => 0x2C,
+        KeyboardKey.N => 0x2D,
+        KeyboardKey.M => 0x2E,
+        KeyboardKey.Period => 0x2F,
+        KeyboardKey.Tab => 0x30,
+        KeyboardKey.Space => 0x31,
+        KeyboardKey.GraveAccent => 0x32,
+        KeyboardKey.Backspace => 0x33,
+        KeyboardKey.Escape => 0x35,
+        KeyboardKey.RightSuper => 0x36,
+        KeyboardKey.LeftSuper => 0x37,
+        KeyboardKey.LeftShift => 0x38,
+        KeyboardKey.CapsLock => 0x39,
+        KeyboardKey.LeftAlt => 0x3A,
+        KeyboardKey.LeftControl => 0x3B,
+        KeyboardKey.RightShift => 0x3C,
+        KeyboardKey.RightAlt => 0x3D,
+        KeyboardKey.RightControl => 0x3E,
+        KeyboardKey.F17 => 0x40,
+        KeyboardKey.NumpadDecimal => 0x41,
+        KeyboardKey.NumpadMultiply => 0x43,
+        KeyboardKey.NumpadAdd => 0x45,
+        KeyboardKey.NumLock => 0x47,
+        KeyboardKey.NumpadDivide => 0x4B,
+        KeyboardKey.NumpadEnter => 0x4C,
+        KeyboardKey.NumpadSubtract => 0x4E,
+        KeyboardKey.F18 => 0x4F,
+        KeyboardKey.F19 => 0x50,
+        KeyboardKey.NumpadEquals => 0x51,
+        KeyboardKey.Numpad0 => 0x52,
+        KeyboardKey.Numpad1 => 0x53,
+        KeyboardKey.Numpad2 => 0x54,
+        KeyboardKey.Numpad3 => 0x55,
+        KeyboardKey.Numpad4 => 0x56,
+        KeyboardKey.Numpad5 => 0x57,
+        KeyboardKey.Numpad6 => 0x58,
+        KeyboardKey.Numpad7 => 0x59,
+        KeyboardKey.F20 => 0x5A,
+        KeyboardKey.Numpad8 => 0x5B,
+        KeyboardKey.Numpad9 => 0x5C,
+        KeyboardKey.F5 => 0x60,
+        KeyboardKey.F6 => 0x61,
+        KeyboardKey.F7 => 0x62,
+        KeyboardKey.F3 => 0x63,
+        KeyboardKey.F8 => 0x64,
+        KeyboardKey.F9 => 0x65,
+        KeyboardKey.F11 => 0x67,
+        KeyboardKey.F13 or KeyboardKey.PrintScreen => 0x69,
+        KeyboardKey.F16 => 0x6A,
+        KeyboardKey.F14 or KeyboardKey.ScrollLock => 0x6B,
+        KeyboardKey.F10 => 0x6D,
+        KeyboardKey.Menu => 0x6E,
+        KeyboardKey.F12 => 0x6F,
+        KeyboardKey.F15 or KeyboardKey.Pause => 0x71,
+        KeyboardKey.Insert => 0x72,
+        KeyboardKey.Home => 0x73,
+        KeyboardKey.PageUp => 0x74,
+        KeyboardKey.Delete => 0x75,
+        KeyboardKey.F4 => 0x76,
+        KeyboardKey.End => 0x77,
+        KeyboardKey.F2 => 0x78,
+        KeyboardKey.PageDown => 0x79,
+        KeyboardKey.F1 => 0x7A,
+        KeyboardKey.LeftArrow => 0x7B,
+        KeyboardKey.RightArrow => 0x7C,
+        KeyboardKey.DownArrow => 0x7D,
+        KeyboardKey.UpArrow => 0x7E,
+        _ => NoMacKeyCode,
+    };
 
     /// <summary>The PC set-1 scan code of the key at <paramref name="key"/>'s position, with
     /// <see cref="Extended"/> set for the keys sent with an <c>E0</c> prefix; 0 for none.</summary>
