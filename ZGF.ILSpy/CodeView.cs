@@ -29,6 +29,60 @@ public sealed class CodeSelection : TextSelection<DecompiledDocument, TextPositi
     }
 }
 
+/// <summary>The press held on a code view, or last held: on a bookmark mark, a fold's chevron or a collapsed
+/// fold, which a drag or click leaves alone; or on the text.</summary>
+internal abstract class CodePress
+{
+    private CodePress()
+    {
+    }
+
+    public sealed class OnControl : CodePress
+    {
+    }
+
+    /// <summary>A press on the text at <see cref="At"/>, with Ctrl held when <see cref="ForNewTab"/>, on the
+    /// span <see cref="Span"/> of a line or none.</summary>
+    public sealed class OnText : CodePress
+    {
+        public OnText(TextPosition at, bool forNewTab, CodeSpanAt? span)
+        {
+            At = at;
+            ForNewTab = forNewTab;
+            Span = span;
+        }
+
+        public TextPosition At { get; }
+
+        public bool ForNewTab { get; }
+
+        public CodeSpanAt? Span { get; }
+
+        /// <summary>Whether the press has moved off where it started, dragging a selection.</summary>
+        public bool Moved;
+    }
+}
+
+/// <summary>The span <see cref="Span"/> of the line <see cref="Line"/> of a document.</summary>
+internal readonly record struct CodeSpanAt(int Line, int Span);
+
+/// <summary>Where a code view is to scroll once it is laid out: to a line revealed and flashed, back to where
+/// it stood, or to a find match.</summary>
+internal abstract record PendingScroll
+{
+    private PendingScroll()
+    {
+    }
+
+    /// <summary>Scroll <see cref="Line"/> to about a third from the top, expanding the folds that hide it, and flash it.</summary>
+    public sealed record Reveal(int Line) : PendingScroll;
+
+    public sealed record Restore(CodeViewPosition Position) : PendingScroll;
+
+    /// <summary>Bring the columns from <see cref="ColumnStart"/> to <see cref="ColumnEnd"/> of <see cref="Line"/> into view.</summary>
+    public sealed record ShowMatch(int Line, int ColumnStart, int ColumnEnd) : PendingScroll;
+}
+
 /// <summary>Everything a <see cref="CodeViewWidget.CodeView"/> keeps between frames: scroll,
 /// selection, folds, find. One per open tab, owned by the app.</summary>
 public sealed class CodeViewState
@@ -42,12 +96,7 @@ public sealed class CodeViewState
 
     internal DecompiledDocument? Document;
     internal int MaxColumns;
-    internal TextPosition PressedAt;
-    internal bool PressMoved;
-    internal bool PressedForNewTab;
-    internal bool PressedOnFold;
-    internal int PressedSpanLine = NoLine;
-    internal int PressedSpan = NoLine;
+    internal CodePress? Press;
     internal float ScrollX;
     internal float ScrollY;
     internal float RowHeight;
@@ -56,11 +105,7 @@ public sealed class CodeViewState
     internal CodeReference? Marked;
     internal CodeMenuTarget Menu = CodeMenuTarget.None;
     internal readonly KeptTooltip Tooltip = new();
-    internal int PendingReveal = NoLine;
-    internal int PendingShowLine = NoLine;
-    internal int PendingColumnStart = NoLine;
-    internal int PendingColumnEnd;
-    internal CodeViewPosition? PendingRestore;
+    internal PendingScroll? Pending;
     internal int FlashLine = NoLine;
     internal double FlashFrom;
     internal bool FindOpen;
@@ -76,11 +121,7 @@ public sealed class CodeViewState
 
     /// <summary>Scrolls <paramref name="line"/> to about a third from the top of the view and
     /// flashes it, expanding the folds that hide it, once the view has been laid out.</summary>
-    public void RevealLine(int line)
-    {
-        PendingReveal = line;
-        PendingRestore = null;
-    }
+    public void RevealLine(int line) => Pending = new PendingScroll.Reveal(line);
 
     /// <summary>Where the view stands now.</summary>
     public CodeViewPosition Position
@@ -94,11 +135,10 @@ public sealed class CodeViewState
 
     /// <summary>Returns the view to <paramref name="position"/> once the next document is shown —
     /// instead of revealing a line.</summary>
-    public void Restore(CodeViewPosition position)
-    {
-        PendingRestore = position;
-        PendingReveal = NoLine;
-    }
+    public void Restore(CodeViewPosition position) => Pending = new PendingScroll.Restore(position);
+
+    /// <summary>Whether a press on the text has moved off where it started, dragging a selection.</summary>
+    internal bool PressMoved => Press is CodePress.OnText text && text.Moved;
 
     public bool HasSelection => Selection.HasSelection;
 
@@ -143,14 +183,13 @@ public sealed class CodeViewState
             max = Math.Max(max, document.Lines[fold.StartLine].Text.Length + 1 + fold.CollapsedText.Length);
         MaxColumns = max;
         Selection.Select(default, default);
-        PressedAt = default;
-        PressedSpanLine = PressedSpan = NoLine;
-        PressedOnFold = false;
+        Press = null;
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
         Marked = null;
         Menu = CodeMenuTarget.None;
         Tooltip.Forget();
-        PendingShowLine = PendingColumnStart = NoLine;
+        if (Pending is PendingScroll.ShowMatch)
+            Pending = null;
         FlashLine = NoLine;
         CurrentMatch = NoLine;
         KeyScrollRows = KeyScrollPages = 0;
@@ -161,12 +200,6 @@ public sealed class CodeViewState
         var top = TopAnchor();
         if (Folds.Reveal(line))
             KeepTop(top);
-    }
-
-    internal void ShowColumns(int start, int end)
-    {
-        PendingColumnStart = start;
-        PendingColumnEnd = end;
     }
 
     private void SetAll(bool collapsed)
@@ -369,9 +402,7 @@ public static class CodeViewWidget
             if (i.Pressed && hasRect)
             {
                 ui.Focus(focusId, takesText: false);
-                state.PressMoved = false;
-                state.PressedOnFold = hoverToggle;
-                state.PressedSpanLine = state.PressedSpan = CodeViewState.NoLine;
+                state.Press = new CodePress.OnControl();
                 if (hoverMark >= 0)
                 {
                     intent = new CodeViewIntent.ToggleBookmark(hoverMark);
@@ -387,18 +418,18 @@ public static class CodeViewWidget
                 else
                 {
                     var at = PositionAt(pointer.X, pointer.Y);
-                    state.PressedAt = at;
-                    state.PressedForNewTab = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
-                    (state.PressedSpanLine, state.PressedSpan) = (hoverLine, hoverSpan);
+                    var forNewTab = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
+                    CodeSpanAt? span = hoverSpan >= 0 ? new CodeSpanAt(hoverLine, hoverSpan) : null;
+                    state.Press = new CodePress.OnText(at, forNewTab, span);
                     state.Selection.Press(document, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
                 }
             }
-            else if (i.Held && hasRect && !state.PressedOnFold)
+            else if (i.Held && hasRect && state.Press is CodePress.OnText held)
             {
                 var at = PositionAt(pointer.X, pointer.Y);
-                if (!state.PressMoved && at != state.PressedAt)
-                    state.PressMoved = true;
-                if (state.PressMoved)
+                if (!held.Moved && at != held.At)
+                    held.Moved = true;
+                if (held.Moved)
                     state.Selection.Drag(document, at);
 
                 var dy = pointer.Y < content.Y ? pointer.Y - content.Y : pointer.Y > content.Bottom ? pointer.Y - content.Bottom : 0f;
@@ -412,11 +443,12 @@ public static class CodeViewWidget
                 }
             }
 
-            if (i.Clicked && !state.PressMoved && !state.PressedOnFold && state.Selection.Clicks == 1 && (ui.Input.Modifiers & KeyModifiers.Shift) == 0)
+            if (i.Clicked && state.Press is CodePress.OnText clicked && !clicked.Moved && state.Selection.Clicks == 1 && (ui.Input.Modifiers & KeyModifiers.Shift) == 0)
             {
-                var reference = state.PressedSpan >= 0 ? document.Lines[state.PressedSpanLine].Spans[state.PressedSpan] : default;
+                var pressedSpan = clicked.Span;
+                var reference = pressedSpan != null ? document.Lines[pressedSpan.Value.Line].Spans[pressedSpan.Value.Span] : default;
                 if (reference.Reference is CodeReference.Navigable target && !reference.IsDefinition)
-                    intent = new CodeViewIntent.Navigate(target, state.PressedForNewTab);
+                    intent = new CodeViewIntent.Navigate(target, clicked.ForNewTab);
                 else
                     state.Marked = reference.Reference;
             }
@@ -679,16 +711,17 @@ public static class CodeViewWidget
     {
         var folds = state.Folds;
         var viewport = content.Height;
-        if (state.PendingRestore != null)
+        var pending = state.Pending;
+        if (pending is PendingScroll.Restore restoring)
         {
-            var restore = state.PendingRestore.Value;
+            var restore = restoring.Position;
             if (viewport <= 0f)
             {
                 ui.RequestUpdate();
             }
             else
             {
-                state.PendingRestore = null;
+                state.Pending = null;
                 var top = Math.Clamp(restore.TopLine, 0, Math.Max(0, document.Lines.Length - 1));
                 state.RevealFolds(top);
                 state.ScrollY = folds.RowOf(top) * rowHeight;
@@ -707,43 +740,40 @@ public static class CodeViewWidget
         if (deltaY != 0f)
             state.ScrollY = Math.Clamp(state.ScrollY + deltaY, 0f, MathF.Max(0f, folds.RowCount * rowHeight - viewport));
 
-        if (state.PendingReveal != CodeViewState.NoLine || state.PendingShowLine != CodeViewState.NoLine)
+        if (pending is PendingScroll.Reveal reveal)
         {
             if (viewport <= 0f)
             {
                 ui.RequestUpdate();
+                return;
             }
-            else if (state.PendingReveal != CodeViewState.NoLine)
-            {
-                var line = Math.Clamp(state.PendingReveal, 0, Math.Max(0, document.Lines.Length - 1));
-                state.RevealFolds(line);
-                state.ScrollY = MathF.Max(0f, folds.RowOf(line) * rowHeight - viewport / 3f);
-                state.FlashLine = line;
-                state.FlashFrom = ui.RealTime;
-                state.PendingReveal = CodeViewState.NoLine;
-                state.PendingShowLine = CodeViewState.NoLine;
-                ui.RequestUpdate();
-            }
-            else
-            {
-                state.RevealFolds(state.PendingShowLine);
-                var top = folds.RowOf(state.PendingShowLine) * rowHeight;
-                if (top < state.ScrollY || top + rowHeight > state.ScrollY + viewport)
-                    state.ScrollY = MathF.Max(0f, top - viewport / 3f);
-                state.PendingShowLine = CodeViewState.NoLine;
-            }
+            var line = Math.Clamp(reveal.Line, 0, Math.Max(0, document.Lines.Length - 1));
+            state.RevealFolds(line);
+            state.ScrollY = MathF.Max(0f, folds.RowOf(line) * rowHeight - viewport / 3f);
+            state.FlashLine = line;
+            state.FlashFrom = ui.RealTime;
+            state.Pending = null;
+            ui.RequestUpdate();
         }
-
-        if (state.PendingColumnStart != CodeViewState.NoLine && content.Width > 0f)
+        else if (pending is PendingScroll.ShowMatch match)
         {
+            if (viewport <= 0f || content.Width <= 0f)
+            {
+                ui.RequestUpdate();
+                return;
+            }
+            state.RevealFolds(match.Line);
+            var top = folds.RowOf(match.Line) * rowHeight;
+            if (top < state.ScrollY || top + rowHeight > state.ScrollY + viewport)
+                state.ScrollY = MathF.Max(0f, top - viewport / 3f);
             var visible = content.Width - textLeft - advance;
-            var from = state.PendingColumnStart * advance;
-            var to = state.PendingColumnEnd * advance;
+            var from = match.ColumnStart * advance;
+            var to = match.ColumnEnd * advance;
             if (from < state.ScrollX)
                 state.ScrollX = MathF.Max(0f, from - 4f * advance);
             else if (to > state.ScrollX + visible)
                 state.ScrollX = to - visible + 4f * advance;
-            state.PendingColumnStart = CodeViewState.NoLine;
+            state.Pending = null;
         }
     }
 
@@ -943,8 +973,7 @@ public static class CodeViewWidget
         var match = state.Find.Matches[state.CurrentMatch];
         state.Selection.Select(match, match with { Column = match.Column + state.Find.Length });
         state.RevealFolds(match.Line);
-        state.PendingShowLine = match.Line;
-        state.ShowColumns(match.Column, match.Column + state.Find.Length);
+        state.Pending = new PendingScroll.ShowMatch(match.Line, match.Column, match.Column + state.Find.Length);
     }
 
     /// <summary>The items that show <paramref name="entity"/> on a diagram, when it is a type.</summary>

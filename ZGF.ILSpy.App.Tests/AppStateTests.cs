@@ -77,7 +77,7 @@ public sealed class AppStateTests
         var rows = grid.Grid!.RowCount;
         CloseAllAssemblies(d.AppState);
         d.NextFrame();
-        var lineBefore = d.Ui.Documents.ViewOf(code).Code.PendingReveal;
+        var lineBefore = d.Ui.Documents.ViewOf(code).Code.Pending;
         var rowBefore = d.Ui.Documents.ViewOf(grid).Grid.PendingReveal;
 
         d.AppState.EnqueueCommand(new ViewCommand.ExpandNodes([ns]));
@@ -86,7 +86,7 @@ public sealed class AppStateTests
         d.NextFrame();
 
         Assert.False(d.Ui.Tree.View.IsExpanded(ns));
-        Assert.Equal(lineBefore, d.Ui.Documents.ViewOf(code).Code.PendingReveal);
+        Assert.Equal(lineBefore, d.Ui.Documents.ViewOf(code).Code.Pending);
         Assert.Equal(rowBefore, d.Ui.Documents.ViewOf(grid).Grid.PendingReveal);
     }
 
@@ -306,8 +306,7 @@ public sealed class AppStateTests
         var view = d.Ui.Documents.ViewOf(tab).Code;
         Assert.False(tab.IsBusy);
         Assert.Same(document, tab.Document);
-        Assert.NotNull(view.PendingRestore);
-        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
+        Assert.IsType<PendingScroll.Restore>(view.Pending);
     }
 
     [Fact]
@@ -357,13 +356,13 @@ public sealed class AppStateTests
 
         ShowNode(d.AppState, d.Node(AppStateDriver.FixturesNamespace));
         d.NextFrame();
-        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
+        Assert.IsNotType<PendingScroll.Reveal>(view.Pending);
         d.Settle();
-        Assert.Equal(CodeViewState.NoLine, view.PendingReveal);
+        Assert.IsNotType<PendingScroll.Reveal>(view.Pending);
 
         d.Show(d.Fixture("Greeter"));
-        Assert.True(view.PendingReveal >= 0);
-        Assert.Equal(tab.Document.FindDefinitionLine(tab.Node!), view.PendingReveal);
+        var reveal = Assert.IsType<PendingScroll.Reveal>(view.Pending);
+        Assert.Equal(tab.Document.FindDefinitionLine(tab.Node!), reveal.Line);
     }
 
     [Fact]

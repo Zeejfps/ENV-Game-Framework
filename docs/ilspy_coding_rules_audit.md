@@ -11,12 +11,9 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ### Optional-field bags that should be sum types
 
 - **View state**, one commit each, smallest first:
-    1. **Code view state.** `CodeViewState` (`CodeView.cs:43-72`) has about 25 mutable fields. Group them, possibly over two commits:
-        - the press held: `PressedAt`, `PressMoved`, `PressedForNewTab`, `PressedOnFold`, `PressedSpanLine`, `PressedSpan` as one nullable `CodePress`;
-        - the pending scroll: `PendingReveal`, `PendingRestore`, `PendingShowLine`, `PendingColumnStart/End` as Reveal(line) | Restore(position) | ShowColumns(...);
-        - the flash: `FlashLine` + `FlashFrom` as one nullable value;
-        - find: `FindOpen`, `Query`, `CurrentMatch` as closed | open(query, match).
-    2. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
+    1. **Code view flash and find match.** `FlashLine` (-1 for none) + `FlashFrom` as one nullable `Flash(line, from)`; `CurrentMatch` as `int?` in place of -1. The query and current match stay while the find bar is closed, so F3 reopens it from the last match.
+    2. **Metadata grid pending scroll.** `MetadataGridState` (`MetadataGridState.cs:26-27`) has `PendingReveal` (-1 for none) beside `PendingRestore`, each clearing the other by hand. Make it one nullable Reveal(row) | Restore(position).
+    3. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
 
 ### Bare identifiers that can be swapped
 
