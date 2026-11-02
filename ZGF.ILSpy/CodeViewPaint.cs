@@ -52,9 +52,9 @@ internal sealed class CodeViewFrame
     /// <summary>The bracket at the caret and its match when they are highlighted.</summary>
     public BracketPair? Brackets;
 
-    public static void PaintRow(UiPainter p, (CodeViewFrame Frame, int Row) row) => row.Frame.Paint(p, row.Row);
+    public static void PaintRow(UiPainter p, (CodeViewFrame Frame, CodeRow Row) row) => row.Frame.Paint(p, row.Row);
 
-    private void Paint(UiPainter p, int row)
+    private void Paint(UiPainter p, CodeRow row)
     {
         var r = p.Rect;
         var left = p.Clip.X;

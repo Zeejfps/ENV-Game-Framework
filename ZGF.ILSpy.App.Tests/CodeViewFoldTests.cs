@@ -20,7 +20,7 @@ public sealed class CodeViewFoldTests
             .GroupBy(r => r.Top).OrderBy(g => g.Key)
             .Select(g => string.Concat(g.OrderBy(r => r.X).Select(r => r.Text))).ToList();
 
-    private static void ClickChevron(CodeViewDriver view, int row)
+    private static void ClickChevron(CodeViewDriver view, CodeRow row)
     {
         view.Click(view.ChevronOf(row));
         view.Frames.Wait(1);
@@ -48,7 +48,7 @@ public sealed class CodeViewFoldTests
         var view = Outline();
         var document = view.Document;
         var first = document.Find("public int First()").Line;
-        var row = first - 1;
+        var row = view.State.Folds.RowOf(first);
 
         var (x, y) = view.ChevronOf(row);
         view.Frames.MovePointer(x, y).Frame();
@@ -63,8 +63,8 @@ public sealed class CodeViewFoldTests
         Assert.True(view.State.IsCollapsed(document.FoldIndexAt("public int First()")));
         Assert.Contains("    public int First(){ … }", folded);
         Assert.DoesNotContain(folded, r => r.Contains("int total = 0;"));
-        Assert.Equal((first + 1).ToString(), numbers[row]);
-        Assert.Equal((document.FoldAt("public int First()").EndLine + 2).ToString(), numbers[row + 1]);
+        Assert.Equal((first + 1).ToString(), numbers[row.Index]);
+        Assert.Equal((document.FoldAt("public int First()").EndLine + 2).ToString(), numbers[row.Index + 1]);
 
         view.Click(row, document.Lines[first].Text.Length + 2);
 
@@ -79,7 +79,7 @@ public sealed class CodeViewFoldTests
         var document = view.Document;
         var (line, column) = document.Find("builder.Append");
         var second = document.FoldIndexAt("public string Second()");
-        view.Click(line - 1, column);
+        view.Click(line, column);
 
         view.Key(KeyboardKey.M, KeyModifiers.Control);
         view.Key(KeyboardKey.M, KeyModifiers.Control);
@@ -108,9 +108,9 @@ public sealed class CodeViewFoldTests
         var view = Outline();
         var document = view.Document;
 
-        void Pick(int row, string item)
+        void Pick(int line, string item)
         {
-            view.Click(row, 2, PointerButton.Right);
+            view.Click(line, 2, PointerButton.Right);
             view.Run();
             var at = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == item).Inputs.Position;
             view.Frames.Click(at.Left + 2f, view.Frames.Height - at.Center.Y).Frame().Wait(1);
@@ -138,15 +138,15 @@ public sealed class CodeViewFoldTests
         var view = Outline();
         var document = view.Document;
         var first = document.Find("public int First()").Line;
-        ClickChevron(view, first - 1);
+        var end = document.FoldAt("public int First()").EndLine + 2;
+        ClickChevron(view, view.State.Folds.RowOf(first));
 
-        view.MoveTo(first - 2, 0);
+        view.MoveTo(first - 1, 0);
         view.Frames.Press().Frame();
-        view.MoveTo(first + 1, 4);
+        view.MoveTo(end, 4);
         view.Frames.Release().Frame();
         view.Key(Shortcuts.Copy);
 
-        var end = document.FoldAt("public int First()").EndLine + 2;
         Assert.Equal(CodeText.Between(document, new TextPosition(first - 1, 0), new TextPosition(end, 4)), view.Frames.Clipboard.Text);
         Assert.Contains("int total = 0;", view.Frames.Clipboard.Text);
     }

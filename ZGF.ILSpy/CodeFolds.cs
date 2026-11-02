@@ -2,6 +2,18 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
+/// <summary>A row of a code view, counted from the top of the document as its folds leave it: with a fold
+/// collapsed above it, not the number of the line it shows.</summary>
+internal readonly record struct CodeRow(int Index)
+{
+    /// <summary>The row <paramref name="offset"/> below the top of the first falls on, each <paramref name="height"/>
+    /// tall; before the first or after the last when the offset is.</summary>
+    public static CodeRow At(float offset, float height) => new((int)MathF.Floor(offset / height));
+
+    /// <summary>How far below the top of the first row this one starts, each <paramref name="height"/> tall.</summary>
+    public float Top(float height) => Index * height;
+}
+
 /// <summary>Which of a document's <see cref="DecompiledDocument.Folds"/> are collapsed, and the rows
 /// that leaves: row r shows line <see cref="LineAt"/>(r). The row map is rebuilt when either changes,
 /// never per frame.</summary>
@@ -83,12 +95,19 @@ internal sealed class CodeFolds
         return found;
     }
 
-    public int LineAt(int row) => _identity ? row : _rows[row];
+    /// <summary>The line <paramref name="row"/>, one of the rows, shows.</summary>
+    public int LineAt(CodeRow row) => _identity ? row.Index : _rows[row.Index];
+
+    /// <summary>Whether <paramref name="row"/> is one of the rows.</summary>
+    public bool Contains(CodeRow row) => row.Index >= 0 && row.Index < RowCount;
+
+    /// <summary>The row nearest <paramref name="row"/> that is one of them, the first while there are none.</summary>
+    public CodeRow Clamp(CodeRow row) => new(Math.Clamp(row.Index, 0, Math.Max(0, RowCount - 1)));
 
     /// <summary>The row <paramref name="line"/> is shown on: its own, or that of the fold hiding it.</summary>
-    public int RowOf(int line)
+    public CodeRow RowOf(int line)
     {
-        if (_identity) return Math.Clamp(line, 0, Math.Max(0, RowCount - 1));
+        if (_identity) return Clamp(new CodeRow(line));
         int low = 0, high = RowCount - 1;
         while (low < high)
         {
@@ -96,7 +115,7 @@ internal sealed class CodeFolds
             if (_rows[mid] <= line) low = mid;
             else high = mid - 1;
         }
-        return low;
+        return new CodeRow(low);
     }
 
     public int VisibleLine(int line) => RowCount == 0 ? 0 : LineAt(RowOf(line));
@@ -104,8 +123,8 @@ internal sealed class CodeFolds
     /// <summary>The first line after the row <paramref name="line"/> is shown on.</summary>
     public int NextLine(int line)
     {
-        var row = RowOf(line);
-        return row + 1 < RowCount ? LineAt(row + 1) : _document.Lines.Length;
+        var next = new CodeRow(RowOf(line).Index + 1);
+        return Contains(next) ? LineAt(next) : _document.Lines.Length;
     }
 
     private void Rebuild()

@@ -6,10 +6,6 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ## Rule 1: illegal states representable
 
-### Bare identifiers that can be swapped
-
-1. **Line vs row.** With folds collapsed a row on screen is not a document line, yet `CodeFolds.LineAt(row)`/`RowOf(line)` (about 34 call sites) take and give bare `int`s. Give rows a `CodeRow` type so converting is explicit; document lines stay `int`, as `TextPosition.Line` is. Likely to cost more than it saves: drop it if the code reads clearly enough without it.
-
 ### Escape hatches
 
 - Swallowed: swallow-all at `AssemblySearch.cs:56`; broad catches at `BrowseSession.cs:258`, `NodeDecompiler.cs:43`, `Batches.cs:26`, `Search.cs:182`, `AnalyzerTree.cs:88`.

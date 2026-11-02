@@ -188,10 +188,10 @@ public sealed class BookmarkTests : IDisposable
     public void Clicking_the_margin_asks_to_toggle_that_line_and_a_bookmarked_line_is_marked()
     {
         var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f, frames: 2);
-        var line = view.State.Folds.LineAt(3);
+        var line = view.State.Folds.LineAt(new CodeRow(3));
 
-        view.Bookmarks = new Dictionary<int, bool> { [view.State.Folds.LineAt(5)] = true };
-        var clicked = view.Click(view.MarkOf(3));
+        view.Bookmarks = new Dictionary<int, bool> { [view.State.Folds.LineAt(new CodeRow(5))] = true };
+        var clicked = view.Click(view.MarkOf(new CodeRow(3)));
 
         Assert.Equal(line, Assert.IsType<CodeViewIntent.ToggleBookmark>(clicked.Intent).Line);
         Assert.Equal(2, view.Frames.Canvas.Texts.Count(t => t.Inputs.Text == Text(Icons.CodeBookmark)));
@@ -203,7 +203,7 @@ public sealed class BookmarkTests : IDisposable
     {
         var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f);
 
-        var clicked = view.Click(view.MarkOf(3));
+        var clicked = view.Click(view.MarkOf(new CodeRow(3)));
 
         Assert.IsNotType<CodeViewIntent.ToggleBookmark>(clicked.Intent);
         Assert.DoesNotContain(view.Frames.Canvas.Texts, t => t.Inputs.Text == Text(Icons.CodeBookmark));

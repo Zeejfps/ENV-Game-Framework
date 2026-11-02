@@ -66,11 +66,13 @@ internal sealed class CodeViewDriver
 
     public float TextLeft => FoldLeft + (Document.Folds.Length > 0 ? FoldColumn : 0f) + CodePadding;
 
-    /// <summary>Where the bookmark mark of the row at <paramref name="row"/> is.</summary>
-    public (float X, float Y) MarkOf(int row) => (Origin + (MarkColumn + GutterPadding) / 2, Origin + row * Row + Row / 2);
+    /// <summary>Where the bookmark mark of <paramref name="row"/> is, the view scrolled to the top.</summary>
+    public (float X, float Y) MarkOf(CodeRow row) => (Origin + (MarkColumn + GutterPadding) / 2, MiddleOf(row));
 
-    /// <summary>Where the fold chevron of the row at <paramref name="row"/> is.</summary>
-    public (float X, float Y) ChevronOf(int row) => (FoldLeft + FoldColumn / 2, Origin + row * Row + Row / 2);
+    /// <summary>Where the fold chevron of <paramref name="row"/> is, the view scrolled to the top.</summary>
+    public (float X, float Y) ChevronOf(CodeRow row) => (FoldLeft + FoldColumn / 2, MiddleOf(row));
+
+    private static float MiddleOf(CodeRow row) => Origin + row.Top(Row) + Row / 2;
 
     public CodeViewResult Run(int frames = 1)
     {
@@ -78,17 +80,27 @@ internal sealed class CodeViewDriver
         return Last;
     }
 
-    public (float X, float Y) PointOf(int line, int column) => (TextLeft + column * Cell + 1f, Origin + line * Row + Row / 2);
+    /// <summary>Where <paramref name="column"/> of <paramref name="row"/> is, the view scrolled to the top.</summary>
+    public (float X, float Y) PointOf(CodeRow row, int column) => (TextLeft + column * Cell + 1f, MiddleOf(row));
 
-    public UiFrames MoveTo(int line, int column)
+    /// <summary>Where <paramref name="column"/> of the row <paramref name="line"/> is shown on is, the view scrolled to the top.</summary>
+    public (float X, float Y) PointOf(int line, int column) => PointOf(State.Folds.RowOf(line), column);
+
+    public UiFrames MoveTo(CodeRow row, int column)
     {
-        var (x, y) = PointOf(line, column);
+        var (x, y) = PointOf(row, column);
         return Frames.MovePointer(x, y).Frame();
     }
 
+    public UiFrames MoveTo(int line, int column) => MoveTo(State.Folds.RowOf(line), column);
+
     /// <summary>Clicks at the cell, as <see cref="Click(ValueTuple{float, float}, PointerButton, KeyModifiers)"/>.</summary>
+    public CodeViewResult Click(CodeRow row, int column, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
+        Click(PointOf(row, column), button, modifiers);
+
+    /// <summary>Clicks at <paramref name="column"/> of the row <paramref name="line"/> is shown on.</summary>
     public CodeViewResult Click(int line, int column, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
-        Click(PointOf(line, column), button, modifiers);
+        Click(State.Folds.RowOf(line), column, button, modifiers);
 
     /// <summary>Clicks at <paramref name="at"/> and returns what the press asked for, or else what the release did.</summary>
     public CodeViewResult Click((float X, float Y) at, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)

@@ -181,7 +181,7 @@ public sealed class CodeViewState
     {
         get
         {
-            var top = RowHeight > 0f && Folds.RowCount > 0 ? Folds.LineAt(Math.Clamp((int)(ScrollY / RowHeight), 0, Folds.RowCount - 1)) : 0;
+            var top = RowHeight > 0f && Folds.RowCount > 0 ? Folds.LineAt(Folds.Clamp(CodeRow.At(ScrollY, RowHeight))) : 0;
             return new CodeViewPosition(top, ScrollX, Selection.Anchor, Selection.Caret);
         }
     }
@@ -265,14 +265,14 @@ public sealed class CodeViewState
     private (int Line, float Within) TopAnchor()
     {
         if (RowHeight <= 0f || Folds.RowCount == 0) return (0, 0f);
-        var row = Math.Clamp((int)(ScrollY / RowHeight), 0, Folds.RowCount - 1);
-        return (Folds.LineAt(row), ScrollY - row * RowHeight);
+        var row = Folds.Clamp(CodeRow.At(ScrollY, RowHeight));
+        return (Folds.LineAt(row), ScrollY - row.Top(RowHeight));
     }
 
     private void KeepTop((int Line, float Within) top)
     {
         if (RowHeight > 0f)
-            ScrollY = Folds.RowOf(top.Line) * RowHeight + top.Within;
+            ScrollY = Folds.RowOf(top.Line).Top(RowHeight) + top.Within;
     }
 }
 
@@ -394,10 +394,10 @@ public static class CodeViewWidget
 
             TextPosition PositionAt(float x, float y)
             {
-                var row = (int)MathF.Floor((y - rect.Y + state.LaidOutScrollY) / rowHeight);
+                var row = CodeRow.At(y - rect.Y + state.LaidOutScrollY, rowHeight);
                 var column = (int)MathF.Round((x - rect.X - textLeft + state.LaidOutScrollX) / advance);
-                if (row < 0) return CodeText.Clamp(document, new TextPosition(0, 0));
-                if (row >= folds.RowCount) return CodeText.End(document);
+                if (row.Index < 0) return CodeText.Clamp(document, new TextPosition(0, 0));
+                if (row.Index >= folds.RowCount) return CodeText.End(document);
                 var line = folds.LineAt(row);
                 var fold = folds.CollapsedAt(line);
                 if (fold != null && column > document.Lines[line].Text.Length)
@@ -412,8 +412,8 @@ public static class CodeViewWidget
             var hover = CodeHover.Nothing;
             if (hasRect && folds.RowCount > 0 && (i.Hovered || i.Held) && pointer.X < content.Right && pointer.Y < content.Bottom)
             {
-                var row = (int)MathF.Floor((pointer.Y - rect.Y + state.LaidOutScrollY) / rowHeight);
-                if (row >= 0 && row < folds.RowCount)
+                var row = CodeRow.At(pointer.Y - rect.Y + state.LaidOutScrollY, rowHeight);
+                if (folds.Contains(row))
                 {
                     var line = folds.LineAt(row);
                     if (pointer.X >= rect.X + gutterWidth)
@@ -531,7 +531,7 @@ public static class CodeViewWidget
                     for (var row = list.First; row < list.End; row++)
                     {
                         using (ui.Box(new Box { Width = Sizing.Grow(min: contentWidth), Height = rowHeight }))
-                            ui.Paint((state.Frame, row), CodeViewFrame.PaintRow);
+                            ui.Paint((state.Frame, new CodeRow(row)), CodeViewFrame.PaintRow);
                     }
                 }
                 if (focused && ui.FocusVisible)
@@ -699,7 +699,7 @@ public static class CodeViewWidget
             return default;
         var span = document.Lines[at.Value.Line].Spans[at.Value.Span];
         var x = hovered.TextX - state.LaidOutScrollX + span.Start * advance;
-        var y = hovered.TextY + state.Folds.RowOf(at.Value.Line) * rowHeight - state.LaidOutScrollY;
+        var y = hovered.TextY + state.Folds.RowOf(at.Value.Line).Top(rowHeight) - state.LaidOutScrollY;
         return new UiRect(x, y, span.Length * advance, rowHeight);
     }
 
@@ -783,7 +783,7 @@ public static class CodeViewWidget
                 state.Pending = null;
                 var top = Math.Clamp(restore.TopLine, 0, Math.Max(0, document.Lines.Length - 1));
                 state.RevealFolds(top);
-                state.ScrollY = folds.RowOf(top) * rowHeight;
+                state.ScrollY = folds.RowOf(top).Top(rowHeight);
                 state.ScrollX = restore.ScrollX;
                 state.Selection.Select(CodeText.Clamp(document, restore.Anchor), CodeText.Clamp(document, restore.Caret));
             }
@@ -808,7 +808,7 @@ public static class CodeViewWidget
             }
             var line = Math.Clamp(reveal.Line, 0, Math.Max(0, document.Lines.Length - 1));
             state.RevealFolds(line);
-            state.ScrollY = MathF.Max(0f, folds.RowOf(line) * rowHeight - viewport / 3f);
+            state.ScrollY = MathF.Max(0f, folds.RowOf(line).Top(rowHeight) - viewport / 3f);
             state.Flash = new CodeFlash(line, ui.RealTime);
             state.Pending = null;
             ui.RequestUpdate();
@@ -821,7 +821,7 @@ public static class CodeViewWidget
                 return;
             }
             state.RevealFolds(match.Line);
-            var top = folds.RowOf(match.Line) * rowHeight;
+            var top = folds.RowOf(match.Line).Top(rowHeight);
             if (top < state.ScrollY || top + rowHeight > state.ScrollY + viewport)
                 state.ScrollY = MathF.Max(0f, top - viewport / 3f);
             var visible = content.Width - textLeft - advance;

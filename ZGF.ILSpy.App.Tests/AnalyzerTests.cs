@@ -131,9 +131,8 @@ public sealed class AnalyzerTests
     {
         var view = CodeViewDriver.Showing(CodeViewDriver.Outline(), 1200f, frames: 2);
         var (line, column) = view.Document.Find("return First();");
-        var row = view.State.Folds.RowOf(line);
 
-        view.Click(row, column + "return First".Length);
+        view.Click(line, column + "return First".Length);
         view.Key(Shortcuts.Analyze);
 
         Assert.Equal("First", Assert.IsType<CodeViewIntent.Analyze>(view.Last.Intent).Entity.Name);
