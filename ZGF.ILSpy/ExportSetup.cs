@@ -14,14 +14,22 @@ public sealed class ExportChoice(LoadedModule assembly, string name)
 }
 
 /// <summary>What keeps an export from starting.</summary>
-public enum ExportBlocker
+public abstract record ExportBlocker
 {
-    None,
-    NoAssembly,
-    NoFolder,
-    NamelessProject,
-    Clash,
-    KeyFileMissing,
+    private ExportBlocker()
+    {
+    }
+
+    public sealed record NoAssembly : ExportBlocker;
+
+    public sealed record NoFolder : ExportBlocker;
+
+    public sealed record NamelessProject : ExportBlocker;
+
+    /// <summary>Two ticked assemblies take the project name <see cref="Name"/>.</summary>
+    public sealed record Clash(string Name) : ExportBlocker;
+
+    public sealed record KeyFileMissing : ExportBlocker;
 }
 
 /// <summary>The export dialog's pages: what is exported and how, or which assemblies.</summary>
@@ -254,28 +262,28 @@ public sealed class ExportSetup
         return !File.Exists(file);
     }
 
-    /// <summary>The first thing that keeps the export from starting, or <see cref="ExportBlocker.None"/>:
-    /// it needs at least one assembly, a folder, a name for each project that no other takes, and no
-    /// key file that is not there.</summary>
-    public ExportBlocker Blocker
+    /// <summary>The first thing that keeps the export from starting, or null: it needs at least one
+    /// assembly, a folder, a name for each project that no other takes, and no key file that is not there.</summary>
+    public ExportBlocker? Blocker
     {
         get
         {
             if (IncludedCount == 0)
-                return ExportBlocker.NoAssembly;
+                return new ExportBlocker.NoAssembly();
             if (!HasFolder)
-                return ExportBlocker.NoFolder;
+                return new ExportBlocker.NoFolder();
             if (HasNamelessProject)
-                return ExportBlocker.NamelessProject;
-            if (Clash != null)
-                return ExportBlocker.Clash;
+                return new ExportBlocker.NamelessProject();
+            var clash = Clash;
+            if (clash != null)
+                return new ExportBlocker.Clash(clash);
             if (KeyFileMissing)
-                return ExportBlocker.KeyFileMissing;
-            return ExportBlocker.None;
+                return new ExportBlocker.KeyFileMissing();
+            return null;
         }
     }
 
-    public bool CanExport => Blocker == ExportBlocker.None;
+    public bool CanExport => Blocker == null;
 
     /// <summary>What each project is written with besides its code.</summary>
     public ProjectExtras Extras()

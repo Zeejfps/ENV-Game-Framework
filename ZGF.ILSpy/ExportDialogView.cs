@@ -368,7 +368,7 @@ internal static class ExportDialogView
         {
             var blocker = setup.Blocker;
             var color = IsMistake(blocker) ? theme.Danger : theme.TextMuted;
-            ui.Text(BlockerText(t, setup, blocker), color: color, size: theme.FontSizeSmall, wrap: true);
+            ui.Text(BlockerText(t, blocker), color: color, size: theme.FontSizeSmall, wrap: true);
             if (ui.Button(t.ExportCancel, id: "export-cancel", variant: ButtonVariant.Ghost))
                 setup.Close();
             if (ui.Button(t.ExportConfirm, enabled: setup.CanExport, id: "export-start", variant: ButtonVariant.Primary))
@@ -377,21 +377,21 @@ internal static class ExportDialogView
     }
 
     /// <summary>Whether <paramref name="blocker"/> is something typed wrong rather than not yet given.</summary>
-    private static bool IsMistake(ExportBlocker blocker)
+    private static bool IsMistake(ExportBlocker? blocker)
     {
-        return blocker == ExportBlocker.Clash || blocker == ExportBlocker.KeyFileMissing;
+        return blocker is ExportBlocker.Clash or ExportBlocker.KeyFileMissing;
     }
 
-    private static string BlockerText(Strings t, ExportSetup setup, ExportBlocker blocker)
+    private static string BlockerText(Strings t, ExportBlocker? blocker)
     {
         return blocker switch
         {
+            null => "",
             ExportBlocker.NoAssembly => t.ExportNeedsAssembly,
             ExportBlocker.NoFolder => t.ExportNeedsFolder,
             ExportBlocker.NamelessProject => t.ExportNeedsName,
-            ExportBlocker.Clash => t.ExportNameClash(setup.Clash!),
+            ExportBlocker.Clash clash => t.ExportNameClash(clash.Name),
             ExportBlocker.KeyFileMissing => t.ExportKeyFileMissing,
-            ExportBlocker.None => "",
             _ => throw new UnreachableException(),
         };
     }

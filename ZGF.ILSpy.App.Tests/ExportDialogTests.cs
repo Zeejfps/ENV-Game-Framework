@@ -114,14 +114,14 @@ public sealed class ExportDialogTests : IDisposable
         var choice = Assert.Single(setup.Choices);
 
         setup.IncludeAll(false);
-        Assert.Equal(ExportBlocker.NoAssembly, setup.Blocker);
+        Assert.IsType<ExportBlocker.NoAssembly>(setup.Blocker);
         setup.IncludeAll(true);
-        Assert.Equal(ExportBlocker.NoFolder, setup.Blocker);
+        Assert.IsType<ExportBlocker.NoFolder>(setup.Blocker);
         setup.Folder = _temp.Path;
         choice.Name = " ";
-        Assert.Equal(ExportBlocker.NamelessProject, setup.Blocker);
+        Assert.IsType<ExportBlocker.NamelessProject>(setup.Blocker);
         choice.Name = "Project";
-        Assert.Equal(ExportBlocker.None, setup.Blocker);
+        Assert.Null(setup.Blocker);
     }
 
     [Fact]
