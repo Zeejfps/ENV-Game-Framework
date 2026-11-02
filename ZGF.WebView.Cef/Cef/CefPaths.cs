@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Xilium.CefGlue;
 
 namespace ZGF.WebView.Cef;
 
@@ -16,11 +17,20 @@ internal static class CefPaths
     public static string BaseDir => AppContext.BaseDirectory;
 
     public static string HelperExe =>
-        Path.Combine(BaseDir, "cef-helper", IsWindows ? "zgf-cef-helper.exe" : "zgf-cef-helper");
+        IsWindows ? Path.Combine(BaseDir, "cef-helper", "zgf-cef-helper.exe") :
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? Path.Combine(HelperBundle, "Contents", "MacOS", "zgf-cef-helper")
+            : Path.Combine(BaseDir, "cef-helper", "zgf-cef-helper");
+
+    /// <summary>The macOS helper's app bundle.</summary>
+    public static string HelperBundle => Path.Combine(BaseDir, "cef-helper", "zgf-cef-helper.app");
 
     /// <summary>Directory that contains <c>libcef</c> — the app root when the runtime package flattened
-    /// it there, else the per-RID native folder.</summary>
+    /// it there, else the per-RID native folder. On macOS it holds the framework bundle instead.</summary>
     public static string LibCefDir => FindDirContaining(LibCefFileName);
+
+    /// <summary>The macOS framework bundle, which carries libcef and its own resources and locales.</summary>
+    public static string FrameworkDir => Path.Combine(LibCefDir, CefRuntime.MacFrameworkName + ".framework");
 
     /// <summary>Directory that contains the <c>.pak</c> resources (usually the same as
     /// <see cref="LibCefDir"/>).</summary>
@@ -54,7 +64,9 @@ internal static class CefPaths
 
     private static string LibCefFileName =>
         IsWindows ? "libcef.dll" :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "libcef.dylib" : "libcef.so";
+        RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            ? Path.Combine(CefRuntime.MacFrameworkName + ".framework", CefRuntime.MacFrameworkName)
+            : "libcef.so";
 
     private static string Rid =>
         (RuntimeInformation.OSArchitecture == Architecture.Arm64, IsWindows,

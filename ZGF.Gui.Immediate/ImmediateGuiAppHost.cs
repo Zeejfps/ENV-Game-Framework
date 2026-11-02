@@ -120,6 +120,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _window.OnContentScaleChanged += HandleContentScaleChanged;
         _window.OnMove += HandleMove;
         _window.OnFocusChanged += HandleFocusChanged;
+        _window.OnMinimizedChanged += HandleMinimizedChanged;
+        _pending.SetMinimized(_window.IsMinimized);
         _render.App.OnForegroundChanged += HandleForegroundChanged;
         _render.App.OnTick += Tick;
         _window.OnNonClientPress += HandleNonClientPress;
@@ -1096,6 +1098,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _window.RequestRedraw();
     }
 
+    private void HandleMinimizedChanged(bool minimized)
+    {
+        _pending.SetMinimized(minimized);
+        _window.RequestRedraw();
+    }
+
     private void HandleNonClientPress()
     {
         _pending.DismissPopups();
@@ -1194,6 +1202,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _window.OnMove -= HandleMove;
         _window.OnFocusChanged -= HandleFocusChanged;
+        _window.OnMinimizedChanged -= HandleMinimizedChanged;
         ReleasePopups();
         CloseWindows();
         _pool.Dispose();

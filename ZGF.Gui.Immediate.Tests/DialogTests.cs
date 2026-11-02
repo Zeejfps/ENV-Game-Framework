@@ -42,6 +42,14 @@ public sealed class DialogTests
         }
     }
 
+    /// <summary>Runs the frames a dialog that closed takes to go.</summary>
+    private void GoneOut()
+    {
+        _frames.FrameTime = UiWidgets.DialogOutSeconds;
+        _frames.Frame(2);
+        _frames.FrameTime = 0f;
+    }
+
     private void Open()
     {
         _frames.Frame();
@@ -82,8 +90,9 @@ public sealed class DialogTests
         _frames.Click(20f, 20f).Frame();
 
         Assert.False(_open);
-        Assert.False(_frames.Drew("Settings"));
         Assert.Equal(0, _underClicks);
+        GoneOut();
+        Assert.False(_frames.Drew("Settings"));
     }
 
     [Fact]
@@ -95,6 +104,7 @@ public sealed class DialogTests
 
         Assert.False(_open);
         Assert.Equal(0, _escapesBehind);
+        GoneOut();
         Assert.False(_frames.Drew("Settings"));
     }
 

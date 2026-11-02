@@ -16,7 +16,9 @@ flat in float v_fadesEdges;
 // `binding = N` layout qualifier requires GLSL 420 / ARB_shading_language_420pack,
 // which is not available on macOS (capped at 4.1 / GLSL 410).
 layout(std140) uniform ClipRects {
-    vec4 u_clipRects[256]; // (left, bottom, right, top)
+    vec4 u_clipRects[256];  // (left, bottom, right, top)
+    vec4 u_clipRounds[256]; // the rounded rect the clip is also cut to, (left, bottom, right, top)
+    vec4 u_clipRadii[256];  // that rect's corner radius in x; 0 when the clip is not rounded
 };
 
 out vec4 f_Color;
@@ -32,6 +34,19 @@ vec4 unpackARGB(uint c) {
     return vec4(r, g, b, a);
 }
 
+// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over
+// the device pixel its edge crosses. Always 1 for a clip that is not rounded.
+float clipCoverage(vec2 p, uint index) {
+    float pixel = max(fwidth(p.x), 1e-4);
+    float r = u_clipRadii[index].x;
+    if (r <= 0.0) return 1.0;
+    vec4 rounded = u_clipRounds[index];
+    vec2 halfSize = (rounded.zw - rounded.xy) * 0.5;
+    vec2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - vec2(r));
+    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+    return clamp(0.5 - d / pixel, 0.0, 1.0);
+}
+
 void main() {
     // Interpolated local coordinates can fall on opposite sides of an exact border
     // boundary along the same pixel row. Reconstruct from the fragment's pixel center
@@ -39,11 +54,13 @@ void main() {
     vec2 v_pixelPos = gl_FragCoord.xy * (u_canvasMetrics.xy / u_canvasMetrics.zw);
     vec2 v_localPos = v_pixelPos - v_rectOrigin;
     // --- Clip test ---
+    float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
     vec4 clip = u_clipRects[v_clipIndex];
     if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
         v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w) {
         discard;
     }
+    if (clipCover <= 0.0) discard;
 
     float rectW = v_rectSize.x;
     float rectH = v_rectSize.y;
@@ -142,4 +159,5 @@ void main() {
     vec3 outPre    = mix(borderCol.rgb * borderCol.a, fillCol.rgb * fillCol.a, fillFactor);
     vec3 outRgb    = outA > 0.0 ? outPre / outA : vec3(0.0);
     f_Color = vec4(outRgb, outA * coverage);
+    f_Color.a *= clipCover;
 }

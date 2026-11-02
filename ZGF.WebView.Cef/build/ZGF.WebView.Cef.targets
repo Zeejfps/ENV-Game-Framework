@@ -15,8 +15,29 @@
 
     <PropertyGroup>
         <_ZgfCefHelperOutDir>$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\bin\$(Configuration)\net10.0\</_ZgfCefHelperOutDir>
-        <_ZgfCefPayloadDir>$(MSBuildThisFileDirectory)..\..\CefGlue\cef\win-x64\</_ZgfCefPayloadDir>
+        <_ZgfCefRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_ZgfCefRid>
+        <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX')) And '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</_ZgfCefRid>
+        <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX'))">osx-x64</_ZgfCefRid>
+        <_ZgfCefRid Condition="'$(_ZgfCefRid)' == ''">win-x64</_ZgfCefRid>
+        <_ZgfCefPayloadDir>$(MSBuildThisFileDirectory)..\..\CefGlue\cef\$(_ZgfCefRid)\</_ZgfCefPayloadDir>
+        <!-- On macOS libcef is the framework bundle, staged whole into the app root. -->
+        <_ZgfCefLibrary Condition="$(_ZgfCefRid.StartsWith('osx'))">Release\Chromium Embedded Framework.framework\Chromium Embedded Framework</_ZgfCefLibrary>
+        <_ZgfCefLibrary Condition="'$(_ZgfCefLibrary)' == ''">Release\libcef.dll</_ZgfCefLibrary>
+        <_ZgfCefFetchScript Condition="$(_ZgfCefRid.StartsWith('osx'))">CefGlue/fetch-cef.sh</_ZgfCefFetchScript>
+        <_ZgfCefFetchScript Condition="'$(_ZgfCefFetchScript)' == ''">CefGlue/fetch-cef.ps1</_ZgfCefFetchScript>
+        <_ZgfCefIsMac>$(_ZgfCefRid.StartsWith('osx'))</_ZgfCefIsMac>
     </PropertyGroup>
+
+    <!-- On macOS the helper is an app bundle, since Chromium finds the framework's Libraries (ANGLE,
+         SwiftShader) only from a bundled process, and a bundled browser launches renderer, GPU and
+         plugin children from sibling variant bundles named after the helper. Each variant is the same
+         helper with its apphost renamed; the bundle runs the executable named after it. -->
+    <ItemGroup Condition="'$(_ZgfCefIsMac)' == 'true'">
+        <_ZgfCefHelperApp Include="zgf-cef-helper" />
+        <_ZgfCefHelperApp Include="zgf-cef-helper (Renderer)" />
+        <_ZgfCefHelperApp Include="zgf-cef-helper (GPU)" />
+        <_ZgfCefHelperApp Include="zgf-cef-helper (Plugin)" />
+    </ItemGroup>
 
     <Target Name="StageZgfCefHelper"
             BeforeTargets="AssignTargetPaths"
@@ -24,6 +45,8 @@
         <ItemGroup>
             <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)zgf-cef-helper.*" />
             <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)*CefGlue*.dll" />
+        </ItemGroup>
+        <ItemGroup Condition="'$(_ZgfCefIsMac)' != 'true'">
             <None Include="@(_ZgfCefHelperFile)">
                 <Link>cef-helper\%(Filename)%(Extension)</Link>
                 <TargetPath>cef-helper\%(Filename)%(Extension)</TargetPath>
@@ -31,11 +54,34 @@
                 <Visible>false</Visible>
             </None>
         </ItemGroup>
+        <ItemGroup Condition="'$(_ZgfCefIsMac)' == 'true'">
+            <!-- Every helper file in every variant bundle (batching over the apps gives the cross product). -->
+            <_ZgfCefHelperInApp Include="@(_ZgfCefHelperFile)">
+                <App>%(_ZgfCefHelperApp.Identity)</App>
+            </_ZgfCefHelperInApp>
+            <_ZgfCefHelperInApp Include="$(MSBuildThisFileDirectory)zgf-cef-helper-Info.plist">
+                <App>%(_ZgfCefHelperApp.Identity)</App>
+                <BundlePath>Info.plist</BundlePath>
+            </_ZgfCefHelperInApp>
+            <_ZgfCefHelperInApp Condition="'%(_ZgfCefHelperInApp.BundlePath)' == '' And '%(_ZgfCefHelperInApp.Extension)' == ''">
+                <BundlePath>MacOS\%(_ZgfCefHelperInApp.App)</BundlePath>
+            </_ZgfCefHelperInApp>
+            <_ZgfCefHelperInApp Condition="'%(_ZgfCefHelperInApp.BundlePath)' == ''">
+                <BundlePath>MacOS\%(_ZgfCefHelperInApp.Filename)%(_ZgfCefHelperInApp.Extension)</BundlePath>
+            </_ZgfCefHelperInApp>
+            <_ZgfCefHelperInApp>
+                <Link>cef-helper\%(_ZgfCefHelperInApp.App).app\Contents\%(_ZgfCefHelperInApp.BundlePath)</Link>
+                <TargetPath>cef-helper\%(_ZgfCefHelperInApp.App).app\Contents\%(_ZgfCefHelperInApp.BundlePath)</TargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Visible>false</Visible>
+            </_ZgfCefHelperInApp>
+            <None Include="@(_ZgfCefHelperInApp)" />
+        </ItemGroup>
     </Target>
 
     <Target Name="StageZgfCefPayload" BeforeTargets="AssignTargetPaths">
-        <Error Condition="!Exists('$(_ZgfCefPayloadDir)Release\libcef.dll')"
-               Text="CEF payload not found at $(_ZgfCefPayloadDir). Run CefGlue/fetch-cef.ps1 first." />
+        <Error Condition="!Exists('$(_ZgfCefPayloadDir)$(_ZgfCefLibrary)')"
+               Text="CEF payload not found at $(_ZgfCefPayloadDir). Run $(_ZgfCefFetchScript) first." />
         <ItemGroup>
             <_ZgfCefPayloadFile Include="$(_ZgfCefPayloadDir)Release\**\*" />
             <_ZgfCefPayloadFile Include="$(_ZgfCefPayloadDir)Resources\**\*" />

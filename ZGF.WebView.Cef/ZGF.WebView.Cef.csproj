@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <None Include="build\ZGF.WebView.Cef.targets" Pack="true" PackagePath="build\" />
+        <None Include="build\zgf-cef-helper-Info.plist" Pack="true" PackagePath="build\" />
     </ItemGroup>
 
 </Project>

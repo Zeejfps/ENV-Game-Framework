@@ -42,6 +42,8 @@ public interface IWindow : IDisposable
     // Window moved: new top-left position in screen coordinates.
     event Action<int, int> OnMove;
     event Action<bool> OnFocusChanged;
+    // Minimized to the dock or taskbar (true) or restored from it (false).
+    event Action<bool> OnMinimizedChanged;
     event Action OnClose;
     // Withdraws a close request while handling OnClose, keeping the window — and, for the main
     // window, the run loop — alive. The platform marks a window as closing before it raises the

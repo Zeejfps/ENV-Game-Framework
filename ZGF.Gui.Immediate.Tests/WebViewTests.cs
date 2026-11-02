@@ -91,7 +91,7 @@ public sealed class WebViewTests
     }
 
     [Fact]
-    public void Keys_carry_the_scan_code_a_page_reads_their_physical_key_from()
+    public void Keys_carry_the_native_code_a_page_reads_their_physical_key_from()
     {
         _frames.Frame();
         ClickPage(10f, 10f);
@@ -99,7 +99,8 @@ public sealed class WebViewTests
 
         _frames.Key(KeyboardKey.W).Key(KeyboardKey.UpArrow).Key(KeyboardKey.Space).Frame();
 
-        Assert.Equal([0x11, 0xE048, 0x39], View.NativeKeyCodes);
+        int[] expected = OperatingSystem.IsMacOS() ? [0x0D, 0x7E, 0x31] : [0x11, 0xE048, 0x39];
+        Assert.Equal(expected, View.NativeKeyCodes);
     }
 
     [Fact]

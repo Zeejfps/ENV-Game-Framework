@@ -154,6 +154,32 @@ public sealed class TextAreaTests
         Assert.Equal(field.Y + area.PaddingY + LineHeight, end.Y, 1f);
     }
 
+    [Fact]
+    public void A_disabled_area_stays_the_size_it_was()
+    {
+        var area = new Area("1\n2\n3", maxLines: 5);
+        var enabledHeight = area.Height;
+
+        area.Enabled = false;
+        area.Frame();
+
+        Assert.Equal(enabledHeight, area.Height);
+        Assert.True(area.Frames.Drew("1") && area.Frames.Drew("3"));
+    }
+
+    [Fact]
+    public void A_disabled_area_takes_no_typing_even_while_it_had_focus()
+    {
+        var area = new Area("bio");
+        area.Click(0, 3);
+
+        area.Enabled = false;
+        area.Frame();
+        area.Type("!");
+
+        Assert.Equal("bio", area.Text);
+    }
+
     private sealed class Area
     {
         private readonly float? _width;
@@ -172,6 +198,7 @@ public sealed class TextAreaTests
 
         public UiFrames Frames { get; }
         public string Text;
+        public bool Enabled = true;
         public int Submits { get; private set; }
         public float Height => Frames.RectOf("area").Height;
         public float PaddingY => (UiTheme.Dark.ControlHeight - LineHeight) / 2;
@@ -184,7 +211,7 @@ public sealed class TextAreaTests
             using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Fit(), Gap = 0f }))
             {
                 var width = _width is { } w ? Sizing.Fixed(w) : (Sizing?)null;
-                if (ui.TextArea("area", ref Text, width: width, maxLines: _maxLines, submitOnEnter: _submitOnEnter))
+                if (ui.TextArea("area", ref Text, width: width, maxLines: _maxLines, submitOnEnter: _submitOnEnter, enabled: Enabled))
                     Submits++;
             }
         }

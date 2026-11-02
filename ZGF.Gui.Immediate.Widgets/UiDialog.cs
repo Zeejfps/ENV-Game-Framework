@@ -13,6 +13,29 @@ public static partial class UiWidgets
 
     internal static int DialogCardId(int dialogId) => HashCode.Combine(dialogId, "card");
 
+    /// <summary>How long a dialog takes to come in: its backdrop fading in as its card fades in, rising and
+    /// growing into place.</summary>
+    public const float DialogInSeconds = 0.18f;
+
+    /// <summary>How long a dialog takes to go once it closes: its backdrop fading out as its card fades out,
+    /// sinking and shrinking.</summary>
+    public const float DialogOutSeconds = 0.14f;
+
+    /// <summary>How far below its place a dialog's card is drawn as it comes in or goes.</summary>
+    private const float DialogMoveBy = 8f;
+
+    /// <summary>How much smaller than its size a dialog's card is drawn as it comes in or goes.</summary>
+    private const float DialogShrinkBy = 0.03f;
+
+    /// <summary>When, in <see cref="Ui.Time"/>, a dialog last opened, last showed open, and last closed.</summary>
+    private sealed class DialogShown
+    {
+        public double OpenedAt = double.NegativeInfinity;
+        public bool Open;
+        public double SeenOpenAt = double.NegativeInfinity;
+        public double ClosedAt = double.NegativeInfinity;
+    }
+
     /// <summary>The id of the close button of the dialog, tab or window with <paramref name="ownerId"/>.</summary>
     internal static int CloseButtonId(int ownerId) => HashCode.Combine(ownerId, "close");
 
@@ -28,17 +51,22 @@ public static partial class UiWidgets
     /// <paramref name="closeOnEscape"/> off meanwhile.
     /// <paramref name="box"/> sizes and pads the card (the theme's <see cref="UiTheme.DialogWidth"/>
     /// wide by default). Record the content only while <see cref="Ui.Scope.IsOpen"/>; dispose either way.
+    /// It comes in over <see cref="DialogInSeconds"/>: the backdrop fades in, and the card fades in as it rises and
+    /// grows into place; it takes input from the first frame. Recorded on after it closes, it goes over
+    /// <see cref="DialogOutSeconds"/> the same way back, its content still recorded while <see cref="Ui.Scope.IsOpen"/>
+    /// but taking no input, the keys and focus already back with what is behind it.
     /// </summary>
     public static Ui.Scope Dialog(this Ui ui, string id, string title, ref bool open, Box box = default, bool closeButton = true,
         bool closeOnEscape = true)
     {
-        if (!open) return default;
-
         var theme = ui.Theme;
         var dialogId = ui.GetId(id);
+        if (!open)
+            return Going(ui, dialogId, title, box, closeButton);
+        var arrived = Arrival(ui, dialogId);
         var dialog = ui.Modal(dialogId, new Box
         {
-            Background = theme.Scrim,
+            Background = WithAlpha(theme.Scrim, arrived),
             AlignX = Align.Center,
             AlignY = Align.Center,
             Padding = theme.DialogMargin,
@@ -48,7 +76,21 @@ public static partial class UiWidgets
         var escaped = closeOnEscape && ui.Input.TakeKey(KeyboardKey.Escape);
         var dismissed = escaped || backdrop.Pressed;
 
-        var radius = box.Radius ?? theme.DialogRadius;
+        Card(ui, dialogId, box, arrived);
+        if (DialogHeader(ui, dialogId, title, closeButton))
+            dismissed = true;
+        if (dismissed)
+            Dismiss(ui, ref open);
+
+        ui.Scroll(HashCode.Combine(dialogId, "body"), new Box { Height = Sizing.Grow(), Gap = theme.Gap });
+        return dialog;
+    }
+
+    /// <summary>The card of a dialog, drawn as much as <paramref name="shown"/> says: faded, below its place and
+    /// smaller by what is left of 1.</summary>
+    private static void Card(Ui ui, int dialogId, Box box, float shown)
+    {
+        var theme = ui.Theme;
         ui.Column(DialogCardId(dialogId), box with
         {
             Width = box.Width ?? theme.DialogWidth,
@@ -58,17 +100,67 @@ public static partial class UiWidgets
             Background = box.Background ?? theme.SurfaceRaised,
             BorderColor = box.BorderColor ?? theme.Border,
             BorderWidth = box.BorderWidth ?? theme.BorderWidth,
-            Radius = radius,
+            Radius = box.Radius ?? theme.DialogRadius,
             Shadow = box.Shadow ?? theme.DialogShadow,
+            Opacity = (box.Opacity ?? 1f) * shown,
+            Transform = shown < 1f
+                ? new UiTransform(offsetY: DialogMoveBy * (1f - shown), scale: 1f - DialogShrinkBy * (1f - shown))
+                : box.Transform,
         });
+    }
 
-        if (DialogHeader(ui, dialogId, title, closeButton))
-            dismissed = true;
-        if (dismissed)
-            Dismiss(ui, ref open);
+    /// <summary>How far, eased, the dialog with <paramref name="dialogId"/> has come in since it opened, from 0 to 1.</summary>
+    private static float Arrival(Ui ui, int dialogId)
+    {
+        var shown = ui.GetState<DialogShown>(HashCode.Combine(dialogId, "shown"));
+        if (ui.OpenedThisFrame(dialogId))
+            shown.OpenedAt = ui.Time;
+        shown.Open = true;
+        shown.SeenOpenAt = ui.Time;
+        var progress = (float)Math.Clamp((ui.Time - shown.OpenedAt) / DialogInSeconds, 0, 1);
+        if (progress < 1f)
+            ui.RequestUpdate();
+        return Ease.OutCubic(progress);
+    }
 
+    /// <summary>
+    /// A dialog that has closed, going over <see cref="DialogOutSeconds"/> from the frame it was first recorded
+    /// closed, if it showed open just before; nothing once it has gone, or for one that was not open. It is drawn
+    /// over an <see cref="Ui.Overlay"/>, so nothing in it takes the pointer and the keys and focus are back with
+    /// what is behind it already.
+    /// </summary>
+    private static Ui.Scope Going(Ui ui, int dialogId, string title, Box box, bool closeButton)
+    {
+        var shown = ui.GetState<DialogShown>(HashCode.Combine(dialogId, "shown"));
+        if (shown.Open)
+        {
+            shown.Open = false;
+            shown.ClosedAt = ui.Time - shown.SeenOpenAt <= DialogOutSeconds ? ui.Time : double.NegativeInfinity;
+        }
+        var gone = (float)Math.Clamp((ui.Time - shown.ClosedAt) / DialogOutSeconds, 0, 1);
+        if (gone >= 1f)
+            return default;
+        ui.RequestUpdate();
+        var left = 1f - Ease.OutCubic(gone);
+        var theme = ui.Theme;
+        var dialog = ui.Overlay(new Box
+        {
+            Background = WithAlpha(theme.Scrim, left),
+            AlignX = Align.Center,
+            AlignY = Align.Center,
+            Padding = theme.DialogMargin,
+        });
+        Card(ui, dialogId, box, left);
+        DialogHeader(ui, dialogId, title, closeButton);
         ui.Scroll(HashCode.Combine(dialogId, "body"), new Box { Height = Sizing.Grow(), Gap = theme.Gap });
         return dialog;
+    }
+
+    /// <summary><paramref name="color"/> with its alpha scaled by <paramref name="amount"/>.</summary>
+    private static uint WithAlpha(uint color, float amount)
+    {
+        var alpha = (uint)MathF.Round((color >> 24) * Math.Clamp(amount, 0f, 1f));
+        return alpha << 24 | color & 0x00FFFFFFu;
     }
 
     /// <summary>

@@ -32,6 +32,8 @@ internal struct Element
     /// <summary>Which of the frame's transforms the element is drawn under, counted from 1; 0 for none,
     /// so an element no one transforms is drawn as it always was and costs nothing more.</summary>
     public int TransformSlot;
+    /// <summary>How opaque the element and what is in it are drawn; 1 for as they are.</summary>
+    public float Opacity;
 
     public string? Text;
     public TextStyle? TextStyle;
@@ -125,9 +127,12 @@ internal readonly record struct CanvasTransform(float Dx, float Dy, float Scale,
 
 /// <summary>An element taken out of the flow, emitted after the rest. <see cref="Clip"/> is the clip in layout
 /// space it keeps, for hit testing; <see cref="CanvasClip"/> the clip the canvas had where it was recorded, as
-/// drawn, when that was inside a transform, which moved it; <see cref="Transforms"/> those transforms.</summary>
+/// drawn, when that was inside a transform, which moved it; <see cref="Transforms"/> those transforms;
+/// <see cref="Opacity"/> the opacity of the boxes it is inside, which it is drawn at too; <see cref="Round"/> the
+/// rounded rect, as drawn, a rounded box around it cut it to, which it is cut to too.</summary>
 internal readonly record struct FloatingEntry(
-    int Index, int Z, int Layer, bool PassThrough, UiRect? Clip, RectF? CanvasClip, CanvasTransform[]? Transforms);
+    int Index, int Z, int Layer, bool PassThrough, UiRect? Clip, RectF? CanvasClip, CanvasTransform[]? Transforms,
+    float Opacity = 1f, RoundedClip? Round = null);
 
 /// <summary>One frame's recorded elements: sized, positioned, then emitted to the canvas.</summary>
 internal sealed class LayoutTree
@@ -139,6 +144,8 @@ internal sealed class LayoutTree
     // The transforms on the canvas while emitting, outermost first, which an element floating inside
     // them is emitted under too, later.
     private readonly List<CanvasTransform> _applied = new();
+    // The opacity on the canvas while emitting, every faded box around the element multiplied in.
+    private float _opacity = 1f;
     private readonly List<(ICanvas? Canvas, UiRect Rect)> _layers = new();
     private readonly List<UiRect> _clips = new();
     private readonly RectStyle _rectStyle = new();
@@ -339,6 +346,7 @@ internal sealed class LayoutTree
         _painter = painter;
         _screen = new UiRect(0f, 0f, canvasWidth, canvasHeight);
         _order = 0;
+        _opacity = 1f;
         _floating.Clear();
 
         UseSurface(0);
@@ -347,13 +355,15 @@ internal sealed class LayoutTree
 
         for (var k = 0; k < _floating.Count; k++)
         {
-            var (index, z, layer, passThrough, clip, canvasClip, transforms) = _floating[k];
+            var (index, z, layer, passThrough, clip, canvasClip, transforms, opacity, round) = _floating[k];
             UseSurface(layer);
             if (clip != null)
             {
                 var inner = _clips[^1].Intersect(clip.Value);
                 _clips.Add(inner);
                 // Pushed before the transforms are, so a clip a transform moved is pushed as it was drawn.
+                if (round != null)
+                    _canvas.PushClip(round.Value.Rect, round.Value.Radius);
                 _canvas.PushClip(canvasClip ?? _origin.ToCanvas(inner));
             }
             // A float drawn inside a transformed element moves and scales with it, as its children do.
@@ -362,7 +372,12 @@ internal sealed class LayoutTree
                 foreach (var transform in transforms)
                     Apply(transform);
             }
+            var faded = opacity < 1f;
+            if (faded)
+                FadeBy(opacity);
             EmitElement(index, z, layer, passThrough, hits, rects);
+            if (faded)
+                Unfade(1f);
             if (transforms != null)
             {
                 for (var t = transforms.Length - 1; t >= 0; t--)
@@ -372,6 +387,8 @@ internal sealed class LayoutTree
             {
                 _clips.RemoveAt(_clips.Count - 1);
                 _canvas.PopClip();
+                if (round != null)
+                    _canvas.PopClip();
             }
         }
     }
@@ -381,10 +398,11 @@ internal sealed class LayoutTree
     private FloatingEntry Floating(int index, int z, int layer, bool passThrough, bool keepsClip)
     {
         UiRect? clip = keepsClip ? _clips[^1] : null;
+        RoundedClip? round = keepsClip && _canvas.TryGetRoundedClip(out var rounded) ? rounded : null;
         if (_applied.Count == 0)
-            return new FloatingEntry(index, z, layer, passThrough, clip, null, null);
+            return new FloatingEntry(index, z, layer, passThrough, clip, null, null, _opacity, round);
         RectF? drawnClip = keepsClip && _canvas.TryGetClip(out var drawn) ? drawn : null;
-        return new FloatingEntry(index, z, layer, passThrough, clip, drawnClip, _applied.ToArray());
+        return new FloatingEntry(index, z, layer, passThrough, clip, drawnClip, _applied.ToArray(), _opacity, round);
     }
 
     /// <summary>What painting is culled against: the clip in layout space, which a transform can move content
@@ -459,6 +477,10 @@ internal sealed class LayoutTree
         if (transformed)
             ApplyTransform(e.TransformSlot, rect);
         var drawn = _applied.Count > 0 ? rect.Width > 0f && rect.Height > 0f : visible;
+        var outerOpacity = _opacity;
+        var faded = e.Opacity < 1f;
+        if (faded)
+            FadeBy(e.Opacity);
 
         if (drawn)
             Paint(ref e, rect, z);
@@ -469,7 +491,11 @@ internal sealed class LayoutTree
             _clips.Add(inner);
             // Under a transform the canvas moves the clip with the element and meets it with the clips
             // around it itself, which were not moved; the rect met with them here is in neither space.
-            _canvas.PushClip(_origin.ToCanvas(_applied.Count > 0 ? rect : inner));
+            // A rounded box is cut to its own rounded rect, which the canvas meets with the clips around it.
+            if (e.Radius > 0f)
+                _canvas.PushClip(_origin.ToCanvas(rect), e.Radius);
+            else
+                _canvas.PushClip(_origin.ToCanvas(_applied.Count > 0 ? rect : inner));
         }
 
         if (drawn)
@@ -481,7 +507,7 @@ internal sealed class LayoutTree
             if (child.Layer != 0)
                 _floating.Add(new FloatingEntry(c, child.Z, child.Layer, child.PassThrough, null, null, null));
             else if (child.Floating)
-                _floating.Add(Floating(c, z + child.Z, layer, passThrough, child.KeepsClip));
+                _floating.Add(Floating(c, z + child.Z, layer, passThrough || child.PassThrough, child.KeepsClip));
             else
                 EmitElement(c, z, layer, passThrough, hits, rects);
         }
@@ -492,8 +518,24 @@ internal sealed class LayoutTree
             _canvas.PopClip();
         }
 
+        if (faded)
+            Unfade(outerOpacity);
         if (transformed)
             Unapply();
+    }
+
+    /// <summary>Puts <paramref name="opacity"/> on the canvas, multiplied into what is there.</summary>
+    private void FadeBy(float opacity)
+    {
+        _canvas.PushOpacity(opacity);
+        _opacity *= opacity;
+    }
+
+    /// <summary>Takes the last opacity off the canvas, back to <paramref name="outer"/>.</summary>
+    private void Unfade(float outer)
+    {
+        _canvas.PopOpacity();
+        _opacity = outer;
     }
 
     private void Paint(ref Element e, UiRect rect, int z)

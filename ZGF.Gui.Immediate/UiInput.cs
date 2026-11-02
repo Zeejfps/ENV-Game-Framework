@@ -96,6 +96,9 @@ public sealed class UiInput
     /// app is behind another, so nothing should pop up over that one.</summary>
     public bool IsForeground { get; private set; } = true;
 
+    /// <summary>Whether the app's main window is minimized to the dock or taskbar, out of sight.</summary>
+    public bool IsMinimized { get; private set; }
+
     public bool IsDown(PointerButton button) => _down[(int)button];
     /// <summary>Whether <paramref name="button"/> went down this frame, wherever the pointer is —
     /// the app-wide hook for <see cref="PointerButton.Back"/>/<see cref="PointerButton.Forward"/>
@@ -221,6 +224,13 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void SetMinimized(bool minimized)
+    {
+        if (IsMinimized == minimized) return;
+        IsMinimized = minimized;
+        HasEvents = true;
+    }
+
     internal void DismissPopups()
     {
         PopupsDismissed = true;
@@ -252,6 +262,7 @@ public sealed class UiInput
         ScrollY = source.ScrollY;
         Modifiers = source.Modifiers;
         IsForeground = source.IsForeground;
+        IsMinimized = source.IsMinimized;
         PopupsDismissed = source.PopupsDismissed;
         HasEvents = source.HasEvents;
     }
@@ -284,6 +295,7 @@ public sealed class UiInput
         PointerLocked = previous.PointerLocked;
         Modifiers = previous.Modifiers;
         IsForeground = previous.IsForeground;
+        IsMinimized = previous.IsMinimized;
         ScrollX = 0;
         ScrollY = 0;
         PopupsDismissed = false;

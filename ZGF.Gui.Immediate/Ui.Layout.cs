@@ -57,6 +57,10 @@ public abstract partial class Ui
         public int RevealRow = -1;
         public readonly ScrollGlide GlideX = new();
         public readonly ScrollGlide GlideY = new();
+        public float ShownX = float.NaN;
+        public float ShownY = float.NaN;
+        public double MovedAtX = double.NegativeInfinity;
+        public double MovedAtY = double.NegativeInfinity;
 
         public float Offset => Horizontal ? OffsetX : OffsetY;
         public float Max => Horizontal ? MaxX : MaxY;
@@ -94,6 +98,13 @@ public abstract partial class Ui
     private int _wheelY;
     private float _wheelDeltaX;
     private float _wheelDeltaY;
+
+    /// <summary>How long the wheel may rest and still be in the same gesture: a trackpad swipe and the
+    /// momentum after it send deltas far closer together than this.</summary>
+    private const double WheelGestureGap = 0.3;
+
+    private bool _wheelGestureSideways;
+    private double _wheelTurnedAt = double.NegativeInfinity;
 
     /// <summary>True when the element being recorded lays its children out left to right.</summary>
     public bool InRow => _open.Count > 0 && _tree[_open.Peek()].Horizontal;
@@ -605,41 +616,64 @@ public abstract partial class Ui
     {
         var state = scroll.State;
         var bar = state.Bar;
+        var sinceX = SinceMoved(ref state.ShownX, ref state.MovedAtX, state.OffsetX);
+        var sinceY = SinceMoved(ref state.ShownY, ref state.MovedAtY, state.OffsetY);
+        var within = PointerWithin(scroll.Id);
         var hit = state.Horizontal ? bar.Paint + bar.Inset : MathF.Max(bar.Hit, bar.Gutter);
         var crossBar = state.ScrollsX && state.ScrollsY && state.MaxX > 0f && state.MaxY > 0f ? bar.Gutter : 0f;
         if (state.ScrollsY && state.MaxY > 0f)
         {
             var viewport = state.ViewportY - crossBar;
             var length = ThumbLength(viewport, state.ContentY, bar.MinThumb);
-            var start = (viewport - length) * MathF.Min(1f, state.OffsetY / state.MaxY);
+            var scrolled = MathF.Min(1f, state.OffsetY / state.MaxY);
+            var start = (viewport - length) * scrolled;
             _tree[OpenFloating(scroll.ThumbY.Id, new Box { Width = hit, Height = length }, 1f, 0f, -hit, start, 1)].KeepsClip = true;
-            Paint((ThumbColor(scroll.ThumbY), bar, false), PaintThumb);
+            PaintBar(new ScrollBarState(Direction.Vertical, scroll.ThumbY, within, scrolled, sinceY, bar.Paint, bar.Inset, start, viewport));
             Close();
         }
-        if (state.ScrollsX && state.MaxX > 0f && (!state.Horizontal || scroll.ThumbX.Held || PointerWithin(scroll.Id)))
+        if (state.ScrollsX && state.MaxX > 0f && (!state.Horizontal || scroll.ThumbX.Held || within))
         {
             var viewport = state.ViewportX - crossBar;
             var length = ThumbLength(viewport, state.ContentX, bar.MinThumb);
-            var start = (viewport - length) * MathF.Min(1f, state.OffsetX / state.MaxX);
+            var scrolled = MathF.Min(1f, state.OffsetX / state.MaxX);
+            var start = (viewport - length) * scrolled;
             _tree[OpenFloating(scroll.ThumbX.Id, new Box { Width = length, Height = hit }, 0f, 1f, start, -hit, 1)].KeepsClip = true;
-            Paint((ThumbColor(scroll.ThumbX), bar, true), PaintThumb);
+            PaintBar(new ScrollBarState(Direction.Horizontal, scroll.ThumbX, within, scrolled, sinceX, bar.Paint, bar.Inset, start, viewport));
             Close();
         }
     }
 
+    private void PaintBar(in ScrollBarState bar)
+    {
+        var painter = Theme.ScrollBarPainter;
+        if (painter != null)
+            painter(this, bar);
+        else
+            PaintScrollBar(bar);
+    }
+
+    /// <summary>The stock look of a scroll's bar: a rounded thumb in <see cref="UiTheme.ScrollThumb"/>,
+    /// lighter while hovered or dragged, on no track — for a painter of an app's own to fall back to.</summary>
+    public void PaintScrollBar(in ScrollBarState bar)
+    {
+        var color = bar.Dragged ? Theme.ScrollThumbHeld : bar.Hovered ? Theme.ScrollThumbHovered : Theme.ScrollThumb;
+        Paint((color, bar), PaintThumb);
+    }
+
+    /// <summary>The seconds since <paramref name="offset"/> last differed from the one shown before
+    /// it, noting it as shown.</summary>
+    private double SinceMoved(ref float shown, ref double movedAt, float offset)
+    {
+        if (!float.IsNaN(shown) && offset != shown)
+            movedAt = RealTime;
+        shown = offset;
+        return RealTime - movedAt;
+    }
+
     private bool PointerWithin(int id) => _previousRects.TryGetValue(id, out var rect) && rect.Contains(Input.Pointer);
 
-    private static readonly Action<UiPainter, (uint Color, ScrollBar Bar, bool Horizontal)> PaintThumb = static (p, s) =>
-    {
-        var r = p.Rect;
-        var thumb = s.Horizontal
-            ? new UiRect(r.X, r.Bottom - s.Bar.Inset - s.Bar.Paint, r.Width, s.Bar.Paint)
-            : new UiRect(r.Right - s.Bar.Inset - s.Bar.Paint, r.Y, s.Bar.Paint, r.Height);
-        p.FillRect(thumb, s.Color, s.Bar.Paint / 2);
-    };
-
-    private uint ThumbColor(Interaction thumb) =>
-        thumb.Held ? Theme.ScrollThumbHeld : thumb.Hovered ? Theme.ScrollThumbHovered : Theme.ScrollThumb;
+    private static readonly Action<UiPainter, (uint Color, ScrollBarState Bar)> PaintThumb = static (p, s) =>
+        p.FillRect(s.Bar.ThumbRect(p.Rect), s.Color, s.Bar.Thickness / 2);
 
     private void BeginScrolls()
     {
@@ -656,6 +690,24 @@ public abstract partial class Ui
         Topmost(_previousHits, null, out var topZ);
         var target = Topmost(_previousHits, _previousScrollIds, out var targetZ);
         if (target == 0 || targetZ < topZ) return;
+
+        var gestureSideways = WheelGestureSideways();
+        var across = _input.ScrollX != 0f ? WheelTarget(target, x: true) : 0;
+        var down = _input.ScrollY != 0f ? WheelTarget(target, x: false) : 0;
+        if (across != 0 && down != 0 && across != down)
+        {
+            if (gestureSideways)
+            {
+                _wheelX = across;
+                _wheelDeltaX = _input.ScrollX;
+            }
+            else
+            {
+                _wheelY = down;
+                _wheelDeltaY = _input.ScrollY;
+            }
+            return;
+        }
 
         if (_input.ScrollX != 0f && WheelTarget(target, x: true) is var x and not 0)
         {
@@ -674,6 +726,17 @@ public abstract partial class Ui
             _wheelX = sideways;
             _wheelDeltaX += _input.ScrollY;
         }
+    }
+
+    /// <summary>Whether the gesture the wheel is turning in went sideways rather than up or down when it began.
+    /// Where the two would move different scrolls, as a row of cards on a page, only that one moves for the
+    /// whole gesture: a trackpad swipe is never quite straight.</summary>
+    private bool WheelGestureSideways()
+    {
+        if (RealTime - _wheelTurnedAt > WheelGestureGap)
+            _wheelGestureSideways = MathF.Abs(_input.ScrollX) > MathF.Abs(_input.ScrollY);
+        _wheelTurnedAt = RealTime;
+        return _wheelGestureSideways;
     }
 
     /// <summary>Whether the wheel turns with Ctrl held, which zooms what is under the pointer, for it
@@ -787,6 +850,7 @@ public abstract partial class Ui
             Shadow = box.Shadow ?? default,
             Clip = box.Clip,
             TransformSlot = box.Transform != null ? _tree.AddTransform(box.Transform.Value) : 0,
+            Opacity = Math.Clamp(box.Opacity ?? 1f, 0f, 1f),
         };
 
         if (!string.IsNullOrEmpty(text) && style != null)

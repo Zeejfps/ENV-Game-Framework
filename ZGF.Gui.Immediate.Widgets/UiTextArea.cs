@@ -23,10 +23,16 @@ public static partial class UiWidgets
     /// breaking the line, else by Ctrl/Cmd+Enter, Enter breaking it; Ctrl/Cmd+Enter submits either way.
     /// Up and Down move between lines, keeping the caret's x; Home and End go to the ends of its line,
     /// and with Ctrl/Cmd to the ends of the text. Otherwise editing works as in <see cref="TextField"/>,
-    /// except that pasted line breaks are kept.</summary>
+    /// except that pasted line breaks are kept. When not <paramref name="enabled"/> it shows
+    /// <paramref name="text"/> greyed out, the same size and scrolled as far, and ignores input but the wheel.</summary>
     public static bool TextArea(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, int minLines = 1,
-        int maxLines = 8, bool submitOnEnter = true)
+        int maxLines = 8, bool submitOnEnter = true, bool enabled = true)
     {
+        if (!enabled)
+        {
+            DisabledArea(ui, ui.GetId(id), text, placeholder, width, minLines, maxLines);
+            return false;
+        }
         var theme = ui.Theme;
         var field = ui.Interact(id);
         var fieldId = field.Id;
@@ -127,6 +133,29 @@ public static partial class UiWidgets
                 ui.Text(placeholder, color: theme.TextMuted, wrap: true);
         }
         return submitted;
+    }
+
+    /// <summary>A text area's look, as <see cref="TextArea"/> lays it out, on the control color with its text in
+    /// <see cref="UiTheme.TextDisabled"/>, taking no input but the wheel.</summary>
+    private static void DisabledArea(Ui ui, int fieldId, string text, string? placeholder, Sizing? width, int minLines, int maxLines)
+    {
+        var theme = ui.Theme;
+        var lineHeight = ui.LineHeight();
+        var paddingY = MathF.Max(0f, (theme.ControlHeight - lineHeight) / 2);
+        using (ui.Column(fieldId, new Box
+        {
+            Width = width ?? Sizing.Grow(MinFieldWidth),
+            Padding = new Spacing(theme.FieldPaddingX, paddingY),
+            Gap = 0f,
+            Background = theme.Control,
+            BorderColor = theme.Border,
+            BorderWidth = theme.BorderWidth,
+            Radius = theme.CornerRadius,
+        }))
+        using (ui.Scroll(HashCode.Combine(fieldId, AreaScrollSalt), ScrollAxes.Vertical,
+            new Box { Height = Sizing.Fit(minLines * lineHeight, maxLines * lineHeight), Gap = 0f }, showBars: false))
+        using (ui.Column(new Box { Width = Sizing.Grow(), Gap = 0f }))
+            ui.Text(text.Length > 0 ? text : placeholder ?? "", color: theme.TextDisabled, wrap: true);
     }
 
     /// <summary>Where the area's lines were laid out on the previous frame: as wide as the scroll that

@@ -1,10 +1,10 @@
-namespace Xilium.CefGlue
+﻿namespace Xilium.CefGlue
 {
     using System;
 
     /// <summary>
-    /// The shared texture of one OnAcceleratedPaint call. On Windows the handle is an NT handle to a
-    /// D3D11 texture without a keyed mutex; it is only valid during the call.
+    /// The shared texture of one OnAcceleratedPaint call, only valid during the call. On Windows the
+    /// handle is an NT handle to a D3D11 texture without a keyed mutex; on macOS it is an IOSurfaceRef.
     /// </summary>
     public readonly struct CefAcceleratedPaintInfo
     {

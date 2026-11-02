@@ -129,7 +129,15 @@ public abstract class RenderedCanvasBase : ICanvas
     private readonly List<StagedImage> _stagedImages = new();
     private readonly List<StagedShadow> _stagedShadows = new();
     private readonly List<StagedShape> _stagedShapes = new();
-    private readonly List<Vector4> _stagedClips = new();
+    private readonly List<ClipSlot> _stagedClips = new();
+
+    /// <summary>The clips as <see cref="UploadClips"/> hands them over: <see cref="MaxClips"/> rects, then as many
+    /// rounded rects, then as many radii, each in a <see cref="Vector4"/>.</summary>
+    private readonly Vector4[] _clipUpload = new Vector4[MaxClips * 3];
+
+    /// <summary>A clip as drawn: the rect everything is cut to, as (left, bottom, right, top), and the rounded rect
+    /// it is also cut to, with its corner radius, which is 0 when it is not rounded.</summary>
+    private readonly record struct ClipSlot(Vector4 Rect, Vector4 Round, float Radius);
     private readonly Stack<int> _clipStack = new();
 
     // Render-only opacity (alpha multiplier) and an affine transform (scale + translation), composed
@@ -184,7 +192,7 @@ public abstract class RenderedCanvasBase : ICanvas
     private ImageInstance[] _prevImages = Array.Empty<ImageInstance>();
     private ShadowInstance[] _prevShadows = Array.Empty<ShadowInstance>();
     private ShapeInstance[] _prevShapes = Array.Empty<ShapeInstance>();
-    private Vector4[] _prevClips = Array.Empty<Vector4>();
+    private ClipSlot[] _prevClips = Array.Empty<ClipSlot>();
     private int _prevRectCount, _prevGlyphCount, _prevImageCount, _prevShadowCount, _prevShapeCount, _prevClipCount;
 
     // Previous-frame staged snapshots (pre-sort) used to detect an entirely
@@ -331,7 +339,7 @@ public abstract class RenderedCanvasBase : ICanvas
         _sequence = 0;
 
         // Slot 0 is the default fullscreen clip.
-        _stagedClips.Add(new Vector4(0, 0, ProjectionWidth, ProjectionHeight));
+        _stagedClips.Add(new ClipSlot(new Vector4(0, 0, ProjectionWidth, ProjectionHeight), default, 0f));
         _clipStack.Push(0);
 
         // Seed opacity/transform to identity. The seed is never popped (the Pop* methods keep one
@@ -1100,16 +1108,34 @@ public abstract class RenderedCanvasBase : ICanvas
         }
 
         var slot = _clipStack.Peek();
-        var c = _stagedClips[slot];
+        var c = _stagedClips[slot].Rect;
         rect = new RectF(c.X, c.Y, c.Z - c.X, c.W - c.Y);
         return true;
     }
 
-    public void PushClip(RectF rect)
+    public bool TryGetRoundedClip(out RoundedClip clip)
+    {
+        var slot = _stagedClips[_clipStack.Peek()];
+        if (slot.Radius <= 0f)
+        {
+            clip = default;
+            return false;
+        }
+        var r = slot.Round;
+        clip = new RoundedClip(new RectF(r.X, r.Y, r.Z - r.X, r.W - r.Y), slot.Radius);
+        return true;
+    }
+
+    public void PushClip(RectF rect) => PushClip(rect, null);
+
+    public void PushClip(RectF rect, float radius) => PushClip(rect, radius > 0f ? radius : null);
+
+    private void PushClip(RectF rect, float? radius)
     {
         // Clips compose with the active transform so content drawn offset/scaled (an animating
         // subtree) is clipped in the same space it's drawn in.
-        var current = _stagedClips[_clipStack.Peek()];
+        var outer = _stagedClips[_clipStack.Peek()];
+        var current = outer.Rect;
         // Snapped locally by the same rule as DrawRect, then transformed, so a view clipped to its own
         // Position keeps every pixel of its background however it is moved.
         var (spanLeft, spanWidth) = SnapSpan(rect.Left, rect.Right);
@@ -1123,8 +1149,15 @@ public abstract class RenderedCanvasBase : ICanvas
         if (top < bottom) top = bottom;
 
         var merged = new Vector4(left, bottom, right, top);
-        var slot = InternClipSlot(merged);
-        _clipStack.Push(slot);
+        var clip = outer with { Rect = merged };
+        if (radius != null)
+        {
+            // The radius scales with the transform, as the rect it rounds does.
+            var scale = spanWidth > 0f ? span.Z / spanWidth : 1f;
+            var most = MathF.Min(span.Z, span.W) / 2f;
+            clip = new ClipSlot(merged, new Vector4(span.X, span.Y, span.X + span.Z, span.Y + span.W), MathF.Min(radius.Value * scale, most));
+        }
+        _clipStack.Push(InternClipSlot(clip));
     }
 
     public void PopClip()
@@ -1193,7 +1226,7 @@ public abstract class RenderedCanvasBase : ICanvas
         return (a << 24) | (argb & 0x00FFFFFFu);
     }
 
-    private int InternClipSlot(Vector4 clip)
+    private int InternClipSlot(ClipSlot clip)
     {
         // Linear scan dedup. Frame-level clip count is small enough to make this cheap.
         for (var i = 0; i < _stagedClips.Count; i++)
@@ -1583,7 +1616,7 @@ public abstract class RenderedCanvasBase : ICanvas
             minY = cy - ey; maxY = cy + ey;
         }
 
-        var clip = _stagedClips[(int)clipIndex];
+        var clip = _stagedClips[(int)clipIndex].Rect;
         if (clip.X > minX) minX = clip.X;
         if (clip.Y > minY) minY = clip.Y;
         if (clip.Z < maxX) maxX = clip.Z;
@@ -1600,7 +1633,15 @@ public abstract class RenderedCanvasBase : ICanvas
             for (var i = 0; i < _stagedClips.Count; i++) _prevClips[i] = _stagedClips[i];
             _prevClipCount = _stagedClips.Count;
 
-            UploadClips(_stagedClips);
+            var n = Math.Min(_stagedClips.Count, MaxClips);
+            for (var i = 0; i < n; i++)
+            {
+                var slot = _stagedClips[i];
+                _clipUpload[i] = slot.Rect;
+                _clipUpload[MaxClips + i] = slot.Round;
+                _clipUpload[MaxClips * 2 + i] = new Vector4(slot.Radius, 0f, 0f, 0f);
+            }
+            UploadClips(_clipUpload, n);
             LastFrameUploadCount++;
         }
 
@@ -1665,7 +1706,7 @@ public abstract class RenderedCanvasBase : ICanvas
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ArraysMatch(List<Vector4> cur, Vector4[] prev, int prevCount)
+    private static bool ArraysMatch(List<ClipSlot> cur, ClipSlot[] prev, int prevCount)
     {
         if (cur.Count != prevCount) return false;
         var a = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(cur));
@@ -1688,7 +1729,10 @@ public abstract class RenderedCanvasBase : ICanvas
     protected abstract void UploadImageInstances(ImageInstance[] data, int count);
     protected abstract void UploadShadowInstances(ShadowInstance[] data, int count);
     protected abstract void UploadShapeInstances(ShapeInstance[] data, int count);
-    protected abstract void UploadClips(List<Vector4> clips);
+    /// <summary>Uploads the clips the fragment shaders read: <see cref="MaxClips"/> rects as (left, bottom, right,
+    /// top), then as many rounded rects the same way, then as many corner radii in x, 0 for a clip not rounded.
+    /// The first <paramref name="count"/> of each are this frame's; the rest are left from frames before.</summary>
+    protected abstract void UploadClips(ReadOnlySpan<Vector4> clips, int count);
     protected abstract void UpdateAtlasIfDirty();
     protected abstract void IssueDraws(IReadOnlyList<DrawCall> drawCalls);
     protected abstract void OnResize(int width, int height);

@@ -32,6 +32,10 @@ public sealed class RasterCanvas : RenderedCanvasBase
     private ShapeInstance[] _shapes = Array.Empty<ShapeInstance>();
     private Vector4[] _clips = Array.Empty<Vector4>();
     private int _clipCount;
+
+    /// <summary>The clip of what is being rastered, whose rounded rect, if it has one, <see cref="Blend"/> cuts
+    /// every pixel to.</summary>
+    private uint _rasterClip;
     private ImageInstance[] _imageInstances = Array.Empty<ImageInstance>();
     private readonly Dictionary<string, HeldImage> _images = new();
     private readonly Dictionary<uint, HeldImage> _imagesByTexture = new();
@@ -94,11 +98,11 @@ public sealed class RasterCanvas : RenderedCanvasBase
     protected override void UploadImageInstances(ImageInstance[] data, int count) => _imageInstances = data;
     protected override void UploadShadowInstances(ShadowInstance[] data, int count) { }
 
-    protected override void UploadClips(List<Vector4> clips)
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
     {
-        if (_clips.Length < clips.Count) _clips = new Vector4[clips.Count];
-        for (var i = 0; i < clips.Count; i++) _clips[i] = clips[i];
-        _clipCount = clips.Count;
+        if (_clips.Length < clips.Length) _clips = new Vector4[clips.Length];
+        clips.CopyTo(_clips);
+        _clipCount = count;
     }
 
     // We read the atlas pixels directly in RasterGlyph, so there's nothing to upload.
@@ -166,6 +170,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
     private void RasterRect(in RectInstance rect)
     {
         var (clx0, cly0, clx1, cly1) = ClipBounds(rect.ClipIndex);
+        _rasterClip = rect.ClipIndex;
         float l = rect.Rect.X, b = rect.Rect.Y, r = rect.Rect.X + rect.Rect.Z, t = rect.Rect.Y + rect.Rect.W;
 
         var (x0, y0, x1, y1) = DeviceBounds(l, b, r, t, clx0, cly0, clx1, cly1);
@@ -198,6 +203,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
         int aw = FontBackend.AtlasWidth, ah = FontBackend.AtlasHeight;
 
         var (clx0, cly0, clx1, cly1) = ClipBounds(g.ClipIndex);
+        _rasterClip = g.ClipIndex;
         var (x0, y0, x1, y1) = DeviceBounds(
             g.Rect.X, g.Rect.Y, g.Rect.X + g.Rect.Z, g.Rect.Y + g.Rect.W, clx0, cly0, clx1, cly1);
 
@@ -227,6 +233,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
         if (inst.Rect.Z <= 0 || inst.Rect.W <= 0) return;
         var (ta, tr, tg, tb) = Unpack(inst.Tint);
         var (clx0, cly0, clx1, cly1) = ClipBounds(inst.ClipIndex);
+        _rasterClip = inst.ClipIndex;
         var (x0, y0, x1, y1) = DeviceBounds(
             inst.Rect.X, inst.Rect.Y, inst.Rect.X + inst.Rect.Z, inst.Rect.Y + inst.Rect.W, clx0, cly0, clx1, cly1);
         for (var y = y0; y < y1; y++)
@@ -252,6 +259,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
         if (a == 0) return;
 
         var (clx0, cly0, clx1, cly1) = ClipBounds(s.ClipIndex);
+        _rasterClip = s.ClipIndex;
         var (x0, y0, x1, y1) = DeviceBounds(s.OuterRect.X, s.OuterRect.Y,
             s.OuterRect.X + s.OuterRect.Z, s.OuterRect.Y + s.OuterRect.W, clx0, cly0, clx1, cly1);
 
@@ -306,6 +314,17 @@ public sealed class RasterCanvas : RenderedCanvasBase
         return DeviceBounds(c.X, c.Y, c.Z, c.W, 0, 0, _fbW, _fbH);
     }
 
+    /// <summary>Whether the pixel centred at (<paramref name="px"/>, <paramref name="py"/>) is inside the rounded rect
+    /// of the clip being rastered; always, for a clip that is not rounded.</summary>
+    private bool InsideRoundedClip(float px, float py)
+    {
+        if (_rasterClip >= (uint)_clipCount || _clips.Length < MaxClips * 3) return true;
+        var radius = _clips[MaxClips * 2 + (int)_rasterClip].X;
+        if (radius <= 0f) return true;
+        var round = _clips[MaxClips + (int)_rasterClip];
+        return InsideRounded(px, py, round.X, round.Y, round.Z, round.W, new Vector4(radius));
+    }
+
     // Instances and clips are in logical points; the buffer is in device pixels. A pixel is covered
     // when its centre is, which is the test the GPU shaders make.
     private float PointAt(int devicePixel) => (devicePixel + 0.5f) / DpiScale;
@@ -320,6 +339,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
     private void Blend(int x, int y, byte sr, byte sg, byte sb, int srcA)
     {
         if (srcA <= 0 || (uint)x >= (uint)_fbW || (uint)y >= (uint)_fbH) return;
+        if (!InsideRoundedClip(PointAt(x), PointAt(y))) return;
         if (srcA > 255) srcA = 255;
         var i = (y * _fbW + x) * 4;
         var inv = 255 - srcA;

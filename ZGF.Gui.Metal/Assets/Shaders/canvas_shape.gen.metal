@@ -269,6 +269,8 @@ struct SLANG_ParameterGroup_Globals_0
 struct SLANG_ParameterGroup_ClipRects_0
 {
     array<float4, int(256)> u_clipRects_0;
+    array<float4, int(256)> u_clipRounds_0;
+    array<float4, int(256)> u_clipRadii_0;
 };
 
 
@@ -281,6 +283,21 @@ struct KernelContext_0
 
 
 #line 194
+// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over the
+// device pixel, pixel wide, its edge crosses. Always 1 for a clip that is not rounded. Written by hand, as the
+// twin of clipCoverage in the GLSL shaders.
+static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
+{
+    if (r <= 0.0)
+    {
+        return 1.0;
+    }
+    float2 halfSize = (rounded.zw - rounded.xy) * 0.5;
+    float2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - float2(r));
+    float d = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+    return clamp(0.5 - d / pixel, 0.0, 1.0);
+}
+
 [[fragment]] pixelOutput_0 fragmentMain(pixelInput_0 _S16 [[stage_in]], float4 position_0 [[position]], SLANG_ParameterGroup_Globals_0 constant* Globals_1 [[buffer(0)]], SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_1 [[buffer(1)]])
 {
 
@@ -293,6 +310,11 @@ struct KernelContext_0
 #line 194
     (&kernelContext_0)->ClipRects_0 = ClipRects_1;
 
+    float clipCover_0 = clipCoverage(_S16.pixelPos_0, ClipRects_1->u_clipRounds_0[_S16.clipIndex_0], ClipRects_1->u_clipRadii_0[_S16.clipIndex_0].x, max(fwidth(_S16.pixelPos_0.x), 0.0001));
+    if (clipCover_0 <= 0.0)
+    {
+        discard_fragment();
+    }
     float4 clip_0 = ClipRects_1->u_clipRects_0[_S16.clipIndex_0];
     float _S17 = _S16.pixelPos_0.x;
 
@@ -571,6 +593,7 @@ struct KernelContext_0
     pixelOutput_0 _S30 = { float4(rgba_1.xyz, rgba_1.w * coverage_0) };
 
 #line 273
+    _S30.output_0.w = _S30.output_0.w * clipCover_0;
     return _S30;
 }
 

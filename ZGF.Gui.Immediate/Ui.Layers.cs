@@ -57,6 +57,26 @@ public abstract partial class Ui
         return layer;
     }
 
+    /// <summary>
+    /// An element covering the whole window above everything recorded outside it, as a <see cref="Modal"/>'s does,
+    /// laid out by <paramref name="box"/>, that takes no pointer input and is no layer: the pointer, keys and focus
+    /// all go on to what is under it. For a modal on its way out, still shown as it fades.
+    /// </summary>
+    public Scope Overlay(Box box = default)
+    {
+        var e = Describe(0, box with { Width = Sizing.Fixed(Width), Height = Sizing.Fixed(Height) }, null, null);
+        e.Parent = 0;
+        e.Floating = true;
+        e.PassThrough = true;
+        e.Z = ModalZ + _modalCount++ * ModalZStep;
+        Push(e);
+        return BeginScope(ScopeKind.Element);
+    }
+
+    /// <summary>Whether the modal or popup with <paramref name="id"/> was not open last frame: true on the frame
+    /// it opens, for it to animate in from then.</summary>
+    public bool OpenedThisFrame(int id) => IndexOfLayer(_previousLayers, id) < 0;
+
     /// <summary>True while the pointer is over the element with <paramref name="id"/> and nothing
     /// above it, even while another element holds the pointer — for picking on release after a drag.</summary>
     public bool IsPointerOver(int id) => id != 0 && _hovered == id;

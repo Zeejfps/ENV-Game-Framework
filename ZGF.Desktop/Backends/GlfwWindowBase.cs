@@ -18,6 +18,7 @@ public abstract class GlfwWindowBase : IWindow
     private readonly WindowContentsScaleCallback _contentScaleCallback;
     private readonly PositionCallback _windowPosCallback;
     private readonly FocusCallback _focusCallback;
+    private readonly IconifyCallback _iconifyCallback;
     private readonly WindowCallback _closeCallback;
     private readonly WindowCallback _refreshCallback;
     private readonly KeyCallback _keyCallback;
@@ -58,6 +59,7 @@ public abstract class GlfwWindowBase : IWindow
         _contentScaleCallback = HandleContentScaleChanged;
         _windowPosCallback = HandleWindowPositionChanged;
         _focusCallback = HandleFocusChanged;
+        _iconifyCallback = HandleIconified;
         _closeCallback = HandleClose;
         // OS damage event (expose, restore from minimize) — rendering is gated on NeedsRedraw.
         _refreshCallback = _ => NeedsRedraw = true;
@@ -72,6 +74,7 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetWindowContentScaleCallback(window, _contentScaleCallback);
         GLFW.Glfw.SetWindowPositionCallback(window, _windowPosCallback);
         GLFW.Glfw.SetWindowFocusCallback(window, _focusCallback);
+        GLFW.Glfw.SetWindowIconifyCallback(window, _iconifyCallback);
         GLFW.Glfw.SetCloseCallback(window, _closeCallback);
         GLFW.Glfw.SetWindowRefreshCallback(window, _refreshCallback);
         GLFW.Glfw.SetKeyCallback(window, _keyCallback);
@@ -109,6 +112,7 @@ public abstract class GlfwWindowBase : IWindow
     public event Action<float>? OnContentScaleChanged;
     public event Action<int, int>? OnMove;
     public event Action<bool>? OnFocusChanged;
+    public event Action<bool>? OnMinimizedChanged;
     public event Action? OnClose;
     public event Action<KeyboardKey, InputAction, KeyModifiers>? OnKey;
     public event Action<uint>? OnText;
@@ -319,6 +323,8 @@ public abstract class GlfwWindowBase : IWindow
     private void HandleWindowPositionChanged(Window window, int x, int y) => OnMove?.Invoke(x, y);
 
     private void HandleFocusChanged(Window window, bool focused) => OnFocusChanged?.Invoke(focused);
+
+    private void HandleIconified(IntPtr window, bool iconified) => OnMinimizedChanged?.Invoke(iconified);
 
     private void HandleClose(Window window) => OnClose?.Invoke();
 

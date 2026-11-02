@@ -202,6 +202,12 @@ public readonly record struct Box
     /// put it, by fractions of a pixel. Layout, hit testing and its rect stay where they were.</summary>
     public UiTransform? Transform { get; init; }
 
+    /// <summary>How opaque the box, its children and what floats in it are drawn, from 0 to 1; null draws
+    /// them as they are. It multiplies into each thing drawn, and into the opacity of any box it is inside,
+    /// so what overlaps inside it shows through as it fades rather than fading as one picture. Layout, hit
+    /// testing and its rect stay as they are, even at 0.</summary>
+    public float? Opacity { get; init; }
+
     /// <summary>Shifts the children left/up by this much, for content scrolled inside a clip.</summary>
     public float ScrollX { get; init; }
     public float ScrollY { get; init; }

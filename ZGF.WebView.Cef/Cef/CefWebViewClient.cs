@@ -15,6 +15,7 @@ internal sealed class CefWebViewClient : CefClient
     private readonly CefDisplayHandler _displayHandler;
     private readonly CefLoadHandler _loadHandler;
     private readonly CefRequestHandler _requestHandler;
+    private readonly CefKeyboardHandler _keyboardHandler;
     private readonly CefWebView _owner;
 
     public CefWebViewClient(CefWebView owner)
@@ -25,6 +26,7 @@ internal sealed class CefWebViewClient : CefClient
         _displayHandler = new DisplayHandler(owner);
         _loadHandler = new LoadHandler();
         _requestHandler = new RequestHandler(owner);
+        _keyboardHandler = new KeyboardHandler();
     }
 
     protected override CefRenderHandler GetRenderHandler() => _renderHandler;
@@ -32,6 +34,15 @@ internal sealed class CefWebViewClient : CefClient
     protected override CefDisplayHandler GetDisplayHandler() => _displayHandler;
     protected override CefLoadHandler GetLoadHandler() => _loadHandler;
     protected override CefRequestHandler GetRequestHandler() => _requestHandler;
+    protected override CefKeyboardHandler GetKeyboardHandler() => _keyboardHandler;
+
+    // A key the page leaves unhandled is offered back to the host. On macOS CEF hands it to NSApp's main
+    // menu as a key equivalent, so a bare F a game ignores fires the system "Enter Full Screen" item. The
+    // host reads its own shortcuts before forwarding keys, so nothing it wants comes back this way.
+    private sealed class KeyboardHandler : CefKeyboardHandler
+    {
+        protected override bool OnKeyEvent(CefBrowser browser, CefKeyEvent keyEvent, IntPtr osEvent) => true;
+    }
 
     // Surfaces the fault that most often explains a blank/frozen web view: the render process died.
     // CEF keeps the browser host alive across a renderer crash, so we log the cause and reload once to
