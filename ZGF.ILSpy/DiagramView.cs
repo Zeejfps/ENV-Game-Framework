@@ -488,12 +488,13 @@ internal static class DiagramView
         var tooltip = FindTooltip(appState, isPanning, hit);
         var part = PartOf(tooltip, hit);
         using var popup = ui.TooltipContentAtPointer(canvasId, part, out var shownPart, CodeTooltipView.Look);
-        RememberTooltip(view, tooltip, part, shownPart);
+        view.Tooltip.Keep(tooltip, part, shownPart);
         if (!popup.IsOpen)
             return;
-        if (view.TooltipPart != shownPart)
+        var shown = view.Tooltip.For(shownPart);
+        if (shown == null)
             return;
-        var click = CodeTooltipView.Render(ui, view.Tooltip!);
+        var click = CodeTooltipView.Render(ui, shown);
         FollowLink(ui, appState, diagram, click);
     }
 
@@ -518,20 +519,6 @@ internal static class DiagramView
         if (hit is not DiagramHit.Row row)
             return 0;
         return HashCode.Combine(row.Face.Card.Type, row.Index) | 1;
-    }
-
-    /// <summary>Where the row <paramref name="hit"/> is on is drawn, from its text on, widened to the left by
-    /// the tooltip's padding so the tooltip's text starts where the row's does.</summary>
-    /// <summary>Keeps the tooltip of the row under the pointer, unless another row's is still shown while the
-    /// pointer crosses over to it.</summary>
-    private static void RememberTooltip(DiagramViewState view, CodeTooltip? tooltip, int part, int shownPart)
-    {
-        if (tooltip == null)
-            return;
-        if (shownPart != 0 && shownPart != part)
-            return;
-        view.Tooltip = tooltip;
-        view.TooltipPart = part;
     }
 
     /// <summary>A link clicked in the tooltip opens its code, in a new tab with a middle click or Ctrl, and

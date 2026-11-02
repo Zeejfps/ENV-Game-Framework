@@ -55,8 +55,7 @@ public sealed class CodeViewState
     internal float LaidOutScrollX;
     internal CodeReference? Marked;
     internal CodeMenuTarget Menu = CodeMenuTarget.None;
-    internal CodeTooltip? Tooltip;
-    internal int TooltipPart;
+    internal readonly KeptTooltip Tooltip = new();
     internal int PendingReveal = NoLine;
     internal int PendingShowLine = NoLine;
     internal int PendingColumnStart = NoLine;
@@ -150,8 +149,7 @@ public sealed class CodeViewState
         ScrollX = ScrollY = LaidOutScrollX = LaidOutScrollY = 0f;
         Marked = null;
         Menu = CodeMenuTarget.None;
-        Tooltip = null;
-        TooltipPart = 0;
+        Tooltip.Forget();
         PendingShowLine = PendingColumnStart = NoLine;
         FlashLine = NoLine;
         CurrentMatch = NoLine;
@@ -549,25 +547,14 @@ public static class CodeViewWidget
             part = HashCode.Combine(hovered.Line, hovered.Span) | 1;
         var anchor = TooltipAnchor(state, document, hovered, advance, rowHeight);
         using var popup = ui.TooltipContent(codeId, part, anchor, out var shownPart, CodeTooltipView.Look);
-        RememberTooltip(state, tooltip, part, shownPart);
+        state.Tooltip.Keep(tooltip, part, shownPart);
         if (!popup.IsOpen)
             return default;
-        if (state.TooltipPart != shownPart)
+        var shown = state.Tooltip.For(shownPart);
+        if (shown == null)
             return default;
-        var click = CodeTooltipView.Render(ui, state.Tooltip!);
+        var click = CodeTooltipView.Render(ui, shown);
         return FollowLink(ui, click);
-    }
-
-    /// <summary>Keeps the tooltip of the part under the pointer, unless another part's tooltip is
-    /// still shown while the pointer crosses over to it.</summary>
-    private static void RememberTooltip(CodeViewState state, CodeTooltip? tooltip, int part, int shownPart)
-    {
-        if (tooltip == null)
-            return;
-        if (shownPart != 0 && shownPart != part)
-            return;
-        state.Tooltip = tooltip;
-        state.TooltipPart = part;
     }
 
     /// <summary>A link clicked in the tooltip asks to navigate to it, in a new tab with a middle

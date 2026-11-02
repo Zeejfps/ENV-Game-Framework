@@ -85,8 +85,7 @@ public sealed class DiagramViewState
     /// <summary>The card the context menu was opened on.</summary>
     public TypeCard? MenuCard;
 
-    public CodeTooltip? Tooltip;
-    public int TooltipPart;
+    internal KeptTooltip Tooltip { get; } = new();
 
     /// <summary>Selects the card of <paramref name="type"/> and brings it into view once it is laid out.</summary>
     public void Focus(CodeReference.Entity type)
