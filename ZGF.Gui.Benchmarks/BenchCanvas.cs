@@ -63,11 +63,11 @@ public sealed class BenchCanvas : RenderedCanvasBase
         for (var i = 0; i < count; i++) CapturedShapes.Add(data[i]);
     }
 
-    protected override void UploadClips(List<Vector4> clips)
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
     {
         if (!Capture) return;
         CapturedClips.Clear();
-        CapturedClips.AddRange(clips);
+        CapturedClips.AddRange(clips[..count]);
     }
 
     protected override void UpdateAtlasIfDirty() { }
