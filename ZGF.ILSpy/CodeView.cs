@@ -199,9 +199,32 @@ public enum CodeZoom
     Reset,
 }
 
-public readonly record struct CodeViewResult(CodeReference.Navigable? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null,
-    CodeReference.Entity? Analyze = null, CodeZoom Zoom = CodeZoom.None, CodeReference.Navigable? ShowInMetadata = null,
-    CodeReference.Entity? ShowInApiReference = null, CodeReference.Entity? ShowInDiagram = null, CodeReference.Entity? ShowInNewDiagram = null);
+/// <summary>What the user asked a code view to do, besides changing the size of its code.</summary>
+public abstract record CodeViewIntent
+{
+    private CodeViewIntent()
+    {
+    }
+
+    /// <summary>Go to <see cref="Target"/>, in a new tab when <see cref="InNewTab"/>.</summary>
+    public sealed record Navigate(CodeReference.Navigable Target, bool InNewTab) : CodeViewIntent;
+
+    public sealed record ToggleBookmark(int Line) : CodeViewIntent;
+
+    public sealed record Analyze(CodeReference.Entity Entity) : CodeViewIntent;
+
+    public sealed record ShowInMetadata(CodeReference.Navigable Target) : CodeViewIntent;
+
+    public sealed record ShowInApiReference(CodeReference.Entity Entity) : CodeViewIntent;
+
+    public sealed record ShowInDiagram(CodeReference.Entity Type) : CodeViewIntent;
+
+    public sealed record ShowInNewDiagram(CodeReference.Entity Type) : CodeViewIntent;
+}
+
+/// <summary>What a frame of a code view asked for: what the user asked it to do, the last thing when more
+/// than one, or null; and how to change the size of its code.</summary>
+public readonly record struct CodeViewResult(CodeViewIntent? Intent, CodeZoom Zoom);
 
 public static class CodeViewWidget
 {
@@ -254,7 +277,7 @@ public static class CodeViewWidget
         var codeId = ui.GetId("code");
         var focused = ui.HasFocus(focusId);
         var findFocused = state.FindOpen && ui.HasFocus(findId);
-        var result = default(CodeViewResult);
+        CodeViewIntent? intent = null;
         var zoom = CodeZoom.None;
 
         if (focused || findFocused)
@@ -264,7 +287,7 @@ public static class CodeViewWidget
             {
                 var analyzed = AnalyzableAt(document, state.Selection.Caret);
                 if (analyzed != null)
-                    result = result with { Analyze = analyzed };
+                    intent = new CodeViewIntent.Analyze(analyzed);
             }
         }
 
@@ -351,7 +374,7 @@ public static class CodeViewWidget
                 state.PressedSpanLine = state.PressedSpan = CodeViewState.NoLine;
                 if (hoverMark >= 0)
                 {
-                    result = result with { ToggleBookmark = hoverMark };
+                    intent = new CodeViewIntent.ToggleBookmark(hoverMark);
                 }
                 else if (hoverFold >= 0)
                 {
@@ -393,12 +416,12 @@ public static class CodeViewWidget
             {
                 var reference = state.PressedSpan >= 0 ? document.Lines[state.PressedSpanLine].Spans[state.PressedSpan] : default;
                 if (reference.Reference is CodeReference.Navigable target && !reference.IsDefinition)
-                    result = new CodeViewResult(target, state.PressedForNewTab);
+                    intent = new CodeViewIntent.Navigate(target, state.PressedForNewTab);
                 else
                     state.Marked = reference.Reference;
             }
             if (i.ClickedWith(PointerButton.Middle) && hoverTarget != null)
-                result = new CodeViewResult(hoverTarget, true);
+                intent = new CodeViewIntent.Navigate(hoverTarget, true);
             if (i.ClickedWith(PointerButton.Right))
             {
                 ui.Focus(focusId, takesText: false);
@@ -433,29 +456,17 @@ public static class CodeViewWidget
             {
                 var hovered = new HoveredSpan(hoverLine, hoverSpan, rect.X + textLeft, rect.Y);
                 var followed = ReferenceTooltip(ui, state, document, tooltips, codeId, hovered, advance, rowHeight);
-                if (followed.Navigate != null)
-                    result = followed;
+                if (followed != null)
+                    intent = followed;
             }
             state.LaidOutScrollX = state.ScrollX;
             state.LaidOutScrollY = state.ScrollY;
         }
 
         var picked = ContextMenu(ui, state, document, bookmarks != null);
-        if (picked.Navigate != null)
-            result = picked;
-        if (picked.ToggleBookmark != null)
-            result = result with { ToggleBookmark = picked.ToggleBookmark };
-        if (picked.Analyze != null)
-            result = result with { Analyze = picked.Analyze };
-        if (picked.ShowInMetadata != null)
-            result = result with { ShowInMetadata = picked.ShowInMetadata };
-        if (picked.ShowInApiReference != null)
-            result = result with { ShowInApiReference = picked.ShowInApiReference };
-        if (picked.ShowInDiagram != null)
-            result = result with { ShowInDiagram = picked.ShowInDiagram };
-        if (picked.ShowInNewDiagram != null)
-            result = result with { ShowInNewDiagram = picked.ShowInNewDiagram };
-        return result with { Zoom = zoom };
+        if (picked != null)
+            intent = picked;
+        return new CodeViewResult(intent, zoom);
     }
 
     /// <summary>How many digits wide the line numbers are, at least three; none when they are hidden.</summary>
@@ -538,7 +549,7 @@ public static class CodeViewWidget
 
     /// <summary>The tooltip of the type or member under the pointer, under its span once it has
     /// been looked up.</summary>
-    private static CodeViewResult ReferenceTooltip(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips,
+    private static CodeViewIntent? ReferenceTooltip(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, CodeTooltips tooltips,
         int codeId, HoveredSpan hovered, float advance, float rowHeight)
     {
         var tooltip = TooltipOf(state, document, tooltips, hovered);
@@ -549,24 +560,24 @@ public static class CodeViewWidget
         using var popup = ui.TooltipContent(codeId, part, anchor, out var shownPart, CodeTooltipView.Look);
         state.Tooltip.Keep(tooltip, part, shownPart);
         if (!popup.IsOpen)
-            return default;
+            return null;
         var shown = state.Tooltip.For(shownPart);
         if (shown == null)
-            return default;
+            return null;
         var click = CodeTooltipView.Render(ui, shown);
         return FollowLink(ui, click);
     }
 
     /// <summary>A link clicked in the tooltip asks to navigate to it, in a new tab with a middle
     /// click or Ctrl, and closes the tooltip.</summary>
-    private static CodeViewResult FollowLink(Ui<UiState> ui, RichTextClick click)
+    private static CodeViewIntent? FollowLink(Ui<UiState> ui, RichTextClick click)
     {
         if (click.Link is not CodeReference.Navigable reference)
-            return default;
+            return null;
         ui.HideTooltip();
         var withModifier = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
         var inNewTab = click.Button == PointerButton.Middle || withModifier;
-        return new CodeViewResult(reference, inNewTab);
+        return new CodeViewIntent.Navigate(reference, inNewTab);
     }
 
     /// <summary>The tooltip of the span under the pointer when it points at a type or member and
@@ -937,24 +948,25 @@ public static class CodeViewWidget
     }
 
     /// <summary>The items that show <paramref name="entity"/> on a diagram, when it is a type.</summary>
-    private static CodeViewResult DiagramItems(Ui<UiState> ui, CodeReference.Entity entity, CodeViewResult result)
+    private static CodeViewIntent? DiagramItems(Ui<UiState> ui, CodeReference.Entity entity)
     {
         if (entity.Kind != EntityKind.Type)
-            return result;
+            return null;
         var t = ui.State.Strings;
+        CodeViewIntent? picked = null;
         if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))
-            result = result with { ShowInDiagram = entity };
+            picked = new CodeViewIntent.ShowInDiagram(entity);
         if (ui.MenuItem(t.TreeShowInNewDiagram, id: "show-in-new-diagram"))
-            result = result with { ShowInNewDiagram = entity };
-        return result;
+            picked = new CodeViewIntent.ShowInNewDiagram(entity);
+        return picked;
     }
 
-    private static CodeViewResult ContextMenu(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, bool bookmarkable)
+    private static CodeViewIntent? ContextMenu(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, bool bookmarkable)
     {
         var t = ui.State.Strings;
-        var result = default(CodeViewResult);
+        CodeViewIntent? picked = null;
         using var menu = ui.ContextMenu("menu");
-        if (!menu.IsOpen) return result;
+        if (!menu.IsOpen) return picked;
         var target = state.Menu;
 
         if (ui.MenuItem(t.CodeCopy, Shortcuts.Copy, enabled: state.HasSelection, id: "copy"))
@@ -968,7 +980,7 @@ public static class CodeViewWidget
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
                     icon: new UiIcon(ui.State.Icons.CodeToggleBookmark, ui.State.CodeViewPalette.Bookmark)))
-                result = result with { ToggleBookmark = target.Line };
+                picked = new CodeViewIntent.ToggleBookmark(target.Line);
         }
         if (document.Folds.Length > 0)
         {
@@ -985,9 +997,9 @@ public static class CodeViewWidget
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeGoToDefinition, id: "go-to-definition"))
-                result = new CodeViewResult(reference, false);
+                picked = new CodeViewIntent.Navigate(reference, false);
             if (ui.MenuItem(t.CodeOpenInNewTab, id: "open-in-new-tab"))
-                result = new CodeViewResult(reference, true);
+                picked = new CodeViewIntent.Navigate(reference, true);
         }
         var entity = target.Entity;
         if (entity != null)
@@ -995,10 +1007,10 @@ public static class CodeViewWidget
             if (target.Navigable == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeAnalyze, Shortcuts.Analyze, id: "analyze"))
-                result = result with { Analyze = entity };
+                picked = new CodeViewIntent.Analyze(entity);
             if (ui.MenuItem(t.TreeShowInApiReference, id: "show-in-api-reference", icon: new UiIcon(ui.State.Icons.LinkApiReference)))
-                result = result with { ShowInApiReference = entity };
-            result = DiagramItems(ui, entity, result);
+                picked = new CodeViewIntent.ShowInApiReference(entity);
+            picked = DiagramItems(ui, entity) ?? picked;
         }
         var shown = target.Metadata;
         if (shown != null)
@@ -1006,8 +1018,8 @@ public static class CodeViewWidget
             if (target.Navigable == null && target.Entity == null)
                 ui.MenuSeparator();
             if (ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
-                result = result with { ShowInMetadata = shown };
+                picked = new CodeViewIntent.ShowInMetadata(shown);
         }
-        return result;
+        return picked;
     }
 }

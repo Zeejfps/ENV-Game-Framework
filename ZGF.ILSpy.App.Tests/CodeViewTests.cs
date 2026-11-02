@@ -90,10 +90,10 @@ public sealed class CodeViewTests
 
         var result = view.Click(line, column + 2);
 
-        Assert.NotNull(result.Navigate);
-        Assert.Equal(view.Document.SpanAt(line, column).Reference, result.Navigate);
-        Assert.Equal(EntityKind.Method, Assert.IsType<CodeReference.Entity>(result.Navigate).Kind);
-        Assert.False(result.NavigateInNewTab);
+        var navigate = Assert.IsType<CodeViewIntent.Navigate>(result.Intent);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, navigate.Target);
+        Assert.Equal(EntityKind.Method, Assert.IsType<CodeReference.Entity>(navigate.Target).Kind);
+        Assert.False(navigate.InNewTab);
     }
 
     [Fact]
@@ -105,10 +105,13 @@ public sealed class CodeViewTests
         view.Frames.Wait(1);
         var middle = view.Click(line, column, PointerButton.Middle);
 
-        Assert.True(ctrl.NavigateInNewTab);
-        Assert.Equal(view.Document.SpanAt(line, column).Reference, ctrl.Navigate);
-        Assert.True(middle.NavigateInNewTab);
-        Assert.Equal(view.Document.SpanAt(line, column).Reference, middle.Navigate);
+        var reference = view.Document.SpanAt(line, column).Reference;
+        var withCtrl = Assert.IsType<CodeViewIntent.Navigate>(ctrl.Intent);
+        Assert.True(withCtrl.InNewTab);
+        Assert.Equal(reference, withCtrl.Target);
+        var withMiddle = Assert.IsType<CodeViewIntent.Navigate>(middle.Intent);
+        Assert.True(withMiddle.InNewTab);
+        Assert.Equal(reference, withMiddle.Target);
     }
 
     [Fact]
@@ -119,7 +122,7 @@ public sealed class CodeViewTests
         var result = view.Click(line, column);
         view.Frames.MovePointer(1000f, 1000f).Frame();
 
-        Assert.Null(result.Navigate);
+        Assert.Null(result.Intent);
         var occurrence = BuiltInThemes.Dark.Code.Occurrence;
         var expected = view.Document.GetText().Split('\n').Sum(l => CountWord(l, "text"));
         Assert.True(expected >= 3);
@@ -332,10 +335,10 @@ public sealed class CodeViewTests
         view.Run();
         var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Go to definition").Inputs.Position;
         view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
-        var result = view.Last;
+        var navigate = Assert.IsType<CodeViewIntent.Navigate>(view.Last.Intent);
 
-        Assert.Equal(view.Document.SpanAt(line, column).Reference, result.Navigate);
-        Assert.False(result.NavigateInNewTab);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, navigate.Target);
+        Assert.False(navigate.InNewTab);
     }
 
     [Fact]
@@ -351,8 +354,8 @@ public sealed class CodeViewTests
             var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Show in metadata").Inputs.Position;
             view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
 
-            Assert.Equal(view.Document.SpanAt(line, column).Reference, view.Last.ShowInMetadata);
-            Assert.Null(view.Last.Navigate);
+            var shown = Assert.IsType<CodeViewIntent.ShowInMetadata>(view.Last.Intent);
+            Assert.Equal(view.Document.SpanAt(line, column).Reference, shown.Target);
         }
     }
 
@@ -366,8 +369,8 @@ public sealed class CodeViewTests
         var item = view.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "Show in .NET API reference").Inputs.Position;
         view.Frames.Click(item.Left + 2f, view.Frames.Height - item.Center.Y);
 
-        Assert.Equal(view.Document.SpanAt(line, column).Reference, view.Last.ShowInApiReference);
-        Assert.Null(view.Last.Navigate);
+        var shown = Assert.IsType<CodeViewIntent.ShowInApiReference>(view.Last.Intent);
+        Assert.Equal(view.Document.SpanAt(line, column).Reference, shown.Entity);
     }
 
     [Fact]

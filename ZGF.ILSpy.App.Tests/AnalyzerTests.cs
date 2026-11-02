@@ -136,7 +136,7 @@ public sealed class AnalyzerTests
         view.Click(row, column + "return First".Length);
         view.Key(Shortcuts.Analyze);
 
-        Assert.Equal("First", view.Last.Analyze?.Name);
+        Assert.Equal("First", Assert.IsType<CodeViewIntent.Analyze>(view.Last.Intent).Entity.Name);
     }
 
     [Fact]

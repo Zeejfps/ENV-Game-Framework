@@ -71,27 +71,41 @@ internal static class DocumentsView
         var view = ui.State.Documents.ViewOf(tab);
         var document = FindDocumentToShow(ui.State, view, tab);
         var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);
-        if (result.Navigate != null)
-            Navigate(appState, result.Navigate, result.NavigateInNewTab);
-        if (result.ToggleBookmark != null)
-            ToggleLineBookmark(ui, appState, tab, result.ToggleBookmark.Value);
-        if (result.Analyze != null)
-            AnalyzerPanelView.Analyze(ui.State, appState, result.Analyze);
-        if (result.ShowInMetadata != null)
-            ShowInMetadata(appState, result.ShowInMetadata, inNewTab: false);
-        if (result.ShowInApiReference != null)
-            ShowInApiReference(appState, result.ShowInApiReference);
-        ShowAskedDiagram(appState, result, ui.State.Strings);
+        if (result.Intent != null)
+            Act(ui, appState, tab, result.Intent);
         Zoom(ui.State, result.Zoom);
     }
 
-    /// <summary>Shows the type the code view's menu asked for on the diagram last worked in, or on a new one.</summary>
-    private static void ShowAskedDiagram(AppState appState, CodeViewResult result, Strings t)
+    /// <summary>Does what the user asked the code view of <paramref name="tab"/> to do.</summary>
+    private static void Act(Ui<UiState> ui, AppState appState, DocumentTab tab, CodeViewIntent intent)
     {
-        if (result.ShowInDiagram != null)
-            ShowInDiagram(appState, result.ShowInDiagram, t.DiagramTitle(result.ShowInDiagram.Name));
-        if (result.ShowInNewDiagram != null)
-            ShowInNewDiagram(appState, result.ShowInNewDiagram, t.DiagramTitle(result.ShowInNewDiagram.Name));
+        var t = ui.State.Strings;
+        switch (intent)
+        {
+            case CodeViewIntent.Navigate navigate:
+                Navigate(appState, navigate.Target, navigate.InNewTab);
+                break;
+            case CodeViewIntent.ToggleBookmark toggle:
+                ToggleLineBookmark(ui, appState, tab, toggle.Line);
+                break;
+            case CodeViewIntent.Analyze analyze:
+                AnalyzerPanelView.Analyze(ui.State, appState, analyze.Entity);
+                break;
+            case CodeViewIntent.ShowInMetadata metadata:
+                ShowInMetadata(appState, metadata.Target, inNewTab: false);
+                break;
+            case CodeViewIntent.ShowInApiReference reference:
+                ShowInApiReference(appState, reference.Entity);
+                break;
+            case CodeViewIntent.ShowInDiagram diagram:
+                ShowInDiagram(appState, diagram.Type, t.DiagramTitle(diagram.Type.Name));
+                break;
+            case CodeViewIntent.ShowInNewDiagram diagram:
+                ShowInNewDiagram(appState, diagram.Type, t.DiagramTitle(diagram.Type.Name));
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 
     private static void Zoom(UiState uiState, CodeZoom zoom)
