@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
@@ -203,25 +204,31 @@ internal ref struct MetadataGridFrame
     private void Arrive(TableBody body, float rowHeight)
     {
         if (body.Viewport <= 0f) return;
-        if (_state.PendingRestore != null)
-            ArriveAtRestored(body, rowHeight);
-        else if (_state.PendingReveal >= 0)
-            ArriveAtRevealed(body, rowHeight);
+        var pending = _state.Pending;
+        if (pending == null) return;
+        _state.Pending = null;
+        switch (pending)
+        {
+            case PendingGridScroll.Restore restore:
+                ArriveAtRestored(body, rowHeight, restore.Position);
+                break;
+            case PendingGridScroll.Reveal reveal:
+                ArriveAtRevealed(body, rowHeight, reveal.Row);
+                break;
+            default:
+                throw new UnreachableException();
+        }
     }
 
-    private void ArriveAtRestored(TableBody body, float rowHeight)
+    private void ArriveAtRestored(TableBody body, float rowHeight, CodeViewPosition restore)
     {
-        var restore = _state.PendingRestore!.Value;
-        _state.PendingRestore = null;
         _state.Scroll.X = restore.ScrollX;
         body.ScrollTo(restore.TopLine * rowHeight);
         _state.SelectCell(restore.Caret.Line, restore.Caret.Column);
     }
 
-    private void ArriveAtRevealed(TableBody body, float rowHeight)
+    private void ArriveAtRevealed(TableBody body, float rowHeight, int row)
     {
-        var row = _state.PendingReveal;
-        _state.PendingReveal = MetadataGridState.None;
         _state.SelectCell(row, _state.CurrentColumn);
         var index = _state.IndexOf(row);
         if (index < 0) return;

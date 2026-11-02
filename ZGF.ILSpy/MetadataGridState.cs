@@ -3,6 +3,19 @@ using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy;
 
+/// <summary>Where a metadata grid is to go once it is laid out: to a row selected and scrolled into view, or
+/// back to where it stood.</summary>
+internal abstract record PendingGridScroll
+{
+    private PendingGridScroll()
+    {
+    }
+
+    public sealed record Reveal(int Row) : PendingGridScroll;
+
+    public sealed record Restore(CodeViewPosition Position) : PendingGridScroll;
+}
+
 /// <summary>Everything a <see cref="MetadataGridWidget.MetadataGridView"/> keeps between frames:
 /// the columns' widths, the sort and text filters, the selected cell and the text selected in it,
 /// the scroll and the selected row's decoded details. One per open tab, owned by the app.</summary>
@@ -23,8 +36,7 @@ public sealed class MetadataGridState
     internal readonly TableCellSelection Cell;
     internal readonly TableScroll Scroll = new();
     internal float RowHeight;
-    internal int PendingReveal = None;
-    internal CodeViewPosition? PendingRestore;
+    internal PendingGridScroll? Pending;
     internal int EditingColumn = None;
     internal bool BeginEdit;
     internal int FlagsColumn = None;
@@ -57,7 +69,6 @@ public sealed class MetadataGridState
         Headers = ListHeaders(grid);
         Filters = new MetadataColumnFilter?[grid.Columns.Count];
         SortColumn = None;
-        PendingReveal = None;
         EditingColumn = None;
         FlagsColumn = None;
         Cell.Clear();
@@ -69,7 +80,7 @@ public sealed class MetadataGridState
         ViewKey = 0;
         Scroll.X = 0f;
         Scroll.Y = 0f;
-        PendingRestore = null;
+        Pending = null;
         Open.Clear();
         Details.Clear();
     }
@@ -82,18 +93,10 @@ public sealed class MetadataGridState
     }
 
     /// <summary>Returns the view to <paramref name="position"/> once it has been laid out.</summary>
-    public void Restore(CodeViewPosition position)
-    {
-        PendingRestore = position;
-        PendingReveal = None;
-    }
+    public void Restore(CodeViewPosition position) => Pending = new PendingGridScroll.Restore(position);
 
     /// <summary>Selects <paramref name="row"/> and scrolls it into view once laid out.</summary>
-    public void Reveal(int row)
-    {
-        PendingReveal = row;
-        PendingRestore = null;
-    }
+    public void Reveal(int row) => Pending = new PendingGridScroll.Reveal(row);
 
     /// <summary>Sorts by <paramref name="column"/>, the other way when it already sorts by it, and
     /// scrolls the selected row back into view.</summary>
@@ -103,7 +106,7 @@ public sealed class MetadataGridState
         SortColumn = column;
         Order = Grid!.Order(column, Descending);
         if (Selected != None)
-            PendingReveal = Selected;
+            Pending = new PendingGridScroll.Reveal(Selected);
     }
 
     /// <summary>The filter of <paramref name="column"/>, made on first use; a column of flags gets

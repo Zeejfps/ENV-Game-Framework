@@ -78,7 +78,7 @@ public sealed class AppStateTests
         CloseAllAssemblies(d.AppState);
         d.NextFrame();
         var lineBefore = d.Ui.Documents.ViewOf(code).Code.Pending;
-        var rowBefore = d.Ui.Documents.ViewOf(grid).Grid.PendingReveal;
+        var rowBefore = d.Ui.Documents.ViewOf(grid).Grid.Pending;
 
         d.AppState.EnqueueCommand(new ViewCommand.ExpandNodes([ns]));
         d.AppState.EnqueueCommand(new ViewCommand.RevealLine(code, lines));
@@ -87,7 +87,7 @@ public sealed class AppStateTests
 
         Assert.False(d.Ui.Tree.View.IsExpanded(ns));
         Assert.Equal(lineBefore, d.Ui.Documents.ViewOf(code).Code.Pending);
-        Assert.Equal(rowBefore, d.Ui.Documents.ViewOf(grid).Grid.PendingReveal);
+        Assert.Equal(rowBefore, d.Ui.Documents.ViewOf(grid).Grid.Pending);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class AppStateTests
         documents.RevealRow(grid, 2);
         d.NextFrame();
 
-        Assert.Equal(2, documents.ViewOf(grid).Grid.PendingReveal);
+        Assert.Equal(new PendingGridScroll.Reveal(2), documents.ViewOf(grid).Grid.Pending);
     }
 
     [Fact]

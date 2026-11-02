@@ -11,8 +11,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ### Optional-field bags that should be sum types
 
 - **View state**, one commit each, smallest first:
-    1. **Metadata grid pending scroll.** `MetadataGridState` (`MetadataGridState.cs:26-27`) has `PendingReveal` (-1 for none) beside `PendingRestore`, each clearing the other by hand. Make it one nullable Reveal(row) | Restore(position).
-    2. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
+    1. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
 
 ### Bare identifiers that can be swapped
 
