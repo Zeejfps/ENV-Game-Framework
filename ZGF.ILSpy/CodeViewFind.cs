@@ -37,10 +37,10 @@ internal sealed class CodeFindIndex
         return true;
     }
 
-    /// <summary>The first match at or after <paramref name="at"/>, wrapping to the first; -1 when there are none.</summary>
-    public int FirstFrom(TextPosition at)
+    /// <summary>The first match at or after <paramref name="at"/>, wrapping to the first; null when there are none.</summary>
+    public int? FirstFrom(TextPosition at)
     {
-        if (_matches.Count == 0) return -1;
+        if (_matches.Count == 0) return null;
         var index = FirstOnOrAfter(at);
         return index < _matches.Count ? index : 0;
     }

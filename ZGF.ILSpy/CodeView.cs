@@ -83,6 +83,9 @@ internal abstract record PendingScroll
     public sealed record ShowMatch(int Line, int ColumnStart, int ColumnEnd) : PendingScroll;
 }
 
+/// <summary>The line <see cref="Line"/> flashing since the time <see cref="From"/>, after it was revealed.</summary>
+internal readonly record struct CodeFlash(int Line, double From);
+
 /// <summary>Everything a <see cref="CodeViewWidget.CodeView"/> keeps between frames: scroll,
 /// selection, folds, find. One per open tab, owned by the app.</summary>
 public sealed class CodeViewState
@@ -106,12 +109,12 @@ public sealed class CodeViewState
     internal CodeMenuTarget Menu = CodeMenuTarget.None;
     internal readonly KeptTooltip Tooltip = new();
     internal PendingScroll? Pending;
-    internal int FlashLine = NoLine;
-    internal double FlashFrom;
+    internal CodeFlash? Flash;
     internal bool FindOpen;
     internal bool FocusFind;
     internal string Query = "";
-    internal int CurrentMatch = NoLine;
+    /// <summary>The index of the find match selected, or null; kept while find is closed, for F3 to go on from.</summary>
+    internal int? CurrentMatch;
     internal int KeyScrollRows;
     internal int KeyScrollPages;
 
@@ -190,8 +193,8 @@ public sealed class CodeViewState
         Tooltip.Forget();
         if (Pending is PendingScroll.ShowMatch)
             Pending = null;
-        FlashLine = NoLine;
-        CurrentMatch = NoLine;
+        Flash = null;
+        CurrentMatch = null;
         KeyScrollRows = KeyScrollPages = 0;
     }
 
@@ -689,17 +692,18 @@ public static class CodeViewWidget
         frame.MatchLength = findActive ? state.Find.Length : 0;
         frame.CurrentMatch = state.CurrentMatch;
 
-        frame.FlashLine = CodeViewState.NoLine;
-        if (state.FlashLine != CodeViewState.NoLine)
+        frame.FlashLine = null;
+        var flash = state.Flash;
+        if (flash != null)
         {
-            var t = (float)((ui.RealTime - state.FlashFrom) / FlashSeconds);
+            var t = (float)((ui.RealTime - flash.Value.From) / FlashSeconds);
             if (t >= 1f)
             {
-                state.FlashLine = CodeViewState.NoLine;
+                state.Flash = null;
             }
             else
             {
-                frame.FlashLine = state.FlashLine;
+                frame.FlashLine = flash.Value.Line;
                 frame.Flash = UiColor.Mix(theme.EditorBackground, palette.Flash, 1f - t);
                 ui.RequestUpdate();
             }
@@ -750,8 +754,7 @@ public static class CodeViewWidget
             var line = Math.Clamp(reveal.Line, 0, Math.Max(0, document.Lines.Length - 1));
             state.RevealFolds(line);
             state.ScrollY = MathF.Max(0f, folds.RowOf(line) * rowHeight - viewport / 3f);
-            state.FlashLine = line;
-            state.FlashFrom = ui.RealTime;
+            state.Flash = new CodeFlash(line, ui.RealTime);
             state.Pending = null;
             ui.RequestUpdate();
         }
@@ -928,7 +931,7 @@ public static class CodeViewWidget
             var queryChanged = !string.Equals(state.Query, state.Find.Query, StringComparison.Ordinal);
             if (state.Find.Update(document, state.Query))
             {
-                state.CurrentMatch = queryChanged ? state.Find.FirstFrom(state.Selection.Start) : CodeViewState.NoLine;
+                state.CurrentMatch = queryChanged ? state.Find.FirstFrom(state.Selection.Start) : null;
                 ShowMatch(state);
             }
             if (submitted)
@@ -937,7 +940,7 @@ public static class CodeViewWidget
             var count = state.Find.Matches.Count;
             var label = state.Query.Length == 0 ? ""
                 : count == 0 ? t.FindNoResults
-                : ui.Memo("count", (state.CurrentMatch, count, t), static a => a.CurrentMatch >= 0 ? a.t.FindPosition(a.CurrentMatch + 1, a.count) : a.t.FindMatches(a.count));
+                : ui.Memo("count", (state.CurrentMatch, count, t), static a => a.CurrentMatch != null ? a.t.FindPosition(a.CurrentMatch.Value + 1, a.count) : a.t.FindMatches(a.count));
             ui.Text(label, new Box { Width = Sizing.Grow() }, color: count == 0 && state.Query.Length > 0 ? theme.Warning : theme.TextMuted,
                 size: theme.FontSizeSmall, overflow: TextOverflow.Ellipsis);
             if (ui.IconButton("previous", ui.State.Icons.CodeFindPrevious, ui.Memo("previous-tip", t, static s => s.FindPrevious("Shift+F3")), count > 0))
@@ -958,19 +961,24 @@ public static class CodeViewWidget
         var count = state.Find.Matches.Count;
         if (count == 0)
         {
-            state.CurrentMatch = CodeViewState.NoLine;
+            state.CurrentMatch = null;
             return;
         }
-        state.CurrentMatch = state.CurrentMatch < 0
-            ? direction > 0 ? state.Find.FirstFrom(state.Selection.Caret) : (state.Find.FirstOnOrAfter(state.Selection.Caret) - 1 + count) % count
-            : (state.CurrentMatch + direction + count) % count;
+        var current = state.CurrentMatch;
+        if (current != null)
+            state.CurrentMatch = (current.Value + direction + count) % count;
+        else if (direction > 0)
+            state.CurrentMatch = state.Find.FirstFrom(state.Selection.Caret);
+        else
+            state.CurrentMatch = (state.Find.FirstOnOrAfter(state.Selection.Caret) - 1 + count) % count;
         ShowMatch(state);
     }
 
     private static void ShowMatch(CodeViewState state)
     {
-        if (state.CurrentMatch < 0) return;
-        var match = state.Find.Matches[state.CurrentMatch];
+        var current = state.CurrentMatch;
+        if (current == null) return;
+        var match = state.Find.Matches[current.Value];
         state.Selection.Select(match, match with { Column = match.Column + state.Find.Length });
         state.RevealFolds(match.Line);
         state.Pending = new PendingScroll.ShowMatch(match.Line, match.Column, match.Column + state.Find.Length);

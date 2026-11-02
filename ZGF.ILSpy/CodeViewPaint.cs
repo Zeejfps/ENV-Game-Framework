@@ -37,8 +37,8 @@ internal sealed class CodeViewFrame
     public int UnderlineSpan = -1;
     public IReadOnlyList<TextPosition> Matches = [];
     public int MatchLength;
-    public int CurrentMatch = -1;
-    public int FlashLine = -1;
+    public int? CurrentMatch;
+    public int? FlashLine;
     public int HoverFold = -1;
     public int HoverChip = -1;
     public float MarkWidth;
