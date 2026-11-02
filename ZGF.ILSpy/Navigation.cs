@@ -284,7 +284,7 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab: false);
         var place = entry.Place;
-        var position = entry.Language == appState.Language ? entry.Position : null;
+        var position = ViewPosition.KeptIn(entry.Position, entry.Language, appState.Language);
         var shown = FindShownNode(appState, FindTab(appState, destination), place);
         if (shown != null)
         {
@@ -313,7 +313,7 @@ public static class Navigation
         return node;
     }
 
-    private static void ShowHistoryPlace(AppState appState, NodePath place, CodeViewPosition? position, Outcome<BrowseNode?> found,
+    private static void ShowHistoryPlace(AppState appState, NodePath place, ViewPosition? position, Outcome<BrowseNode?> found,
         TabDestination destination)
     {
         switch (found)
@@ -389,7 +389,7 @@ public static class Navigation
         AppState appState,
         TabDestination destination,
         BrowseNode node,
-        CodeViewPosition? position = null,
+        ViewPosition? position = null,
         Bookmark? target = null,
         int? row = null)
     {

@@ -46,10 +46,10 @@ public sealed class TabView
     }
 
     /// <summary>Where the view of what <paramref name="tab"/> shows stands: its grid's or its code's.</summary>
-    public CodeViewPosition PositionOf(DocumentTab tab)
+    public ViewPosition PositionOf(DocumentTab tab)
     {
         if (tab.Grid != null)
-            return Grid.Position;
-        return Code.Position;
+            return ViewPosition.OfGrid(Grid.Position);
+        return ViewPosition.OfCode(Code.Position);
     }
 }

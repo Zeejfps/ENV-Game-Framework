@@ -307,14 +307,8 @@ public static class Assemblies
         return reloading;
     }
 
-    private static CodeViewPosition? FindPositionToKeep(AppState appState, DocumentTab tab)
-    {
-        if (tab.Grid != null)
-            return tab.Position;
-        if (tab.Language != appState.Language)
-            return null;
-        return tab.Position;
-    }
+    private static ViewPosition? FindPositionToKeep(AppState appState, DocumentTab tab) =>
+        ViewPosition.KeptIn(tab.Position, tab.Language, appState.Language);
 
     private static Reloaded ReopenFiles(AppState appState, IReadOnlyList<AssemblyPath> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
     {
@@ -452,5 +446,5 @@ public static class Assemblies
 
     private sealed record Reopened(LoadedAssembly Item, BrowseNode?[] Places);
 
-    private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, CodeViewPosition? Position);
+    private sealed record ReloadingTab(DocumentTab Tab, NodePath Location, int Version, ViewPosition? Position);
 }

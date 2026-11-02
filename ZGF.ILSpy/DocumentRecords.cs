@@ -18,7 +18,8 @@ public sealed record DocumentsRecord(List<DocumentRecord> Tabs, string? Active, 
 public abstract record DocumentRecord(string Panel, string? Title);
 
 /// <summary>A tab showing the node at <see cref="Location"/>, in <see cref="Language"/>, its view standing
-/// at <see cref="Position"/>. The file keeps the location as <see cref="Path"/>; a tab saved by a build before
+/// at <see cref="View"/>. The file keeps the location as <see cref="Path"/>, and the view's place as
+/// <see cref="Position"/> for code or <see cref="GridPosition"/> for a grid; a tab saved by a build before
 /// versioned paths and not shown since keeps the <see cref="Place"/> it was read with.</summary>
 public sealed record NodeDocumentRecord(
     string Panel,
@@ -26,11 +27,17 @@ public sealed record NodeDocumentRecord(
     [property: JsonIgnore] NodePath Location,
     List<LegacyPlaceStep>? Place,
     DecompilationLanguage Language,
-    CodeViewPosition? Position) : DocumentRecord(Panel, Title)
+    [property: JsonIgnore] ViewPosition? View) : DocumentRecord(Panel, Title)
 {
     public AssemblyPath FilePath => Location.FilePath;
 
     public SavedPath? Path => SavedPlaces.PathOf(Location);
+
+    /// <summary>Where the code view stood, as the file keeps it; null for a grid.</summary>
+    public CodeViewPosition? Position => View?.Code;
+
+    /// <summary>Where the grid stood, as the file keeps it; null for a code view.</summary>
+    public GridPosition? GridPosition => View?.Grid;
 }
 
 /// <summary>A tab showing a diagram of <see cref="Types"/>, in the order added, the assemblies at

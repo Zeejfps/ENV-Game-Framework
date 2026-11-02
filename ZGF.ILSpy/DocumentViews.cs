@@ -156,7 +156,7 @@ public sealed class DocumentViews
     }
 
     /// <summary>Where the view of <paramref name="tab"/> stands, or null when it has none.</summary>
-    public CodeViewPosition? FindPosition(DocumentTab tab)
+    public ViewPosition? FindPosition(DocumentTab tab)
     {
         if (!_views.TryGetValue(tab, out var view))
             return null;
@@ -173,18 +173,23 @@ public sealed class DocumentViews
         return released;
     }
 
-    /// <summary>Returns the view of <paramref name="tab"/>, an open tab, to <paramref name="position"/>.</summary>
-    public void RestoreView(DocumentTab tab, CodeViewPosition position)
+    /// <summary>Returns the view of <paramref name="tab"/>, an open tab, to <paramref name="position"/>, when it is
+    /// a position of the view the tab shows, a grid's or a code view's.</summary>
+    public void RestoreView(DocumentTab tab, ViewPosition position)
     {
         var view = _views.GetValueOrDefault(tab);
         if (view == null)
             return;
         if (tab.Grid == null)
         {
-            view.Code.Restore(position);
+            var code = position.Code;
+            if (code != null)
+                view.Code.Restore(code.Value);
             return;
         }
-        view.Grid.Restore(position);
+        var grid = position.Grid;
+        if (grid != null)
+            view.Grid.Restore(grid.Value);
     }
 
     /// <summary>Returns the view of the diagram <paramref name="tab"/>, an open tab, shows to how

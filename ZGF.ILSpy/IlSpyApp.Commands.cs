@@ -101,7 +101,7 @@ public sealed partial class IlSpyApp
         uiState.Analyzer.Show(root);
     }
 
-    private static void RestoreView(UiState uiState, AppState appState, DocumentTab tab, CodeViewPosition position)
+    private static void RestoreView(UiState uiState, AppState appState, DocumentTab tab, ViewPosition position)
     {
         if (!appState.Tabs.Contains(tab))
             return;

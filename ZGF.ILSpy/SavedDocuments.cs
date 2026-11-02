@@ -282,12 +282,8 @@ public static class SavedDocuments
         RevealIfActive(appState, tab, node);
     }
 
-    private static CodeViewPosition? FindSavedPosition(AppState appState, NodeDocumentRecord saved)
-    {
-        if (saved.Language != appState.Language)
-            return null;
-        return saved.Position;
-    }
+    private static ViewPosition? FindSavedPosition(AppState appState, NodeDocumentRecord saved) =>
+        ViewPosition.KeptIn(saved.View, saved.Language, appState.Language);
 
     private static void RevealIfActive(AppState appState, DocumentTab tab, BrowseNode node)
     {

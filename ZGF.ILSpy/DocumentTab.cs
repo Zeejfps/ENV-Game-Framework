@@ -12,7 +12,7 @@ public sealed class DocumentTab
 {
     private CancellationTokenSource? _work;
     private Arrival _arrival;
-    private CodeViewPosition _viewPosition;
+    private ViewPosition _viewPosition;
     private string? _title;
     private int _changes;
 
@@ -83,7 +83,7 @@ public sealed class DocumentTab
     }
 
     /// <summary>Where the view of the shown node stands, as the view last kept it, or null while there is none.</summary>
-    public CodeViewPosition? Position
+    public ViewPosition? Position
     {
         get
         {
@@ -97,7 +97,7 @@ public sealed class DocumentTab
 
     /// <summary>Where the view of the shown node is to stand when the tab is opened again: where it
     /// stands, or while the node loads, where it is to stand once loaded.</summary>
-    public CodeViewPosition? PositionToReopen
+    public ViewPosition? PositionToReopen
     {
         get
         {
@@ -110,7 +110,7 @@ public sealed class DocumentTab
     /// <summary>Keeps where the view of what the tab shows stands, for <see cref="Position"/>. Not counted
     /// in <see cref="Changes"/>: it moves with every scroll, so it is saved with whatever else is, and on exit,
     /// as the window's bounds are.</summary>
-    public void KeepPosition(CodeViewPosition position)
+    public void KeepPosition(ViewPosition position)
     {
         _viewPosition = position;
     }

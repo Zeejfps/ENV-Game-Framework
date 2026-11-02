@@ -167,7 +167,8 @@ internal sealed record NodeDocumentJson(
     List<LegacyPlaceStepJson?>? Place,
     SavedPathJson? Path,
     DecompilationLanguage Language,
-    CodeViewPosition? Position) : DocumentJson(Panel, Title)
+    CodeViewPosition? Position,
+    GridPosition? GridPosition) : DocumentJson(Panel, Title)
 {
     public override DocumentRecord? Parse(Action leaveOut)
     {
@@ -180,7 +181,17 @@ internal sealed record NodeDocumentJson(
         var location = SettingsJson.LocationOf(file, Path, place, leaveOut);
         if (location == null)
             return null;
-        return new NodeDocumentRecord(Panel, Title, location, place, Language, Position);
+        return new NodeDocumentRecord(Panel, Title, location, place, Language, ViewOf(Position, GridPosition));
+    }
+
+    /// <summary>The view's place as the file keeps it: a code view's, else a grid's, else none.</summary>
+    private static ViewPosition? ViewOf(CodeViewPosition? code, GridPosition? grid)
+    {
+        if (code != null)
+            return ViewPosition.OfCode(code.Value);
+        if (grid != null)
+            return ViewPosition.OfGrid(grid.Value);
+        return null;
     }
 }
 

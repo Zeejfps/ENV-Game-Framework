@@ -24,7 +24,7 @@ public abstract record ViewCommand
     public sealed record OpenPanel(DockView View) : ViewCommand;
 
     /// <summary>Return <see cref="Tab"/>'s view to <see cref="Position"/>.</summary>
-    public sealed record RestoreView(DocumentTab Tab, CodeViewPosition Position) : ViewCommand;
+    public sealed record RestoreView(DocumentTab Tab, ViewPosition Position) : ViewCommand;
 
     /// <summary>Scroll <see cref="Tab"/>'s code to <see cref="Line"/> and flash it.</summary>
     public sealed record RevealLine(DocumentTab Tab, int Line) : ViewCommand;

@@ -13,7 +13,7 @@ internal abstract record PendingGridScroll
 
     public sealed record Reveal(int Row) : PendingGridScroll;
 
-    public sealed record Restore(CodeViewPosition Position) : PendingGridScroll;
+    public sealed record Restore(GridPosition Position) : PendingGridScroll;
 }
 
 /// <summary>Everything a <see cref="MetadataGridWidget.MetadataGridView"/> keeps between frames:
@@ -47,15 +47,15 @@ public sealed class MetadataGridState
 
     public MetadataGridState() => Cell = new TableCellSelection(Rows);
 
-    /// <summary>Where the view stands, as a code view's position: the top row as the top line, the
-    /// selected row and cell as the caret.</summary>
-    public CodeViewPosition Position
+    /// <summary>Where the view stands: the top row, the sideways scroll, and the selected row and current cell's column.</summary>
+    public GridPosition Position
     {
         get
         {
-            var topLine = RowHeight > 0f ? (int)(Scroll.Y / RowHeight) : 0;
-            var caret = new TextPosition(Selected, CurrentColumn);
-            return new CodeViewPosition(topLine, Scroll.X, default, caret);
+            var topRow = RowHeight > 0f ? (int)(Scroll.Y / RowHeight) : 0;
+            int? row = Selected == None ? null : Selected;
+            int? column = CurrentColumn == None ? null : CurrentColumn;
+            return new GridPosition(topRow, Scroll.X, row, column);
         }
     }
 
@@ -93,7 +93,7 @@ public sealed class MetadataGridState
     }
 
     /// <summary>Returns the view to <paramref name="position"/> once it has been laid out.</summary>
-    public void Restore(CodeViewPosition position) => Pending = new PendingGridScroll.Restore(position);
+    public void Restore(GridPosition position) => Pending = new PendingGridScroll.Restore(position);
 
     /// <summary>Selects <paramref name="row"/> and scrolls it into view once laid out.</summary>
     public void Reveal(int row) => Pending = new PendingGridScroll.Reveal(row);

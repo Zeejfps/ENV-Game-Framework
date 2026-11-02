@@ -11,7 +11,7 @@ public abstract record HistoryEntry
 
     /// <summary>A place navigated to, the icon and accessibility its node showed, the language it was shown
     /// in, and where its view stood when it was left.</summary>
-    public sealed record Node(NodePath Place, NodeIcon Icon, NodeAccessibility Accessibility, DecompilationLanguage Language, CodeViewPosition? Position)
+    public sealed record Node(NodePath Place, NodeIcon Icon, NodeAccessibility Accessibility, DecompilationLanguage Language, ViewPosition? Position)
         : HistoryEntry;
 
     /// <summary>A diagram worked in, under the title of its tab.</summary>
@@ -105,7 +105,7 @@ public sealed class NavigationHistory
     }
 
     /// <summary>Remembers where the view of the current place stands as it is left.</summary>
-    public void Leave(DecompilationLanguage language, CodeViewPosition position)
+    public void Leave(DecompilationLanguage language, ViewPosition position)
     {
         if (Current is not HistoryEntry.Node node)
             return;

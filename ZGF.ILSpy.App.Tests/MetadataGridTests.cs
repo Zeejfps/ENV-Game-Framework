@@ -92,6 +92,24 @@ public sealed class MetadataGridTests
     }
 
     [Fact]
+    public void Going_back_to_a_grid_after_switching_language_returns_to_the_row_it_left()
+    {
+        var (app, tab, grid, row) = ShowGreeterRow();
+        var baseType = grid.Text(row, grid.Column("BaseType"));
+        app.Frames.Click(TextBeside(app, "Greeter", "Greeter"));
+        app.Frames.Click(TextBeside(app, baseType, "Greeter"), modifiers: KeyModifiers.Control);
+        app.Settle(3);
+
+        SetLanguage(app.AppState, DecompilationLanguage.IL);
+        app.Settle(2);
+        GoBack(app.AppState);
+        app.Settle(3);
+
+        Assert.Same(Table(app, "TypeDef"), tab.Node);
+        Assert.Equal(row, GridOf(app, tab).Selected);
+    }
+
+    [Fact]
     public void Ctrl_clicking_a_token_shows_its_row_and_going_back_returns_to_the_row_it_left()
     {
         var (app, tab, grid, row) = ShowGreeterRow();

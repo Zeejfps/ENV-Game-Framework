@@ -120,10 +120,6 @@ public static class Decompilation
         LoadIntoTab(appState, tab, node, new Arrival(position));
     }
 
-    private static CodeViewPosition? FindPositionToKeep(AppState appState, DocumentTab tab)
-    {
-        if (tab.Language != appState.Language)
-            return null;
-        return tab.Position;
-    }
+    private static ViewPosition? FindPositionToKeep(AppState appState, DocumentTab tab) =>
+        ViewPosition.KeptIn(tab.Position, tab.Language, appState.Language);
 }

@@ -220,11 +220,13 @@ internal ref struct MetadataGridFrame
         }
     }
 
-    private void ArriveAtRestored(TableBody body, float rowHeight, CodeViewPosition restore)
+    private void ArriveAtRestored(TableBody body, float rowHeight, GridPosition restore)
     {
         _state.Scroll.X = restore.ScrollX;
-        body.ScrollTo(restore.TopLine * rowHeight);
-        _state.SelectCell(restore.Caret.Line, restore.Caret.Column);
+        body.ScrollTo(restore.TopRow * rowHeight);
+        var row = restore.Row;
+        if (row != null)
+            _state.SelectCell(row.Value, restore.Column ?? MetadataGridState.None);
     }
 
     private void ArriveAtRevealed(TableBody body, float rowHeight, int row)

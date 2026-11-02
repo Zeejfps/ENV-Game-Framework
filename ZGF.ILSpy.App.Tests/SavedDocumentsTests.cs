@@ -27,6 +27,27 @@ public sealed class SavedDocumentsTests : IDisposable
 
     private static DiagramViewState DiagramOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).Diagram;
 
+    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).Grid;
+
+    private static DocumentTab GridTab(AppDriver app) => app.AppState.Tabs.Single(t => t.Grid != null);
+
+    /// <summary>An app showing the TypeDef table with Greeter's row selected, saved on exit; the row.</summary>
+    private int SaveGridOnGreeter()
+    {
+        var app = new AppDriver(height: 360f, settings: _temp.Settings());
+        app.Driver.OpenFixtures();
+        app.Run(3);
+        app.Show(app.Node("Metadata", "Tables").Table("TypeDef"), 4);
+        var tab = GridTab(app);
+        var grid = tab.Grid;
+        Assert.NotNull(grid);
+        var row = grid.RowNamed("Greeter");
+        GridOf(app, tab).Reveal(row);
+        app.Run(3);
+        app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 360, false));
+        return row;
+    }
+
     private static DocumentTab TabTitled(AppDriver app, string title) => app.AppState.Tabs.Single(t => t.Title == title);
 
     private static CodeViewPosition ScrollTo(AppDriver app, DocumentTab tab, int topLine, TextPosition anchor, TextPosition caret)
@@ -169,6 +190,37 @@ public sealed class SavedDocumentsTests : IDisposable
         Assert.Equal(1.5f, restoredView.Camera.Zoom);
         Assert.False(restoredView.Folds.IsOpen(fields));
         Assert.True(restoredView.ShowsHiddenMembers);
+    }
+
+    [Fact]
+    public void A_grid_comes_back_after_a_restart_on_the_row_it_was_left_on()
+    {
+        var row = SaveGridOnGreeter();
+
+        Assert.Contains("\"GridPosition\"", File.ReadAllText(_temp.PathOf("settings.json")));
+        var next = new AppDriver(height: 360f, settings: _temp.Settings());
+        RestoreActiveAssemblyList(next.AppState);
+        next.Settle(4);
+
+        Assert.Equal(row, GridOf(next, GridTab(next)).Selected);
+    }
+
+    [Fact]
+    public void A_grid_saved_with_a_code_views_position_by_an_older_build_comes_back_at_the_top()
+    {
+        var row = SaveGridOnGreeter();
+        var settings = _temp.Settings();
+        var documents = Assert.Single(settings.AssemblyLists).Documents;
+        Assert.NotNull(documents);
+        var saved = documents.Tabs.OfType<NodeDocumentRecord>().Single(t => t.GridPosition != null);
+        var older = saved with { View = ViewPosition.OfCode(new CodeViewPosition(row, 0f, default, new TextPosition(row, 1))) };
+        documents.Tabs[documents.Tabs.IndexOf(saved)] = older;
+
+        var next = new AppDriver(height: 360f, settings: settings);
+        RestoreActiveAssemblyList(next.AppState);
+        next.Settle(4);
+
+        Assert.Equal(MetadataGridState.None, GridOf(next, GridTab(next)).Selected);
     }
 
     [Fact]

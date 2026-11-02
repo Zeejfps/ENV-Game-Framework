@@ -8,10 +8,7 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ### Bare identifiers that can be swapped
 
-One commit each, smallest first:
-
-1. **Code and grid positions.** The metadata grid keeps its place in a `CodeViewPosition`, `TopLine` a row and `Caret` a (row, column). Add `GridPosition(TopRow, ScrollX, Row, Column)` and make a kept or saved position Code | Grid across `DocumentTab`, `DocumentViews`, history and `NodeDocumentRecord`; read a grid tab's position saved in the old shape and convert it.
-2. **Line vs row.** With folds collapsed a row on screen is not a document line, yet `CodeFolds.LineAt(row)`/`RowOf(line)` (about 34 call sites) take and give bare `int`s. Give rows a `CodeRow` type so converting is explicit; document lines stay `int`, as `TextPosition.Line` is. The largest of the five and the likeliest to cost more than it saves: do it last, and drop it if the code reads clearly enough without it.
+1. **Line vs row.** With folds collapsed a row on screen is not a document line, yet `CodeFolds.LineAt(row)`/`RowOf(line)` (about 34 call sites) take and give bare `int`s. Give rows a `CodeRow` type so converting is explicit; document lines stay `int`, as `TextPosition.Line` is. Likely to cost more than it saves: drop it if the code reads clearly enough without it.
 
 ### Escape hatches
 
