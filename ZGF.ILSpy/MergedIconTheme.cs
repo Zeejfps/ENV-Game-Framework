@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using ZGF.Gui.Immediate;
 
@@ -72,25 +73,30 @@ internal sealed class MergedIconTheme
 
     /// <summary>What <paramref name="value"/> draws; null when its font is broken, or after reporting that
     /// no theme declares its font or that the font has no glyph for it.</summary>
-    private IconGlyph? MakeGlyph(string key, IconValue value, ICollection<ThemeError> errors)
+    private IconGlyph? MakeGlyph(string key, IconValue value, ICollection<ThemeError> errors) => value switch
     {
-        if (value.Svg != null)
-            return IconGlyph.FromSvg(value.Svg);
-        if (!_fonts.TryGetValue(value.Font!, out var font))
+        IconValue.Picture picture => IconGlyph.FromSvg(picture.Svg),
+        IconValue.Glyph glyph => MakeFontGlyph(key, glyph, errors),
+        _ => throw new UnreachableException(),
+    };
+
+    private IconGlyph? MakeFontGlyph(string key, IconValue.Glyph glyph, ICollection<ThemeError> errors)
+    {
+        if (!_fonts.TryGetValue(glyph.Font, out var font))
         {
-            errors.Add(new ThemeError(value.File, value.Line, ThemeProblem.UnknownFont, IconsPrefix + key, value.Font!));
+            errors.Add(new ThemeError(glyph.File, glyph.Line, ThemeProblem.UnknownFont, IconsPrefix + key, glyph.Font));
             return null;
         }
-        if (font.Face == null)
+        if (font is not IconFont.Loaded loaded)
             return null;
-        if (!font.Characters!.Contains(value.Codepoint))
+        if (!loaded.Characters.Contains(glyph.Codepoint))
         {
-            var codepoint = value.Codepoint.ToString(CodepointFormat, CultureInfo.InvariantCulture);
-            errors.Add(new ThemeError(value.File, value.Line, ThemeProblem.MissingGlyph, IconsPrefix + key, codepoint));
+            var codepoint = glyph.Codepoint.ToString(CodepointFormat, CultureInfo.InvariantCulture);
+            errors.Add(new ThemeError(glyph.File, glyph.Line, ThemeProblem.MissingGlyph, IconsPrefix + key, codepoint));
             return null;
         }
-        var text = char.ConvertFromUtf32(value.Codepoint);
-        return IconGlyph.FromFont(text, font.Face.Family);
+        var text = char.ConvertFromUtf32(glyph.Codepoint);
+        return IconGlyph.FromFont(text, loaded.Face.Family);
     }
 
     /// <summary>The faces of the merged fonts that could be read, then those of <paramref name="fallback"/>
@@ -98,8 +104,8 @@ internal sealed class MergedIconTheme
     private List<FontFace> ListFaces(IconTheme? fallback)
     {
         var faces = _fonts.Values
+            .OfType<IconFont.Loaded>()
             .Select(static f => f.Face)
-            .OfType<FontFace>()
             .ToList();
         if (fallback == null)
             return faces;

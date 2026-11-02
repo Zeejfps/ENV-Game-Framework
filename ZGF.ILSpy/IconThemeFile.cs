@@ -7,20 +7,42 @@ using ZGF.Svg;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A font an icon theme file declares: the path it names, the face read from it and the
-/// characters it has glyphs for; both null when it could not be read or loaded, which was reported.</summary>
-public sealed record IconFont(string Path, FontFace? Face, FontCharacters? Characters)
+/// <summary>A font an icon theme file declares by the path it names: loaded, or broken when it could not
+/// be read or loaded, which was reported.</summary>
+public abstract record IconFont
 {
-    public static IconFont Broken(string path) => new(path, null, null);
+    private IconFont(string path)
+    {
+        Path = path;
+    }
+
+    public string Path { get; }
+
+    /// <summary>The face read from the font and the characters it has glyphs for.</summary>
+    public sealed record Loaded(string Path, FontFace Face, FontCharacters Characters) : IconFont(Path);
+
+    public sealed record Broken(string Path) : IconFont(Path);
 }
 
-/// <summary>An icon as an icon theme file writes it, with the file and line it is written on: the id of a
-/// font and a codepoint in it, or the path of an SVG file and the picture read from it.</summary>
-public sealed record IconValue(string? Font, int Codepoint, string? SvgPath, SvgDocument? Svg, string File, int Line)
+/// <summary>An icon as an icon theme file writes it, with the file and line it is written on: a glyph of
+/// a font, or a picture read from an SVG file.</summary>
+public abstract record IconValue
 {
-    public static IconValue Glyph(string font, int codepoint, string file, int line) => new(font, codepoint, null, null, file, line);
+    private IconValue(string file, int line)
+    {
+        File = file;
+        Line = line;
+    }
 
-    public static IconValue Picture(string path, SvgDocument svg, string file, int line) => new(null, 0, path, svg, file, line);
+    public string File { get; }
+
+    public int Line { get; }
+
+    /// <summary>The codepoint <see cref="Codepoint"/> of the font the theme declares as <see cref="Font"/>.</summary>
+    public sealed record Glyph(string Font, int Codepoint, string File, int Line) : IconValue(File, Line);
+
+    /// <summary>The picture <see cref="Svg"/> read from the file at <see cref="SvgPath"/>.</summary>
+    public sealed record Picture(string SvgPath, SvgDocument Svg, string File, int Line) : IconValue(File, Line);
 }
 
 /// <summary>One icon theme file as it is written, without the themes it extends: its name, the theme it
@@ -165,15 +187,15 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
     {
         var bytes = ReadAsset(key, path, line);
         if (bytes == null)
-            return IconFont.Broken(path);
+            return new IconFont.Broken(path);
         var face = new FontFace(_assets.FamilyOf(id, path), bytes);
         var characters = face.ReadCharacters();
         if (characters == null)
         {
             _json.AddError(line, ThemeProblem.NotAFont, key, path);
-            return IconFont.Broken(path);
+            return new IconFont.Broken(path);
         }
-        return new IconFont(path, face, characters);
+        return new IconFont.Loaded(path, face, characters);
     }
 
     private void ReadIcons(ref Utf8JsonReader reader, int line)
@@ -206,12 +228,7 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
     }
 
     /// <summary>The fields of an icon as written, each null when left out.</summary>
-    private readonly record struct IconFields(string? Font, string? Glyph, string? Svg)
-    {
-        public bool IsPicture => Svg != null && Font == null && Glyph == null;
-
-        public bool IsGlyph => Svg == null && Font != null && Glyph != null;
-    }
+    private readonly record struct IconFields(string? Font, string? Glyph, string? Svg);
 
     private IconFields ReadIconFields(ref Utf8JsonReader reader, string subject)
     {
@@ -241,10 +258,11 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
     /// <summary>The icon <paramref name="fields"/> make; null after reporting why they make none.</summary>
     private IconValue? MakeValue(string subject, IconFields fields, int line)
     {
-        if (fields.IsPicture)
-            return ReadPicture(subject, fields.Svg!, line);
-        if (fields.IsGlyph)
-            return MakeGlyph(subject, fields.Font!, fields.Glyph!, line);
+        var (font, glyph, svg) = fields;
+        if (svg != null && font == null && glyph == null)
+            return ReadPicture(subject, svg, line);
+        if (svg == null && font != null && glyph != null)
+            return MakeGlyph(subject, font, glyph, line);
         _json.AddError(line, ThemeProblem.InvalidIcon, subject);
         return null;
     }
@@ -257,7 +275,7 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
             _json.AddError(line, ThemeProblem.NotACodepoint, subject, glyph);
             return null;
         }
-        return IconValue.Glyph(font, codepoint.Value, File, line);
+        return new IconValue.Glyph(font, codepoint.Value, File, line);
     }
 
     /// <summary>The Unicode scalar value <paramref name="hex"/> writes in up to six hex digits, or null.</summary>
@@ -285,7 +303,7 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
             _json.AddError(line, ThemeProblem.InvalidSvg, subject, $"{path}: {error}");
             return null;
         }
-        return IconValue.Picture(path, svg!, File, line);
+        return new IconValue.Picture(path, svg, File, line);
     }
 
     private static string DecodeText(byte[] bytes)

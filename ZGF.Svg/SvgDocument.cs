@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ZGF.Svg.Parsing;
 using ZGF.Svg.Scene;
@@ -37,7 +38,7 @@ public sealed class SvgDocument
         return Parse(Encoding.UTF8.GetString(utf8Bytes));
     }
 
-    public static bool TryParse(string svgText, out SvgDocument? document, out string? error)
+    public static bool TryParse(string svgText, [NotNullWhen(true)] out SvgDocument? document, [NotNullWhen(false)] out string? error)
     {
         try
         {
