@@ -50,7 +50,7 @@ public sealed class NavigationTests
         var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
         var line = document.Lines[document.LineContaining("private readonly List<T> _items")];
 
-        var node = list.FindNode(line.SpanAt("List").Reference!);
+        var node = list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(line.SpanAt("List").Reference));
 
         Assert.NotNull(node);
         Assert.Equal("List<T>", node!.Text);
@@ -67,8 +67,8 @@ public sealed class NavigationTests
         var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
         var call = document.Lines[document.LineContaining("_items.Add(item);")];
 
-        var addOnList = list.FindNode(call.SpanAt("Add").Reference!);
-        var field = list.FindNode(call.SpanAt("_items").Reference!);
+        var addOnList = list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(call.SpanAt("Add").Reference));
+        var field = list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(call.SpanAt("_items").Reference));
 
         Assert.Equal("Add(T) : void", addOnList!.Text);
         Assert.Equal("List<T>", addOnList.Parent!.Text);
@@ -82,8 +82,8 @@ public sealed class NavigationTests
         var document = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
         var call = document.Lines[document.LineContaining("_items.Add(item);")];
 
-        var add = list.FindMetadataRow(call.SpanAt("Add").Reference!)!.Value;
-        var field = list.FindMetadataRow(call.SpanAt("_items").Reference!)!.Value;
+        var add = list.FindMetadataRow(Assert.IsAssignableFrom<CodeReference.Navigable>(call.SpanAt("Add").Reference))!.Value;
+        var field = list.FindMetadataRow(Assert.IsAssignableFrom<CodeReference.Navigable>(call.SpanAt("_items").Reference))!.Value;
         var self = list.FindMetadataRow(CodeReference.ToAssembly(assembly.Name, assembly.FilePath))!.Value;
 
         var methods = Assert.IsType<MetadataGrid>(TableOf(add.Node).Grid);
@@ -102,9 +102,9 @@ public sealed class NavigationTests
     {
         var (list, assembly) = Trees.OpenTestAssembly();
         var document = assembly.Calculator().Child("Add(T) : void").Decompile(DecompilationLanguage.CSharp);
-        var item = document.SpansOf().First(s => s.Text == "item").Span.Reference!;
+        var item = document.SpansOf().First(s => s.Text == "item").Span.Reference;
 
-        Assert.Null(list.FindMetadataRow(item));
+        Assert.IsType<CodeReference.Local>(item);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class NavigationTests
         var document = assembly.Calculator().Decompile(DecompilationLanguage.IL);
         var objectReference = document.SpansOf().First(s => s.Text == "System.Object" && s.Span.Reference is not null).Span.Reference!;
 
-        var node = list.FindNode(objectReference);
+        var node = list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(objectReference));
 
         Assert.Equal("Object", node!.Text);
         Assert.Equal("System.Private.CoreLib", node.Assembly.Name);
@@ -150,7 +150,7 @@ public sealed class NavigationTests
         var countInMember = memberDocument.SpansOf().First(s => s.Text == "Count").Span.Reference;
 
         Assert.Equal(2, countInType.Count(r => r == count));
-        Assert.Equal(3, countInType.Count(r => r != count && r!.Kind == CodeReferenceKind.Property));
+        Assert.Equal(3, countInType.Count(r => r != count && r is CodeReference.Entity entity && entity.Kind == EntityKind.Property));
         Assert.Equal(count, countInMember);
     }
 
@@ -165,8 +165,7 @@ public sealed class NavigationTests
         Assert.Equal(2, items.Length);
         Assert.True(items[0].IsDefinition);
         Assert.Equal(items[0].Reference, items[1].Reference);
-        Assert.False(items[0].Reference!.IsNavigable);
-        Assert.Null(list.FindNode(items[0].Reference!));
+        Assert.IsType<CodeReference.Local>(items[0].Reference);
     }
 
     [Fact]
@@ -176,7 +175,12 @@ public sealed class NavigationTests
         var coreLib = list.Open(Trees.CoreLibPath);
         var lambdaOwner = coreLib.Root.Child("System.Collections.Generic").Child("List<T>");
         var document = lambdaOwner.Child("Count : int").Decompile(DecompilationLanguage.IL);
-        var getter = document.SpansOf().First(s => s.Span.IsDefinition && s.Span.Reference?.Kind == CodeReferenceKind.Property).Span.Reference!;
+        var getter = document.SpansOf()
+            .Select(static s => s.Span)
+            .Where(static s => s.IsDefinition)
+            .Select(static s => s.Reference)
+            .OfType<CodeReference.Entity>()
+            .First(static r => r.Kind == EntityKind.Property);
 
         var node = list.FindNode(getter);
 

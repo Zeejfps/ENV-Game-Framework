@@ -40,7 +40,7 @@ public abstract record ViewCommand
 
     /// <summary>Select the card of <see cref="Type"/> on the diagram <see cref="Tab"/> shows, and bring it
     /// into view once it is laid out.</summary>
-    public sealed record FocusCard(DocumentTab Tab, CodeReference Type) : ViewCommand;
+    public sealed record FocusCard(DocumentTab Tab, CodeReference.Entity Type) : ViewCommand;
 
     /// <summary>Expand the analyzer's <see cref="Root"/> and select it.</summary>
     public sealed record ShowAnalysis(AnalyzerSymbolNode Root) : ViewCommand;

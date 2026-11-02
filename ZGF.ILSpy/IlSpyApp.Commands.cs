@@ -122,7 +122,7 @@ public sealed partial class IlSpyApp
         uiState.Documents.RevealRow(tab, row);
     }
 
-    private static void FocusCard(UiState uiState, AppState appState, DocumentTab tab, CodeReference type)
+    private static void FocusCard(UiState uiState, AppState appState, DocumentTab tab, CodeReference.Entity type)
     {
         if (!appState.Tabs.Contains(tab))
             return;

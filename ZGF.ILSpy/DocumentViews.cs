@@ -235,7 +235,7 @@ public sealed class DocumentViews
 
     /// <summary>Selects the card of <paramref name="type"/> on the diagram <paramref name="tab"/>, an open tab,
     /// shows, and brings it into view once it is laid out.</summary>
-    public void FocusCard(DocumentTab tab, CodeReference type)
+    public void FocusCard(DocumentTab tab, CodeReference.Entity type)
     {
         var view = _views.GetValueOrDefault(tab);
         if (view == null)

@@ -201,9 +201,9 @@ public enum CodeZoom
     Reset,
 }
 
-public readonly record struct CodeViewResult(CodeReference? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null, CodeReference? Analyze = null,
-    CodeZoom Zoom = CodeZoom.None, CodeReference? ShowInMetadata = null, CodeReference? ShowInApiReference = null,
-    CodeReference? ShowInDiagram = null, CodeReference? ShowInNewDiagram = null);
+public readonly record struct CodeViewResult(CodeReference.Navigable? Navigate, bool NavigateInNewTab, int? ToggleBookmark = null,
+    CodeReference.Entity? Analyze = null, CodeZoom Zoom = CodeZoom.None, CodeReference.Navigable? ShowInMetadata = null,
+    CodeReference.Entity? ShowInApiReference = null, CodeReference.Entity? ShowInDiagram = null, CodeReference.Entity? ShowInNewDiagram = null);
 
 public static class CodeViewWidget
 {
@@ -337,7 +337,8 @@ public static class CodeViewWidget
                 }
             }
             var hoverReference = hoverSpan >= 0 ? document.Lines[hoverLine].Spans[hoverSpan].Reference : null;
-            var hoverNavigable = hoverReference is { IsNavigable: true } && !document.Lines[hoverLine].Spans[hoverSpan].IsDefinition;
+            var hoverTarget = hoverReference is CodeReference.Navigable underPointer && !document.Lines[hoverLine].Spans[hoverSpan].IsDefinition ? underPointer : null;
+            var hoverNavigable = hoverTarget != null;
             var hoverToggle = hoverFold >= 0 || hoverChip >= 0 || hoverMark >= 0;
 
             if (i.Hovered || i.Held)
@@ -393,13 +394,13 @@ public static class CodeViewWidget
             if (i.Clicked && !state.PressMoved && !state.PressedOnFold && state.Selection.Clicks == 1 && (ui.Input.Modifiers & KeyModifiers.Shift) == 0)
             {
                 var reference = state.PressedSpan >= 0 ? document.Lines[state.PressedSpanLine].Spans[state.PressedSpan] : default;
-                if (reference.Reference is { IsNavigable: true } target && !reference.IsDefinition)
+                if (reference.Reference is CodeReference.Navigable target && !reference.IsDefinition)
                     result = new CodeViewResult(target, state.PressedForNewTab);
                 else
                     state.Marked = reference.Reference;
             }
-            if (i.ClickedWith(PointerButton.Middle) && hoverNavigable)
-                result = new CodeViewResult(hoverReference, true);
+            if (i.ClickedWith(PointerButton.Middle) && hoverTarget != null)
+                result = new CodeViewResult(hoverTarget, true);
             if (i.ClickedWith(PointerButton.Right))
             {
                 ui.Focus(focusId, takesText: false);
@@ -573,7 +574,7 @@ public static class CodeViewWidget
     /// click or Ctrl, and closes the tooltip.</summary>
     private static CodeViewResult FollowLink(Ui<UiState> ui, RichTextClick click)
     {
-        if (click.Link is not CodeReference reference)
+        if (click.Link is not CodeReference.Navigable reference)
             return default;
         ui.HideTooltip();
         var withModifier = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
@@ -589,15 +590,11 @@ public static class CodeViewWidget
             return null;
         if (state.PressMoved)
             return null;
-        var reference = document.Lines[hovered.Line].Spans[hovered.Span].Reference;
-        if (!HasTooltip(reference))
+        if (document.Lines[hovered.Line].Spans[hovered.Span].Reference is not CodeReference.Entity entity)
             return null;
-        tooltips.TryGet(reference!, out var tooltip);
+        tooltips.TryGet(entity, out var tooltip);
         return tooltip;
     }
-
-    private static bool HasTooltip(CodeReference? reference) =>
-        reference is { IsNavigable: true } && reference.Kind != CodeReferenceKind.Assembly;
 
     /// <summary>The hovered span, widened to the left by the tooltip's padding so the tooltip's
     /// text starts where the word does.</summary>
@@ -754,15 +751,15 @@ public static class CodeViewWidget
 
     /// <summary>The type or member named at <paramref name="at"/> or just before it, as the caret
     /// sits after a word as often as in it; punctuation linked to a member does not count.</summary>
-    private static CodeReference? AnalyzableAt(DecompiledDocument document, TextPosition at)
+    private static CodeReference.Entity? AnalyzableAt(DecompiledDocument document, TextPosition at)
     {
         if (at.Line < 0 || at.Line >= document.Lines.Length) return null;
         var spans = document.Lines[at.Line].Spans;
         foreach (var column in (ReadOnlySpan<int>)[at.Column, at.Column - 1])
         {
             if (column >= 0 && CodeText.SpanAt(spans, column) is >= 0 and var index
-                && spans[index] is { Kind: not SpanKind.Plain, Reference: { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } reference })
-                return reference;
+                && spans[index].Kind != SpanKind.Plain && spans[index].Reference is CodeReference.Entity entity)
+                return entity;
         }
         return null;
     }
@@ -953,9 +950,9 @@ public static class CodeViewWidget
     }
 
     /// <summary>The items that show <paramref name="entity"/> on a diagram, when it is a type.</summary>
-    private static CodeViewResult DiagramItems(Ui<UiState> ui, CodeReference entity, CodeViewResult result)
+    private static CodeViewResult DiagramItems(Ui<UiState> ui, CodeReference.Entity entity, CodeViewResult result)
     {
-        if (entity.Kind != CodeReferenceKind.Type)
+        if (entity.Kind != EntityKind.Type)
             return result;
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))

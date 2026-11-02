@@ -59,7 +59,7 @@ internal static class SessionQueries
         };
 
         /// <summary>A reference to the type or member the node defines; fails the test when it defines none.</summary>
-        public CodeReference Definition => Assert.IsType<CodeReference>(NodeDefinitions.ReferenceOf(node.Subject));
+        public CodeReference.Entity Definition => Assert.IsType<CodeReference.Entity>(NodeDefinitions.ReferenceOf(node.Subject));
 
         public NodeAccessibility Accessibility => NodeVisibility.Of(node.Subject).Accessibility;
 
@@ -71,23 +71,21 @@ internal static class SessionQueries
         public int? Token => NodeDefinitions.TokenOf(node.Subject);
 
         /// <summary>Where activating the node goes; fails the test when it opens itself.</summary>
-        public NavigationAddress Destination => Assert.IsType<Activation.Navigate>(Activation.Of(node.Subject)).Address;
+        public CodeReference.Navigable Destination => Assert.IsType<Activation.Navigate>(Activation.Of(node.Subject)).Target;
     }
 
     extension(AssemblyList list)
     {
         public BrowseNode? FindNode(NodePath path) => NodeLookup.Find(list, TestSession.Shared, path);
 
-        public BrowseNode? FindNode(CodeReference reference) => NodeLookup.Find(list, TestSession.Shared, reference);
-
-        public BrowseNode? FindNode(NavigationAddress address) => NodeLookup.Find(list, TestSession.Shared, address);
+        public BrowseNode? FindNode(CodeReference.Navigable reference) => NodeLookup.Find(list, TestSession.Shared, reference);
 
         public BrowseNode? FindListedNode(NodePath path) => NodeLookup.FindListed(list, TestSession.Shared, path);
 
         public BrowseNode? FindNodeById(string idString, IEnumerable<LoadedModule> assemblies) =>
             NodeLookup.FindById(TestSession.Shared, idString, assemblies);
 
-        public MetadataTarget? FindMetadataRow(CodeReference reference) => NodeLookup.FindMetadataRow(list, TestSession.Shared, reference);
+        public MetadataTarget? FindMetadataRow(CodeReference.Navigable reference) => NodeLookup.FindMetadataRow(list, TestSession.Shared, reference);
 
         public IAsyncEnumerable<IReadOnlyList<SearchResult>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default) =>
             AssemblySearch.SearchAsync(TestSession.Shared, list.Assemblies, query, cancellationToken);

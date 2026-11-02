@@ -9,7 +9,7 @@ public static class TypeCards
 {
     /// <summary>The card of the type <paramref name="type"/> points at; null when it points at no type,
     /// or that cannot be resolved.</summary>
-    public static TypeCard? Read(AssemblyList list, CodeReference type)
+    public static TypeCard? Read(AssemblyList list, CodeReference.Entity type)
     {
         var definition = list.FindTypeDefinition(type);
         if (definition == null)
@@ -20,7 +20,7 @@ public static class TypeCards
     /// <summary>The card of the type <paramref name="type"/> points at, then the cards of the types of its
     /// own assembly it is directly related to: those it derives from, implements or holds, and those
     /// deriving from it or implementing it. None when it points at no type.</summary>
-    public static List<TypeCard> ReadWithNeighbours(AssemblyList list, CodeReference type, CancellationToken cancellationToken)
+    public static List<TypeCard> ReadWithNeighbours(AssemblyList list, CodeReference.Entity type, CancellationToken cancellationToken)
     {
         var definition = list.FindTypeDefinition(type);
         if (definition == null)
@@ -46,7 +46,7 @@ public static class TypeCards
 
     /// <summary>The cards of the types deriving directly from, or implementing, the type
     /// <paramref name="type"/> points at, among the assemblies <paramref name="list"/> holds now.</summary>
-    public static List<TypeCard> ReadDerived(AssemblyList list, CodeReference type, CancellationToken cancellationToken)
+    public static List<TypeCard> ReadDerived(AssemblyList list, CodeReference.Entity type, CancellationToken cancellationToken)
     {
         var definition = list.FindTypeDefinition(type);
         if (definition == null)
@@ -191,7 +191,7 @@ public static class TypeCards
             .ToList();
     }
 
-    private static TypeLink? LinkOf(CodeReference from, Relation relation)
+    private static TypeLink? LinkOf(CodeReference.Entity from, Relation relation)
     {
         var to = CodeReference.To(relation.Target);
         if (to == null)

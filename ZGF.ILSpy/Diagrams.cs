@@ -13,7 +13,7 @@ public static class Diagrams
     /// <summary>Shows the type <paramref name="type"/> points at, with the types of its assembly it is
     /// directly related to, on the diagram the user last worked in, brought to the front; on a new one
     /// when none is open, titled <paramref name="newTitle"/>.</summary>
-    public static void ShowInDiagram(AppState appState, CodeReference type, string newTitle)
+    public static void ShowInDiagram(AppState appState, CodeReference.Entity type, string newTitle)
     {
         var tab = appState.Tabs.Diagram;
         if (tab == null)
@@ -41,7 +41,7 @@ public static class Diagrams
 
     /// <summary>Opens the code of <paramref name="target"/>, picked on <paramref name="diagram"/>, beside it,
     /// in a new tab when <paramref name="inNewTab"/>; going back returns to the diagram.</summary>
-    public static void OpenFromDiagram(AppState appState, TypeDiagram diagram, CodeReference target, bool inNewTab)
+    public static void OpenFromDiagram(AppState appState, TypeDiagram diagram, CodeReference.Entity target, bool inNewTab)
     {
         var tab = FindTabShowing(appState, diagram);
         if (tab == null)
@@ -52,7 +52,7 @@ public static class Diagrams
 
     /// <summary>Shows the type <paramref name="type"/> points at, with the types of its assembly it is
     /// directly related to, on a new diagram: in the active tab while it shows nothing, else in a new tab.</summary>
-    public static void ShowInNewDiagram(AppState appState, CodeReference type, string title)
+    public static void ShowInNewDiagram(AppState appState, CodeReference.Entity type, string title)
     {
         LeaveActiveTab(appState);
         var tab = FindOrOpenEmptyTab(appState);
@@ -66,7 +66,7 @@ public static class Diagrams
     /// <summary>Reads the card of <paramref name="type"/> and its neighbours in the background, adds them to
     /// the diagram <paramref name="tab"/> shows, taking the type's assembly as one of its own, then
     /// commands the view to focus the card.</summary>
-    private static async void AddWithNeighbours(AppState appState, DocumentTab tab, CodeReference type)
+    private static async void AddWithNeighbours(AppState appState, DocumentTab tab, CodeReference.Entity type)
     {
         var diagram = tab.Diagram!;
         var token = diagram.Token;
@@ -88,7 +88,7 @@ public static class Diagrams
         }
     }
 
-    private static void TakeHome(AppState appState, DocumentTab tab, TypeDiagram diagram, CodeReference type, List<TypeCard> cards)
+    private static void TakeHome(AppState appState, DocumentTab tab, TypeDiagram diagram, CodeReference.Entity type, List<TypeCard> cards)
     {
         if (cards.Count == 0)
         {
@@ -100,7 +100,7 @@ public static class Diagrams
         appState.EnqueueCommand(new ViewCommand.FocusCard(tab, cards[0].Type));
     }
 
-    private static void ReportUnreadable(AppState appState, CodeReference type, Exception? error)
+    private static void ReportUnreadable(AppState appState, CodeReference.Entity type, Exception? error)
     {
         appState.ReportError(new AppProblem.TypeNotDiagrammed(type, error));
     }
@@ -145,7 +145,7 @@ public static class Diagrams
 
     /// <summary>The types <paramref name="card"/> links to as <paramref name="isKind"/> picks that
     /// <paramref name="diagram"/> does not show, each once.</summary>
-    private static List<CodeReference> ListMissing(TypeDiagram diagram, TypeCard card, Func<TypeLink, bool> isKind)
+    private static List<CodeReference.Entity> ListMissing(TypeDiagram diagram, TypeCard card, Func<TypeLink, bool> isKind)
     {
         return card.Links
             .Where(isKind)
@@ -157,7 +157,7 @@ public static class Diagrams
 
     /// <summary>Reads the cards of <paramref name="types"/>, which <paramref name="card"/> links to, in the
     /// background and adds them to <paramref name="diagram"/>.</summary>
-    private static async void AddCards(AppState appState, TypeDiagram diagram, TypeCard card, List<CodeReference> types)
+    private static async void AddCards(AppState appState, TypeDiagram diagram, TypeCard card, List<CodeReference.Entity> types)
     {
         if (types.Count == 0)
             return;
@@ -166,7 +166,7 @@ public static class Diagrams
         FinishAdding(appState, diagram, card, read);
     }
 
-    private static List<TypeCard> ReadCards(AssemblyList list, List<CodeReference> types)
+    private static List<TypeCard> ReadCards(AssemblyList list, List<CodeReference.Entity> types)
     {
         return types
             .Select(t => TypeCards.Read(list, t))
@@ -205,7 +205,7 @@ public static class Diagrams
     }
 
     /// <summary>Takes the card of <paramref name="type"/> off <paramref name="diagram"/>.</summary>
-    public static void RemoveFromDiagram(AppState appState, TypeDiagram diagram, CodeReference type)
+    public static void RemoveFromDiagram(AppState appState, TypeDiagram diagram, CodeReference.Entity type)
     {
         diagram.Remove(type);
     }

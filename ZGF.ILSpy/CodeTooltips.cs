@@ -10,8 +10,8 @@ namespace ZGF.ILSpy;
 public sealed class CodeTooltips
 {
     private readonly AssemblyList _assemblies;
-    private readonly Dictionary<CodeReference, CodeTooltip?> _found = new();
-    private readonly HashSet<CodeReference> _pending = new();
+    private readonly Dictionary<CodeReference.Entity, CodeTooltip?> _found = new();
+    private readonly HashSet<CodeReference.Entity> _pending = new();
     private int _version;
 
     public CodeTooltips(AssemblyList assemblies)
@@ -25,7 +25,7 @@ public sealed class CodeTooltips
 
     /// <summary>Whether the lookup of <paramref name="reference"/> is done, with its
     /// <paramref name="tooltip"/>, null when it has none. Starts the lookup the first time.</summary>
-    public bool TryGet(CodeReference reference, out CodeTooltip? tooltip)
+    public bool TryGet(CodeReference.Entity reference, out CodeTooltip? tooltip)
     {
         ForgetIfStale();
         if (_found.TryGetValue(reference, out tooltip))
@@ -43,7 +43,7 @@ public sealed class CodeTooltips
         _pending.Clear();
     }
 
-    private async void LookUp(CodeReference reference)
+    private async void LookUp(CodeReference.Entity reference)
     {
         if (!_pending.Add(reference))
             return;

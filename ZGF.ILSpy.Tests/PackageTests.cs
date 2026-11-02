@@ -78,7 +78,7 @@ public sealed class PackageTests
         using var temp = new TempDir();
         var list = new AssemblyList();
         var path = WritePackage(temp);
-        var type = CodeReference.ToEntity(CodeReferenceKind.Type, "Sample", AssemblyPath.Of(path), MetadataTokens.TypeDefinitionHandle(2));
+        var type = CodeReference.ToEntity(EntityKind.Type, "Sample", AssemblyPath.Of(path), MetadataTokens.TypeDefinitionHandle(2));
 
         Assert.Null(list.FindNode(type));
         Assert.Null(list.FindMetadataRow(type));
@@ -265,7 +265,7 @@ public sealed class PackageTests
         var root = package.Root.Decompile(language);
         var folder = package.Root.Child(LibFolder).Decompile(language);
 
-        Assert.False(root.IsError);
+        Assert.Null(root.Error);
         Assert.Contains($"{LibFolder}/", root.GetText());
         Assert.Contains("readme.txt (7 bytes)", root.GetText());
         Assert.Contains(TestAssemblyName, folder.GetText());

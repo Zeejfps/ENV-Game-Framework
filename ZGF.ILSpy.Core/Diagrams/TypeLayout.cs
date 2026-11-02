@@ -10,7 +10,7 @@ using MsaglRectangle = Microsoft.Msagl.Core.Geometry.Rectangle;
 namespace ZGF.ILSpy.Core.Diagrams;
 
 /// <summary>A card of a diagram as wide and tall as it is drawn.</summary>
-public readonly record struct MeasuredCard(CodeReference Type, float Width, float Height);
+public readonly record struct MeasuredCard(CodeReference.Entity Type, float Width, float Height);
 
 /// <summary>A link of a diagram with the size of its label, zero when it has none.</summary>
 public readonly record struct MeasuredLink(TypeLink Link, float LabelWidth, float LabelHeight);
@@ -73,7 +73,7 @@ public sealed class TypeLayout
     private const double NodeSeparation = 32;
     private const int SamplesPerCurve = 8;
 
-    private TypeLayout(Dictionary<CodeReference, PointF> places, List<LinkRoute> routes, float width, float height)
+    private TypeLayout(Dictionary<CodeReference.Entity, PointF> places, List<LinkRoute> routes, float width, float height)
     {
         Places = places;
         Routes = routes;
@@ -82,7 +82,7 @@ public sealed class TypeLayout
     }
 
     /// <summary>The top-left corner of each card.</summary>
-    public IReadOnlyDictionary<CodeReference, PointF> Places { get; }
+    public IReadOnlyDictionary<CodeReference.Entity, PointF> Places { get; }
 
     public IReadOnlyList<LinkRoute> Routes { get; }
 
@@ -95,7 +95,7 @@ public sealed class TypeLayout
     public static TypeLayout Arrange(DiagramMeasures measures, CancellationToken cancellationToken = default)
     {
         if (measures.Cards.Count == 0)
-            return new TypeLayout(new Dictionary<CodeReference, PointF>(), [], 0f, 0f);
+            return new TypeLayout(new Dictionary<CodeReference.Entity, PointF>(), [], 0f, 0f);
         var graph = new GeometryGraph();
         var nodes = AddNodes(graph, measures.Cards);
         var edges = AddEdges(graph, nodes, measures.Links);
@@ -105,9 +105,9 @@ public sealed class TypeLayout
         return new TypeLayout(PlacesOf(nodes, origin), RoutesOf(edges, origin), (float)box.Width, (float)box.Height);
     }
 
-    private static Dictionary<CodeReference, Node> AddNodes(GeometryGraph graph, IReadOnlyList<MeasuredCard> cards)
+    private static Dictionary<CodeReference.Entity, Node> AddNodes(GeometryGraph graph, IReadOnlyList<MeasuredCard> cards)
     {
-        var nodes = new Dictionary<CodeReference, Node>();
+        var nodes = new Dictionary<CodeReference.Entity, Node>();
         foreach (var card in cards)
         {
             var boundary = CurveFactory.CreateRectangle(card.Width, card.Height, new MsaglPoint());
@@ -118,7 +118,7 @@ public sealed class TypeLayout
         return nodes;
     }
 
-    private static List<Edge> AddEdges(GeometryGraph graph, Dictionary<CodeReference, Node> nodes, IReadOnlyList<MeasuredLink> links)
+    private static List<Edge> AddEdges(GeometryGraph graph, Dictionary<CodeReference.Entity, Node> nodes, IReadOnlyList<MeasuredLink> links)
     {
         var edges = new List<Edge>();
         foreach (var link in links)
@@ -132,7 +132,7 @@ public sealed class TypeLayout
         return edges;
     }
 
-    private static Edge? CreateEdge(Dictionary<CodeReference, Node> nodes, MeasuredLink link)
+    private static Edge? CreateEdge(Dictionary<CodeReference.Entity, Node> nodes, MeasuredLink link)
     {
         if (!nodes.TryGetValue(link.Link.From, out var source))
             return null;
@@ -173,9 +173,9 @@ public sealed class TypeLayout
         token.Canceled = true;
     }
 
-    private static Dictionary<CodeReference, PointF> PlacesOf(Dictionary<CodeReference, Node> nodes, MsaglPoint origin)
+    private static Dictionary<CodeReference.Entity, PointF> PlacesOf(Dictionary<CodeReference.Entity, Node> nodes, MsaglPoint origin)
     {
-        var places = new Dictionary<CodeReference, PointF>();
+        var places = new Dictionary<CodeReference.Entity, PointF>();
         foreach (var (type, node) in nodes)
             places[type] = TopLeftOf(node.BoundingBox, origin);
         return places;

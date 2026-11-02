@@ -240,18 +240,16 @@ public sealed class MetadataGrid
     /// member or assembly it is — a reference resolved to its definition. Null for a row that is
     /// none, or a row of debug metadata.
     /// </summary>
-    public CodeReference? Definition(int row)
+    public CodeReference.Navigable? Definition(int row)
     {
         var file = _file;
         if (!ReferenceEquals(file, _module.File) || _schema.Table == null) return null;
         var token = (int)_schema.Table << 24 | row + 1;
         var handle = MetadataTokens.EntityHandle(token);
-        var kind = CodeReference.KindOf(file.Metadata, handle);
-        if (kind == null) return null;
         var name = handle.Kind == HandleKind.AssemblyDefinition ? _module.Name
             : _schema.NameColumn >= 0 ? Text(row, _schema.NameColumn)
             : token.ToString("X8");
-        return CodeReference.ToEntity(kind.Value, name, AssemblyPath.Of(file), handle);
+        return CodeReference.To(file.Metadata, handle, name, AssemblyPath.Of(file));
     }
 
     private bool Matches(int row, int column, MetadataColumnFilter filter)

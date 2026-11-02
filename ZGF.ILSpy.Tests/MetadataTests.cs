@@ -107,7 +107,7 @@ public sealed class MetadataTests
             }
             else
             {
-                Assert.False(Assert.IsType<DocumentContent>(content).Document.IsError);
+                Assert.Null(Assert.IsType<DocumentContent>(content).Document.Error);
             }
             foreach (var child in node.Children)
                 count += Sweep(child);

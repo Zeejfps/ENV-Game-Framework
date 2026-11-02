@@ -11,7 +11,7 @@ public sealed class TypeCardTests
 
     private static AssemblyList List => s_opened.Value.List;
 
-    private static CodeReference Zoo(string type) => s_opened.Value.Assembly.Root.Child(ZooNamespace, type).Definition;
+    private static CodeReference.Entity Zoo(string type) => s_opened.Value.Assembly.Root.Child(ZooNamespace, type).Definition;
 
     private static TypeCard Card(string type) => TypeCards.Read(List, Zoo(type))!;
 

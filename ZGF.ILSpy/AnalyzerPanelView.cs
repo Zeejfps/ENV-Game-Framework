@@ -118,7 +118,7 @@ internal static class AnalyzerPanelView
             analyzer.Clear();
     }
 
-    private static void GoToItems(Ui<UiState> ui, AppState appState, CodeReference target)
+    private static void GoToItems(Ui<UiState> ui, AppState appState, CodeReference.Navigable target)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.AnalyzerGoTo, Shortcuts.Enter, id: "go-to"))
@@ -147,7 +147,7 @@ internal static class AnalyzerPanelView
 
     /// <summary>Opens the analyzer if it is not, where a root shows as loading while what
     /// <paramref name="reference"/> points at is found and analyzed.</summary>
-    public static void Analyze(UiState screen, AppState appState, CodeReference reference)
+    public static void Analyze(UiState screen, AppState appState, CodeReference.Navigable reference)
     {
         OpenAnalyzer(screen);
         AddToAnalyzer(appState, reference);

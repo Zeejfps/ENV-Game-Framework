@@ -518,7 +518,7 @@ internal static class DiagramView
     /// closes the tooltip.</summary>
     private static void FollowLink(Ui<UiState> ui, AppState appState, TypeDiagram diagram, RichTextClick click)
     {
-        if (click.Link is not CodeReference reference)
+        if (click.Link is not CodeReference.Entity reference)
             return;
         ui.HideTooltip();
         var inNewTab = click.Button == PointerButton.Middle || IsCommandHeld(ui.Input.Modifiers);

@@ -30,7 +30,7 @@ public readonly record struct CardRow(
     string Text,
     NodeIcon? Icon = null,
     NodeAccessibility Accessibility = NodeAccessibility.None,
-    CodeReference? Target = null,
+    CodeReference.Entity? Target = null,
     CardFold? Fold = null,
     bool IsOpen = false,
     float Top = 0f,
@@ -66,7 +66,7 @@ public readonly record struct FaceKey(int DiagramVersion, int FoldsVersion, bool
 /// them again only when that changes.</summary>
 public sealed class CardFaces
 {
-    private readonly Dictionary<CodeReference, CardFace> _faces = new();
+    private readonly Dictionary<CodeReference.Entity, CardFace> _faces = new();
     private FaceKey? _measuredFor;
 
     public bool IsMeasuredFor(FaceKey key) => _measuredFor == key;
@@ -81,5 +81,5 @@ public sealed class CardFaces
     }
 
     /// <summary>The face of the card of <paramref name="type"/>, or null when none was measured.</summary>
-    public CardFace? Find(CodeReference type) => _faces.GetValueOrDefault(type);
+    public CardFace? Find(CodeReference.Entity type) => _faces.GetValueOrDefault(type);
 }

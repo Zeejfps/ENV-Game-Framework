@@ -36,7 +36,7 @@ internal static class CodeHtml
 
     private static uint TextColorOf(DecompiledDocument document, CodeHtmlStyle style)
     {
-        if (document.IsError)
+        if (document.Error != null)
             return style.ErrorText;
         return style.Palette.Plain;
     }
@@ -84,7 +84,7 @@ internal static class CodeHtml
 
     private static uint ColorOf(DecompiledDocument document, SpanKind kind, CodeHtmlStyle style)
     {
-        if (document.IsError)
+        if (document.Error != null)
             return style.ErrorText;
         return style.Palette[kind];
     }

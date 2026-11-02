@@ -9,12 +9,12 @@ public sealed class TypeLayoutTests
     private const string ZooNamespace = Trees.FixturesNamespace;
     private const float Near = 1.5f;
 
-    private static CodeReference Zoo(string type) => Trees.TestAssembly.Root.Child(ZooNamespace, type).Definition;
+    private static CodeReference.Entity Zoo(string type) => Trees.TestAssembly.Root.Child(ZooNamespace, type).Definition;
 
-    private static readonly CodeReference Animal = Zoo("Animal");
-    private static readonly CodeReference Lion = Zoo("Lion");
-    private static readonly CodeReference Parrot = Zoo("Parrot");
-    private static readonly CodeReference Keeper = Zoo("Keeper");
+    private static readonly CodeReference.Entity Animal = Zoo("Animal");
+    private static readonly CodeReference.Entity Lion = Zoo("Lion");
+    private static readonly CodeReference.Entity Parrot = Zoo("Parrot");
+    private static readonly CodeReference.Entity Keeper = Zoo("Keeper");
 
     private static readonly TypeLink LionIsAnimal = new(Lion, Animal, TypeLinkKind.Inherits);
     private static readonly TypeLink ParrotIsAnimal = new(Parrot, Animal, TypeLinkKind.Inherits);
@@ -38,7 +38,7 @@ public sealed class TypeLayoutTests
         return new DiagramMeasures(cards, links);
     }
 
-    private static (PointF TopLeft, MeasuredCard Card) Placed(TypeLayout layout, DiagramMeasures measures, CodeReference type)
+    private static (PointF TopLeft, MeasuredCard Card) Placed(TypeLayout layout, DiagramMeasures measures, CodeReference.Entity type)
     {
         var card = measures.Cards.Single(c => c.Type == type);
         return (layout.Places[type], card);

@@ -41,7 +41,7 @@ public sealed class DiagramViewState
     internal DiagramFrame Frame { get; } = new();
 
     /// <summary>The type whose card is selected, or null.</summary>
-    public CodeReference? Selected;
+    public CodeReference.Entity? Selected;
 
     private int _filterChanges;
 
@@ -66,7 +66,7 @@ public sealed class DiagramViewState
     public bool IsFitPending = true;
 
     /// <summary>The type whose card is brought into view once it is laid out, or null.</summary>
-    public CodeReference? PendingFocus;
+    public CodeReference.Entity? PendingFocus;
 
     /// <summary>The version of the diagram whose cards were last measured, and a layout asked for.</summary>
     public int MeasuredVersion = -1;
@@ -87,7 +87,7 @@ public sealed class DiagramViewState
     public int TooltipPart;
 
     /// <summary>Selects the card of <paramref name="type"/> and brings it into view once it is laid out.</summary>
-    public void Focus(CodeReference type)
+    public void Focus(CodeReference.Entity type)
     {
         Selected = type;
         PendingFocus = type;

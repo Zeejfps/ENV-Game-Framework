@@ -12,26 +12,26 @@ public abstract record Activation
 
     public sealed record OpenSelf : Activation;
 
-    public sealed record Navigate(NavigationAddress Address) : Activation;
+    public sealed record Navigate(CodeReference.Navigable Target) : Activation;
 
     private static readonly OpenSelf Open = new();
 
     /// <summary>What activating a node of <paramref name="subject"/> does.</summary>
     public static Activation Of(NodeSubject subject) => subject switch
     {
-        NodeSubject.AssemblyReference reference => new Navigate(NavigationAddress.To(CodeReferenceKind.Assembly, reference.Value.Reference.Name,
+        NodeSubject.AssemblyReference reference => new Navigate(CodeReference.ToAssembly(reference.Value.Reference.Name,
             reference.Value.Module.FilePath, reference.Value.Reference.Handle)),
-        NodeSubject.TypeReference type => new Navigate(NavigationAddress.To(CodeReferenceKind.Type, type.Value.Label, type.Value.Module.FilePath,
+        NodeSubject.TypeReference type => new Navigate(CodeReference.ToEntity(EntityKind.Type, type.Value.Label, type.Value.Module.FilePath,
             type.Value.Handle)),
-        NodeSubject.MemberReference member => new Navigate(NavigationAddress.To(CodeReference.KindOf(member.Value.Declared.SymbolKind),
+        NodeSubject.MemberReference member => new Navigate(CodeReference.ToEntity(CodeReference.KindOf(member.Value.Declared.SymbolKind),
             member.Value.Declared.Name, member.Value.Module.FilePath, member.Value.Handle)),
-        NodeSubject.ForwardedType forwarded => new Navigate(NavigationAddress.To(CodeReferenceKind.Type, forwarded.Value.Label,
+        NodeSubject.ForwardedType forwarded => new Navigate(CodeReference.ToEntity(EntityKind.Type, forwarded.Value.Label,
             forwarded.Value.Module.FilePath, forwarded.Value.Handle)),
-        NodeSubject.ImportedMethod import => new Navigate(import.Value.Shown.Address),
-        NodeSubject.DerivedType derived => new Navigate(derived.Value.Address),
+        NodeSubject.ImportedMethod import => new Navigate(import.Value.Shown.Reference),
+        NodeSubject.DerivedType derived => new Navigate(derived.Value.Reference),
         NodeSubject.BaseType baseType => baseType.Value.Target switch
         {
-            BaseTypeTarget.Navigable navigable => new Navigate(navigable.Address),
+            BaseTypeTarget.Navigable navigable => new Navigate(navigable.Reference),
             BaseTypeTarget.Unaddressed or BaseTypeTarget.Unresolved => Open,
             _ => throw new UnreachableException(),
         },
@@ -45,10 +45,10 @@ public abstract record Activation
 
     /// <summary>The reference a node of <paramref name="subject"/> points at, as documents link to it;
     /// null for one that opens itself.</summary>
-    internal static CodeReference? TargetOf(NodeSubject subject)
+    internal static CodeReference.Navigable? TargetOf(NodeSubject subject)
     {
         if (Of(subject) is not Navigate navigate)
             return null;
-        return navigate.Address.ToReference();
+        return navigate.Target;
     }
 }

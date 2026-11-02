@@ -20,7 +20,7 @@ public enum MemberSection
 
 /// <summary>A member a card lists: what it points at, how the tree labels it, the kind its icon
 /// shows, and its declared accessibility.</summary>
-public sealed record CardMember(CodeReference Reference, string Text, MemberShape Shape, NodeAccessibility Accessibility)
+public sealed record CardMember(CodeReference.Entity Reference, string Text, MemberShape Shape, NodeAccessibility Accessibility)
 {
     /// <summary>Whether code of another assembly can reach the member: it is public or protected.</summary>
     public bool IsVisibleOutside => Accessibility is NodeAccessibility.Public or NodeAccessibility.Protected or NodeAccessibility.ProtectedInternal;
@@ -39,7 +39,7 @@ public sealed record InheritedGroup(string From, AssemblyPath? AssemblyPath, IRe
 /// can derive from it. <see cref="AssemblyPath"/> is the file of the assembly that defines it, and
 /// <see cref="Anchor"/> names the type so that it is found again in another run.</summary>
 public sealed record TypeCard(
-    CodeReference Type,
+    CodeReference.Entity Type,
     TypeAnchor Anchor,
     string Name,
     string FullName,
@@ -70,4 +70,4 @@ public enum TypeLinkKind
 
 /// <summary>A link drawn from the type <see cref="From"/> to the type <see cref="To"/>, labelled with the
 /// name of the property that holds it, for the links that are held.</summary>
-public sealed record TypeLink(CodeReference From, CodeReference To, TypeLinkKind Kind, string? Label = null);
+public sealed record TypeLink(CodeReference.Entity From, CodeReference.Entity To, TypeLinkKind Kind, string? Label = null);

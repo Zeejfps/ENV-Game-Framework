@@ -34,7 +34,7 @@ public static class Bookmarks
     {
         if (tab.IsBusy)
             return false;
-        if (tab.Document.IsError)
+        if (tab.Document.Error != null)
             return false;
         if (line < 0)
             return false;

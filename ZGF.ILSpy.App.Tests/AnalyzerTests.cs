@@ -174,7 +174,7 @@ public sealed class AnalyzerTests
         d.Show(d.Fixture("Outline"));
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
-        var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+        var reference = Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column + "return ".Length).Reference);
         d.TakeViewCommands();
 
         AddToAnalyzer(d.AppState, reference);
@@ -185,15 +185,15 @@ public sealed class AnalyzerTests
         Assert.Equal([new ViewCommand.ShowAnalysis(root)], d.TakeViewCommands());
     }
 
-    private static CodeReference ReferenceTo(AppStateDriver d, string type, string text, int offset = 0)
+    private static CodeReference.Entity ReferenceTo(AppStateDriver d, string type, string text, int offset = 0)
     {
         d.Show(d.Fixture(type));
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find(text);
-        return document.SpanAt(line, column + offset).Reference!;
+        return Assert.IsType<CodeReference.Entity>(document.SpanAt(line, column + offset).Reference);
     }
 
-    private static CodeReference ReferenceToFirst(AppStateDriver d) => ReferenceTo(d, "Outline", "return First();", "return ".Length);
+    private static CodeReference.Entity ReferenceToFirst(AppStateDriver d) => ReferenceTo(d, "Outline", "return First();", "return ".Length);
 
     [Fact]
     public void A_reference_shows_a_loading_root_at_once_that_is_saved_once_it_is_found()
@@ -277,7 +277,7 @@ public sealed class AnalyzerTests
         var outline = assembly.Root.Child(AppStateDriver.FixturesNamespace, "Outline");
         var document = outline.Decompile(DecompilationLanguage.CSharp);
         var (line, column) = document.Find("return First();");
-        var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+        var reference = Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column + "return ".Length).Reference);
         CloseAssembly(d.AppState, assembly);
         File.Delete(copy);
 

@@ -13,7 +13,7 @@ public sealed class DecompilationTests
     {
         var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);
 
-        Assert.False(document.IsError);
+        Assert.Null(document.Error);
         Assert.Equal("Calculator<T>", document.Title);
         var header = document.Lines[document.LineContaining("public class Calculator<T>")];
         Assert.Equal(SpanKind.Keyword, header.SpanAt("public").Kind);
@@ -82,7 +82,7 @@ public sealed class DecompilationTests
         Assert.Contains("public int Count => _items.Count;", latest);
         Assert.DoesNotContain("=>", older);
         Assert.Contains("return _items.Count;", older);
-        Assert.False(ctor.IsError);
+        Assert.Null(ctor.Error);
         Assert.Contains(ctor.Lines.ToArray(), l => l.Text.Contains("public Calculator()"));
     }
 
@@ -294,7 +294,7 @@ public sealed class DecompilationTests
 
         Assert.Equal("namespace ZGF.ILSpy.Tests.Fixtures", document.Lines[0].Text);
         Assert.False(circle.IsDefinition);
-        Assert.Same(fixtures.Child("Circle"), list.FindNode(circle.Reference!));
+        Assert.Same(fixtures.Child("Circle"), list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(circle.Reference)));
     }
 
     [Fact]
@@ -306,8 +306,8 @@ public sealed class DecompilationTests
         var resources = coreLib.Root.Child("Resources");
         var strings = resources.Children.First(r => r.Text.EndsWith(".resources")).Decompile(DecompilationLanguage.CSharp);
 
-        Assert.Contains(references.SpansOf(), s => s.Text.StartsWith("System.Runtime, Version=") && s.Span.Reference?.Kind == CodeReferenceKind.Assembly);
-        Assert.False(strings.IsError);
+        Assert.Contains(references.SpansOf(), s => s.Text.StartsWith("System.Runtime, Version=") && s.Span.Reference is CodeReference.Assembly);
+        Assert.Null(strings.Error);
         Assert.Contains(strings.SpansOf(), s => s.Span.Kind == SpanKind.String);
     }
 
@@ -336,7 +336,7 @@ public sealed class DecompilationTests
             .Select(c => Assert.IsType<DocumentContent>(c).Document).ToArray();
 
         Assert.Equal(sequential, concurrent.Select(d => d.GetText()));
-        Assert.DoesNotContain(concurrent, d => d.IsError);
+        Assert.DoesNotContain(concurrent, d => d.Error != null);
     }
 
     [Fact]
@@ -349,11 +349,11 @@ public sealed class DecompilationTests
         var il = describe.Decompile(DecompilationLanguage.IL);
         var csharp = describe.Decompile(DecompilationLanguage.CSharp);
 
-        Assert.True(il.IsError);
+        Assert.NotNull(il.Error);
         Assert.Equal("Describe() : string", il.Title);
         Assert.StartsWith("// Error decompiling", il.Lines[0].Text);
         Assert.Contains(il.SpansOf(), s => s.Text.Contains(nameof(BadImageFormatException)));
-        Assert.False(csharp.IsError);
+        Assert.Null(csharp.Error);
         Assert.Contains("Could not decode attribute arguments", csharp.GetText());
     }
 
@@ -374,7 +374,7 @@ public sealed class DecompilationTests
 
         var failed = ListSummarized(roots)
             .SelectMany(static n => new[] { DecompilationLanguage.CSharp, DecompilationLanguage.IL }.Select(l => (Node: n, Document: n.Decompile(l))))
-            .Where(static d => d.Document.IsError)
+            .Where(static d => d.Document.Error != null)
             .Select(static d => $"{d.Node.GetType().Name} {d.Node.Text}")
             .ToList();
 

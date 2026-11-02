@@ -164,7 +164,7 @@ internal static class TreePaneView
     {
         if (Activation.Of(node.Subject) is Activation.Navigate jump)
         {
-            GoTo(appState, jump.Address);
+            GoTo(appState, jump.Target);
             return;
         }
         OpenNode(appState, node);
@@ -197,7 +197,7 @@ internal static class TreePaneView
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
             ShowNode(appState, node, inNewTab: true);
         if (jump != null && ui.MenuItem(t.TreeGoToTarget, Shortcuts.Enter, id: "go-to-target"))
-            GoTo(appState, jump.Address);
+            GoTo(appState, jump.Target);
         if (ui.MenuItem(t.TreeCopyFullName, id: "copy-full-name"))
             ui.ClipboardText = node.FullName;
         DocsItem(ui, node);
@@ -207,7 +207,7 @@ internal static class TreePaneView
         if (definition != null && ui.MenuItem(t.TreeShowInMetadata, id: "show-in-metadata"))
             ShowInMetadata(appState, definition, inNewTab: false);
         if (node.Subject is NodeSubject.TypeDefinition type)
-            DiagramItems(ui, appState, type.Definition.Address.ToReference());
+            DiagramItems(ui, appState, type.Definition.Reference);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: new UiIcon(ui.State.Icons.ResourceExport)))
             ResourceImageView.PickExport(ui, appState, node);
         ExtractItems(ui, appState, node);
@@ -231,7 +231,7 @@ internal static class TreePaneView
 
     /// <summary>The items that show the type <paramref name="type"/> points at on the diagram last worked in,
     /// or on a new one.</summary>
-    private static void DiagramItems(Ui<UiState> ui, AppState appState, CodeReference type)
+    private static void DiagramItems(Ui<UiState> ui, AppState appState, CodeReference.Entity type)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeShowInDiagram, id: "show-in-diagram"))

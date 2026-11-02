@@ -65,7 +65,7 @@ public sealed class ForwardedTypeTests
         var namespaceDocument = forwarded.Parent!.Decompile(DecompilationLanguage.CSharp);
 
         Assert.Contains("// Forwarded to System.Private.CoreLib", document.GetText());
-        Assert.Equal(forwarded.Destination.ToReference(), document.Lines[document.LineContaining("System.Collections.Generic.IList<>")].SpanAt("System.Collections.Generic.IList<>").Reference);
+        Assert.Equal<CodeReference?>(forwarded.Destination, document.Lines[document.LineContaining("System.Collections.Generic.IList<>")].SpanAt("System.Collections.Generic.IList<>").Reference);
         Assert.Contains("IList<> // Forwarded to System.Private.CoreLib", namespaceDocument.GetText());
     }
 }

@@ -36,9 +36,10 @@ public static class Decompilation
         var error = loading.Exception?.GetBaseException();
         tab.ShowLoaded(ContentOf(loading, error));
         var arrival = tab.TakeArrival();
-        if (IsFailed(tab, error))
+        var failure = error ?? tab.Document.Error;
+        if (failure != null)
         {
-            ReportFailure(appState, tab, node, error);
+            ReportFailure(appState, node, failure);
             Arrive(appState, tab, new Arrival());
             return;
         }
@@ -58,20 +59,13 @@ public static class Decompilation
         };
     }
 
-    private static bool IsFailed(DocumentTab tab, Exception? error)
-    {
-        if (error != null)
-            return true;
-        return tab.Document.IsError;
-    }
-
     /// <summary>Reports why <paramref name="node"/> could not be shown, unless its file failed to load,
     /// which its tab tells already.</summary>
-    private static void ReportFailure(AppState appState, DocumentTab tab, BrowseNode node, Exception? error)
+    private static void ReportFailure(AppState appState, BrowseNode node, Exception error)
     {
         if (node.Assembly is FailedAssembly)
             return;
-        appState.ReportError(new AppProblem.DecompilationFailed(node.FullName, error, tab.Document.GetText()));
+        appState.ReportError(new AppProblem.DecompilationFailed(node.FullName, error));
     }
 
     /// <summary>Commands the view to return to the arrival's position, else to reveal the grid's row or the

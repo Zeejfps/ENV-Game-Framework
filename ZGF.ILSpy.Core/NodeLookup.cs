@@ -46,9 +46,9 @@ public static class NodeLookup
 
     /// <summary>The node <paramref name="reference"/> points at, opening and listing the assembly that
     /// defines it if it is not open yet and its file can be found. For an entity hidden from the tree,
-    /// such as a compiler-generated one, the nearest visible ancestor. Null if the reference is not
-    /// navigable or cannot be resolved.</summary>
-    public static BrowseNode? Find(AssemblyList list, BrowseSession session, CodeReference reference)
+    /// such as a compiler-generated one, the nearest visible ancestor. Null if the reference cannot be
+    /// resolved.</summary>
+    public static BrowseNode? Find(AssemblyList list, BrowseSession session, CodeReference.Navigable reference)
     {
         try
         {
@@ -65,16 +65,11 @@ public static class NodeLookup
         }
     }
 
-    /// <summary>The node <paramref name="address"/> leads to, as <see cref="Find(AssemblyList, BrowseSession, CodeReference)"/>
-    /// finds the node of a reference to it.</summary>
-    public static BrowseNode? Find(AssemblyList list, BrowseSession session, NavigationAddress address) =>
-        Find(list, session, address.ToReference());
-
     /// <summary>The metadata table row that defines what <paramref name="reference"/> points at: the row
     /// of a type or member, or an assembly's own row, opening and listing the assembly that defines it
-    /// as <see cref="Find(AssemblyList, BrowseSession, CodeReference)"/> does. Null if the reference is
-    /// not navigable or cannot be resolved.</summary>
-    public static MetadataTarget? FindMetadataRow(AssemblyList list, BrowseSession session, CodeReference reference)
+    /// as <see cref="Find(AssemblyList, BrowseSession, CodeReference.Navigable)"/> does. Null if the
+    /// reference cannot be resolved.</summary>
+    public static MetadataTarget? FindMetadataRow(AssemblyList list, BrowseSession session, CodeReference.Navigable reference)
     {
         try
         {

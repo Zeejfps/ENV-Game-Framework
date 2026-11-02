@@ -10,9 +10,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Optional-field bags that should be sum types
 
-- **References and documents**
-    - `CodeReference` (`CodeReference.cs:31`): entity and local references share one class, and `Kind` is not tied to `FilePath`.
-    - `DecompiledDocument` marks failure with `isError: bool` (`:106`, `:127`); the exception is flattened to text in `NodeDecompiler.cs:43`.
 - **App state**
     - `ExportQueue.cs:254-266` spreads idle-or-running over `_cancel?`, `Running?`, `IsCancelling`, `Progress?`, forcing `_cancel!` at `:347`. `ExportStart.IsWithdrawn` is a flag every caller must check.
     - `IconValue` and `IconFont` (`IconThemeFile.cs:12-19`) have public constructors that accept invalid combinations.

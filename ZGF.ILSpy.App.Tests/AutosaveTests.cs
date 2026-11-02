@@ -158,7 +158,7 @@ public sealed class AutosaveTests : IDisposable
         d.Show(d.Fixture("Outline"));
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("return First();");
-        var reference = document.SpanAt(line, column + "return ".Length).Reference!;
+        var reference = Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column + "return ".Length).Reference);
 
         d.Analyze(reference);
         SaveSettingsIfChanged(d.AppState, d.Now);

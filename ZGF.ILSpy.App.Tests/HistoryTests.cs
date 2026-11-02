@@ -56,7 +56,7 @@ public sealed class HistoryTests
         Show(app, "Outline");
         var tab = app.AppState.Tabs.Active!;
         var (line, column) = tab.Document.Find("return First();");
-        var reference = tab.Document.SpanAt(line, column + "return ".Length).Reference!;
+        var reference = Assert.IsAssignableFrom<CodeReference.Navigable>(tab.Document.SpanAt(line, column + "return ".Length).Reference);
         var before = ScrollTo(app, 25, new TextPosition(line, column), new TextPosition(line, column + 6));
 
         Navigate(app.AppState, reference, inNewTab: false);

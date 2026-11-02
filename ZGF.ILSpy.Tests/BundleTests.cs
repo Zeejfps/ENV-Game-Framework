@@ -48,7 +48,7 @@ public sealed class BundleTests
         var calculator = assembly.Calculator().Decompile(DecompilationLanguage.CSharp);
         var core = list.FindNode(assembly.Root.Child("References", "ZGF.ILSpy.Core").Destination);
 
-        Assert.False(calculator.IsError);
+        Assert.Null(calculator.Error);
         Assert.Contains("class Calculator<T>", calculator.GetText());
         Assert.Equal(bundle.FilePath.Combine("ZGF.ILSpy.Core.dll"), core!.Assembly.FilePath);
     }

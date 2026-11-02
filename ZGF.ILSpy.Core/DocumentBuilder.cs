@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -21,8 +22,8 @@ internal sealed class DocumentBuilder : ITextOutput
     private readonly StringBuilder _line = new();
     private readonly List<DocumentSpan> _spans = new();
     private readonly List<(string Text, int First, int Count)> _lines = new();
-    private readonly Dictionary<CodeReference, int> _definitions = new();
-    private readonly Dictionary<int, (CodeReference Method, int Offset)> _statements = new();
+    private readonly Dictionary<CodeReference.Navigable, int> _definitions = new();
+    private readonly Dictionary<int, (CodeReference.Entity Method, int Offset)> _statements = new();
     private readonly List<DocumentSpan> _lexed = new();
     private readonly Dictionary<object, int> _localKeys = new();
     private readonly Stack<OpenFold> _openFolds = new();
@@ -32,7 +33,7 @@ internal sealed class DocumentBuilder : ITextOutput
     private int _indent;
     private bool _lineStarted;
     private bool _lineClassified;
-    private CodeReference? _scope;
+    private CodeReference.Entity? _scope;
 
     public DocumentBuilder(DecompilationLanguage language, LoadedModule? assembly = null)
     {
@@ -60,7 +61,12 @@ internal sealed class DocumentBuilder : ITextOutput
         }
     }
 
-    public DecompiledDocument Build(string title, bool isError = false)
+    public DecompiledDocument Build(string title) => Build(title, null);
+
+    /// <summary>The document written so far, describing how decompiling failed with <paramref name="error"/>.</summary>
+    public DecompiledDocument BuildFailure(string title, Exception error) => Build(title, error);
+
+    private DecompiledDocument Build(string title, Exception? error)
     {
         if (_line.Length > 0 || _lineFirstSpan < _spans.Count || _lines.Count == 0)
             WriteLine();
@@ -69,7 +75,7 @@ internal sealed class DocumentBuilder : ITextOutput
         foreach (var (text, first, count) in _lines)
             lines.Add(new DocumentLine(text, spans, first, count));
         var built = lines.MoveToImmutable();
-        return new DecompiledDocument(title, _language, isError, built, _definitions, Statements(), FoldRegions(built));
+        return new DecompiledDocument(title, _language, error, built, _definitions, Statements(), FoldRegions(built));
     }
 
     public void Write(string text, SpanKind kind, CodeReference? reference = null, bool isDefinition = false)
@@ -153,9 +159,7 @@ internal sealed class DocumentBuilder : ITextOutput
     /// <summary>The reference a copied span keeps: a type's or member's, not a local's or label's.</summary>
     private static CodeReference? LinkOf(CodeReference? reference)
     {
-        if (reference == null)
-            return null;
-        if (reference.Kind is CodeReferenceKind.Local or CodeReferenceKind.Label)
+        if (reference is CodeReference.Local or CodeReference.Label)
             return null;
         return reference;
     }
@@ -174,7 +178,7 @@ internal sealed class DocumentBuilder : ITextOutput
     public void WriteReference(MetadataFile metadata, Handle handle, string text, string protocol = "decompile", bool isDefinition = false)
     {
         var reference = ReferenceTo(metadata, handle, text);
-        var kind = Kind ?? (reference is null ? SpanKind.Plain : isDefinition && text.StartsWith('.') ? SpanKind.Keyword : SpanKindOf(reference.Kind));
+        var kind = Kind ?? (reference is null ? SpanKind.Plain : isDefinition && text.StartsWith('.') ? SpanKind.Keyword : SpanKindOf(reference));
         WriteReferenceSpan(text, kind, reference, isDefinition);
     }
 
@@ -194,20 +198,21 @@ internal sealed class DocumentBuilder : ITextOutput
 
     public void WriteLocalReference(string text, object reference, bool isDefinition = false, bool isHoverOnly = false)
     {
-        var (referenceKind, spanKind) = reference switch
+        var spanKind = reference switch
         {
-            int => (CodeReferenceKind.Label, SpanKind.ILLabel),
-            string s when s.StartsWith("param_", StringComparison.Ordinal) => (CodeReferenceKind.Local, SpanKind.Parameter),
-            ILVariable { Kind: VariableKind.Parameter } => (CodeReferenceKind.Local, SpanKind.Parameter),
-            IParameter => (CodeReferenceKind.Local, SpanKind.Parameter),
-            _ => (CodeReferenceKind.Local, SpanKind.Local),
+            int => SpanKind.ILLabel,
+            string s when s.StartsWith("param_", StringComparison.Ordinal) => SpanKind.Parameter,
+            ILVariable { Kind: VariableKind.Parameter } => SpanKind.Parameter,
+            IParameter => SpanKind.Parameter,
+            _ => SpanKind.Local,
         };
-        if (isDefinition && reference is int offset && _scope is { Kind: CodeReferenceKind.Method } method)
-            MarkStatement(method, offset);
+        if (isDefinition && reference is int offset && _scope != null && _scope.Kind == EntityKind.Method)
+            MarkStatement(_scope, offset);
         var scope = reference is ILVariable ? null : _scope;
         if (!_localKeys.TryGetValue(reference, out var key))
             _localKeys.Add(reference, key = _localKeys.Count);
-        Write(text, Kind ?? spanKind, CodeReference.ToLocal(referenceKind, text, key, scope), isDefinition);
+        CodeReference local = reference is int ? new CodeReference.Label(text, key, scope) : new CodeReference.Local(text, key, scope);
+        Write(text, Kind ?? spanKind, local, isDefinition);
     }
 
     /// <summary>Marks the line being written as where the statement at <paramref name="ilOffset"/> of
@@ -219,7 +224,7 @@ internal sealed class DocumentBuilder : ITextOutput
             MarkStatement(reference, ilOffset);
     }
 
-    private void MarkStatement(CodeReference method, int ilOffset)
+    private void MarkStatement(CodeReference.Entity method, int ilOffset)
     {
         var line = _lines.Count;
         if (_statements.TryGetValue(line, out var marked) && (marked.Method != method || marked.Offset <= ilOffset)) return;
@@ -230,10 +235,7 @@ internal sealed class DocumentBuilder : ITextOutput
     {
         var anchors = new Dictionary<int, CodeAnchor>(_statements.Count);
         foreach (var (line, (method, offset)) in _statements)
-        {
-            if (method.FilePath != null)
-                anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, method.FilePath, MetadataTokens.GetToken(method.Handle), offset);
-        }
+            anchors[line] = new CodeAnchor(CodeAnchorKind.Statement, method.FilePath, MetadataTokens.GetToken(method.Handle), offset);
         return anchors;
     }
 
@@ -327,8 +329,8 @@ internal sealed class DocumentBuilder : ITextOutput
 
     private void WriteReferenceSpan(string text, SpanKind kind, CodeReference? reference, bool isDefinition)
     {
-        if (isDefinition && reference is { Kind: CodeReferenceKind.Method })
-            _scope = reference;
+        if (isDefinition && reference is CodeReference.Entity entity && entity.Kind == EntityKind.Method)
+            _scope = entity;
         Write(text, kind, reference, isDefinition);
     }
 
@@ -341,8 +343,8 @@ internal sealed class DocumentBuilder : ITextOutput
             for (var i = 0; i < _indent; i++)
                 AppendSpan(IndentationString, SpanKind.Plain, null, false);
         }
-        if (isDefinition && reference is { IsNavigable: true })
-            _definitions.TryAdd(reference, _lines.Count);
+        if (isDefinition && reference is CodeReference.Navigable navigable)
+            _definitions.TryAdd(navigable, _lines.Count);
         AppendSpan(text, kind, reference, isDefinition);
     }
 
@@ -388,7 +390,7 @@ internal sealed class DocumentBuilder : ITextOutput
         _spans.AddRange(_lexed);
     }
 
-    private CodeReference? ReferenceTo(MetadataFile metadata, Handle handle, string text)
+    private CodeReference.Navigable? ReferenceTo(MetadataFile metadata, Handle handle, string text)
     {
         if (handle.IsNil) return null;
         if (handle.Kind is HandleKind.TypeReference or HandleKind.TypeSpecification or HandleKind.MemberReference or HandleKind.MethodSpecification)
@@ -397,10 +399,7 @@ internal sealed class DocumentBuilder : ITextOutput
             if (definition != null)
                 return CodeReference.To(definition, text);
         }
-        var kind = CodeReference.KindOf(metadata.Metadata, handle);
-        if (kind == null)
-            return null;
-        return CodeReference.ToEntity(kind.Value, text, AssemblyPath.Of(metadata), (EntityHandle)handle);
+        return CodeReference.To(metadata.Metadata, handle, text, AssemblyPath.Of(metadata));
     }
 
     private IEntity? ResolveDefinition(MetadataFile metadata, EntityHandle handle)
@@ -416,16 +415,22 @@ internal sealed class DocumentBuilder : ITextOutput
         }
     }
 
-    private static SpanKind SpanKindOf(CodeReferenceKind kind) =>
+    private static SpanKind SpanKindOf(CodeReference.Navigable reference) =>
+        reference switch
+        {
+            CodeReference.Entity entity => SpanKindOf(entity.Kind),
+            CodeReference.Assembly => SpanKind.Plain,
+            _ => throw new UnreachableException(),
+        };
+
+    private static SpanKind SpanKindOf(EntityKind kind) =>
         kind switch
         {
-            CodeReferenceKind.Type => SpanKind.Type,
-            CodeReferenceKind.Method => SpanKind.Method,
-            CodeReferenceKind.Field => SpanKind.Field,
-            CodeReferenceKind.Property => SpanKind.Property,
-            CodeReferenceKind.Event => SpanKind.Event,
-            CodeReferenceKind.Local => SpanKind.Local,
-            CodeReferenceKind.Label => SpanKind.ILLabel,
-            _ => SpanKind.Plain,
+            EntityKind.Type => SpanKind.Type,
+            EntityKind.Method => SpanKind.Method,
+            EntityKind.Field => SpanKind.Field,
+            EntityKind.Property => SpanKind.Property,
+            EntityKind.Event => SpanKind.Event,
+            _ => throw new UnreachableException(),
         };
 }

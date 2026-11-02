@@ -63,7 +63,7 @@ public sealed class LayoutTransition
 
     /// <summary>Where the top-left of the card of <paramref name="type"/> is drawn now; null when the
     /// layout does not place it.</summary>
-    public PointF? PlaceOf(CodeReference type)
+    public PointF? PlaceOf(CodeReference.Entity type)
     {
         if (_to == null)
             return null;
@@ -75,7 +75,7 @@ public sealed class LayoutTransition
         return RoutePiece.Lerp(from.Value, to, Progress);
     }
 
-    private PointF? FindOldPlace(CodeReference type)
+    private PointF? FindOldPlace(CodeReference.Entity type)
     {
         if (!IsMoving)
             return null;

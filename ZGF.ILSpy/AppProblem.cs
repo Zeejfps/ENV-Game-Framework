@@ -64,11 +64,11 @@ public abstract record AppProblem
 
     public sealed record ComparisonFailed(string Left, string Right, Exception Error) : AppProblem;
 
-    /// <summary>Decompiling <see cref="Node"/> failed with <see cref="Error"/>, or as <see cref="Document"/> tells.</summary>
-    public sealed record DecompilationFailed(string Node, Exception? Error, string Document) : AppProblem;
+    /// <summary>Decompiling <see cref="Node"/> failed with <see cref="Error"/>.</summary>
+    public sealed record DecompilationFailed(string Node, Exception Error) : AppProblem;
 
     /// <summary>The type <see cref="Type"/> was not found for a diagram, or reading it failed with <see cref="Error"/>.</summary>
-    public sealed record TypeNotDiagrammed(CodeReference Type, Exception? Error) : AppProblem;
+    public sealed record TypeNotDiagrammed(CodeReference.Entity Type, Exception? Error) : AppProblem;
 
     public sealed record DiagramNotReopened(string Diagram, Exception Error) : AppProblem;
 

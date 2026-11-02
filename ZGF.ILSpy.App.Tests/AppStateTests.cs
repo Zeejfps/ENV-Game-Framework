@@ -317,7 +317,7 @@ public sealed class AppStateTests
         d.Show(d.Fixture("Greeter"));
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("Name;");
-        var reference = document.SpanAt(line, column).Reference!;
+        var reference = Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column).Reference);
         var farewell = d.Fixture("Farewell");
 
         Navigate(d.AppState, reference, inNewTab: false);
@@ -339,7 +339,7 @@ public sealed class AppStateTests
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("Name;");
 
-        Navigate(d.AppState, document.SpanAt(line, column).Reference!, inNewTab: false);
+        Navigate(d.AppState, Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column).Reference), inNewTab: false);
         d.Settle();
 
         var tab = Assert.Single(d.AppState.Tabs);
@@ -383,7 +383,7 @@ public sealed class AppStateTests
 
         var document = d.AppState.Tabs.Active!.Document;
         var (line, column) = document.Find("Length");
-        Navigate(d.AppState, document.SpanAt(line, column).Reference!, inNewTab: true);
+        Navigate(d.AppState, Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column).Reference), inNewTab: true);
         d.Settle();
         Assert.Equal(2, d.AppState.Assemblies.Assemblies.Count);
         search.Update(d.AppState.Assemblies, 2, true);
@@ -401,7 +401,7 @@ public sealed class AppStateTests
         var greeter = d.Fixture("Greeter");
         var document = greeter.Decompile(DecompilationLanguage.CSharp);
         var (line, column) = document.Find("Length");
-        Assert.NotNull(d.AppState.Assemblies.FindNode(document.SpanAt(line, column).Reference!));
+        Assert.NotNull(d.AppState.Assemblies.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(document.SpanAt(line, column).Reference)));
         var search = d.Ui.Search;
         search.Query = "IsLeapYear";
         search.Update(d.AppState.Assemblies, 0, true);

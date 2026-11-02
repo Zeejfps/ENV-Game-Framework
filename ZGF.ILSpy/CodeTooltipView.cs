@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ZGF.Gui;
 using ZGF.Gui.Immediate;
@@ -580,14 +581,7 @@ internal static class CodeTooltipView
 
     /// <summary>What a name links to: the type or member a reference points at; none for a local
     /// or an assembly.</summary>
-    private static CodeReference? LinkOf(CodeReference? reference)
-    {
-        if (reference is not { IsNavigable: true })
-            return null;
-        if (reference.Kind == CodeReferenceKind.Assembly)
-            return null;
-        return reference;
-    }
+    private static CodeReference.Entity? LinkOf(CodeReference? reference) => reference as CodeReference.Entity;
 
     private static RichTextRun Run(TooltipStyles styles, DocRun run) =>
         run.Style switch
@@ -623,15 +617,19 @@ internal static class CodeTooltipView
 
         private static uint HeadingColor(UiTheme theme) => UiColor.Mix(theme.TextMuted, theme.Text, HeadingMix);
 
-        private static SpanKind SpanKindOf(CodeReference? reference) =>
-            reference?.Kind switch
+        private static SpanKind SpanKindOf(CodeReference? reference)
+        {
+            if (reference is not CodeReference.Entity entity)
+                return SpanKind.Type;
+            return entity.Kind switch
             {
-                CodeReferenceKind.Type => SpanKind.Type,
-                CodeReferenceKind.Method => SpanKind.Method,
-                CodeReferenceKind.Field => SpanKind.Field,
-                CodeReferenceKind.Property => SpanKind.Property,
-                CodeReferenceKind.Event => SpanKind.Event,
-                _ => SpanKind.Type,
+                EntityKind.Type => SpanKind.Type,
+                EntityKind.Method => SpanKind.Method,
+                EntityKind.Field => SpanKind.Field,
+                EntityKind.Property => SpanKind.Property,
+                EntityKind.Event => SpanKind.Event,
+                _ => throw new UnreachableException(),
             };
+        }
     }
 }

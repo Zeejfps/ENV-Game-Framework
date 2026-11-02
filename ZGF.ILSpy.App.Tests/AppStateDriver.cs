@@ -266,7 +266,7 @@ internal sealed class AppStateDriver
     public void Analyze(BrowseNode node) => AnalyzerPanelView.Analyze(Ui, AppState, node);
 
     /// <summary>Analyzes what <paramref name="reference"/> points at as the views do.</summary>
-    public void Analyze(CodeReference reference) => AnalyzerPanelView.Analyze(Ui, AppState, reference);
+    public void Analyze(CodeReference.Navigable reference) => AnalyzerPanelView.Analyze(Ui, AppState, reference);
 
     /// <summary>Opens the export dialog on the open assemblies, with <paramref name="picked"/> ticked.</summary>
     public void OpenExportSetup(LoadedModule? picked) => Ui.ExportSetup.Open(AppState.Assemblies.Assemblies, picked);

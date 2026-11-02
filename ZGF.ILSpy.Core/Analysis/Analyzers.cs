@@ -69,7 +69,7 @@ public sealed class AnalysisKind
 /// how to go to it.</summary>
 public sealed class AnalysisSymbol
 {
-    internal AnalysisSymbol(ISymbol symbol, SymbolShape shape, NodeAccessibility accessibility, string label, string location, CodeReference? reference)
+    internal AnalysisSymbol(ISymbol symbol, SymbolShape shape, NodeAccessibility accessibility, string label, string location, CodeReference.Navigable? reference)
     {
         Symbol = symbol;
         Shape = shape;
@@ -93,7 +93,7 @@ public sealed class AnalysisSymbol
     public string Location { get; }
 
     /// <summary>What to navigate to it by; null when it cannot be shown.</summary>
-    public CodeReference? Reference { get; }
+    public CodeReference.Navigable? Reference { get; }
 
     /// <summary>Its assembly file and metadata token, to find it again with
     /// <see cref="Analyzers.Find"/> in a later run; null for an assembly.</summary>

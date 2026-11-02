@@ -75,9 +75,10 @@ public sealed class AssemblyMenuTests
         var document = app.AppState.Tabs.Active!.Document;
         var references = document.SpansOf()
             .Select(s => s.Span.Reference)
-            .Where(r => r is { IsNavigable: true, Kind: CodeReferenceKind.Type })
+            .OfType<CodeReference.Entity>()
+            .Where(r => r.Kind == EntityKind.Type)
             .ToList();
-        var greeter = references.First(r => r!.Name == "Greeter")!;
+        var greeter = references.First(r => r.Name == "Greeter");
         var internalType = app.Fixture("Hidden").Definition;
 
         ShowInApiReference(app.AppState, greeter);

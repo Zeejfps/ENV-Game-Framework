@@ -98,17 +98,17 @@ public readonly record struct FoldRegion(int StartLine, int EndLine, string Coll
 /// </summary>
 public sealed class DecompiledDocument
 {
-    private readonly IReadOnlyDictionary<CodeReference, int> _definitions;
+    private readonly IReadOnlyDictionary<CodeReference.Navigable, int> _definitions;
     private readonly IReadOnlyDictionary<int, CodeAnchor> _statements;
     private Dictionary<CodeAnchor, int>? _definitionLines;
     private Dictionary<CodeAnchor, (int Offset, int Line)[]>? _statementLines;
 
-    internal DecompiledDocument(string title, DecompilationLanguage language, bool isError, ImmutableArray<DocumentLine> lines,
-        IReadOnlyDictionary<CodeReference, int> definitions, IReadOnlyDictionary<int, CodeAnchor> statements, ImmutableArray<FoldRegion> folds)
+    internal DecompiledDocument(string title, DecompilationLanguage language, Exception? error, ImmutableArray<DocumentLine> lines,
+        IReadOnlyDictionary<CodeReference.Navigable, int> definitions, IReadOnlyDictionary<int, CodeAnchor> statements, ImmutableArray<FoldRegion> folds)
     {
         Title = title;
         Language = language;
-        IsError = isError;
+        Error = error;
         Lines = lines;
         _definitions = definitions;
         _statements = statements;
@@ -123,8 +123,8 @@ public sealed class DecompiledDocument
 
     public DecompilationLanguage Language { get; }
 
-    /// <summary>Whether decompilation failed and the lines describe the error.</summary>
-    public bool IsError { get; }
+    /// <summary>What decompiling failed with, which the lines describe; null when it did not fail.</summary>
+    public Exception? Error { get; }
 
     public ImmutableArray<DocumentLine> Lines { get; }
 
@@ -156,7 +156,7 @@ public sealed class DecompiledDocument
     }
 
     /// <summary>The index of the line that defines <paramref name="reference"/>, or -1.</summary>
-    public int FindDefinitionLine(CodeReference reference) => _definitions.GetValueOrDefault(reference, -1);
+    public int FindDefinitionLine(CodeReference.Navigable reference) => _definitions.GetValueOrDefault(reference, -1);
 
     /// <summary>The index of the line that defines the entity <paramref name="node"/> stands for, or -1
     /// if it has none or this document does not define it.</summary>
@@ -176,8 +176,8 @@ public sealed class DecompiledDocument
         if (_statements.TryGetValue(line, out var statement)) return statement;
         foreach (var span in Lines[line].Spans)
         {
-            if (span is { IsDefinition: true, Reference: { IsNavigable: true, Kind: not CodeReferenceKind.Assembly } reference })
-                return DefinitionOf(reference);
+            if (span.IsDefinition && span.Reference is CodeReference.Entity entity)
+                return DefinitionOf(entity);
         }
         return null;
     }
@@ -206,8 +206,8 @@ public sealed class DecompiledDocument
         var lines = new Dictionary<CodeAnchor, int>(_definitions.Count);
         foreach (var (reference, line) in _definitions)
         {
-            if (reference.Kind != CodeReferenceKind.Assembly)
-                lines.TryAdd(DefinitionOf(reference), line);
+            if (reference is CodeReference.Entity entity)
+                lines.TryAdd(DefinitionOf(entity), line);
         }
         return lines;
     }
@@ -220,8 +220,8 @@ public sealed class DecompiledDocument
     /// <summary>The statement anchor <paramref name="statement"/> with its offset left out, naming its method.</summary>
     private static CodeAnchor MethodOf(CodeAnchor statement) => statement with { ILOffset = 0 };
 
-    private static CodeAnchor DefinitionOf(CodeReference reference) =>
-        new(CodeAnchorKind.Definition, reference.FilePath!, MetadataTokens.GetToken(reference.Handle));
+    private static CodeAnchor DefinitionOf(CodeReference.Entity entity) =>
+        new(CodeAnchorKind.Definition, entity.FilePath, MetadataTokens.GetToken(entity.Handle));
 
     /// <summary>The whole text, lines joined by '\n'.</summary>
     public string GetText() => GetText(0, Lines.Length);

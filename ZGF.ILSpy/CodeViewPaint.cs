@@ -123,7 +123,7 @@ internal sealed class CodeViewFrame
         if (endVisible > firstVisible)
         {
             var spans = line.Spans;
-            var error = Document.IsError;
+            var error = Document.Error != null;
             var first = Math.Max(0, CodeText.SpanAt(spans, firstVisible));
             for (var s = first; s < spans.Length && spans[s].Start < endVisible; s++)
             {

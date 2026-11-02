@@ -11,10 +11,10 @@ public sealed class LayoutTransitionTests
 
     private static readonly Lazy<LoadedAssembly> s_fixtures = new(() => new AssemblyList().Open(AppStateDriver.FixturePath));
 
-    private static CodeReference TypeOf(string type) => s_fixtures.Value.Root.Child(AppStateDriver.FixturesNamespace, type).Definition;
+    private static CodeReference.Entity TypeOf(string type) => s_fixtures.Value.Root.Child(AppStateDriver.FixturesNamespace, type).Definition;
 
-    private static readonly CodeReference Car = TypeOf("Car");
-    private static readonly CodeReference Vehicle = TypeOf("Vehicle");
+    private static readonly CodeReference.Entity Car = TypeOf("Car");
+    private static readonly CodeReference.Entity Vehicle = TypeOf("Vehicle");
     private static readonly TypeLink CarIsVehicle = new(Car, Vehicle, TypeLinkKind.Inherits);
 
     private static TypeLayout Arrange(float vehicleHeight, bool withCar = true)

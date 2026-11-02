@@ -37,7 +37,7 @@ public enum ApiPresence
 }
 
 /// <summary>A type or member as one assembly has it: what it points at, and how it is declared, as C# writes it.</summary>
-public sealed record ApiSide(CodeReference Reference, string Declaration);
+public sealed record ApiSide(CodeReference.Entity Reference, string Declaration);
 
 /// <summary>Which of the assemblies compared a type or member is in, and how each has it.</summary>
 public abstract record ApiSides

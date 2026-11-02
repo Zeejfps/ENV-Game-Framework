@@ -142,7 +142,7 @@ public sealed class AssemblyListTests
         Assert.IsType<NodeSubject.FailedAssembly>(root.Subject);
         Assert.Equal("text.dll", root.Text);
         Assert.Empty(root.Children);
-        Assert.True(document.IsError);
+        Assert.NotNull(document.Error);
         Assert.Contains($"Cannot open '{text}'", document.GetText());
     }
 

@@ -125,7 +125,7 @@ public sealed class CodeTooltipTests
         Assert.Equal([DocSectionKind.Summary, DocSectionKind.Parameter], tooltip.Sections.Select(s => s.Kind));
         Assert.Equal("Adds an item and raises Calculator<T>.Changed.", TextOf(summary));
         Assert.Equal(DocStyle.Reference, changed.Style);
-        Assert.Same(calculator.Child("Changed : EventHandler?"), list.FindNode(changed.Reference!));
+        Assert.Same(calculator.Child("Changed : EventHandler?"), list.FindNode(Assert.IsAssignableFrom<CodeReference.Navigable>(changed.Reference)));
         Assert.Equal("item", item.Label!.Value.Text);
         Assert.Equal("The item to add.", TextOf(Assert.Single(item.Blocks)));
     }
@@ -227,7 +227,7 @@ public sealed class CodeTooltipTests
         var document = assembly.Calculator().Child("Add(T) : void").Decompile(DecompilationLanguage.CSharp);
         var call = document.Lines[document.LineContaining("_items.Add(item)")];
 
-        var tooltip = list.Describe(call.SpanAt("Add").Reference!)!;
+        var tooltip = list.Describe(Assert.IsType<CodeReference.Entity>(call.SpanAt("Add").Reference))!;
 
         Assert.StartsWith("public void List<T>.Add(T item)", tooltip.Signature.Line.Text);
         Assert.Equal(new CodeContainer("class", "System.Collections.Generic.List<T>", false), tooltip.Container);
@@ -240,11 +240,11 @@ public sealed class CodeTooltipTests
     {
         var (list, assembly) = Trees.OpenTestAssembly();
         var document = assembly.Fixtures().Child("Circle", "Grow(double, int) : double").Decompile(DecompilationLanguage.CSharp);
-        var local = document.Lines[document.LineContaining("double grown = Radius;")].SpanAt("grown").Reference!;
+        var local = document.Lines[document.LineContaining("double grown = Radius;")].SpanAt("grown").Reference;
         var references = assembly.Root.Child("References").Decompile(DecompilationLanguage.CSharp);
-        var runtime = references.SpansOf().First(s => s.Span.Reference?.Kind == CodeReferenceKind.Assembly).Span.Reference!;
+        var runtime = references.SpansOf().First(s => s.Text.StartsWith("System.Runtime, Version=")).Span.Reference;
 
-        Assert.Null(list.Describe(local));
-        Assert.Null(list.Describe(runtime));
+        Assert.IsType<CodeReference.Local>(local);
+        Assert.IsType<CodeReference.Assembly>(runtime);
     }
 }

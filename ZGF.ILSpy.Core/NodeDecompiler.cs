@@ -46,7 +46,7 @@ internal static class NodeDecompiler
             error.Write($"// Error decompiling {request.FullName}", SpanKind.Comment);
             error.WriteLine();
             error.Write(e.ToString(), SpanKind.Comment);
-            return error.Build(request.Title, isError: true);
+            return error.BuildFailure(request.Title, e);
         }
     }
 
@@ -76,7 +76,7 @@ internal static class NodeDecompiler
         WriteComment(builder, error.Message);
         if (error.InnerException != null)
             builder.Write(error.InnerException.ToString(), SpanKind.Comment);
-        return builder.Build(failure.Title, isError: true);
+        return builder.BuildFailure(failure.Title, error);
     }
 
     /// <summary>The module the document of <paramref name="request"/> is read from; null for a package's.</summary>

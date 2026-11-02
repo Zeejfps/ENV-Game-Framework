@@ -55,7 +55,7 @@ public static class ProblemTexts
         AppProblem.ImportedBookmarksLost p => (t.ErrorBookmarksNotFound(p.File), string.Join(Environment.NewLine, p.Lost)),
         AppProblem.BookmarksLeftOut p => (t.ErrorDuplicateBookmarks(p.Count), ""),
         AppProblem.ComparisonFailed p => (t.ErrorCompare(p.Left, p.Right), p.Error.ToString()),
-        AppProblem.DecompilationFailed p => (t.ErrorDecompile(p.Node), Failure(p.Error, p.Document)),
+        AppProblem.DecompilationFailed p => (t.ErrorDecompile(p.Node), p.Error.ToString()),
         AppProblem.TypeNotDiagrammed p => (t.ErrorShowInDiagram(p.Type.Name), Failure(p.Error, t.ErrorNoDefinition(p.Type))),
         AppProblem.DiagramNotReopened p => (t.ErrorShowInDiagram(p.Diagram), p.Error.ToString()),
         AppProblem.DiagramNotLaidOut p => (t.ErrorLayOutDiagram, p.Error.ToString()),

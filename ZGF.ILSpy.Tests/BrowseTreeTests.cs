@@ -198,7 +198,7 @@ public sealed class BrowseTreeTests
         var (list, assembly) = Trees.OpenTestAssembly();
         var add = assembly.Calculator().Child("Add(T) : void");
 
-        Assert.Equal(CodeReferenceKind.Method, add.Definition.Kind);
+        Assert.Equal(EntityKind.Method, add.Definition.Kind);
         Assert.Same(add, list.FindNode(add.Definition));
         Assert.Null(NodeDefinitions.ReferenceOf(assembly.Fixtures().Subject));
     }

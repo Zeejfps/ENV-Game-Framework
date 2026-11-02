@@ -287,10 +287,8 @@ public sealed class AssemblyList
     /// <summary>The listed assembly that defines what <paramref name="reference"/> points at, and the
     /// handle of its definition there: the assembly's own handle for an assembly. A null assembly
     /// when it cannot be resolved or listed.</summary>
-    internal (LoadedModule? Assembly, EntityHandle Handle) ResolveListed(CodeReference reference)
+    internal (LoadedModule? Assembly, EntityHandle Handle) ResolveListed(CodeReference.Navigable reference)
     {
-        if (reference.FilePath is null)
-            return default;
         var generation = Generation;
         var owner = TryLoadAssembly(reference.FilePath, generation);
         if (owner is null)
@@ -303,25 +301,30 @@ public sealed class AssemblyList
         return (assembly, handle);
     }
 
-    private (LoadedModule? Assembly, EntityHandle Handle) ResolveTarget(LoadedModule owner, CodeReference reference, int generation)
+    private (LoadedModule? Assembly, EntityHandle Handle) ResolveTarget(LoadedModule owner, CodeReference.Navigable reference, int generation)
     {
-        if (reference.Kind != CodeReferenceKind.Assembly)
-            return ResolveDefinition(owner, reference.Handle, generation);
-        if (reference.Handle.Kind == HandleKind.AssemblyDefinition)
-            return (owner, EntityHandle.AssemblyDefinition);
-        var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, (AssemblyReferenceHandle)reference.Handle));
-        return (target, EntityHandle.AssemblyDefinition);
+        switch (reference)
+        {
+            case CodeReference.Entity entity:
+                return ResolveDefinition(owner, entity.Handle, generation);
+            case CodeReference.Assembly assembly:
+                if (assembly.Referenced == null)
+                    return (owner, EntityHandle.AssemblyDefinition);
+                var target = owner.Resolver.ResolveAssembly(new AssemblyReference(owner.File, assembly.Referenced.Value));
+                return (target, EntityHandle.AssemblyDefinition);
+            default:
+                throw new UnreachableException();
+        }
     }
 
     internal static bool IsUnreadable(Exception e) => e is BadImageFormatException or IOException;
 
     /// <summary>
     /// What hovering <paramref name="reference"/> explains: the declaration and XML documentation of
-    /// the type or member it points at. Null for an assembly, a local or a label, or when it cannot
-    /// be resolved. Loads the files it needs without listing them, and reads documentation files:
+    /// the type or member it points at. Null when it cannot be resolved. Loads the files it needs without listing them, and reads documentation files:
     /// call it off the UI thread.
     /// </summary>
-    public CodeTooltip? Describe(CodeReference reference)
+    public CodeTooltip? Describe(CodeReference.Entity reference)
     {
         try
         {
@@ -338,11 +341,10 @@ public sealed class AssemblyList
 
     /// <summary>
     /// The page of the .NET API reference about the type or member <paramref name="reference"/>
-    /// points at, as <see cref="MicrosoftDocs.FindPage(BrowseNode)"/> names it. Null for an assembly,
-    /// a local or a label, for what is not visible outside its assembly, or when it cannot be
-    /// resolved. Loads the files it needs without listing them: call it off the UI thread.
+    /// points at, as <see cref="MicrosoftDocs.FindPage(BrowseNode)"/> names it. Null for what is not
+    /// visible outside its assembly, or when it cannot be resolved. Loads the files it needs without listing them: call it off the UI thread.
     /// </summary>
-    public string? FindApiReferencePage(CodeReference reference)
+    public string? FindApiReferencePage(CodeReference.Entity reference)
     {
         try
         {
@@ -360,9 +362,9 @@ public sealed class AssemblyList
     /// <summary>The definition of the type <paramref name="reference"/> points at, loading the assembly
     /// that defines it without listing it; null when it points at no type, or cannot be resolved.
     /// Call it off the UI thread.</summary>
-    internal ITypeDefinition? FindTypeDefinition(CodeReference reference)
+    internal ITypeDefinition? FindTypeDefinition(CodeReference.Entity reference)
     {
-        if (reference.Kind != CodeReferenceKind.Type)
+        if (reference.Kind != EntityKind.Type)
             return null;
         try
         {
@@ -394,23 +396,17 @@ public sealed class AssemblyList
     }
 
     /// <summary>The type or member <paramref name="reference"/> points at and the assembly that defines
-    /// it, loading that assembly without listing it; nulls for an assembly, a local or a label, or
-    /// when it cannot be resolved.</summary>
-    private (IEntity? Entity, LoadedModule? Assembly) ResolveEntity(CodeReference reference)
+    /// it, loading that assembly without listing it; nulls when it cannot be resolved.</summary>
+    private (IEntity? Entity, LoadedModule? Assembly) ResolveEntity(CodeReference.Entity entity)
     {
-        if (reference.FilePath is null)
-            return default;
-        if (reference.Kind == CodeReferenceKind.Assembly)
-            return default;
         var generation = Generation;
-        var owner = TryLoadAssembly(reference.FilePath, generation);
+        var owner = TryLoadAssembly(entity.FilePath, generation);
         if (owner is null)
             return default;
-        var (assembly, handle) = ResolveDefinition(owner, reference.Handle, generation);
+        var (assembly, handle) = ResolveDefinition(owner, entity.Handle, generation);
         if (assembly is null)
             return default;
-        var entity = assembly.MainModule.ResolveEntity(handle);
-        return (entity, assembly);
+        return (assembly.MainModule.ResolveEntity(handle), assembly);
     }
 
     /// <summary>The listed item <paramref name="path"/> names: its assembly, opened and listed if it is not

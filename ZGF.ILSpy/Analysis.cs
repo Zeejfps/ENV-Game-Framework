@@ -42,7 +42,7 @@ public static class Analysis
     /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
-    public static async void AddToAnalyzer(AppState appState, CodeReference reference)
+    public static async void AddToAnalyzer(AppState appState, CodeReference.Navigable reference)
     {
         var root = appState.Analyzer.AddPending(savedAs: null);
         var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, reference));

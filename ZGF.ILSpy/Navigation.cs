@@ -139,10 +139,8 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
     /// then shows it in the tab it was asked from, or a new one.</summary>
-    public static async void Navigate(AppState appState, CodeReference reference, bool inNewTab)
+    public static async void Navigate(AppState appState, CodeReference.Navigable reference, bool inNewTab)
     {
-        if (!reference.IsNavigable)
-            return;
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
@@ -193,10 +191,8 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background, as <see cref="Navigate"/> does,
     /// then shows the metadata table row that defines it in the tab it was asked from, or a new one.</summary>
-    public static async void ShowInMetadata(AppState appState, CodeReference reference, bool inNewTab)
+    public static async void ShowInMetadata(AppState appState, CodeReference.Navigable reference, bool inNewTab)
     {
-        if (!reference.IsNavigable)
-            return;
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
@@ -234,7 +230,7 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background, then has the view open its page of
     /// the .NET API reference, or reports that it has none.</summary>
-    public static async void ShowInApiReference(AppState appState, CodeReference reference)
+    public static async void ShowInApiReference(AppState appState, CodeReference.Entity reference)
     {
         var found = await Background.Run(() => appState.Assemblies.FindApiReferencePage(reference));
         if (found is Outcome<string>.Ok ok && ok.Value != null)
@@ -250,7 +246,7 @@ public static class Navigation
 
     /// <summary>Goes where a node points: what a reference, a forwarded type, an imported method, or a base
     /// or derived type leads to.</summary>
-    public static void GoTo(AppState appState, NavigationAddress address) => Navigate(appState, address.ToReference(), inNewTab: false);
+    public static void GoTo(AppState appState, CodeReference.Navigable target) => Navigate(appState, target, inNewTab: false);
 
     public static void GoBack(AppState appState) => GoToHistoryEntry(appState, appState.History.CurrentIndex - 1);
 

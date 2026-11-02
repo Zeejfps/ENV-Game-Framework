@@ -204,7 +204,7 @@ public static class NodeContentLoader
         {
             if (NodeVisibility.Of(child.Subject).IsCompilerGenerated) continue;
             if (child.Subject is NodeSubject.TypeDefinition type)
-                entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, type.Definition.Address.ToReference()));
+                entries.Add(new NamespaceEntry.Declared(type.Definition.Symbol, child.Text, type.Definition.Reference));
             if (child.Subject is NodeSubject.ForwardedType forwarded)
                 entries.Add(new NamespaceEntry.Forwarded(ForwardedLineOf(child, forwarded)));
         }

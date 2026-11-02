@@ -18,7 +18,7 @@ public sealed class WebCilTests
         Assert.IsNotType<FailedAssembly>(assembly);
         Assert.IsNotType<LoadedPackage>(assembly);
         Assert.Equal("SampleApp", assembly.Name);
-        Assert.False(counter.IsError);
+        Assert.Null(counter.Error);
         Assert.Contains("public void Increment()", counter.GetText());
     }
 

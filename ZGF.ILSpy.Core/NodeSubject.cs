@@ -381,16 +381,16 @@ public sealed class BaseTypeInfo
     public NodeVisibility Visibility { get; }
 
     /// <summary>The base type <paramref name="type"/> as <paramref name="module"/> names it, navigable when
-    /// its definition is found and has an address.</summary>
+    /// its definition is found and can be referenced.</summary>
     internal static BaseTypeInfo Of(LoadedModule module, IType type)
     {
         var definition = type.GetDefinition();
         if (definition == null)
             return new BaseTypeInfo(module, type, new BaseTypeTarget.Unresolved(), NodeVisibility.Open);
-        var address = NavigationAddress.Of(definition);
-        if (address == null)
+        var reference = CodeReference.To(definition);
+        if (reference == null)
             return new BaseTypeInfo(module, type, new BaseTypeTarget.Unaddressed(definition), NodeVisibility.Open);
-        return new BaseTypeInfo(module, type, new BaseTypeTarget.Navigable(definition, address), NodeVisibility.OfReferenced(definition));
+        return new BaseTypeInfo(module, type, new BaseTypeTarget.Navigable(definition, reference), NodeVisibility.OfReferenced(definition));
     }
 }
 
@@ -401,7 +401,7 @@ public abstract record BaseTypeTarget
     {
     }
 
-    public sealed record Navigable(ITypeDefinition Definition, NavigationAddress Address) : BaseTypeTarget;
+    public sealed record Navigable(ITypeDefinition Definition, CodeReference.Entity Reference) : BaseTypeTarget;
 
     public sealed record Unaddressed(ITypeDefinition Definition) : BaseTypeTarget;
 
@@ -409,14 +409,14 @@ public abstract record BaseTypeTarget
 }
 
 /// <summary>A type of the open assemblies that derives directly from the type a folder of derived types
-/// belongs to, and the address it is navigated to by.</summary>
+/// belongs to, and the reference it is navigated to by.</summary>
 public sealed class DerivedTypeInfo
 {
-    private DerivedTypeInfo(LoadedModule module, ITypeDefinition symbol, NavigationAddress address)
+    private DerivedTypeInfo(LoadedModule module, ITypeDefinition symbol, CodeReference.Entity reference)
     {
         Module = module;
         Symbol = symbol;
-        Address = address;
+        Reference = reference;
         Visibility = NodeVisibility.OfReferenced(symbol);
     }
 
@@ -427,74 +427,27 @@ public sealed class DerivedTypeInfo
 
     public ITypeDefinition Symbol { get; }
 
-    public NavigationAddress Address { get; }
+    public CodeReference.Entity Reference { get; }
 
-    /// <summary>The derived type <paramref name="type"/>; null when it has no address to be navigated to.</summary>
+    /// <summary>The derived type <paramref name="type"/>; null when it has no reference to be navigated to.</summary>
     internal static DerivedTypeInfo? Of(LoadedModule module, ITypeDefinition type)
     {
-        var address = NavigationAddress.Of(type);
-        if (address == null)
+        var reference = CodeReference.To(type);
+        if (reference == null)
             return null;
-        return new DerivedTypeInfo(module, type, address);
+        return new DerivedTypeInfo(module, type, reference);
     }
 }
 
-/// <summary>Where navigation can go: an assembly, type or member, by a file and a handle there, either
-/// the definition itself or a reference to one, resolved when it is followed. Unlike a
-/// <see cref="CodeReference"/> it never names a local or a label.</summary>
-public sealed record NavigationAddress
-{
-    private NavigationAddress(AssemblyPath filePath, EntityHandle handle, CodeReferenceKind kind, string name)
-    {
-        FilePath = filePath;
-        Handle = handle;
-        Kind = kind;
-        Name = name;
-    }
-
-    public AssemblyPath FilePath { get; }
-
-    public EntityHandle Handle { get; }
-
-    public CodeReferenceKind Kind { get; }
-
-    /// <summary>The definition's name, as references to it are shown.</summary>
-    public string Name { get; }
-
-    /// <summary>The address of what <paramref name="handle"/> of the file at <paramref name="filePath"/>
-    /// names, a <paramref name="kind"/> called <paramref name="name"/>: an assembly, type or member.</summary>
-    internal static NavigationAddress To(CodeReferenceKind kind, string name, AssemblyPath filePath, EntityHandle handle)
-    {
-        if (kind is CodeReferenceKind.Local or CodeReferenceKind.Label)
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Locals and labels are not navigated to.");
-        return new NavigationAddress(filePath, handle, kind, name);
-    }
-
-    /// <summary>The address of <paramref name="entity"/>'s definition; null when it has no metadata file
-    /// or token to be found by.</summary>
-    internal static NavigationAddress? Of(IEntity entity)
-    {
-        var file = entity.ParentModule?.MetadataFile;
-        if (file == null)
-            return null;
-        if (entity.MetadataToken.IsNil)
-            return null;
-        return new NavigationAddress(AssemblyPath.Of(file), entity.MetadataToken, CodeReference.KindOf(entity.SymbolKind), entity.Name);
-    }
-
-    /// <summary>A reference to the definition, as documents and the tree point at it.</summary>
-    public CodeReference ToReference() => CodeReference.ToEntity(Kind, Name, FilePath, Handle);
-}
-
-/// <summary>A type a module defines, with the handle its node is found by and the address it is navigated to by.</summary>
+/// <summary>A type a module defines, with the handle its node is found by and the reference it is navigated to by.</summary>
 public sealed class DefinedType
 {
-    private DefinedType(LoadedModule module, ITypeDefinition symbol, TypeDefinitionHandle handle, NavigationAddress address)
+    private DefinedType(LoadedModule module, ITypeDefinition symbol, TypeDefinitionHandle handle, CodeReference.Entity reference)
     {
         Module = module;
         Symbol = symbol;
         Handle = handle;
-        Address = address;
+        Reference = reference;
         Visibility = NodeVisibility.OfDefinition(symbol);
     }
 
@@ -504,7 +457,7 @@ public sealed class DefinedType
 
     public TypeDefinitionHandle Handle { get; }
 
-    public NavigationAddress Address { get; }
+    public CodeReference.Entity Reference { get; }
 
     public TypeShape Shape => EntityText.ShapeOf(Symbol);
 
@@ -517,21 +470,21 @@ public sealed class DefinedType
     {
         if (type.MetadataToken.Kind != HandleKind.TypeDefinition)
             return null;
-        var address = NavigationAddress.Of(type);
-        if (address == null)
+        var reference = CodeReference.To(type);
+        if (reference == null)
             return null;
-        return new DefinedType(module, type, (TypeDefinitionHandle)type.MetadataToken, address);
+        return new DefinedType(module, type, (TypeDefinitionHandle)type.MetadataToken, reference);
     }
 }
 
-/// <summary>A member a module defines, with the handle its node is found by and the address it is navigated to by.</summary>
+/// <summary>A member a module defines, with the handle its node is found by and the reference it is navigated to by.</summary>
 public sealed class DefinedMember
 {
-    private DefinedMember(LoadedModule module, IMember symbol, NavigationAddress address)
+    private DefinedMember(LoadedModule module, IMember symbol, CodeReference.Entity reference)
     {
         Module = module;
         Symbol = symbol;
-        Address = address;
+        Reference = reference;
         Visibility = NodeVisibility.OfDefinition(symbol);
     }
 
@@ -539,9 +492,9 @@ public sealed class DefinedMember
 
     public IMember Symbol { get; }
 
-    public EntityHandle Handle => Address.Handle;
+    public EntityHandle Handle => Reference.Handle;
 
-    public NavigationAddress Address { get; }
+    public CodeReference.Entity Reference { get; }
 
     public MemberShape Shape => EntityText.ShapeOf(Symbol);
 
@@ -553,10 +506,10 @@ public sealed class DefinedMember
     /// no metadata file or token.</summary>
     internal static DefinedMember? Of(LoadedModule module, IMember member)
     {
-        var address = NavigationAddress.Of(member);
-        if (address == null)
+        var reference = CodeReference.To(member);
+        if (reference == null)
             return null;
-        return new DefinedMember(module, member, address);
+        return new DefinedMember(module, member, reference);
     }
 }
 

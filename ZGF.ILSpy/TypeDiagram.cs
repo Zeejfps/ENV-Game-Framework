@@ -11,7 +11,7 @@ namespace ZGF.ILSpy;
 public sealed class TypeDiagram
 {
     private readonly List<TypeCard> _cards = new();
-    private readonly HashSet<CodeReference> _types = new();
+    private readonly HashSet<CodeReference.Entity> _types = new();
     private readonly List<TypeLink> _links = new();
     private readonly HashSet<AssemblyPath> _homeAssemblies = new();
     private readonly CancellationTokenSource _open = new();
@@ -37,10 +37,10 @@ public sealed class TypeDiagram
 
     public bool IsClosed => _open.IsCancellationRequested;
 
-    public bool Contains(CodeReference type) => _types.Contains(type);
+    public bool Contains(CodeReference.Entity type) => _types.Contains(type);
 
     /// <summary>The card of <paramref name="type"/>, or null when the diagram does not show it.</summary>
-    public TypeCard? Find(CodeReference type)
+    public TypeCard? Find(CodeReference.Entity type)
     {
         foreach (var card in _cards)
         {
@@ -68,7 +68,7 @@ public sealed class TypeDiagram
         _cards.Add(card);
     }
 
-    public void Remove(CodeReference type)
+    public void Remove(CodeReference.Entity type)
     {
         if (!_types.Remove(type))
             return;
