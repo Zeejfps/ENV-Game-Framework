@@ -16,7 +16,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_icon import BLADE_PARTS, LENS_PARTS, SIZE, TILE_BOTTOM, TILE_TOP, build
+from build_icon import BLADE_PARTS, EYE_PARTS, SIZE, TILE_BOTTOM, TILE_TOP, build
 from build_small import build as build_small
 
 SOURCE = Path(__file__).parent
@@ -28,7 +28,7 @@ LINUX_SIZES = (16, 24, 32, 48, 64, 128, 256, 512)
 WINDOW_ICON_SIZES = (16, 32, 48, 64, 128, 256)
 MAC_LAYERS = {
     "blades": BLADE_PARTS,
-    "lens": LENS_PARTS,
+    "eye": EYE_PARTS,
 }
 
 
@@ -98,7 +98,7 @@ def mac_icon_manifest():
         "fill": {"linear-gradient": [srgb(TILE_TOP), srgb(TILE_BOTTOM)]},
         "groups": [
             mac_group("Blades", "blades", glass=True, specular=True, shadow=0.25),
-            mac_group("Lens", "lens", glass=False, specular=False, shadow=0),
+            mac_group("Eye", "eye", glass=False, specular=False, shadow=0),
         ],
         "supported-platforms": {"squares": ["macOS"]},
     }

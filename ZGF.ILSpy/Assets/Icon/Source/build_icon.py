@@ -6,6 +6,8 @@ BLADE_LIGHT = "#8c96f0"
 BLADE_MID = "#6670e0"
 BLADE_DARK = "#4a56ef"
 INTERIOR = "#0b0e1f"
+LID = "#2a3170"
+SCLERA = "#dfe3ff"
 ACCENT = "#3fd0e0"
 TILE_TOP = "#1c2244"
 TILE_BOTTOM = "#0d1124"
@@ -18,11 +20,16 @@ BRACE_HEIGHT = 0.2
 BRACE_OFFSET = 0.085
 BRACE_WEIGHT = 0.034
 
+EYE_WIDTH = 0.98
+EYE_HEIGHT = 0.612
+LID_WEIGHT = 0.046
+IRIS = 0.367
+
 TILE_MARGIN = 0.146
 GAP = 0.02
 
-ALL_PARTS = ("interior", "braces", "blades")
-LENS_PARTS = ("interior", "braces")
+ALL_PARTS = ("lids", "interior", "braces", "blades")
+EYE_PARTS = ("lids", "interior", "braces")
 BLADE_PARTS = ("blades",)
 
 
@@ -83,15 +90,54 @@ def shifted(point, direction, probe, amount):
     return (point[0] + normal[0] * amount, point[1] + normal[1] * amount)
 
 
-def body_radius(size, plated):
-    if plated:
-        return size / 2 - size * TILE_MARGIN
-    return size / 2 / (1 - BODY_CORNER * (1 / math.cos(math.pi / BLADES) - 1))
+def eye_width(size, plated):
+    return size * (1 - 2 * TILE_MARGIN) if plated else size * EYE_WIDTH
+
+
+def almond(center, width, height, steps=48):
+    half, rise = width / 2, height / 2
+    radius = (half * half + rise * rise) / (2 * rise)
+    reach = math.asin(half / radius)
+    top = [(center[0] + radius * math.sin(a), center[1] - rise + radius - radius * math.cos(a))
+           for a in (-reach + 2 * reach * s / steps for s in range(steps + 1))]
+    bottom = [(x, 2 * center[1] - y) for x, y in reversed(top[1:-1])]
+    return top + bottom
+
+
+def clip(polygon, convex):
+    turn = 1 if sum(cross(convex[i], convex[(i + 1) % len(convex)]) for i in range(len(convex))) > 0 else -1
+    result = polygon
+    for i in range(len(convex)):
+        a, b = convex[i], convex[(i + 1) % len(convex)]
+        edge = sub(b, a)
+        inside = lambda p: turn * cross(edge, sub(p, a)) >= 0
+        source, result = result, []
+        for j in range(len(source)):
+            p, q = source[j - 1], source[j]
+            if inside(q):
+                if not inside(p):
+                    result.append(intersect(p, sub(q, p), a, edge))
+                result.append(q)
+            elif inside(p):
+                result.append(intersect(p, sub(q, p), a, edge))
+        if not result:
+            break
+    return result
+
+
+class Eye:
+    def __init__(self, size, width):
+        self.center = (size / 2, size / 2)
+        lid = width * LID_WEIGHT
+        self.outline = almond(self.center, width, width * EYE_HEIGHT)
+        self.white = almond(self.center, width - 3.2 * lid, width * EYE_HEIGHT - 2 * lid)
+        self.iris = Aperture(size, width * IRIS)
 
 
 class Aperture:
     def __init__(self, size, radius):
         self.center = (size / 2, size / 2)
+        self.radius = radius
         self.opening = regular(BLADES, radius * OPENING, self.center, -math.pi / 2)
         self.outline = rounded_regular(BLADES, radius, radius * BODY_CORNER, self.center,
                                        -math.pi / 2 + math.pi / BLADES)
@@ -139,8 +185,8 @@ def brace_path(cx, cy, height, facing):
 
 
 def build(size=SIZE, plated=False, parts=ALL_PARTS):
-    radius = body_radius(size, plated)
-    aperture = Aperture(size, radius)
+    eye = Eye(size, eye_width(size, plated))
+    aperture = eye.iris
     gap = max(1.0, size * GAP)
     steps = []
 
@@ -154,13 +200,17 @@ def build(size=SIZE, plated=False, parts=ALL_PARTS):
         add("paint.setStroke", ids=[item], none=True)
 
     add("file.new", width=size, height=size, units="Pixels", backgroundContents="transparent", created=None)
+    if "lids" in parts:
+        filled(eye.outline, LID)
+        filled(eye.white, SCLERA)
+        filled(clip(aperture.outline, eye.white), LID)
     if "interior" in parts:
         filled(aperture.opening, INTERIOR)
     if "braces" in parts:
-        draw_braces(add, aperture.center, 2 * radius)
+        draw_braces(add, aperture.center, 2 * aperture.radius)
     if "blades" in parts:
         for k in range(BLADES):
-            filled(aperture.blade(k, gap), aperture.tone(k))
+            filled(clip(aperture.blade(k, gap), eye.white), aperture.tone(k))
     add("select.none")
     return steps
 

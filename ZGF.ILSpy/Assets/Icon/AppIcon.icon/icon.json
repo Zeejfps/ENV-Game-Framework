@@ -22,11 +22,11 @@
       "specular": true
     },
     {
-      "name": "Lens",
+      "name": "Eye",
       "layers": [
         {
-          "image-name": "lens.png",
-          "name": "lens",
+          "image-name": "eye.png",
+          "name": "eye",
           "glass": false
         }
       ],
