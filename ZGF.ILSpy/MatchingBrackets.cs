@@ -66,9 +66,9 @@ public sealed class MatchingBrackets
             return '\0';
         var line = document.Lines[at.Line];
         var span = CodeText.SpanAt(line.Spans, at.Column);
-        if (span < 0)
+        if (span == null)
             return '\0';
-        if (!IsCode(line.Spans[span]))
+        if (!IsCode(line.Spans[span.Value]))
             return '\0';
         return line.Text[at.Column];
     }

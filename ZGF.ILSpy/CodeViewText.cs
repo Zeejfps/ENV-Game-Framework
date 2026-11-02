@@ -41,7 +41,8 @@ internal static class CodeText
         return (at with { Column = start }, at with { Column = end });
     }
 
-    public static int SpanAt(ReadOnlySpan<DocumentSpan> spans, int column)
+    /// <summary>The index of the span of <paramref name="spans"/> holding <paramref name="column"/>, or null.</summary>
+    public static int? SpanAt(ReadOnlySpan<DocumentSpan> spans, int column)
     {
         int low = 0, high = spans.Length - 1;
         while (low <= high)
@@ -51,7 +52,7 @@ internal static class CodeText
             else if (spans[mid].Start > column) high = mid - 1;
             else return mid;
         }
-        return -1;
+        return null;
     }
 
     public static int Digits(int value)

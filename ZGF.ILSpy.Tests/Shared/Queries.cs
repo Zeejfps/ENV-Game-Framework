@@ -93,9 +93,9 @@ internal static class DocumentQueries
     {
         var line = document.LineContaining(text);
         var index = document.FoldStartingAt(line);
-        if (index < 0)
+        if (index == null)
             throw new InvalidOperationException($"No fold starts at '{text}'");
-        return index;
+        return index.Value;
     }
 
     public static FoldRegion FoldAt(this DecompiledDocument document, string text) => document.Folds[document.FoldIndexAt(text)];

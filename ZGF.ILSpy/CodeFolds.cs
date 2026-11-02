@@ -59,21 +59,22 @@ internal sealed class CodeFolds
         return changed;
     }
 
-    /// <summary>The collapsed fold whose row is <paramref name="line"/>, or -1.</summary>
-    public int CollapsedAt(int line)
+    /// <summary>The collapsed fold whose row is <paramref name="line"/>, or null.</summary>
+    public int? CollapsedAt(int line)
     {
-        if (_identity) return -1;
+        if (_identity) return null;
         var fold = _document.FoldStartingAt(line);
-        return fold >= 0 && _collapsed[fold] ? fold : -1;
+        if (fold == null) return null;
+        return _collapsed[fold.Value] ? fold : null;
     }
 
     /// <summary>The innermost fold around the visible line <paramref name="line"/> is shown on, of
-    /// any state or only <paramref name="collapsed"/> ones; -1 when there is none.</summary>
-    public int Innermost(int line, bool? collapsed = null)
+    /// any state or only <paramref name="collapsed"/> ones; null when there is none.</summary>
+    public int? Innermost(int line, bool? collapsed = null)
     {
         line = VisibleLine(line);
         var folds = _document.Folds;
-        var found = -1;
+        int? found = null;
         for (var i = 0; i < folds.Length && folds[i].StartLine <= line; i++)
         {
             if (line <= folds[i].EndLine && (collapsed == null || _collapsed[i] == collapsed))

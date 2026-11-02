@@ -83,6 +83,58 @@ internal abstract record PendingScroll
     public sealed record ShowMatch(int Line, int ColumnStart, int ColumnEnd) : PendingScroll;
 }
 
+/// <summary>What the pointer is over in a code view this frame: nothing; the text of a line, on one of its spans
+/// or none and on a collapsed fold's chip or none; a fold's chevron; or the bookmark margin of a line. A struct
+/// with a case for each, as it is made every frame.</summary>
+internal readonly struct CodeHover
+{
+    private enum Place : byte
+    {
+        Nothing,
+        Text,
+        Chevron,
+        Mark,
+    }
+
+    private readonly Place _place;
+    private readonly int _line;
+    private readonly int? _span;
+    private readonly int? _fold;
+
+    private CodeHover(Place place, int line, int? span, int? fold)
+    {
+        _place = place;
+        _line = line;
+        _span = span;
+        _fold = fold;
+    }
+
+    public static CodeHover Nothing => default;
+
+    /// <summary>Over the text of <paramref name="line"/>, on its span <paramref name="span"/> or none, and on
+    /// the chip of the collapsed fold <paramref name="chip"/> or none.</summary>
+    public static CodeHover OnText(int line, int? span, int? chip) => new(Place.Text, line, span, chip);
+
+    public static CodeHover OnChevron(int fold) => new(Place.Chevron, 0, null, fold);
+
+    public static CodeHover OnMark(int line) => new(Place.Mark, line, null, null);
+
+    /// <summary>The span under the pointer, or null.</summary>
+    public CodeSpanAt? Span => _place == Place.Text && _span != null ? new CodeSpanAt(_line, _span.Value) : null;
+
+    /// <summary>The collapsed fold whose chip is under the pointer, or null.</summary>
+    public int? Chip => _place == Place.Text ? _fold : null;
+
+    /// <summary>The fold whose chevron is under the pointer, or null.</summary>
+    public int? Chevron => _place == Place.Chevron ? _fold : null;
+
+    /// <summary>The line whose bookmark margin is under the pointer, or null.</summary>
+    public int? Mark => _place == Place.Mark ? _line : null;
+
+    /// <summary>Whether a press here works a control, a chip, chevron or mark, rather than the text.</summary>
+    public bool IsOnControl => Chip != null || Chevron != null || Mark != null;
+}
+
 /// <summary>The line <see cref="Line"/> flashing since the time <see cref="From"/>, after it was revealed.</summary>
 internal readonly record struct CodeFlash(int Line, double From);
 
@@ -90,8 +142,6 @@ internal readonly record struct CodeFlash(int Line, double From);
 /// selection, folds, find. One per open tab, owned by the app.</summary>
 public sealed class CodeViewState
 {
-    internal const int NoLine = -1;
-
     internal readonly CodeViewFrame Frame = new();
     internal readonly CodeFindIndex Find = new();
     internal readonly CodeFolds Folds = new();
@@ -166,8 +216,8 @@ public sealed class CodeViewState
     public void ToggleFold(int line)
     {
         var fold = Folds.Innermost(line);
-        if (fold >= 0)
-            SetCollapsed(fold, !Folds.IsCollapsed(fold));
+        if (fold != null)
+            SetCollapsed(fold.Value, !Folds.IsCollapsed(fold.Value));
     }
 
     public void CollapseAll() => SetAll(true);
@@ -350,20 +400,16 @@ public static class CodeViewWidget
                 if (row >= folds.RowCount) return CodeText.End(document);
                 var line = folds.LineAt(row);
                 var fold = folds.CollapsedAt(line);
-                if (fold >= 0 && column > document.Lines[line].Text.Length)
+                if (fold != null && column > document.Lines[line].Text.Length)
                 {
-                    var end = document.Folds[fold].EndLine;
+                    var end = document.Folds[fold.Value].EndLine;
                     return new TextPosition(end, document.Lines[end].Text.Length);
                 }
                 return CodeText.Clamp(document, new TextPosition(line, column));
             }
 
             var pointer = ui.Input.Pointer;
-            var hoverLine = CodeViewState.NoLine;
-            var hoverSpan = CodeViewState.NoLine;
-            var hoverFold = CodeViewState.NoLine;
-            var hoverChip = CodeViewState.NoLine;
-            var hoverMark = CodeViewState.NoLine;
+            var hover = CodeHover.Nothing;
             if (hasRect && folds.RowCount > 0 && (i.Hovered || i.Held) && pointer.X < content.Right && pointer.Y < content.Bottom)
             {
                 var row = (int)MathF.Floor((pointer.Y - rect.Y + state.LaidOutScrollY) / rowHeight);
@@ -375,55 +421,61 @@ public static class CodeViewWidget
                         var column = (int)MathF.Floor((pointer.X - rect.X - textLeft + state.LaidOutScrollX) / advance);
                         if (column >= 0)
                         {
-                            hoverLine = line;
-                            hoverSpan = CodeText.SpanAt(document.Lines[line].Spans, column);
+                            var span = CodeText.SpanAt(document.Lines[line].Spans, column);
                             var collapsed = folds.CollapsedAt(line);
-                            var chip = document.Lines[line].Text.Length + 1;
-                            if (collapsed >= 0 && column >= chip && column < chip + document.Folds[collapsed].CollapsedText.Length)
-                                hoverChip = collapsed;
+                            var chipStart = document.Lines[line].Text.Length + 1;
+                            int? chip = null;
+                            if (collapsed != null && column >= chipStart && column < chipStart + document.Folds[collapsed.Value].CollapsedText.Length)
+                                chip = collapsed;
+                            hover = CodeHover.OnText(line, span, chip);
                         }
                     }
                     else if (foldWidth > 0f && pointer.X >= rect.X + foldLeft)
                     {
-                        hoverFold = document.FoldStartingAt(line);
+                        var fold = document.FoldStartingAt(line);
+                        if (fold != null)
+                            hover = CodeHover.OnChevron(fold.Value);
                     }
                     else if (bookmarks != null && pointer.X < rect.X + markWidth)
                     {
-                        hoverMark = line;
+                        hover = CodeHover.OnMark(line);
                     }
                 }
             }
-            var hoverReference = hoverSpan >= 0 ? document.Lines[hoverLine].Spans[hoverSpan].Reference : null;
-            var hoverTarget = hoverReference is CodeReference.Navigable underPointer && !document.Lines[hoverLine].Spans[hoverSpan].IsDefinition ? underPointer : null;
+            var hoverSpan = hover.Span;
+            var hovered = hoverSpan != null ? document.Lines[hoverSpan.Value.Line].Spans[hoverSpan.Value.Span] : default;
+            var hoverReference = hovered.Reference;
+            var hoverTarget = hoverReference is CodeReference.Navigable underPointer && !hovered.IsDefinition ? underPointer : null;
             var hoverNavigable = hoverTarget != null;
-            var hoverToggle = hoverFold >= 0 || hoverChip >= 0 || hoverMark >= 0;
 
             if (i.Hovered || i.Held)
-                ui.SetCursor((hoverNavigable || hoverToggle) && !state.PressMoved ? MouseCursor.Hand : MouseCursor.Text);
+                ui.SetCursor((hoverNavigable || hover.IsOnControl) && !state.PressMoved ? MouseCursor.Hand : MouseCursor.Text);
 
             var scrollDeltaY = 0f;
             if (i.Pressed && hasRect)
             {
                 ui.Focus(focusId, takesText: false);
                 state.Press = new CodePress.OnControl();
-                if (hoverMark >= 0)
+                var mark = hover.Mark;
+                var chevron = hover.Chevron;
+                var chip = hover.Chip;
+                if (mark != null)
                 {
-                    intent = new CodeViewIntent.ToggleBookmark(hoverMark);
+                    intent = new CodeViewIntent.ToggleBookmark(mark.Value);
                 }
-                else if (hoverFold >= 0)
+                else if (chevron != null)
                 {
-                    state.SetCollapsed(hoverFold, !folds.IsCollapsed(hoverFold));
+                    state.SetCollapsed(chevron.Value, !folds.IsCollapsed(chevron.Value));
                 }
-                else if (hoverChip >= 0)
+                else if (chip != null)
                 {
-                    state.SetCollapsed(hoverChip, false);
+                    state.SetCollapsed(chip.Value, false);
                 }
                 else
                 {
                     var at = PositionAt(pointer.X, pointer.Y);
                     var forNewTab = (ui.Input.Modifiers & (KeyModifiers.Control | KeyModifiers.Super)) != 0;
-                    CodeSpanAt? span = hoverSpan >= 0 ? new CodeSpanAt(hoverLine, hoverSpan) : null;
-                    state.Press = new CodePress.OnText(at, forNewTab, span);
+                    state.Press = new CodePress.OnText(at, forNewTab, hoverSpan);
                     state.Selection.Press(document, at, i.ClickCount, (ui.Input.Modifiers & KeyModifiers.Shift) != 0);
                 }
             }
@@ -460,14 +512,15 @@ public static class CodeViewWidget
             if (i.ClickedWith(PointerButton.Right))
             {
                 ui.Focus(focusId, takesText: false);
-                var onDefinition = hoverSpan >= 0 && document.Lines[hoverLine].Spans[hoverSpan].IsDefinition;
-                state.Menu = new CodeMenuTarget(hoverReference, onDefinition, hasRect ? PositionAt(pointer.X, pointer.Y).Line : CodeViewState.NoLine);
+                var onDefinition = hoverSpan != null && hovered.IsDefinition;
+                int? menuLine = hasRect ? PositionAt(pointer.X, pointer.Y).Line : null;
+                state.Menu = new CodeMenuTarget(hoverReference, onDefinition, menuLine);
                 ui.OpenContextMenu("menu");
             }
 
             Scroll(ui, state, document, rowHeight, advance, textLeft, content, scrollDeltaY);
             FillFrame(ui, state, document, theme, palette, cell, rowHeight, markWidth, foldLeft, foldWidth, gutterWidth, textLeft, digits,
-                focused || findFocused, bookmarks, hoverLine, hoverSpan, hoverReference, hoverNavigable, hoverFold, hoverChip, hoverMark);
+                focused || findFocused, bookmarks, hover, hoverReference, hoverNavigable);
             FillDisplayAids(state, document, shown, fontSize);
 
             using (ui.Box(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f }))
@@ -489,8 +542,8 @@ public static class CodeViewWidget
             }
             if (tooltips != null && hasRect)
             {
-                var hovered = new HoveredSpan(hoverLine, hoverSpan, rect.X + textLeft, rect.Y);
-                var followed = ReferenceTooltip(ui, state, document, tooltips, codeId, hovered, advance, rowHeight);
+                var under = new HoveredSpan(hoverSpan, rect.X + textLeft, rect.Y);
+                var followed = ReferenceTooltip(ui, state, document, tooltips, codeId, under, advance, rowHeight);
                 if (followed != null)
                     intent = followed;
             }
@@ -568,7 +621,7 @@ public static class CodeViewWidget
         var frame = state.Frame;
         var caret = state.Selection.Caret;
         frame.FontSize = fontSize;
-        frame.CurrentLine = display.HighlightCurrentLine ? caret.Line : CodeViewState.NoLine;
+        frame.CurrentLine = display.HighlightCurrentLine ? caret.Line : null;
         frame.Brackets = FindBracketsToShow(state, document, display, caret);
     }
 
@@ -580,7 +633,7 @@ public static class CodeViewWidget
     }
 
     /// <summary>The span under the pointer and where the view's text starts on screen.</summary>
-    private readonly record struct HoveredSpan(int Line, int Span, float TextX, float TextY);
+    private readonly record struct HoveredSpan(CodeSpanAt? Span, float TextX, float TextY);
 
     /// <summary>The tooltip of the type or member under the pointer, under its span once it has
     /// been looked up.</summary>
@@ -589,8 +642,9 @@ public static class CodeViewWidget
     {
         var tooltip = TooltipOf(state, document, tooltips, hovered);
         var part = 0;
-        if (tooltip != null)
-            part = HashCode.Combine(hovered.Line, hovered.Span) | 1;
+        var span = hovered.Span;
+        if (tooltip != null && span != null)
+            part = HashCode.Combine(span.Value.Line, span.Value.Span) | 1;
         var anchor = TooltipAnchor(state, document, hovered, advance, rowHeight);
         using var popup = ui.TooltipContent(codeId, part, anchor, out var shownPart, CodeTooltipView.Look);
         state.Tooltip.Keep(tooltip, part, shownPart);
@@ -619,11 +673,12 @@ public static class CodeViewWidget
     /// its lookup is done; null otherwise, and while a press drags a selection.</summary>
     private static CodeTooltip? TooltipOf(CodeViewState state, DecompiledDocument document, CodeTooltips tooltips, HoveredSpan hovered)
     {
-        if (hovered.Span < 0)
+        var span = hovered.Span;
+        if (span == null)
             return null;
         if (state.PressMoved)
             return null;
-        if (document.Lines[hovered.Line].Spans[hovered.Span].Reference is not CodeReference.Entity entity)
+        if (document.Lines[span.Value.Line].Spans[span.Value.Span].Reference is not CodeReference.Entity entity)
             return null;
         tooltips.TryGet(entity, out var tooltip);
         return tooltip;
@@ -639,11 +694,12 @@ public static class CodeViewWidget
 
     private static UiRect SpanRect(CodeViewState state, DecompiledDocument document, HoveredSpan hovered, float advance, float rowHeight)
     {
-        if (hovered.Span < 0)
+        var at = hovered.Span;
+        if (at == null)
             return default;
-        var span = document.Lines[hovered.Line].Spans[hovered.Span];
+        var span = document.Lines[at.Value.Line].Spans[at.Value.Span];
         var x = hovered.TextX - state.LaidOutScrollX + span.Start * advance;
-        var y = hovered.TextY + state.Folds.RowOf(hovered.Line) * rowHeight - state.LaidOutScrollY;
+        var y = hovered.TextY + state.Folds.RowOf(at.Value.Line) * rowHeight - state.LaidOutScrollY;
         return new UiRect(x, y, span.Length * advance, rowHeight);
     }
 
@@ -652,8 +708,7 @@ public static class CodeViewWidget
 
     private static void FillFrame(Ui<UiState> ui, CodeViewState state, DecompiledDocument document, UiTheme theme, CodeViewPalette palette, CellMetrics cell,
         float rowHeight, float markWidth, float foldLeft, float foldWidth, float gutterWidth, float textLeft, int digits, bool active,
-        IReadOnlyDictionary<int, bool>? bookmarks, int hoverLine, int hoverSpan, CodeReference? hoverReference, bool hoverNavigable, int hoverFold,
-        int hoverChip, int hoverMark)
+        IReadOnlyDictionary<int, bool>? bookmarks, CodeHover hover, CodeReference? hoverReference, bool hoverNavigable)
     {
         var frame = state.Frame;
         frame.Document = document;
@@ -671,7 +726,7 @@ public static class CodeViewWidget
         frame.IconSize = theme.IconSize;
         frame.BookmarkGlyph = ui.State.Icons.CodeBookmark;
         frame.Bookmarks = bookmarks;
-        frame.HoverMark = hoverMark;
+        frame.HoverMark = hover.Mark;
         frame.Advance = cell.Advance;
         frame.CellHeight = cell.Height;
         frame.RowHeight = rowHeight;
@@ -683,9 +738,9 @@ public static class CodeViewWidget
         frame.SelectionStart = state.Selection.Start;
         frame.SelectionEnd = state.Selection.End;
         frame.Highlight = hoverReference ?? state.Marked;
-        (frame.UnderlineLine, frame.UnderlineSpan) = hoverNavigable && !state.PressMoved ? (hoverLine, hoverSpan) : (CodeViewState.NoLine, CodeViewState.NoLine);
-        frame.HoverFold = hoverFold;
-        frame.HoverChip = hoverChip;
+        frame.Underline = hoverNavigable && !state.PressMoved ? hover.Span : null;
+        frame.HoverFold = hover.Chevron;
+        frame.HoverChip = hover.Chip;
 
         var findActive = state.FindOpen && state.Query.Length > 0;
         frame.Matches = state.Find.Matches;
@@ -788,8 +843,13 @@ public static class CodeViewWidget
         var spans = document.Lines[at.Line].Spans;
         foreach (var column in (ReadOnlySpan<int>)[at.Column, at.Column - 1])
         {
-            if (column >= 0 && CodeText.SpanAt(spans, column) is >= 0 and var index
-                && spans[index].Kind != SpanKind.Plain && spans[index].Reference is CodeReference.Entity entity)
+            if (column < 0)
+                continue;
+            var index = CodeText.SpanAt(spans, column);
+            if (index == null)
+                continue;
+            var span = spans[index.Value];
+            if (span.Kind != SpanKind.Plain && span.Reference is CodeReference.Entity entity)
                 return entity;
         }
         return null;
@@ -898,8 +958,8 @@ public static class CodeViewWidget
     private static void FoldAtCaret(CodeViewState state, bool collapse)
     {
         var fold = state.Folds.Innermost(state.Selection.Caret.Line, collapsed: !collapse);
-        if (fold >= 0)
-            state.SetCollapsed(fold, collapse);
+        if (fold != null)
+            state.SetCollapsed(fold.Value, collapse);
     }
 
     /// <summary>Copies the selection as plain text and as HTML in the colors and font it is drawn in.</summary>
@@ -1012,18 +1072,20 @@ public static class CodeViewWidget
             ui.ClipboardText = state.SelectedText;
         if (ui.MenuItem(t.CodeSelectAll, Shortcuts.SelectAll, id: "select-all"))
             state.Selection.Select(default, CodeText.End(document));
-        if (bookmarkable && target.Line >= 0)
+        var line = target.Line;
+        if (bookmarkable && line != null)
         {
             ui.MenuSeparator();
             if (ui.MenuItem(t.CodeToggleBookmark, id: "toggle-bookmark",
                     icon: new UiIcon(ui.State.Icons.CodeToggleBookmark, ui.State.CodeViewPalette.Bookmark)))
-                picked = new CodeViewIntent.ToggleBookmark(target.Line);
+                picked = new CodeViewIntent.ToggleBookmark(line.Value);
         }
         if (document.Folds.Length > 0)
         {
             ui.MenuSeparator();
-            if (ui.MenuItem(t.CodeToggleFold, Shortcuts.ToggleFold, id: "toggle-fold", enabled: target.Line >= 0 && state.Folds.Innermost(target.Line) >= 0))
-                state.ToggleFold(target.Line);
+            var fold = line != null ? state.Folds.Innermost(line.Value) : null;
+            if (ui.MenuItem(t.CodeToggleFold, Shortcuts.ToggleFold, id: "toggle-fold", enabled: fold != null) && line != null)
+                state.ToggleFold(line.Value);
             if (ui.MenuItem(t.CodeCollapseAll, id: "collapse-all"))
                 state.CollapseAll();
             if (ui.MenuItem(t.CodeExpandAll, id: "expand-all"))

@@ -3,10 +3,10 @@ using ZGF.ILSpy.Core;
 namespace ZGF.ILSpy;
 
 /// <summary>What a code view's context menu was opened on: the reference under the pointer, whether
-/// that is where it is defined, and the line; one value, so that the view forgets it whole.</summary>
-internal sealed record CodeMenuTarget(CodeReference? Reference, bool OnDefinition, int Line)
+/// that is where it is defined, and the line, null off the text; one value, so that the view forgets it whole.</summary>
+internal sealed record CodeMenuTarget(CodeReference? Reference, bool OnDefinition, int? Line)
 {
-    public static readonly CodeMenuTarget None = new(null, false, CodeViewState.NoLine);
+    public static readonly CodeMenuTarget None = new(null, false, null);
 
     /// <summary>The reference to go to from here; null on its definition.</summary>
     public CodeReference.Navigable? Navigable => Reference is CodeReference.Navigable navigable && !OnDefinition ? navigable : null;

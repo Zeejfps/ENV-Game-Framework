@@ -33,22 +33,21 @@ internal sealed class CodeViewFrame
     public TextPosition SelectionStart;
     public TextPosition SelectionEnd;
     public CodeReference? Highlight;
-    public int UnderlineLine = -1;
-    public int UnderlineSpan = -1;
+    public CodeSpanAt? Underline;
     public IReadOnlyList<TextPosition> Matches = [];
     public int MatchLength;
     public int? CurrentMatch;
     public int? FlashLine;
-    public int HoverFold = -1;
-    public int HoverChip = -1;
+    public int? HoverFold;
+    public int? HoverChip;
     public float MarkWidth;
     public float IconSize;
     public IconGlyph BookmarkGlyph;
     public IReadOnlyDictionary<int, bool>? Bookmarks;
-    public int HoverMark = -1;
+    public int? HoverMark;
 
     /// <summary>The caret's line when it is highlighted, else -1.</summary>
-    public int CurrentLine = -1;
+    public int? CurrentLine;
 
     /// <summary>The bracket at the caret and its match when they are highlighted.</summary>
     public BracketPair? Brackets;
@@ -64,9 +63,10 @@ internal sealed class CodeViewFrame
         var line = Document.Lines[index];
         var text = line.Text;
         var fold = Document.FoldStartingAt(index);
-        var collapsed = fold >= 0 && Folds.IsCollapsed(fold);
+        var collapsedFold = fold != null && Folds.IsCollapsed(fold.Value) ? fold : null;
+        var collapsed = collapsedFold != null;
         var chipStart = text.Length + 1;
-        var chipText = collapsed ? Document.Folds[fold].CollapsedText : "";
+        var chipText = collapsedFold != null ? Document.Folds[collapsedFold.Value].CollapsedText : "";
         var x0 = r.X + TextLeft;
         var textAreaLeft = left + GutterWidth;
         var firstVisible = Math.Max(0, (int)MathF.Floor((textAreaLeft - x0) / Advance));
@@ -106,7 +106,7 @@ internal sealed class CodeViewFrame
         {
             var from = index == SelectionStart.Line ? SelectionStart.Column : 0;
             var to = index == SelectionEnd.Line ? SelectionEnd.Column
-                : collapsed && SelectionEnd.Line > Document.Folds[fold].EndLine ? chipStart + chipText.Length + 1
+                : collapsedFold != null && SelectionEnd.Line > Document.Folds[collapsedFold.Value].EndLine ? chipStart + chipText.Length + 1
                 : text.Length + 1;
             Fill(p, x0, textAreaLeft, r, from, to, Selection);
         }
@@ -115,8 +115,8 @@ internal sealed class CodeViewFrame
         {
             var chipLeft = x0 + chipStart * Advance;
             p.FillRect(new UiRect(chipLeft - Advance / 2, cellTop, (chipText.Length + 1) * Advance, CellHeight),
-                fold == HoverChip ? Palette.FoldChipHovered : Palette.FoldChip, ChipRadius);
-            p.GlyphRun(new PointF(chipLeft, cellTop), Cells(chipText, 0, chipText.Length), Advance, fold == HoverChip ? GutterHover : Palette.GutterText,
+                collapsedFold == HoverChip ? Palette.FoldChipHovered : Palette.FoldChip, ChipRadius);
+            p.GlyphRun(new PointF(chipLeft, cellTop), Cells(chipText, 0, chipText.Length), Advance, collapsedFold == HoverChip ? GutterHover : Palette.GutterText,
                 FontSize, family: MonoFonts.Code);
         }
 
@@ -124,7 +124,8 @@ internal sealed class CodeViewFrame
         {
             var spans = line.Spans;
             var error = Document.Error != null;
-            var first = Math.Max(0, CodeText.SpanAt(spans, firstVisible));
+            var first = CodeText.SpanAt(spans, firstVisible) ?? 0;
+            var underlined = Underline != null && Underline.Value.Line == index ? Underline.Value.Span : (int?)null;
             for (var s = first; s < spans.Length && spans[s].Start < endVisible; s++)
             {
                 var span = spans[s];
@@ -133,7 +134,7 @@ internal sealed class CodeViewFrame
                 if (end <= start) continue;
                 var cells = Cells(text, start, end);
                 p.GlyphRun(new PointF(x0 + start * Advance, cellTop), cells, Advance, error ? ErrorText : Palette[span.Kind],
-                    FontSize, family: MonoFonts.Code, underline: index == UnderlineLine && s == UnderlineSpan);
+                    FontSize, family: MonoFonts.Code, underline: s == underlined);
             }
         }
 
@@ -148,7 +149,7 @@ internal sealed class CodeViewFrame
             var size = MathF.Min(IconSize, RowHeight);
             p.Glyph(new UiRect(left + (MarkWidth - size) / 2, r.Y + (r.Height - size) / 2, size, size), BookmarkGlyph, color, size);
         }
-        if (fold >= 0 && FoldWidth > 0f)
+        if (fold != null && FoldWidth > 0f)
             Chevron(p, left + FoldLeft + FoldWidth / 2, r.Y + r.Height / 2, collapsed, fold == HoverFold ? GutterHover : Palette.GutterText);
     }
 

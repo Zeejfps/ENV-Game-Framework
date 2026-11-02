@@ -132,8 +132,8 @@ public sealed class DecompiledDocument
     /// a line of its own and nested whole inside any region it starts in.</summary>
     public ImmutableArray<FoldRegion> Folds { get; }
 
-    /// <summary>The index in <see cref="Folds"/> of the region starting on <paramref name="line"/>, or -1.</summary>
-    public int FoldStartingAt(int line)
+    /// <summary>The index in <see cref="Folds"/> of the region starting on <paramref name="line"/>, or null.</summary>
+    public int? FoldStartingAt(int line)
     {
         int low = 0, high = Folds.Length - 1;
         while (low <= high)
@@ -144,7 +144,7 @@ public sealed class DecompiledDocument
             else if (start > line) high = mid - 1;
             else return mid;
         }
-        return -1;
+        return null;
     }
 
     /// <summary>A document of plain lines, e.g. a placeholder while decompiling.</summary>
