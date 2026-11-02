@@ -43,7 +43,7 @@ public sealed class SavedAssemblyLists
     public IReadOnlyDictionary<AssemblyPath, string> ActivePdbs => _active.Pdbs;
 
     /// <summary>The frameworks picked for the open list's assemblies, by assembly path.</summary>
-    public IReadOnlyDictionary<AssemblyPath, string> ActiveFrameworks => _active.Frameworks;
+    public IReadOnlyDictionary<AssemblyPath, TargetFrameworkId> ActiveFrameworks => _active.Frameworks;
 
     /// <summary>The documents the open list had open when they were last kept with it, or null for none.</summary>
     public DocumentsRecord? ActiveDocuments => _active.Documents;
@@ -75,14 +75,14 @@ public sealed class SavedAssemblyLists
         var analyzed = record.Analyzed ?? new List<CodeAnchor>();
         var list = new SavedList(name, record.Assemblies.ToList(), analyzed.ToList());
         CopyPicks(record.Pdbs, list.Pdbs);
-        CopyPicks(record.Frameworks, list.Frameworks);
+        ReadFrameworks(record.Frameworks, list.Frameworks);
         list.Documents = record.Documents;
         _lists.Add(list);
     }
 
     private static SavedList CreateEmpty(string name) => new(name, new List<AssemblyPath>(), new List<CodeAnchor>());
 
-    private static void CopyPicks(IReadOnlyDictionary<AssemblyPath, string>? picks, Dictionary<AssemblyPath, string> into)
+    private static void CopyPicks<T>(IReadOnlyDictionary<AssemblyPath, T>? picks, Dictionary<AssemblyPath, T> into)
     {
         if (picks == null)
             return;
@@ -90,10 +90,24 @@ public sealed class SavedAssemblyLists
             into[assembly] = pick;
     }
 
+    /// <summary>Puts the frameworks the settings wrote as <paramref name="saved"/> into <paramref name="into"/>,
+    /// leaving out one that is not a framework id.</summary>
+    private static void ReadFrameworks(IReadOnlyDictionary<AssemblyPath, string>? saved, Dictionary<AssemblyPath, TargetFrameworkId> into)
+    {
+        if (saved == null)
+            return;
+        foreach (var (assembly, text) in saved)
+        {
+            var framework = TargetFrameworkId.Parse(text);
+            if (framework != null)
+                into[assembly] = framework;
+        }
+    }
+
     public List<AssemblyListRecord> Save()
     {
         return _lists
-            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePicks(l.Pdbs), SavePicks(l.Frameworks), l.Documents))
+            .Select(static l => new AssemblyListRecord(l.Name, l.Paths.ToList(), l.Analyzed.ToList(), SavePicks(l.Pdbs), SaveFrameworks(l.Frameworks), l.Documents))
             .ToList();
     }
 
@@ -114,6 +128,14 @@ public sealed class SavedAssemblyLists
         if (picks.Count == 0)
             return null;
         return new Dictionary<AssemblyPath, string>(picks);
+    }
+
+    /// <summary>A list's frameworks as the settings keep them, as written; null for none.</summary>
+    private static Dictionary<AssemblyPath, string>? SaveFrameworks(Dictionary<AssemblyPath, TargetFrameworkId> frameworks)
+    {
+        if (frameworks.Count == 0)
+            return null;
+        return frameworks.ToDictionary(static f => f.Key, static f => f.Value.Text);
     }
 
     public bool Contains(string name) => Find(name) != null;
@@ -173,12 +195,12 @@ public sealed class SavedAssemblyLists
     }
 
     /// <summary>Records <paramref name="frameworks"/> as the frameworks picked for the open list's assemblies.</summary>
-    public void RememberActiveFrameworks(IReadOnlyDictionary<AssemblyPath, string> frameworks)
+    public void RememberActiveFrameworks(IReadOnlyDictionary<AssemblyPath, TargetFrameworkId> frameworks)
     {
         RememberPicks(_active.Frameworks, frameworks);
     }
 
-    private void RememberPicks(Dictionary<AssemblyPath, string> kept, IReadOnlyDictionary<AssemblyPath, string> picks)
+    private void RememberPicks<T>(Dictionary<AssemblyPath, T> kept, IReadOnlyDictionary<AssemblyPath, T> picks) where T : class
     {
         if (HasPicks(kept, picks))
             return;
@@ -187,11 +209,11 @@ public sealed class SavedAssemblyLists
         Revision++;
     }
 
-    private static bool HasPicks(Dictionary<AssemblyPath, string> kept, IReadOnlyDictionary<AssemblyPath, string> picks)
+    private static bool HasPicks<T>(Dictionary<AssemblyPath, T> kept, IReadOnlyDictionary<AssemblyPath, T> picks) where T : class
     {
         if (kept.Count != picks.Count)
             return false;
-        return picks.All(p => kept.GetValueOrDefault(p.Key) == p.Value);
+        return picks.All(p => Equals(kept.GetValueOrDefault(p.Key), p.Value));
     }
 
     /// <summary>Adds an empty list named <paramref name="name"/>, numbered when that name is taken,
@@ -330,6 +352,6 @@ public sealed class SavedAssemblyLists
         public List<AssemblyPath> Paths { get; } = paths;
         public List<CodeAnchor> Analyzed { get; } = analyzed;
         public Dictionary<AssemblyPath, string> Pdbs { get; } = new();
-        public Dictionary<AssemblyPath, string> Frameworks { get; } = new();
+        public Dictionary<AssemblyPath, TargetFrameworkId> Frameworks { get; } = new();
     }
 }

@@ -98,6 +98,6 @@ public sealed partial class BrowseNode
     {
         if (module.DetectedTargetFramework == null)
             return null;
-        return FrameworkIds.ReadableName(module.DetectedTargetFramework);
+        return module.DetectedTargetFramework.Readable;
     }
 }

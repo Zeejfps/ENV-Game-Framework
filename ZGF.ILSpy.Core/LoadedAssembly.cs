@@ -136,11 +136,11 @@ public sealed class LoadedModule : LoadedAssembly
 
     /// <summary>The target framework the assembly was built for, e.g. <c>.NETCoreApp,Version=v10.0</c>,
     /// or null if it does not say.</summary>
-    public string? DetectedTargetFramework { get; }
+    public TargetFrameworkId? DetectedTargetFramework { get; }
 
     /// <summary>The framework the assembly's references are resolved against: the one the list picked
     /// for it, else <see cref="DetectedTargetFramework"/>.</summary>
-    public string? TargetFramework { get; }
+    public TargetFrameworkId? TargetFramework { get; }
 
     /// <summary>Whether the list picked <see cref="TargetFramework"/> for this assembly.</summary>
     public bool IsTargetFrameworkPicked { get; private set; }
@@ -152,7 +152,7 @@ public sealed class LoadedModule : LoadedAssembly
         {
             if (TargetFramework == null)
                 return null;
-            return FrameworkIds.ReadableName(TargetFramework);
+            return TargetFramework.Readable;
         }
     }
 
@@ -164,12 +164,12 @@ public sealed class LoadedModule : LoadedAssembly
         {
             if (TargetFramework == null)
                 return null;
-            return FrameworkIds.MonikerOf(TargetFramework);
+            return TargetFramework.Moniker;
         }
     }
 
     /// <summary>The framework the list picked for this assembly, else the one it was built for.</summary>
-    private string? PickTargetFramework()
+    private TargetFrameworkId? PickTargetFramework()
     {
         var picked = List.TargetFrameworks.Find(FilePath);
         if (picked == null)
@@ -178,12 +178,11 @@ public sealed class LoadedModule : LoadedAssembly
         return picked;
     }
 
-    private static string? TryDetectTargetFramework(MetadataFile file)
+    private static TargetFrameworkId? TryDetectTargetFramework(MetadataFile file)
     {
         try
         {
-            var id = file.DetectTargetFrameworkId();
-            return string.IsNullOrEmpty(id) ? null : id;
+            return TargetFrameworkId.Parse(file.DetectTargetFrameworkId());
         }
         catch (BadImageFormatException)
         {

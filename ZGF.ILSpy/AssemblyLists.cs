@@ -37,7 +37,7 @@ public static class AssemblyLists
     {
         appState.Lists.RememberActive([]);
         appState.Lists.RememberActivePdbs(new Dictionary<AssemblyPath, string>());
-        appState.Lists.RememberActiveFrameworks(new Dictionary<AssemblyPath, string>());
+        appState.Lists.RememberActiveFrameworks(new Dictionary<AssemblyPath, TargetFrameworkId>());
     }
 
     /// <summary>Records the open assemblies and what was picked for them as the open list's, unless

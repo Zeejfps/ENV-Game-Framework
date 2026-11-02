@@ -397,7 +397,7 @@ internal static class NodeDecompiler
         if (assembly.PEFile != null)
             WriteComment(output, $"Architecture: {ArchitectureOf(assembly.PEFile.Reader.PEHeaders)}");
         if (assembly.TargetFramework != null)
-            WriteComment(output, $"Target framework: {assembly.TargetFramework}");
+            WriteComment(output, $"Target framework: {assembly.TargetFramework.Text}");
         output.WriteLine();
     }
 

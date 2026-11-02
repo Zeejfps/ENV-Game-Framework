@@ -323,7 +323,7 @@ internal static class TreePaneView
         ui.MenuSeparator();
         foreach (var framework in FrameworkIds.Common)
         {
-            if (ui.MenuRadioItem(FrameworkIds.MonikerOf(framework), IsPicked(assembly, framework), id: framework))
+            if (ui.MenuRadioItem(framework.Moniker, IsPicked(assembly, framework), id: framework.Text))
                 SetTargetFramework(appState, assembly, framework);
         }
     }
@@ -332,10 +332,10 @@ internal static class TreePaneView
     {
         if (assembly.DetectedTargetFramework == null)
             return t.TreeTargetFrameworkNone;
-        return t.TreeTargetFrameworkDetected(FrameworkIds.MonikerOf(assembly.DetectedTargetFramework));
+        return t.TreeTargetFrameworkDetected(assembly.DetectedTargetFramework.Moniker);
     }
 
-    private static bool IsPicked(LoadedModule assembly, string framework)
+    private static bool IsPicked(LoadedModule assembly, TargetFrameworkId framework)
     {
         if (!assembly.IsTargetFrameworkPicked)
             return false;

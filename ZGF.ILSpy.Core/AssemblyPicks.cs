@@ -8,19 +8,19 @@ namespace ZGF.ILSpy.Core;
 /// next. Kept when the list is cleared, as a reload does; forgotten with the assembly when it is
 /// closed. Safe from any thread.
 /// </summary>
-public sealed class AssemblyPicks
+public sealed class AssemblyPicks<T> where T : class
 {
-    private static readonly ImmutableDictionary<AssemblyPath, string> None = ImmutableDictionary<AssemblyPath, string>.Empty;
+    private static readonly ImmutableDictionary<AssemblyPath, T> None = ImmutableDictionary<AssemblyPath, T>.Empty;
 
     private readonly Lock _gate = new();
-    private ImmutableDictionary<AssemblyPath, string> _picks = None;
+    private ImmutableDictionary<AssemblyPath, T> _picks = None;
 
     /// <summary>Every pick, by the assembly's path.</summary>
-    public IReadOnlyDictionary<AssemblyPath, string> All => Volatile.Read(ref _picks);
+    public IReadOnlyDictionary<AssemblyPath, T> All => Volatile.Read(ref _picks);
 
     /// <summary>Has the assembly at <paramref name="assemblyPath"/> take <paramref name="value"/> from
     /// the next time it is opened.</summary>
-    public void Pick(AssemblyPath assemblyPath, string value)
+    public void Pick(AssemblyPath assemblyPath, T value)
     {
         lock (_gate)
             Volatile.Write(ref _picks, _picks.SetItem(assemblyPath, value));
@@ -35,7 +35,7 @@ public sealed class AssemblyPicks
     }
 
     /// <summary>Takes <paramref name="picks"/> in place of those before, as when another list opens.</summary>
-    public void Use(IReadOnlyDictionary<AssemblyPath, string> picks)
+    public void Use(IReadOnlyDictionary<AssemblyPath, T> picks)
     {
         var taken = ImmutableDictionary.CreateRange(picks);
         lock (_gate)
@@ -50,7 +50,7 @@ public sealed class AssemblyPicks
     }
 
     /// <summary>What was picked for the assembly at <paramref name="assemblyPath"/>, or null.</summary>
-    public string? Find(AssemblyPath assemblyPath)
+    public T? Find(AssemblyPath assemblyPath)
     {
         return All.GetValueOrDefault(assemblyPath);
     }

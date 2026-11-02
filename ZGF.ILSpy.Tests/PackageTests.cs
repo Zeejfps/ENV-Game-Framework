@@ -95,7 +95,7 @@ public sealed class PackageTests
         var list = new AssemblyList();
         var package = list.Open(WritePackage(temp));
         var sibling = package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Core.dll"));
-        list.TargetFrameworks.Pick(sibling, ".NETFramework,Version=v4.8");
+        list.TargetFrameworks.Pick(sibling, Frameworks.Net48);
         list.Clear();
         var assembly = list.TryLoad(package.FilePath.Combine(Path.Combine("lib", "net10.0", "ZGF.ILSpy.Tests.dll")))!;
 

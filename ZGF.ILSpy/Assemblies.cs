@@ -118,7 +118,7 @@ public static class Assemblies
     /// <paramref name="framework"/> names, such as <c>.NETCoreApp,Version=v8.0</c>, or, when it is
     /// null, against the one the assembly was built for; kept with the list, and the assembly reopened
     /// to show it. Does nothing when that is the framework already in use.</summary>
-    public static void SetTargetFramework(AppState appState, LoadedModule assembly, string? framework)
+    public static void SetTargetFramework(AppState appState, LoadedModule assembly, TargetFrameworkId? framework)
     {
         if (!appState.IsListed(assembly))
             return;
@@ -130,14 +130,14 @@ public static class Assemblies
 
     /// <summary>Whether <paramref name="framework"/>, null for the one the assembly was built for, is
     /// what its references are resolved against now.</summary>
-    private static bool IsInUse(LoadedModule assembly, string? framework)
+    private static bool IsInUse(LoadedModule assembly, TargetFrameworkId? framework)
     {
         if (!assembly.IsTargetFrameworkPicked)
             return framework == null;
         return assembly.TargetFramework == framework;
     }
 
-    private static void PickTargetFramework(AssemblyPicks frameworks, LoadedAssembly assembly, string? framework)
+    private static void PickTargetFramework(AssemblyPicks<TargetFrameworkId> frameworks, LoadedAssembly assembly, TargetFrameworkId? framework)
     {
         if (framework == null)
         {

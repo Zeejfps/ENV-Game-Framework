@@ -11,7 +11,7 @@ namespace ZGF.ILSpy.App.Tests;
 
 public sealed class TargetFrameworkTests
 {
-    private const string Net48 = ".NETFramework,Version=v4.8";
+    private static readonly TargetFrameworkId Net48 = Frameworks.Net48;
     private static readonly string SampleAppPath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "SampleApp", "SampleApp.dll");
 
     private static LoadedModule FixturesOf(AppState appState) =>
@@ -45,7 +45,7 @@ public sealed class TargetFrameworkTests
         Assert.Equal("net48", NodeText.PickedFramework(assembly.Root));
         Assert.DoesNotContain("net48", NodeText.Secondary(assembly.Root));
         Assert.Equal(FontWeight.Bold, app.Frames.Canvas.Texts.Single(t => t.Inputs.Text == "net48").Inputs.Style.FontWeight.Value);
-        Assert.Equal(Net48, Assert.Single(temp.Settings().AssemblyLists).Frameworks![PathOf(AppStateDriver.FixturePath)]);
+        Assert.Equal(Net48.Text, Assert.Single(temp.Settings().AssemblyLists).Frameworks?[PathOf(AppStateDriver.FixturePath)]);
     }
 
     [Fact]
@@ -53,7 +53,8 @@ public sealed class TargetFrameworkTests
     {
         var app = AppDriver.Opened(width: 1600f);
         app.Settle(2);
-        var detected = FrameworkIds.MonikerOf(FixturesOf(app.AppState).DetectedTargetFramework!);
+        var detected = FixturesOf(app.AppState).DetectedTargetFramework?.Moniker;
+        Assert.NotNull(detected);
         PickFramework(app, "net48");
 
         PickFramework(app, $"Detected ({detected})");
@@ -147,7 +148,7 @@ public sealed class TargetFrameworkTests
         settings.AssemblyLists =
         [
             new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)],
-                Frameworks: new Dictionary<AssemblyPath, string> { [PathOf(AppStateDriver.FixturePath)] = Net48 }),
+                Frameworks: new Dictionary<AssemblyPath, string> { [PathOf(AppStateDriver.FixturePath)] = Net48.Text }),
         ];
         var d = new AppStateDriver(settings);
 
@@ -155,5 +156,26 @@ public sealed class TargetFrameworkTests
         d.Settle();
 
         Assert.Equal(Net48, FixturesOf(d.AppState).TargetFramework);
+    }
+
+    [Fact]
+    public void A_saved_framework_that_is_not_a_framework_id_is_dropped_and_the_assembly_takes_the_one_it_was_built_for()
+    {
+        using var temp = new TempDir();
+        var settings = temp.Settings();
+        settings.AssemblyLists =
+        [
+            new AssemblyListRecord(SavedAssemblyLists.DefaultName, [PathOf(AppStateDriver.FixturePath)],
+                Frameworks: new Dictionary<AssemblyPath, string> { [PathOf(AppStateDriver.FixturePath)] = @"C:\symbols\Fixtures.pdb" }),
+        ];
+        var d = new AppStateDriver(settings);
+
+        RestoreActiveAssemblyList(d.AppState);
+        d.Settle();
+
+        var assembly = FixturesOf(d.AppState);
+        Assert.False(assembly.IsTargetFrameworkPicked);
+        Assert.Equal(assembly.DetectedTargetFramework, assembly.TargetFramework);
+        Assert.Empty(d.AppState.Assemblies.TargetFrameworks.All);
     }
 }

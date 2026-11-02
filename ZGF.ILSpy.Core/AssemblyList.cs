@@ -53,11 +53,11 @@ public sealed class AssemblyList
 
     /// <summary>The portable PDBs picked for assemblies, which they read in place of the ones they find
     /// themselves.</summary>
-    public AssemblyPicks Pdbs { get; } = new();
+    public AssemblyPicks<string> Pdbs { get; } = new();
 
     /// <summary>The frameworks picked for assemblies, by id such as <c>.NETCoreApp,Version=v8.0</c>,
     /// which their references are resolved against in place of the one they were built for.</summary>
-    public AssemblyPicks TargetFrameworks { get; } = new();
+    public AssemblyPicks<TargetFrameworkId> TargetFrameworks { get; } = new();
 
     /// <summary>Raised after <see cref="Assemblies"/> changes, on the thread that changed it, including
     /// background threads when navigation opens a referenced assembly.</summary>

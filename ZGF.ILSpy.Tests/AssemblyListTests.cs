@@ -15,7 +15,7 @@ public sealed class AssemblyListTests
         Assert.Same(first, second);
         Assert.Single(list.Assemblies);
         Assert.Equal("ZGF.ILSpy.Tests", first.Name);
-        Assert.Equal(".NETCoreApp,Version=v10.0", first.TargetFramework);
+        Assert.Equal(".NETCoreApp,Version=v10.0", first.TargetFramework?.Text);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed class AssemblyListTests
         var list = new AssemblyList();
         var first = list.Open(Trees.TestAssemblyPath);
         var second = list.Open(typeof(AssemblyList).Assembly.Location);
-        list.TargetFrameworks.Pick(first.FilePath, ".NETFramework,Version=v4.8");
+        list.TargetFrameworks.Pick(first.FilePath, Frameworks.Net48);
 
         var fresh = list.ReadAgain(first);
         var listedWhileRead = list.Listed.ToList();

@@ -11,19 +11,19 @@ internal sealed class AssemblyResolver : IAssemblyResolver
     private readonly AssemblyList _list;
     private readonly string _mainPath;
     private readonly AssemblyPackage? _package;
-    private readonly string? _targetFramework;
+    private readonly TargetFrameworkId? _targetFramework;
     private readonly Lazy<UniversalAssemblyResolver> _fallback;
 
     /// <param name="package">The package the main assembly was read out of, whose folders are looked
     /// in first, from the main assembly's outwards; null for a file on disk.</param>
-    public AssemblyResolver(AssemblyList list, AssemblyPath mainPath, string? targetFramework, AssemblyPackage? package)
+    public AssemblyResolver(AssemblyList list, AssemblyPath mainPath, TargetFrameworkId? targetFramework, AssemblyPackage? package)
     {
         _list = list;
         _mainPath = mainPath.Text;
         _package = package;
         _targetFramework = targetFramework;
         _fallback = new Lazy<UniversalAssemblyResolver>(() =>
-            new UniversalAssemblyResolver(mainPath.Text, false, targetFramework, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
+            new UniversalAssemblyResolver(mainPath.Text, false, targetFramework?.Text, null, PEStreamOptions.PrefetchEntireImage, MetadataReaderOptions.Default));
     }
 
     public MetadataFile? Resolve(IAssemblyReference reference) => ResolveAssembly(reference)?.File;
