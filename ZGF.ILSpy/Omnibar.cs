@@ -26,8 +26,8 @@ public sealed class Omnibar
     /// <summary>The document panel whose bar searches, or null while every bar shows its path.</summary>
     public string? SearchingPanel { get; private set; }
 
-    /// <summary>The children of a crumb, open under it.</summary>
-    public CrumbMenu Menu { get; } = new();
+    /// <summary>The children of a crumb, open under it, or null while no list is open.</summary>
+    public CrumbMenu? Menu { get; private set; }
 
     public bool IsSearching => SearchingPanel != null;
 
@@ -39,8 +39,23 @@ public sealed class Omnibar
         SearchingPanel = panel;
         Search.Clear();
         _isFocusPending = true;
-        Menu.IsOpen = false;
+        Menu = null;
     }
+
+    /// <summary>Whether the list of <paramref name="node"/>'s children is open in the bar of <paramref name="panel"/>.</summary>
+    public bool IsMenuOpenAt(string panel, BrowseNode node)
+    {
+        var menu = Menu;
+        if (menu == null)
+            return false;
+        return menu.IsAt(panel, node);
+    }
+
+    /// <summary>Lists the children of <paramref name="node"/> in the bar of <paramref name="panel"/>, with
+    /// <paramref name="next"/>, the crumb after it, to be selected.</summary>
+    public void OpenMenu(string panel, BrowseNode node, BrowseNode? next) => Menu = new CrumbMenu(panel, node, next);
+
+    public void CloseMenu() => Menu = null;
 
     /// <summary>Has every bar show its path again.</summary>
     public void StopSearch()

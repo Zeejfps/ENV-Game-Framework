@@ -110,15 +110,16 @@ public sealed class OmnibarTests
     public void The_arrow_after_a_crumb_lists_its_children_with_the_next_crumb_selected_and_picking_one_shows_it()
     {
         var app = Showing("Greeter");
-        var menu = app.Ui.Omnibar.Menu;
 
         ClickArrowAfter(app, AppStateDriver.FixturesNamespace);
+        var menu = app.Ui.Omnibar.Menu;
+        Assert.NotNull(menu);
         var selected = menu.Selection.Item;
         app.ClickMenuItem("Farewell").Frame(2);
         app.Settle(2);
 
         Assert.Same(app.Fixture("Greeter"), selected);
-        Assert.False(menu.IsOpen);
+        Assert.Null(app.Ui.Omnibar.Menu);
         Assert.Same(app.Fixture("Farewell"), app.AppState.Tabs.Active!.Node);
     }
 
@@ -126,9 +127,10 @@ public sealed class OmnibarTests
     public void Typing_in_the_arrows_filter_lists_the_children_whose_name_holds_it_and_Enter_shows_the_first()
     {
         var app = Showing("Greeter");
-        var menu = app.Ui.Omnibar.Menu;
 
         ClickArrowAfter(app, AppStateDriver.FixturesNamespace);
+        var menu = app.Ui.Omnibar.Menu;
+        Assert.NotNull(menu);
         app.Frames.Type("arew").Frame(2);
         var shown = menu.Shown.ToList();
         app.Frames.Key(KeyboardKey.Enter).Frame(2);

@@ -2,59 +2,45 @@ using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
 
-/// <summary>The children of one crumb of a document's omnibar, listed under it while
-/// <see cref="IsOpen"/>: those whose name holds the filter typed, the crumb after it on the path
-/// selected once they are built.</summary>
+/// <summary>The children of one crumb of a document's omnibar, listed under it while it is open: those
+/// whose name holds the filter typed, the crumb after it on the path selected once they are built.</summary>
 public sealed class CrumbMenu
 {
     private readonly List<BrowseNode> _shown = new();
     private IReadOnlyList<BrowseNode>? _children;
     private string _shownFilter = "";
     private BrowseNode? _toSelect;
-    private bool _isFocusPending;
+    private bool _isFocusPending = true;
 
-    /// <summary>Whether the list is open; cleared when it is dismissed.</summary>
-    public bool IsOpen;
+    /// <summary>Lists the children of <paramref name="node"/>, in the bar of <paramref name="panel"/>,
+    /// unfiltered, with <paramref name="next"/>, the crumb after it, to be selected; its filter takes focus.</summary>
+    public CrumbMenu(string panel, BrowseNode node, BrowseNode? next)
+    {
+        Panel = panel;
+        Node = node;
+        _toSelect = next;
+    }
 
     /// <summary>What a child's name must hold to be listed, ignoring case.</summary>
     public string Filter = "";
 
     /// <summary>The document panel whose bar the list is open in.</summary>
-    public string? Panel { get; private set; }
+    public string Panel { get; }
 
     /// <summary>The crumb whose children are listed.</summary>
-    public BrowseNode? Node { get; private set; }
+    public BrowseNode Node { get; }
 
     public ItemSelection<BrowseNode> Selection { get; } = new();
 
     /// <summary>The children listed, as <see cref="ListShown"/> last filtered them.</summary>
     public IReadOnlyList<BrowseNode> Shown => _shown;
 
-    public bool IsOpenAt(string panel, BrowseNode node)
+    public bool IsAt(string panel, BrowseNode node)
     {
-        if (!IsOpen)
-            return false;
         if (Panel != panel)
             return false;
         return ReferenceEquals(Node, node);
     }
-
-    /// <summary>Lists the children of <paramref name="node"/>, in the bar of <paramref name="panel"/>,
-    /// unfiltered, with <paramref name="next"/>, the crumb after it, to be selected; its filter takes focus.</summary>
-    public void Open(string panel, BrowseNode node, BrowseNode? next)
-    {
-        IsOpen = true;
-        Panel = panel;
-        Node = node;
-        Filter = "";
-        _children = null;
-        _shown.Clear();
-        Selection.Clear();
-        _toSelect = next;
-        _isFocusPending = true;
-    }
-
-    public void Close() => IsOpen = false;
 
     /// <summary>True once after <see cref="Open"/>: the filter should take focus.</summary>
     public bool TakeFocus()

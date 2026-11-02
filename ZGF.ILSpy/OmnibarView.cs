@@ -152,11 +152,11 @@ internal static class OmnibarView
         if (!ui.State.Tree.HasChildren(node))
             return 0;
         var theme = ui.Theme;
-        var menu = ui.State.Omnibar.Menu;
+        var omnibar = ui.State.Omnibar;
         var i = ui.Interact("children");
         if (i.Clicked)
-            ToggleChildren(menu, panel, crumbs, index);
-        var open = menu.IsOpenAt(panel, node);
+            ToggleChildren(omnibar, panel, crumbs, index);
+        var open = omnibar.IsMenuOpenAt(panel, node);
         using (ui.Box(i.Id, new Box
         {
             Width = theme.IconSize,
@@ -174,15 +174,15 @@ internal static class OmnibarView
         return i.Id;
     }
 
-    private static void ToggleChildren(CrumbMenu menu, string panel, IReadOnlyList<Crumb> crumbs, int index)
+    private static void ToggleChildren(Omnibar omnibar, string panel, IReadOnlyList<Crumb> crumbs, int index)
     {
         var node = crumbs[index].Node;
-        if (menu.IsOpenAt(panel, node))
+        if (omnibar.IsMenuOpenAt(panel, node))
         {
-            menu.Close();
+            omnibar.CloseMenu();
             return;
         }
-        menu.Open(panel, node, FindNextNode(crumbs, index));
+        omnibar.OpenMenu(panel, node, FindNextNode(crumbs, index));
     }
 
     private static BrowseNode? FindNextNode(IReadOnlyList<Crumb> crumbs, int index)
@@ -219,17 +219,23 @@ internal static class OmnibarView
     /// from it.</summary>
     private static void ChildrenMenu(Ui<UiState> ui, AppState appState, string panel, int owner)
     {
-        var menu = ui.State.Omnibar.Menu;
+        var omnibar = ui.State.Omnibar;
+        var menu = omnibar.Menu;
+        if (menu == null)
+            return;
         if (owner == 0)
         {
-            CloseIfIn(menu, panel);
+            CloseIfIn(omnibar, menu, panel);
             return;
         }
         var theme = ui.Theme;
-        using var flyout = ui.Flyout(HashCode.Combine(owner, MenuSalt), ref menu.IsOpen, owner, new Box { Width = MenuWidth, Gap = theme.GapTight });
+        var isOpen = true;
+        using var flyout = ui.Flyout(HashCode.Combine(owner, MenuSalt), ref isOpen, owner, new Box { Width = MenuWidth, Gap = theme.GapTight });
+        if (!isOpen)
+            omnibar.CloseMenu();
         if (!flyout.IsOpen)
             return;
-        var children = ui.State.Tree.GetChildren(menu.Node!);
+        var children = ui.State.Tree.GetChildren(menu.Node);
         if (children.PlaceholderRow is TreeRow placeholder)
         {
             ui.Text(placeholder.Label, color: theme.TextMuted);
@@ -242,13 +248,13 @@ internal static class OmnibarView
         if (submitted)
             picked = new PickedChild(menu.Selection.Item, IsCommandHeld(ui));
         if (picked.Node != null)
-            ShowChild(ui, appState, menu, picked);
+            ShowChild(appState, omnibar, picked.Node, picked.InNewTab);
     }
 
-    private static void CloseIfIn(CrumbMenu menu, string panel)
+    private static void CloseIfIn(Omnibar omnibar, CrumbMenu menu, string panel)
     {
         if (menu.Panel == panel)
-            menu.Close();
+            omnibar.CloseMenu();
     }
 
     /// <summary>The filter, which takes focus as the list opens and walks the list with Up and Down.
@@ -314,15 +320,15 @@ internal static class OmnibarView
         return new PickedChild(null, false);
     }
 
-    private static void ShowChild(Ui<UiState> ui, AppState appState, CrumbMenu menu, PickedChild picked)
+    private static void ShowChild(AppState appState, Omnibar omnibar, BrowseNode node, bool inNewTab)
     {
-        menu.Close();
-        if (picked.InNewTab)
+        omnibar.CloseMenu();
+        if (inNewTab)
         {
-            ShowNode(appState, picked.Node!, inNewTab: true);
+            ShowNode(appState, node, inNewTab: true);
             return;
         }
-        PreviewNode(appState, picked.Node!);
+        PreviewNode(appState, node);
     }
 
     /// <summary>The search box, whose Enter goes to the selected match, else the best, and whose Up and
