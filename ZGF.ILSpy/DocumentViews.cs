@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -91,23 +92,18 @@ public sealed class DocumentViews
     {
         var panels = new List<TabPanel>();
         foreach (var (tab, view) in _views)
-            panels.Add(new TabPanel(tab, view.Panel, SaveDiagramView(tab, view), SaveComparisonView(tab, view)));
+            panels.Add(new TabPanel(tab, view.Panel, SaveView(tab, view)));
         return panels;
     }
 
-    private static DiagramViewRecord? SaveDiagramView(DocumentTab tab, TabView view)
+    private static TabPanelView SaveView(DocumentTab tab, TabView view) => tab.Content switch
     {
-        if (tab.Diagram == null)
-            return null;
-        return view.Diagram.Save();
-    }
-
-    private static ComparisonViewRecord? SaveComparisonView(DocumentTab tab, TabView view)
-    {
-        if (tab.Comparison == null)
-            return null;
-        return view.Comparison.Save();
-    }
+        TabContent.Diagram => new TabPanelView.Diagram(view.Diagram.Save()),
+        TabContent.Comparison => new TabPanelView.Comparison(view.Comparison.Save()),
+        TabContent.Empty or TabContent.Loading or TabContent.Code or TabContent.Table or TabContent.Picture or TabContent.Report
+            or TabContent.Failed or TabContent.Reloading or TabContent.Reopening or TabContent.Gone => new TabPanelView.None(),
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>Shows <paramref name="tab"/> in a new panel, unless it is shown already.</summary>
     public void Add(DocumentTab tab)

@@ -10,9 +10,6 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Optional-field bags that should be sum types
 
-- **App state**
-    - **Tabs.** `TabPanel(Diagram?, Comparison?)` (`ViewSettings.cs:29`) is really one of two; `DocumentTab.Location?`/`Node?` are set by hand beside `Content` and duplicate what `TabContent` says.
-       Fix: `TabPanel` holds one view, `None | Diagram | Comparison`; the location and node move into the `TabContent` cases that have them, and `DocumentTab.Location`/`Node` are derived from `Content`. Largest step; it touches saving, bookmarks, history and reload.
 - **View state**
     - `CodeViewState` (`CodeView.cs:43-76`) has about 25 mutable fields: press, find, flash.
     - `CodeViewResult` (`CodeView.cs:210`) has 9 optional intents; lines 399, 404, 442 and 450 replace the whole result and drop intents set earlier.

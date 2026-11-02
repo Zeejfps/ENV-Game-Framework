@@ -301,7 +301,7 @@ public static class Assemblies
             if (location == null)
                 continue;
             var position = FindPositionToKeep(appState, tab);
-            tab.ShowReloading();
+            tab.ShowReloading(location);
             reloading.Add(new ReloadingTab(tab, location, tab.Version, position));
         }
         return reloading;

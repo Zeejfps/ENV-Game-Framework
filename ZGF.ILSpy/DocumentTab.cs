@@ -16,12 +16,30 @@ public sealed class DocumentTab
     private string? _title;
     private int _changes;
 
-    /// <summary>Where the tab points; outlives reloads of the assembly.</summary>
-    public NodePath? Location { get; private set; }
+    /// <summary>Where the tab points: the path of its node, or while the node is away the path it is
+    /// found again by or no longer exists at; outlives reloads of the assembly.</summary>
+    public NodePath? Location => Content switch
+    {
+        TabContent.Reloading reloading => reloading.Location,
+        TabContent.Gone gone => gone.Location,
+        TabContent.Loading or TabContent.Code or TabContent.Table or TabContent.Picture or TabContent.Failed => Node?.Path,
+        TabContent.Empty or TabContent.Report or TabContent.Diagram or TabContent.Comparison or TabContent.Reopening => null,
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>The node shown, or null while <see cref="Location"/> is being found again after a
     /// reload, or when it no longer exists.</summary>
-    public BrowseNode? Node { get; private set; }
+    public BrowseNode? Node => Content switch
+    {
+        TabContent.Loading loading => loading.Node,
+        TabContent.Code code => code.Node,
+        TabContent.Table table => table.Node,
+        TabContent.Picture picture => picture.Node,
+        TabContent.Failed failed => failed.Node,
+        TabContent.Empty or TabContent.Report or TabContent.Diagram or TabContent.Comparison or TabContent.Reloading
+            or TabContent.Reopening or TabContent.Gone => null,
+        _ => throw new UnreachableException(),
+    };
 
     public DecompilationLanguage Language { get; private set; }
 
@@ -36,7 +54,7 @@ public sealed class DocumentTab
         TabContent.Code code => code.Document,
         TabContent.Picture picture => picture.Source ?? DecompiledDocument.Empty,
         TabContent.Empty or TabContent.Loading or TabContent.Table or TabContent.Report or TabContent.Diagram or TabContent.Comparison
-            or TabContent.Failed or TabContent.Reloading or TabContent.Gone => DecompiledDocument.Empty,
+            or TabContent.Failed or TabContent.Reloading or TabContent.Reopening or TabContent.Gone => DecompiledDocument.Empty,
         _ => throw new UnreachableException(),
     };
 
@@ -153,8 +171,6 @@ public sealed class DocumentTab
         var work = new CancellationTokenSource();
         _work = work;
         _arrival = arrival;
-        Node = node;
-        Location = node.Path;
         _title = NodeText.Name(node);
         Language = language;
         Options = options;
@@ -173,10 +189,31 @@ public sealed class DocumentTab
         return true;
     }
 
-    /// <summary>Shows <paramref name="content"/>, which the finished load brought.</summary>
-    public void ShowLoaded(TabContent content)
+    /// <summary>Shows <paramref name="loaded"/>, which the finished load of the tab's node brought.</summary>
+    public void ShowLoaded(NodeContent loaded)
     {
-        Content = content;
+        var node = LoadingNode();
+        Content = loaded switch
+        {
+            GridContent grid => new TabContent.Table(node, grid.Grid),
+            ImageContent image => new TabContent.Picture(node, image.Image, image.Source),
+            DocumentContent document => new TabContent.Code(node, document.Document),
+            _ => throw new InvalidOperationException($"No tab shows {loaded.GetType().Name}."),
+        };
+    }
+
+    /// <summary>Shows that the finished load of the tab's node failed with <paramref name="message"/>.</summary>
+    public void ShowFailed(string message)
+    {
+        Content = new TabContent.Failed(LoadingNode(), message);
+    }
+
+    /// <summary>The node the tab is loading; only a loading tab can show what its load brought.</summary>
+    private BrowseNode LoadingNode()
+    {
+        if (Content is not TabContent.Loading loading)
+            throw new InvalidOperationException("Only a loading tab can show what its load brought.");
+        return loading.Node;
     }
 
     /// <summary>Where the view was to stand once the load arrived, given when it started; forgotten once taken.</summary>
@@ -192,8 +229,6 @@ public sealed class DocumentTab
     public void ShowReport(ExportReport report)
     {
         PointElsewhere();
-        Node = null;
-        Location = null;
         _title = null;
         Content = new TabContent.Report(report);
     }
@@ -202,8 +237,6 @@ public sealed class DocumentTab
     public void ShowDiagram(string title, TypeDiagram diagram)
     {
         PointElsewhere();
-        Node = null;
-        Location = null;
         _title = title;
         Content = new TabContent.Diagram(diagram);
     }
@@ -212,8 +245,6 @@ public sealed class DocumentTab
     public void ShowComparison(string title, AssemblyComparison comparison)
     {
         PointElsewhere();
-        Node = null;
-        Location = null;
         _title = title;
         Content = new TabContent.Comparison(comparison);
     }
@@ -222,16 +253,14 @@ public sealed class DocumentTab
     public void Clear()
     {
         PointElsewhere();
-        Node = null;
-        Location = null;
         _title = null;
         Content = new TabContent.Empty();
     }
 
-    /// <summary>Lets go of the node while its assembly reloads, keeping <see cref="Location"/> to find it again.</summary>
-    public void ShowReloading()
+    /// <summary>Lets go of the node while its assembly reloads, keeping <paramref name="location"/> to find it again.</summary>
+    public void ShowReloading(NodePath location)
     {
-        Release(new TabContent.Reloading());
+        Release(new TabContent.Reloading(location));
     }
 
     /// <summary>Lets go of the node, which the reloaded assemblies no longer hold at <paramref name="location"/>.</summary>
@@ -243,7 +272,6 @@ public sealed class DocumentTab
     private void Release(TabContent content)
     {
         PointElsewhere();
-        Node = null;
         Content = content;
     }
 
@@ -252,9 +280,10 @@ public sealed class DocumentTab
     /// saved, to be found once the assemblies are listed.</summary>
     public void WaitForNode(NodePath location, string? title, DecompilationLanguage language)
     {
-        Wait(title);
-        Location = location;
+        PointElsewhere();
+        _title = title;
         Language = language;
+        Content = new TabContent.Reloading(location);
     }
 
     /// <summary>Shows the tab, titled <paramref name="title"/>, waiting for the diagram it showed when the
@@ -274,10 +303,8 @@ public sealed class DocumentTab
     private void Wait(string? title)
     {
         PointElsewhere();
-        Node = null;
-        Location = null;
         _title = title;
-        Content = new TabContent.Reloading();
+        Content = new TabContent.Reopening();
     }
 
     /// <summary>Counts the tab as pointed somewhere else, past what its diagram counted, and cancels

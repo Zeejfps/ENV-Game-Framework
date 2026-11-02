@@ -163,13 +163,15 @@ public static class SavedDocuments
             .Select(static c => c.Anchor)
             .ToList();
         var homes = diagram.HomeAssemblies.ToList();
-        return new DiagramDocumentRecord(panel.Panel, tab.Title, types, homes, panel.Diagram);
+        var view = panel.View as TabPanelView.Diagram;
+        return new DiagramDocumentRecord(panel.Panel, tab.Title, types, homes, view?.View);
     }
 
     private static ComparisonDocumentRecord SaveComparison(DocumentTab tab, AssemblyComparison comparison, TabPanel panel)
     {
+        var view = panel.View as TabPanelView.Comparison;
         return new ComparisonDocumentRecord(panel.Panel, tab.Title, comparison.LeftPath, comparison.RightPath, comparison.Scope,
-            panel.Comparison);
+            view?.View);
     }
 
     private static string? FindSavedPanel(List<SavedTab> saved, DocumentTab? tab)

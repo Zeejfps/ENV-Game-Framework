@@ -34,7 +34,10 @@ public static class Decompilation
         if (loading.IsCanceled)
             return;
         var error = loading.Exception?.GetBaseException();
-        tab.ShowLoaded(ContentOf(loading, error));
+        if (error != null)
+            tab.ShowFailed(error.Message);
+        else
+            tab.ShowLoaded(loading.Result);
         var arrival = tab.TakeArrival();
         var failure = error ?? tab.Document.Error;
         if (failure != null)
@@ -44,19 +47,6 @@ public static class Decompilation
             return;
         }
         Arrive(appState, tab, arrival);
-    }
-
-    private static TabContent ContentOf(Task<NodeContent> loading, Exception? error)
-    {
-        if (error != null)
-            return new TabContent.Failed(error.Message);
-        return loading.Result switch
-        {
-            GridContent grid => new TabContent.Table(grid.Grid),
-            ImageContent image => new TabContent.Picture(image.Image, image.Source),
-            DocumentContent document => new TabContent.Code(document.Document),
-            _ => throw new InvalidOperationException($"No tab shows {loading.Result.GetType().Name}."),
-        };
     }
 
     /// <summary>Reports why <paramref name="node"/> could not be shown, unless its file failed to load,

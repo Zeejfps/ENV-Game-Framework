@@ -18,14 +18,14 @@ public abstract record TabContent
     /// <summary><see cref="Node"/>, while it decompiles or its grid or picture is read.</summary>
     public sealed record Loading(BrowseNode Node) : TabContent;
 
-    /// <summary>The node's decompiled code.</summary>
-    public sealed record Code(DecompiledDocument Document) : TabContent;
+    /// <summary><see cref="Node"/>'s decompiled code.</summary>
+    public sealed record Code(BrowseNode Node, DecompiledDocument Document) : TabContent;
 
-    /// <summary>The rows of a node that shows a grid.</summary>
-    public sealed record Table(MetadataGrid Grid) : TabContent;
+    /// <summary>The rows of <see cref="Node"/>, which shows a grid.</summary>
+    public sealed record Table(BrowseNode Node, MetadataGrid Grid) : TabContent;
 
-    /// <summary>The picture of a node that shows one, with its markup when it is stored as such, such as SVG.</summary>
-    public sealed record Picture(ResourceImage Image, DecompiledDocument? Source) : TabContent;
+    /// <summary>The picture of <see cref="Node"/>, which shows one, with its markup when it is stored as such, such as SVG.</summary>
+    public sealed record Picture(BrowseNode Node, ResourceImage Image, DecompiledDocument? Source) : TabContent;
 
     /// <summary>The report of an export, which the screen writes out.</summary>
     public sealed record Report(ExportReport Export) : TabContent;
@@ -36,11 +36,15 @@ public abstract record TabContent
     /// <summary>What changed in the API from one assembly to another.</summary>
     public sealed record Comparison(AssemblyComparison Assemblies) : TabContent;
 
-    /// <summary>Decompiling the node failed with <see cref="Message"/>.</summary>
-    public sealed record Failed(string Message) : TabContent;
+    /// <summary>Decompiling <see cref="Node"/> failed with <see cref="Message"/>.</summary>
+    public sealed record Failed(BrowseNode Node, string Message) : TabContent;
 
-    /// <summary>The node's assembly is reloading, and the tab waits to find the node again.</summary>
-    public sealed record Reloading : TabContent;
+    /// <summary>The tab waits to find the node at <see cref="Location"/> again: its assembly is reloading,
+    /// or the saved documents are reopening.</summary>
+    public sealed record Reloading(NodePath Location) : TabContent;
+
+    /// <summary>The saved diagram or comparison waits for the assemblies to be listed to be read again.</summary>
+    public sealed record Reopening : TabContent;
 
     /// <summary>The reloaded assemblies hold nothing at <see cref="Location"/> any more.</summary>
     public sealed record Gone(NodePath Location) : TabContent;

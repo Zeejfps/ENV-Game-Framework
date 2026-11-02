@@ -45,7 +45,8 @@ internal static class DocumentsView
             case TabContent.Loading loading when !NodeContentLoader.DependsOnLanguage(loading.Node):
                 Hint(ui, t.MetadataLoading);
                 break;
-            case TabContent.Code or TabContent.Report or TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Gone:
+            case TabContent.Code or TabContent.Report or TabContent.Loading or TabContent.Failed or TabContent.Reloading
+                or TabContent.Reopening or TabContent.Gone:
                 RenderCode(ui, appState, tab);
                 break;
             default:
@@ -121,7 +122,7 @@ internal static class DocumentsView
 
     /// <summary>Whether <paramref name="content"/> is shown as a note saying why there is no code.</summary>
     private static bool IsNote(TabContent content) =>
-        content is TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Gone;
+        content is TabContent.Loading or TabContent.Failed or TabContent.Reloading or TabContent.Reopening or TabContent.Gone;
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
