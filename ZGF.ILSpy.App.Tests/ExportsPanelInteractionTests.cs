@@ -122,7 +122,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         OpenExports(app.Ui);
-        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = Assert.IsType<ExportStart>(app.AppState.Export.Enter(TestJobs.Named("Running")).Result);
         app.AppState.Export.Enter(TestJobs.Named("Later"));
         app.Run(2);
 
@@ -142,7 +142,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened(height: TallWindow);
         OpenExports(app.Ui);
-        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = Assert.IsType<ExportStart>(app.AppState.Export.Enter(TestJobs.Named("Running")).Result);
         app.AppState.Export.Enter(TestJobs.Named("Second"));
         app.AppState.Export.Enter(TestJobs.Named("Third"));
         app.Run(2);
@@ -169,7 +169,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         var app = AppDriver.Opened(height: TallWindow);
         var theme = app.Theme;
         OpenExports(app.Ui);
-        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = Assert.IsType<ExportStart>(app.AppState.Export.Enter(TestJobs.Named("Running")).Result);
         running.Progress.Report(new ExportProgress("Fixtures", 1, 1, 0.5f));
         app.Run(2);
 
@@ -196,7 +196,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
     {
         var app = AppDriver.Opened();
         OpenExports(app.Ui);
-        var running = app.AppState.Export.Enter(TestJobs.Named("Running")).Result;
+        var running = Assert.IsType<ExportStart>(app.AppState.Export.Enter(TestJobs.Named("Running")).Result);
         app.Run(2);
 
         Assert.False(app.Frames.Drew(Text(Icons.StatusLoading)));

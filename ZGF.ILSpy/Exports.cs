@@ -110,8 +110,8 @@ public static class Exports
         Func<ExportReport, T, ExportReport> complete)
     {
         appState.EnqueueCommand(new ViewCommand.OpenPanel(DockView.Exports));
-        var start = await appState.Export.Enter(job);
-        if (start.IsWithdrawn)
+        var turn = await appState.Export.Enter(job);
+        if (turn is not ExportStart start)
             return;
         var clock = Stopwatch.StartNew();
         var outcome = await Background.Run(() => work(start));
@@ -313,7 +313,7 @@ public static class Exports
         var runs = new List<int>();
         var running = appState.Export.Running;
         if (running != null)
-            runs.Add(running.Run);
+            runs.Add(running.Export.Run);
         foreach (var waiting in appState.Export.Waiting)
             runs.Add(waiting.Run);
         for (var i = appState.FinishedExports.Count - 1; i >= 0; i--)
@@ -340,8 +340,8 @@ public static class Exports
     private static QueuedExport? FindQueuedExport(AppState appState, int run)
     {
         var running = appState.Export.Running;
-        if (running != null && running.Run == run)
-            return running;
+        if (running != null && running.Export.Run == run)
+            return running.Export;
         return appState.Export.Waiting.FirstOrDefault(q => q.Run == run);
     }
 

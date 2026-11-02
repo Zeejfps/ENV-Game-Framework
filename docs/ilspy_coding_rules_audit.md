@@ -10,11 +10,13 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Optional-field bags that should be sum types
 
-- **App state**
-    - `ExportQueue.cs:254-266` spreads idle-or-running over `_cancel?`, `Running?`, `IsCancelling`, `Progress?`, forcing `_cancel!` at `:347`. `ExportStart.IsWithdrawn` is a flag every caller must check.
-    - `IconValue` and `IconFont` (`IconThemeFile.cs:12-19`) have public constructors that accept invalid combinations.
-    - `IThemeFile` pairs `Extends?` with `ExtendsLine` and an `IsUnreadable` flag, forcing `child.Extends!` in `ThemeCatalogOf.cs`.
-    - `TabPanel(Diagram?, Comparison?)` (`ViewSettings.cs`) is really one of two; `DocumentTab.Location?`/`Node?` duplicate what `TabContent` says.
+- **App state**, in three independent steps, each its own commit:
+    1. **Icon values.** `IconValue` and `IconFont` (`IconThemeFile.cs:12-24`) have public constructors that accept invalid combinations.
+       Fix: `IconValue` = `Glyph(font, codepoint) | Picture(path, svg)`; `IconFont` = `Loaded(face, characters) | Broken`.
+    2. **Theme files.** `IThemeFile` pairs `Extends?` with `ExtendsLine` and an `IsUnreadable` flag, forcing `child.Extends!` in `ThemeCatalogOf.cs:139, 141, 176`.
+       Fix: `Extends` holds the id and its line as one optional value; an unreadable file is its own case, so a readable file's contents can't be read from it.
+    3. **Tabs.** `TabPanel(Diagram?, Comparison?)` (`ViewSettings.cs:29`) is really one of two; `DocumentTab.Location?`/`Node?` are set by hand beside `Content` and duplicate what `TabContent` says.
+       Fix: `TabPanel` holds one view, `None | Diagram | Comparison`; the location and node move into the `TabContent` cases that have them, and `DocumentTab.Location`/`Node` are derived from `Content`. Largest step; it touches saving, bookmarks, history and reload.
 - **View state**
     - `CodeViewState` (`CodeView.cs:43-76`) has about 25 mutable fields: press, find, flash.
     - `CodeViewResult` (`CodeView.cs:210`) has 9 optional intents; lines 399, 404, 442 and 450 replace the whole result and drop intents set earlier.

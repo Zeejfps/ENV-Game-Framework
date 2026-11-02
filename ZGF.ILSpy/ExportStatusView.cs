@@ -15,32 +15,33 @@ internal static class ExportStatusView
     /// <summary>Draws the running export; returns whether one runs.</summary>
     public static bool Render(Ui<UiState> ui, AppState appState)
     {
-        var progress = appState.Export.Progress;
-        if (progress == null)
+        var running = appState.Export.Running;
+        if (running == null)
             return false;
-        Running(ui, appState, progress.Value);
+        Running(ui, appState, running);
         return true;
     }
 
-    private static void Running(Ui<UiState> ui, AppState appState, ExportProgress progress)
+    private static void Running(Ui<UiState> ui, AppState appState, RunningExport running)
     {
         var t = ui.State.Strings;
-        if (Glance(ui, appState, progress))
+        if (Glance(ui, appState, running))
             OpenExports(ui.State);
-        if (!appState.Export.IsCancelling && IconButton(ui, "cancel-export", ui.State.Icons.ExportCancel, t.StatusCancelExport))
+        if (!running.IsCancelling && IconButton(ui, "cancel-export", ui.State.Icons.ExportCancel, t.StatusCancelExport))
             appState.Export.Cancel();
     }
 
     /// <summary>What the export writes, its bar and how many wait, as one button; returns whether it
     /// was clicked.</summary>
-    private static bool Glance(Ui<UiState> ui, AppState appState, ExportProgress progress)
+    private static bool Glance(Ui<UiState> ui, AppState appState, RunningExport running)
     {
+        var progress = running.Progress;
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var i = ui.Clickable("export-glance");
         using (ui.Row(i.Id, ButtonBox(theme, i)))
         {
-            var cancelling = appState.Export.IsCancelling;
+            var cancelling = running.IsCancelling;
             var text = ui.Memo("export-running", (progress.Name, progress.Part, progress.Parts, cancelling, t),
                 static a => Describe(a.t, a.Name, a.Part, a.Parts, a.cancelling));
             ui.Text(text, color: theme.AccentText, size: theme.FontSizeSmall);

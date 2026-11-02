@@ -207,40 +207,40 @@ internal static class ExportsPanelView
     private static void Running(Ui<UiState> ui, AppState appState, Rows rows)
     {
         var running = appState.Export.Running;
-        var progress = appState.Export.Progress;
-        if (running == null || progress == null)
+        if (running == null)
             return;
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        using (ui.Id(running.Run))
+        var export = running.Export;
+        using (ui.Id(export.Run))
         {
-            var hit = RowHit(ui, appState, rows, running.Run);
-            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, appState, rows, running.Run, hit))))
+            var hit = RowHit(ui, appState, rows, export.Run);
+            using (ui.Column(hit.Id, RowBox(theme, RowBackground(ui, appState, rows, export.Run, hit))))
             {
-                var at = progress.Value;
+                var at = running.Progress;
                 using (ui.Row(TopLine(theme)))
                 {
                     ui.Spinner(theme.PaneBackground);
-                    Name(ui, running.Job.Name);
+                    Name(ui, export.Job.Name);
                     Percent(ui, at.Fraction);
-                    CancelAction(ui, appState, rows);
+                    CancelAction(ui, appState, rows, running.IsCancelling);
                 }
                 var preparing = at.Fraction == null;
-                var detail = ui.Memo("detail", (running.Job.Kind, at.Name, at.Part, at.Parts, preparing, appState.Export.IsCancelling, t),
+                var detail = ui.Memo("detail", (export.Job.Kind, at.Name, at.Part, at.Parts, preparing, running.IsCancelling, t),
                     static a => DescribeRunning(a.t, a.Kind, a.Name, a.Part, a.Parts, a.preparing, a.IsCancelling));
                 Detail(ui, detail);
-                Folder(ui, running.Job.Folder);
+                Folder(ui, export.Job.Folder);
                 Bar(ui, at.Fraction);
             }
-            ui.Tooltip(hit.Id, running.Job.Folder);
+            ui.Tooltip(hit.Id, export.Job.Folder);
         }
         ui.Separator();
     }
 
-    private static void CancelAction(Ui<UiState> ui, AppState appState, Rows rows)
+    private static void CancelAction(Ui<UiState> ui, AppState appState, Rows rows, bool cancelling)
     {
         var t = ui.State.Strings;
-        var enabled = !appState.Export.IsCancelling;
+        var enabled = !cancelling;
         if (rows.Narrow)
         {
             if (ui.IconButton("cancel", ui.State.Icons.ExportCancel, t.ExportsCancelTooltip, enabled))
@@ -527,9 +527,10 @@ internal static class ExportsPanelView
         if (ui.MenuItem(t.ExportsCopyFolder, Shortcuts.Copy, id: "copy-folder"))
             ui.ClipboardText = folder;
         ui.MenuSeparator();
-        if (appState.Export.Running?.Run == run)
+        var running = appState.Export.Running;
+        if (running != null && running.Export.Run == run)
         {
-            if (ui.MenuItem(t.ExportsCancel, enabled: !appState.Export.IsCancelling, id: "cancel"))
+            if (ui.MenuItem(t.ExportsCancel, enabled: !running.IsCancelling, id: "cancel"))
                 appState.Export.Cancel();
             return;
         }
