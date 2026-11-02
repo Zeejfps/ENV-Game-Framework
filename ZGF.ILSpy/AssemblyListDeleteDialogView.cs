@@ -13,25 +13,27 @@ internal static class AssemblyListDeleteDialogView
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var dialog = ui.State.ListsDialog;
-        var name = dialog.Deleting;
-        var open = name != null;
+        if (dialog.Mode is not ListsDialogMode.ConfirmingDelete deleting)
+            return;
+        var name = deleting.List;
+        var open = true;
         using (var scope = ui.Dialog("assembly-list-delete", t.ListsDeleteTitle, ref open, closeButton: false))
         {
             if (scope.IsOpen)
             {
-                ui.Text(t.ListsDeleteQuestion(name!), wrap: true);
+                ui.Text(t.ListsDeleteQuestion(name), wrap: true);
                 if (name == appState.Lists.Active)
-                    ui.Text(t.ListsDeleteReplacedBy(appState.Lists.ReplacementFor(name!)), color: theme.TextMuted, wrap: true);
+                    ui.Text(t.ListsDeleteReplacedBy(appState.Lists.ReplacementFor(name)), color: theme.TextMuted, wrap: true);
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))
                         dialog.StopAsking();
                     if (ui.Button(t.ListsDeleteConfirm, id: "delete-confirm", variant: ButtonVariant.Primary))
-                        Delete(dialog, appState, name!);
+                        Delete(dialog, appState, name);
                 }
             }
         }
-        if (!open && dialog.Deleting != null)
+        if (!open)
             dialog.StopAsking();
     }
 

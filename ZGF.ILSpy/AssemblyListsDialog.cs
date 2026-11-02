@@ -2,29 +2,70 @@ using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.ILSpy;
 
-/// <summary>What the assembly lists dialog shows: whether it is open, the list picked in it, and
-/// the list being renamed, with the name typed so far, or whose deletion is being confirmed.</summary>
+/// <summary>What the assembly lists dialog is doing: closed; open on the lists; renaming one, with the name
+/// typed so far; or asking whether to delete one.</summary>
+public abstract class ListsDialogMode
+{
+    private ListsDialogMode()
+    {
+    }
+
+    public sealed class Closed : ListsDialogMode
+    {
+    }
+
+    public sealed class Browsing : ListsDialogMode
+    {
+    }
+
+    public sealed class Renaming : ListsDialogMode
+    {
+        private bool _isFocusPending = true;
+
+        public Renaming(string list)
+        {
+            List = list;
+            NewName = list;
+        }
+
+        public string List { get; }
+
+        public string NewName;
+
+        /// <summary>True once: the name box should take focus with the whole name selected.</summary>
+        public bool TakeFocus()
+        {
+            var focus = _isFocusPending;
+            _isFocusPending = false;
+            return focus;
+        }
+    }
+
+    public sealed class ConfirmingDelete : ListsDialogMode
+    {
+        public ConfirmingDelete(string list)
+        {
+            List = list;
+        }
+
+        public string List { get; }
+    }
+}
+
+/// <summary>What the assembly lists dialog shows: what it is doing, and the list picked in it.</summary>
 public sealed class AssemblyListsDialog
 {
-    private bool _focusName;
+    public ListsDialogMode Mode { get; private set; } = new ListsDialogMode.Closed();
 
-    public bool IsOpen;
+    public bool IsOpen => Mode is not ListsDialogMode.Closed;
 
     /// <summary>The picked row, an index into <see cref="SavedAssemblyLists.Names"/>.</summary>
     public ListSelection Selection { get; } = new();
 
-    /// <summary>The list being renamed, or null.</summary>
-    public string? Renaming { get; private set; }
-
-    public string NewName = "";
-
-    /// <summary>The list whose deletion is being confirmed, or null.</summary>
-    public string? Deleting { get; private set; }
-
     /// <summary>Opens the dialog with the open list of <paramref name="lists"/> picked.</summary>
     public void Open(SavedAssemblyLists lists)
     {
-        IsOpen = true;
+        Mode = new ListsDialogMode.Browsing();
         Pick(lists, lists.Active);
     }
 
@@ -66,42 +107,19 @@ public sealed class AssemblyListsDialog
         return names[index];
     }
 
-    public bool IsAsking => Renaming != null || Deleting != null;
+    public bool IsAsking => Mode is ListsDialogMode.Renaming or ListsDialogMode.ConfirmingDelete;
 
-    public void StartRenaming(string name)
-    {
-        StopAsking();
-        Renaming = name;
-        NewName = name;
-        _focusName = true;
-    }
+    public void StartRenaming(string name) => Mode = new ListsDialogMode.Renaming(name);
 
-    /// <summary>True once after <see cref="StartRenaming"/>: the name box should take focus with the
-    /// whole name selected.</summary>
-    public bool TakeNameFocus()
-    {
-        var focus = _focusName;
-        _focusName = false;
-        return focus;
-    }
-
-    public void StartConfirmingDelete(string name)
-    {
-        StopAsking();
-        Deleting = name;
-    }
+    public void StartConfirmingDelete(string name) => Mode = new ListsDialogMode.ConfirmingDelete(name);
 
     /// <summary>Leaves the rename or deletion being asked about.</summary>
     public void StopAsking()
     {
-        Renaming = null;
-        Deleting = null;
-        _focusName = false;
+        if (!IsAsking)
+            return;
+        Mode = new ListsDialogMode.Browsing();
     }
 
-    public void Close()
-    {
-        IsOpen = false;
-        StopAsking();
-    }
+    public void Close() => Mode = new ListsDialogMode.Closed();
 }

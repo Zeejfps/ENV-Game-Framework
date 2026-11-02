@@ -11,14 +11,13 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 ### Optional-field bags that should be sum types
 
 - **View state**, one commit each, smallest first:
-    1. **Assembly lists dialog.** `AssemblyListsDialog` is `IsOpen` + `Renaming?` + `NewName` + `Deleting?`. Make it Closed | Browsing | Renaming(list, newName) | ConfirmingDelete(list).
-    2. **Code view result.** `CodeViewResult` (`CodeView.cs:204`) has 9 optional intents; lines 398, 403, 1001 and 1003 build a new result and drop intents set earlier. Return one intent (Navigate(target, newTab) | ToggleBookmark(line) | Analyze | ShowInMetadata | ShowInApiReference | ShowInDiagram | ShowInNewDiagram), with zoom kept apart, and an explicit rule for two in one frame.
-    3. **Code view state.** `CodeViewState` (`CodeView.cs:43-72`) has about 25 mutable fields. Group them, possibly over two commits:
+    1. **Code view result.** `CodeViewResult` (`CodeView.cs:204`) has 9 optional intents; lines 398, 403, 1001 and 1003 build a new result and drop intents set earlier. Return one intent (Navigate(target, newTab) | ToggleBookmark(line) | Analyze | ShowInMetadata | ShowInApiReference | ShowInDiagram | ShowInNewDiagram), with zoom kept apart, and an explicit rule for two in one frame.
+    2. **Code view state.** `CodeViewState` (`CodeView.cs:43-72`) has about 25 mutable fields. Group them, possibly over two commits:
         - the press held: `PressedAt`, `PressMoved`, `PressedForNewTab`, `PressedOnFold`, `PressedSpanLine`, `PressedSpan` as one nullable `CodePress`;
         - the pending scroll: `PendingReveal`, `PendingRestore`, `PendingShowLine`, `PendingColumnStart/End` as Reveal(line) | Restore(position) | ShowColumns(...);
         - the flash: `FlashLine` + `FlashFrom` as one nullable value;
         - find: `FindOpen`, `Query`, `CurrentMatch` as closed | open(query, match).
-    4. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
+    3. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
 
 ### Bare identifiers that can be swapped
 
@@ -33,7 +32,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:194, 202` tie enum order to column order.
 - `(LanguageVersion)options.LanguageVersion` casts numerically between two mirrored enums.
 - Reflection: `DecompilerOptions.cs:45/72` reads `DecompilerSettings` properties by name.
-- "Enable the button, then force-unwrap": `TreePaneView.cs:51-60`, `AssemblyListsDialogView.cs:58` are correct only while disabled widgets never fire.
+- "Enable the button, then force-unwrap": `TreePaneView.cs:51-60` is correct only while disabled widgets never fire.
 - The other ~90 catches are properly filtered with `when e is IOException or …`.
 
 ### Boundaries
@@ -58,7 +57,7 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 - Views mutate state two ways: directly mid-frame (`ExportsPanelView.cs:82, 259`, `TreePaneView.cs:60`, `BookmarksPanelView.cs:310`) and through `UiState.AppCommands`. Views drawn later in a frame see different state.
 - The async model works by convention: 36 `async void` methods in 16 non-view files; late results are discarded five different ways (UserIntent tickets, `Assemblies.Generation`, CTS identity in `Search._runs`, ExportQueue run ids, Reload tickets). With no `SynchronizationContext`, `Background.cs:310-313` continues on the thread pool. An exception after an `await` outside `Outcome` crashes the process (e.g. `Exports.cs:121`).
 - Thread-pool work is handed the UI-only `AppState` (`Navigation.cs:97`, `Assemblies.cs:27, 149, 285, 411`, `Analysis.cs:101`, `Bookmarks.cs:128`). Today it only touches `Assemblies`; it should take `AssemblyList`.
-- Consume-once flags depend on the view being drawn exactly once, in the right frame: `CodeViewState.FocusFind`, `AssemblyListsDialog.TakeNameFocus`, `CrumbMenu.TakeFocus`, `UiState.IsSearchFocusPending`, `CodeFonts.TakeListingRequest`.
+- Consume-once flags depend on the view being drawn exactly once, in the right frame: `CodeViewState.FocusFind`, `ListsDialogMode.Renaming.TakeFocus`, `CrumbMenu.TakeFocus`, `UiState.IsSearchFocusPending`, `CodeFonts.TakeListingRequest`.
 - Cross-frame layout: `CodeView.cs:292-320` hit-tests with the previous frame's rect; `Position`/`TopAnchor` do nothing until the first draw sets `RowHeight`; `BookmarksPanelView.cs:61, 66` call `Selection.TakeFrom` before and after the rows, an order nothing enforces.
 - `ExportsPanelView.cs:105-133` snapshots runs once per frame, so Delete then an arrow key in the same frame moves against a stale list.
 - `AssemblyList.UseLoadOptions` (`:166-176`) checks and sets two volatile fields without the lock.
