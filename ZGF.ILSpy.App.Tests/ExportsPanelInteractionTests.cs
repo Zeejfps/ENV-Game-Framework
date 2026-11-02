@@ -41,7 +41,7 @@ public sealed class ExportsPanelInteractionTests : IDisposable
         return folder;
     }
 
-    private static int RunOf(AppDriver app, string name) => app.AppState.FinishedExports.Single(r => r.Name == name).Run;
+    private static ExportRun RunOf(AppDriver app, string name) => app.AppState.FinishedExports.Single(r => r.Name == name).Run;
 
     [Fact]
     public void Clicking_a_row_selects_it_and_the_arrow_keys_walk_the_list()

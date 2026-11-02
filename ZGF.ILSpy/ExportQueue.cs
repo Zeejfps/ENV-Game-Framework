@@ -19,9 +19,18 @@ public enum ExportKind
 /// folder it writes into.</summary>
 public sealed record ExportJob(string Name, ExportKind Kind, string Folder);
 
+/// <summary>Which export of the session one is, through waiting, running and finishing; given by the
+/// queue as the export enters it, numbered from 1 in the order they entered.</summary>
+public sealed record ExportRun
+{
+    internal ExportRun(int number) => Number = number;
+
+    internal int Number { get; }
+}
+
 /// <summary>An export in the queue: <see cref="Run"/> tells it apart from every other export of
 /// the session, through waiting, running and finishing.</summary>
-public sealed record QueuedExport(int Run, ExportJob Job);
+public sealed record QueuedExport(ExportRun Run, ExportJob Job);
 
 /// <summary>How an export's turn in the queue goes: it starts, or it was taken out of the queue
 /// before its turn and must not run.</summary>
@@ -34,7 +43,7 @@ public abstract record ExportTurn
 
 /// <summary>What an export works with once its turn comes: the token that cancels it and where it
 /// reports how far it has got. <see cref="Run"/> tells the queue which export ends.</summary>
-public sealed record ExportStart(int Run, CancellationToken Token, IProgress<ExportProgress> Progress) : ExportTurn;
+public sealed record ExportStart(ExportRun Run, CancellationToken Token, IProgress<ExportProgress> Progress) : ExportTurn;
 
 /// <summary>The export was taken out of the queue before its turn.</summary>
 public sealed record ExportWithdrawn : ExportTurn;
@@ -69,7 +78,7 @@ public sealed class ExportQueue
     {
         _lastRun++;
         var started = new TaskCompletionSource<ExportTurn>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _waiting.Add(new Turn(new QueuedExport(_lastRun, job), started));
+        _waiting.Add(new Turn(new QueuedExport(new ExportRun(_lastRun), job), started));
         if (!IsRunning)
             StartNext();
         return started.Task;
@@ -85,9 +94,9 @@ public sealed class ExportQueue
         turn.Started.SetResult(new ExportStart(export.Run, active.Cancel.Token, ProgressOf(export.Run)));
     }
 
-    private Progress<ExportProgress> ProgressOf(int run) => new(p => Take(run, p));
+    private Progress<ExportProgress> ProgressOf(ExportRun run) => new(p => Take(run, p));
 
-    private void Take(int run, ExportProgress progress)
+    private void Take(ExportRun run, ExportProgress progress)
     {
         var active = FindActive(run);
         if (active == null)
@@ -118,7 +127,7 @@ public sealed class ExportQueue
     }
 
     /// <summary>Takes the waiting export <paramref name="run"/> out of the queue.</summary>
-    public void Withdraw(int run)
+    public void Withdraw(ExportRun run)
     {
         var index = _waiting.FindIndex(t => t.Export.Run == run);
         if (index < 0)
@@ -143,7 +152,7 @@ public sealed class ExportQueue
     }
 
     /// <summary>The running export's state when <paramref name="run"/> is the running one; null otherwise.</summary>
-    private Active? FindActive(int run)
+    private Active? FindActive(ExportRun run)
     {
         if (_active == null)
             return null;

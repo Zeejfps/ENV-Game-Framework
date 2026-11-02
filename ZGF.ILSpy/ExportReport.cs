@@ -39,7 +39,7 @@ public abstract record ExportProblem
 /// <summary>What one export did: which it was, how it ended, the files it wrote, what went wrong,
 /// how long it took, and whether its folder was there when it ended.</summary>
 public sealed record ExportReport(
-    int Run,
+    ExportRun Run,
     ExportJob Job,
     ExportOutcome Outcome,
     IReadOnlyList<string> Written,
@@ -55,7 +55,7 @@ public sealed record ExportReport(
 
     /// <summary>The report of the export <paramref name="run"/> of <paramref name="job"/> that finished,
     /// with nothing written yet.</summary>
-    public static ExportReport Finished(int run, ExportJob job, TimeSpan elapsed)
+    public static ExportReport Finished(ExportRun run, ExportJob job, TimeSpan elapsed)
     {
         return new ExportReport(run, job, ExportOutcome.Finished, [], [], elapsed, Directory.Exists(job.Folder));
     }
@@ -63,7 +63,7 @@ public sealed record ExportReport(
     /// <summary>The report of the export <paramref name="run"/> of <paramref name="job"/> that ended
     /// with <paramref name="error"/>: cancelled when it was cancelled, else failed, exporting
     /// <paramref name="subject"/>.</summary>
-    public static ExportReport Ended(int run, ExportJob job, Exception error, string subject, TimeSpan elapsed)
+    public static ExportReport Ended(ExportRun run, ExportJob job, Exception error, string subject, TimeSpan elapsed)
     {
         var folderExists = Directory.Exists(job.Folder);
         if (error is OperationCanceledException)

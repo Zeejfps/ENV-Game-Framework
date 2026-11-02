@@ -308,9 +308,9 @@ public static class Exports
 
     /// <summary>The runs of every export in the order the exports panel lists them: the running one,
     /// the waiting ones next first, then the finished ones newest first.</summary>
-    public static List<int> ListExports(AppState appState)
+    public static List<ExportRun> ListExports(AppState appState)
     {
-        var runs = new List<int>();
+        var runs = new List<ExportRun>();
         var running = appState.Export.Running;
         if (running != null)
             runs.Add(running.Export.Run);
@@ -322,11 +322,11 @@ public static class Exports
     }
 
     /// <summary>The finished export <paramref name="run"/>, or null when it has not finished or is gone.</summary>
-    public static ExportReport? FindFinishedExport(AppState appState, int run) => appState.FinishedExports.Find(r => r.Run == run);
+    public static ExportReport? FindFinishedExport(AppState appState, ExportRun run) => appState.FinishedExports.Find(r => r.Run == run);
 
     /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
     /// queue, or null when it is gone.</summary>
-    public static string? FindExportFolder(AppState appState, int run)
+    public static string? FindExportFolder(AppState appState, ExportRun run)
     {
         var finished = FindFinishedExport(appState, run);
         if (finished != null)
@@ -337,7 +337,7 @@ public static class Exports
         return queued.Job.Folder;
     }
 
-    private static QueuedExport? FindQueuedExport(AppState appState, int run)
+    private static QueuedExport? FindQueuedExport(AppState appState, ExportRun run)
     {
         var running = appState.Export.Running;
         if (running != null && running.Export.Run == run)
@@ -347,7 +347,7 @@ public static class Exports
 
     /// <summary>Does what activating the export <paramref name="run"/> means: shows the report of a
     /// finished one; nothing for one still running or waiting.</summary>
-    public static void ActivateExport(AppState appState, int run)
+    public static void ActivateExport(AppState appState, ExportRun run)
     {
         var finished = FindFinishedExport(appState, run);
         if (finished == null)
@@ -357,7 +357,7 @@ public static class Exports
 
     /// <summary>Takes the export <paramref name="run"/> off the panel: out of the queue when it waits,
     /// off the history when it finished. A running one stays; only cancelling stops it.</summary>
-    public static void RemoveExport(AppState appState, int run)
+    public static void RemoveExport(AppState appState, ExportRun run)
     {
         var finished = FindFinishedExport(appState, run);
         if (finished != null)

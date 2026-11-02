@@ -160,11 +160,11 @@ public sealed class UiState : IUiState
     /// <summary>The metadata grids' flags filters.</summary>
     public MetadataFilters MetadataFilters { get; }
 
-    /// <summary>The run of the export selected in the exports panel, or 0; one that is gone is as none.</summary>
-    public int SelectedExport;
+    /// <summary>The export selected in the exports panel, or null; one that is gone is as none.</summary>
+    public ExportRun? SelectedExport;
 
-    /// <summary>The run of the export the exports panel's context menu was opened on, or 0.</summary>
-    public int ExportMenuTarget;
+    /// <summary>The export the exports panel's context menu was opened on, or null.</summary>
+    public ExportRun? ExportMenuTarget;
 
     public ErrorDialog ErrorDialog { get; } = new();
 
