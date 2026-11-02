@@ -8,10 +8,13 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ### Bare identifiers that can be swapped
 
-- `AssemblyPicks` holds both PDB paths and target-framework ids; a picked framework is never validated.
-- Code view lines, rows, columns and match indexes are all `int`, with `NoLine = -1` as a shared sentinel; with folds, row ≠ line.
-- `CodeViewPosition.TopLine` is a document line in the code view but a row index in the metadata grid.
-- Export runs are `int` with 0 for "none", sharing the `ui.Id` space with section ids -1/-2 (`ExportsPanelView.cs:25`).
+One commit each, smallest first:
+
+1. **Export run ids.** A run is a bare `int` with 0 for none in `QueuedExport`, `ExportStart`, `ExportReport` and `UiState.SelectedExport`/`ExportMenuTarget`, and goes into `ui.Id` beside the section ids -1/-2 (`ExportsPanelView.cs:25`). Make it an `ExportRun` type, the selected run and menu target `ExportRun?`, and salt the panel's widget ids.
+2. **Code view's leftover -1s.** `NoLine = -1` still marks no hovered line, span, fold, chip or bookmark mark, no menu target line (`CodeMenuTarget.None`), and no current line or underline in the paint frame. Make each nullable, line and span together, down to `CodeViewFrame`, and delete `NoLine`.
+3. **PDB and framework picks.** `AssemblyList.Pdbs` and `TargetFrameworks` are both `AssemblyPicks` of a string, so a framework can be picked as a PDB, and a saved framework id is never validated. Make `AssemblyPicks` generic, give framework ids a `TargetFrameworkId` parsed where it is detected and where saved lists are read, dropping a bad one there.
+4. **Code and grid positions.** The metadata grid keeps its place in a `CodeViewPosition`, `TopLine` a row and `Caret` a (row, column). Add `GridPosition(TopRow, ScrollX, Row, Column)` and make a kept or saved position Code | Grid across `DocumentTab`, `DocumentViews`, history and `NodeDocumentRecord`; read a grid tab's position saved in the old shape and convert it.
+5. **Line vs row.** With folds collapsed a row on screen is not a document line, yet `CodeFolds.LineAt(row)`/`RowOf(line)` (about 34 call sites) take and give bare `int`s. Give rows a `CodeRow` type so converting is explicit; document lines stay `int`, as `TextPosition.Line` is. The largest of the five and the likeliest to cost more than it saves: do it last, and drop it if 2 leaves the code clear enough.
 
 ### Escape hatches
 
