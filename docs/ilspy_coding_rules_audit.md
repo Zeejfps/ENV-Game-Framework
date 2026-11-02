@@ -6,13 +6,6 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ## Rule 1: illegal states representable
 
-Bags of optional fields are the root cause of most of the ~148 null-forgiving `!`.
-
-### Optional-field bags that should be sum types
-
-- **View state**, one commit each, smallest first:
-    1. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
-
 ### Bare identifiers that can be swapped
 
 - `AssemblyPicks` holds both PDB paths and target-framework ids; a picked framework is never validated.
