@@ -10,15 +10,18 @@ Bags of optional fields are the root cause of most of the ~148 null-forgiving `!
 
 ### Optional-field bags that should be sum types
 
-- **View state**
-    - `CodeViewState` (`CodeView.cs:43-76`) has about 25 mutable fields: press, find, flash.
-    - `CodeViewResult` (`CodeView.cs:210`) has 9 optional intents; lines 399, 404, 442 and 450 replace the whole result and drop intents set earlier.
-    - `CrumbMenu` (`CrumbMenu.cs:17-26`) keeps `IsOpen` separate from `Node?`, hence `menu.Node!` in `OmnibarView`.
-    - `AssemblyListsDialog` is `IsOpen` + `Renaming?` + `NewName` + `Deleting?`; the real states are Closed | Browsing | Renaming | ConfirmingDelete.
-    - `DiagramHit(Face?, Row = -1)` (`DiagramViewState.cs:9`) should be Nothing | Card | Row.
-    - `(CodeTooltip? Tooltip, int TooltipPart)` uses part 0 for "none", duplicated in `CodeView` and `DiagramView`.
-    - `ExportBlocker` enum is separate from its payload, so `Clash` re-reads `setup.Clash!`.
-    - Each modal has its own flag (`UiState.cs:82-165`), so two can be open at once and draw order in `MainView.cs:29-39` picks the top one.
+- **View state**, one commit each, smallest first:
+    1. **Shown tooltip.** `CodeTooltip? Tooltip` + `int TooltipPart` with part 0 for "none", duplicated in `CodeViewState` (`CodeView.cs:58-59`) and `DiagramViewState` (`:86-87`). Make it one nullable `ShownTooltip(Tooltip, Part)` both share.
+    2. **Export blocker.** The `ExportBlocker` enum (`ExportSetup.cs:17`) is separate from its payload, so `Clash` re-reads `setup.Clash!` (`ExportDialogView.cs:392`). Make it a sum type whose `Clash` carries the name.
+    3. **Crumb menu.** `CrumbMenu` (`CrumbMenu.cs:17-26`) keeps `IsOpen` separate from `Panel?` and `Node?`, hence `menu.Node!` in `OmnibarView.cs:232`. Make the open menu (panel, node, filter, selection) one nullable value.
+    4. **Assembly lists dialog.** `AssemblyListsDialog` is `IsOpen` + `Renaming?` + `NewName` + `Deleting?`. Make it Closed | Browsing | Renaming(list, newName) | ConfirmingDelete(list).
+    5. **Code view result.** `CodeViewResult` (`CodeView.cs:204`) has 9 optional intents; lines 398, 403, 1001 and 1003 build a new result and drop intents set earlier. Return one intent (Navigate(target, newTab) | ToggleBookmark(line) | Analyze | ShowInMetadata | ShowInApiReference | ShowInDiagram | ShowInNewDiagram), with zoom kept apart, and an explicit rule for two in one frame.
+    6. **Code view state.** `CodeViewState` (`CodeView.cs:43-72`) has about 25 mutable fields. Group them, possibly over two commits:
+        - the press held: `PressedAt`, `PressMoved`, `PressedForNewTab`, `PressedOnFold`, `PressedSpanLine`, `PressedSpan` as one nullable `CodePress`;
+        - the pending scroll: `PendingReveal`, `PendingRestore`, `PendingShowLine`, `PendingColumnStart/End` as Reveal(line) | Restore(position) | ShowColumns(...);
+        - the flash: `FlashLine` + `FlashFrom` as one nullable value;
+        - find: `FindOpen`, `Query`, `CurrentMatch` as closed | open(query, match).
+    7. **One modal at a time.** Each dialog has its own flag (`UiState.cs:82-178`), so two can be open at once and draw order in `MainView.cs:30-40` picks the top one. Make the open dialog one nullable sum type; check first whether the error dialog must stay apart to show over another.
 
 ### Bare identifiers that can be swapped
 

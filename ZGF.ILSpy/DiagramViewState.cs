@@ -4,20 +4,22 @@ using ZGF.ILSpy.Core.Diagrams;
 
 namespace ZGF.ILSpy;
 
-/// <summary>What a press on a diagram landed on: a card, and the row of it, or -1 for none; no card for
-/// the space between them.</summary>
-public readonly record struct DiagramHit(CardFace? Face, int Row)
+/// <summary>What a press on a diagram landed on: nothing, in the space between the cards; a card, off its
+/// rows; or a row of a card.</summary>
+public abstract record DiagramHit
 {
-    public static DiagramHit Nothing => new(null, -1);
-
-    /// <summary>The row hit, or null when no row is.</summary>
-    public CardRow? FindRow()
+    private DiagramHit()
     {
-        if (Face == null)
-            return null;
-        if (Row < 0)
-            return null;
-        return Face.Rows[Row];
+    }
+
+    public sealed record Nothing : DiagramHit;
+
+    public sealed record Card(CardFace Face) : DiagramHit;
+
+    /// <summary>The row <see cref="Index"/> of <see cref="Face"/>.</summary>
+    public sealed record Row(CardFace Face, int Index) : DiagramHit
+    {
+        public CardRow Value => Face.Rows[Index];
     }
 }
 
@@ -75,7 +77,7 @@ public sealed class DiagramViewState
     public int LaidOutVersion = -1;
 
     /// <summary>What the press held now landed on.</summary>
-    public DiagramHit PressedOn = DiagramHit.Nothing;
+    public DiagramHit PressedOn = new DiagramHit.Nothing();
 
     /// <summary>Whether the press held now has moved far enough to pan.</summary>
     public bool PressMoved;

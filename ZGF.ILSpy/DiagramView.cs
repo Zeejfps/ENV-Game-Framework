@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Geometry;
 using ZGF.Gui.Immediate;
@@ -197,9 +198,9 @@ internal static class DiagramView
     private static DiagramHit FindHit(Ui<UiState> ui, DiagramViewState view, TypeDiagram diagram, Interaction i, bool hasRect, UiRect rect)
     {
         if (!hasRect)
-            return DiagramHit.Nothing;
+            return new DiagramHit.Nothing();
         if (!i.Hovered && !i.Held)
-            return DiagramHit.Nothing;
+            return new DiagramHit.Nothing();
         var point = view.Camera.ToDiagram(ui.Input.Pointer, rect);
         return HitAt(view, diagram, point);
     }
@@ -210,23 +211,41 @@ internal static class DiagramView
         for (var i = diagram.Cards.Count - 1; i >= 0; i--)
         {
             var hit = HitCard(view, diagram.Cards[i], point);
-            if (hit.Face != null)
+            if (hit is not DiagramHit.Nothing)
                 return hit;
         }
-        return DiagramHit.Nothing;
+        return new DiagramHit.Nothing();
     }
 
     private static DiagramHit HitCard(DiagramViewState view, TypeCard card, PointF point)
     {
         var face = view.Faces.Find(card.Type);
         if (face == null)
-            return DiagramHit.Nothing;
+            return new DiagramHit.Nothing();
         var place = view.Transition.PlaceOf(card.Type);
         if (place == null)
-            return DiagramHit.Nothing;
+            return new DiagramHit.Nothing();
         if (!Covers(place.Value, face, point))
-            return DiagramHit.Nothing;
-        return new DiagramHit(face, face.RowAt(point.Y - place.Value.Y));
+            return new DiagramHit.Nothing();
+        var row = face.RowAt(point.Y - place.Value.Y);
+        if (row < 0)
+            return new DiagramHit.Card(face);
+        return new DiagramHit.Row(face, row);
+    }
+
+    private static CardFace? FaceOf(DiagramHit hit) => hit switch
+    {
+        DiagramHit.Nothing => null,
+        DiagramHit.Card card => card.Face,
+        DiagramHit.Row row => row.Face,
+        _ => throw new UnreachableException(),
+    };
+
+    private static CardRow? RowOf(DiagramHit hit)
+    {
+        if (hit is not DiagramHit.Row row)
+            return null;
+        return row.Value;
     }
 
     private static bool Covers(PointF place, CardFace face, PointF point)
@@ -327,7 +346,7 @@ internal static class DiagramView
         }
         if (i.ClickedWith(PointerButton.Middle))
         {
-            OpenCode(appState, diagram, hit.FindRow(), inNewTab: true);
+            OpenCode(appState, diagram, RowOf(hit), inNewTab: true);
             return;
         }
         if (!i.Clicked)
@@ -335,12 +354,12 @@ internal static class DiagramView
         if (view.PressMoved)
             return;
         Pick(view, view.PressedOn);
-        OpenCode(appState, diagram, view.PressedOn.FindRow(), IsCommandHeld(ui.Input.Modifiers));
+        OpenCode(appState, diagram, RowOf(view.PressedOn), IsCommandHeld(ui.Input.Modifiers));
     }
 
     private static void OpenMenu(Ui<UiState> ui, DiagramViewState view, DiagramHit hit)
     {
-        var face = hit.Face;
+        var face = FaceOf(hit);
         if (face == null)
             return;
         view.Selected = face.Card.Type;
@@ -352,14 +371,14 @@ internal static class DiagramView
     /// part whose row it is on.</summary>
     private static void Pick(DiagramViewState view, DiagramHit hit)
     {
-        var face = hit.Face;
+        var face = FaceOf(hit);
         if (face == null)
         {
             view.Selected = null;
             return;
         }
         view.Selected = face.Card.Type;
-        var row = hit.FindRow();
+        var row = RowOf(hit);
         if (row == null)
             return;
         var fold = row.Value.Fold;
@@ -373,7 +392,7 @@ internal static class DiagramView
     {
         if (IsPanning(view, i))
             return;
-        var row = hit.FindRow();
+        var row = RowOf(hit);
         if (row == null)
             return;
         if (!IsClickable(row.Value))
@@ -452,14 +471,13 @@ internal static class DiagramView
     /// <summary>The row of <paramref name="face"/> the pointer is on when it does something, else -1.</summary>
     private static int HoveredRowOf(CardFace face, DiagramHit hit)
     {
-        if (hit.Face != face)
+        if (hit is not DiagramHit.Row row)
             return -1;
-        var row = hit.FindRow();
-        if (row == null)
+        if (row.Face != face)
             return -1;
         if (row.Value.Kind == CardRowKind.Stereotype)
             return -1;
-        return hit.Row;
+        return row.Index;
     }
 
     /// <summary>The declaration and documentation of the type or member under the pointer, once it has
@@ -483,7 +501,7 @@ internal static class DiagramView
     {
         if (isPanning)
             return null;
-        var row = hit.FindRow();
+        var row = RowOf(hit);
         if (row == null)
             return null;
         var target = row.Value.Target;
@@ -497,7 +515,9 @@ internal static class DiagramView
     {
         if (tooltip == null)
             return 0;
-        return HashCode.Combine(hit.Face!.Card.Type, hit.Row) | 1;
+        if (hit is not DiagramHit.Row row)
+            return 0;
+        return HashCode.Combine(row.Face.Card.Type, row.Index) | 1;
     }
 
     /// <summary>Where the row <paramref name="hit"/> is on is drawn, from its text on, widened to the left by
