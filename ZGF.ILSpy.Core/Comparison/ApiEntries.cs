@@ -10,7 +10,7 @@ internal static class ApiEntries
     private const string GlobalNamespaceText = "-";
     private const string ModuleTypeName = "<Module>";
 
-    private static readonly Dictionary<string, IEntity> None = new();
+    private static readonly Dictionary<string, Compared> None = new();
 
     /// <summary>The namespaces either module puts types in that <paramref name="scope"/> takes in, sorted by name.</summary>
     public static List<ApiEntry> CompareNamespaces(MetadataModule left, MetadataModule right, ApiScope scope, CancellationToken cancellationToken)
@@ -48,9 +48,9 @@ internal static class ApiEntries
 
     /// <summary>The top-level types of <paramref name="module"/> that <paramref name="scope"/> takes in, by
     /// namespace, each by its key.</summary>
-    private static Dictionary<string, Dictionary<string, IEntity>> ListTypesByNamespace(MetadataModule module, ApiScope scope)
+    private static Dictionary<string, Dictionary<string, Compared>> ListTypesByNamespace(MetadataModule module, ApiScope scope)
     {
-        var byNamespace = new Dictionary<string, Dictionary<string, IEntity>>(StringComparer.Ordinal);
+        var byNamespace = new Dictionary<string, Dictionary<string, Compared>>(StringComparer.Ordinal);
         foreach (var type in module.TopLevelTypeDefinitions)
         {
             if (IsModuleType(type))
@@ -64,13 +64,18 @@ internal static class ApiEntries
     }
 
     /// <summary>Adds <paramref name="entity"/> under its key, numbered when others took the key before
-    /// it, so none is dropped; those that share a key are matched in the order the metadata lists them.</summary>
-    private static void AddByKey(Dictionary<string, IEntity> entities, IEntity entity)
+    /// it, so none is dropped; those that share a key are matched in the order the metadata lists them.
+    /// Leaves out an entity with no metadata file or token to be referenced by.</summary>
+    private static void AddByKey(Dictionary<string, Compared> entities, IEntity entity)
     {
+        var reference = CodeReference.To(entity);
+        if (reference == null)
+            return;
+        var compared = new Compared(entity, reference);
         var key = ApiKeys.Of(entity);
         var candidate = key;
         var number = 2;
-        while (!entities.TryAdd(candidate, entity))
+        while (!entities.TryAdd(candidate, compared))
         {
             candidate = $"{key}#{number}";
             number++;
@@ -97,11 +102,11 @@ internal static class ApiEntries
         return EntityText.IsPublicApi(entity);
     }
 
-    private static Dictionary<string, IEntity> FindOrAddNamespace(Dictionary<string, Dictionary<string, IEntity>> byNamespace, string name)
+    private static Dictionary<string, Compared> FindOrAddNamespace(Dictionary<string, Dictionary<string, Compared>> byNamespace, string name)
     {
         if (byNamespace.TryGetValue(name, out var types))
             return types;
-        types = new Dictionary<string, IEntity>(StringComparer.Ordinal);
+        types = new Dictionary<string, Compared>(StringComparer.Ordinal);
         byNamespace.Add(name, types);
         return types;
     }
@@ -115,7 +120,7 @@ internal static class ApiEntries
 
     /// <summary>The entities of <paramref name="left"/> and <paramref name="right"/>, matched by key,
     /// sorted as the tree sorts them: types, then fields, properties, events and methods, each by name.</summary>
-    private static List<ApiEntry> CompareAll(Dictionary<string, IEntity> left, Dictionary<string, IEntity> right, ApiScope scope,
+    private static List<ApiEntry> CompareAll(Dictionary<string, Compared> left, Dictionary<string, Compared> right, ApiScope scope,
         CancellationToken cancellationToken)
     {
         var entries = new List<ApiEntry>(left.Count + right.Count);
@@ -139,41 +144,42 @@ internal static class ApiEntries
             .ToList();
     }
 
-    private static ApiEntry Removed(IEntity left, ApiScope scope, CancellationToken cancellationToken)
+    private static ApiEntry Removed(Compared left, ApiScope scope, CancellationToken cancellationToken)
     {
         var children = CompareAll(ListChildren(left, scope), None, scope, cancellationToken);
         return EntryOf(left, new ApiSides.LeftOnly(SideOf(left)), children);
     }
 
-    private static ApiEntry Added(IEntity right, ApiScope scope, CancellationToken cancellationToken)
+    private static ApiEntry Added(Compared right, ApiScope scope, CancellationToken cancellationToken)
     {
         var children = CompareAll(None, ListChildren(right, scope), scope, cancellationToken);
         return EntryOf(right, new ApiSides.RightOnly(SideOf(right)), children);
     }
 
     /// <summary>The entry of an entity on both sides, which <paramref name="right"/> labels.</summary>
-    private static ApiEntry CompareBoth(IEntity left, IEntity right, ApiScope scope, CancellationToken cancellationToken)
+    private static ApiEntry CompareBoth(Compared left, Compared right, ApiScope scope, CancellationToken cancellationToken)
     {
         var children = CompareAll(ListChildren(left, scope), ListChildren(right, scope), scope, cancellationToken);
         return EntryOf(right, new ApiSides.Both(SideOf(left), SideOf(right)), children);
     }
 
-    private static ApiEntry EntryOf(IEntity shown, ApiSides sides, List<ApiEntry> children)
+    private static ApiEntry EntryOf(Compared compared, ApiSides sides, List<ApiEntry> children)
     {
+        var shown = compared.Entity;
         var shape = EntityText.SymbolShapeOf(shown);
         var accessibility = EntityText.Map(shown.Accessibility);
         return new ApiEntry.Entity(shape, EntityText.Label(shown), accessibility, sides, children);
     }
 
-    private static ApiSide SideOf(IEntity entity) => new(CodeReference.To(entity), ApiDeclarations.Of(entity));
+    private static ApiSide SideOf(Compared compared) => new(compared.Reference, ApiDeclarations.Of(compared.Entity));
 
-    /// <summary>The nested types and members of <paramref name="entity"/> that <paramref name="scope"/>
+    /// <summary>The nested types and members of <paramref name="compared"/> that <paramref name="scope"/>
     /// takes in, each by its key, without accessors or an enum's value field; none for a member.</summary>
-    private static Dictionary<string, IEntity> ListChildren(IEntity entity, ApiScope scope)
+    private static Dictionary<string, Compared> ListChildren(Compared compared, ApiScope scope)
     {
-        if (entity is not ITypeDefinition type)
+        if (compared.Entity is not ITypeDefinition type)
             return None;
-        var children = new Dictionary<string, IEntity>(StringComparer.Ordinal);
+        var children = new Dictionary<string, Compared>(StringComparer.Ordinal);
         foreach (var member in ListMembers(type))
         {
             if (IsTakenIn(member, scope))
@@ -238,3 +244,6 @@ internal static class ApiEntries
         return own + Count(entry.Children, change);
     }
 }
+
+/// <summary>A type or member taken into a comparison, with the reference it is opened by.</summary>
+internal readonly record struct Compared(IEntity Entity, CodeReference.Entity Reference);

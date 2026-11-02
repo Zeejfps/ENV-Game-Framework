@@ -25,11 +25,16 @@ public static class TypeCards
         var definition = list.FindTypeDefinition(type);
         if (definition == null)
             return [];
-        var cards = new List<TypeCard> { Read(definition) };
+        var card = Read(definition);
+        if (card == null)
+            return [];
+        var cards = new List<TypeCard> { card };
         foreach (var neighbour in ListNeighbours(definition))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            cards.Add(Read(neighbour));
+            var read = Read(neighbour);
+            if (read != null)
+                cards.Add(read);
         }
         return cards;
     }
@@ -54,27 +59,31 @@ public static class TypeCards
         return DerivedTypes.Find(list, definition, cancellationToken)
             .Where(IsShown)
             .Select(Read)
+            .OfType<TypeCard>()
             .ToList();
     }
 
-    internal static TypeCard Read(ITypeDefinition type)
+    /// <summary>The card of <paramref name="type"/>; null when it has no metadata file or token to be
+    /// referenced by, as a type the decompiler made up has not.</summary>
+    internal static TypeCard? Read(ITypeDefinition type)
     {
+        var reference = CodeReference.To(type);
+        if (reference == null)
+            return null;
         return new TypeCard(
-            Type: CodeReference.To(type)!,
-            Anchor: new TypeAnchor(AssemblyPathOf(type), type.ReflectionName),
+            Type: reference,
+            Anchor: new TypeAnchor(reference.FilePath, type.ReflectionName),
             Name: EntityText.Label(type),
             FullName: EntityText.FullName(type),
-            AssemblyPath: AssemblyPathOf(type),
+            AssemblyPath: reference.FilePath,
             Shape: EntityText.ShapeOf(type),
             Accessibility: EntityText.Map(type.Accessibility),
             Stereotype: StereotypeOf(type),
             Sections: ReadSections(type),
             Inherited: ReadInherited(type),
-            Links: ReadLinks(type),
+            Links: ReadLinks(type, reference),
             CanHaveDerived: DerivedTypes.CanHave(type));
     }
-
-    private static AssemblyPath AssemblyPathOf(ITypeDefinition type) => AssemblyPath.Of(type.ParentModule!.MetadataFile!);
 
     private static TypeStereotype StereotypeOf(ITypeDefinition type)
     {
@@ -104,6 +113,7 @@ public static class TypeCards
         var shown = members
             .Where(IsShown)
             .Select(ToCardMember)
+            .OfType<CardMember>()
             .ToList();
         if (shown.Count == 0)
             return;
@@ -125,9 +135,14 @@ public static class TypeCards
 
     private static bool IsShown(IEntity entity) => !Members.IsHidden(entity);
 
-    private static CardMember ToCardMember(IMember member)
+    /// <summary>The card's line for <paramref name="member"/>; null when it has no metadata file or token
+    /// to be referenced by.</summary>
+    private static CardMember? ToCardMember(IMember member)
     {
-        return new CardMember(CodeReference.To(member)!, EntityText.Label(member), EntityText.ShapeOf(member), EntityText.Map(member.Accessibility));
+        var reference = CodeReference.To(member);
+        if (reference == null)
+            return null;
+        return new CardMember(reference, EntityText.Label(member), EntityText.ShapeOf(member), EntityText.Map(member.Accessibility));
     }
 
     /// <summary>What <paramref name="type"/> inherits from each of its base classes but object, nearest
@@ -155,8 +170,9 @@ public static class TypeCards
             .Where(IsInherited)
             .OrderBy(static m => m.Name, NaturalStringComparer.Instance)
             .Select(ToCardMember)
+            .OfType<CardMember>()
             .ToList();
-        return new InheritedGroup(EntityText.ShortTypeName(ancestor), AssemblyPathOf(definition), members);
+        return new InheritedGroup(EntityText.ShortTypeName(ancestor), CodeReference.To(definition)?.FilePath, members);
     }
 
     /// <summary>Whether a type deriving from the one declaring <paramref name="member"/> inherits it: an
@@ -181,9 +197,8 @@ public static class TypeCards
         return !TypeFacts.OverridesObject(method);
     }
 
-    private static List<TypeLink> ReadLinks(ITypeDefinition type)
+    private static List<TypeLink> ReadLinks(ITypeDefinition type, CodeReference.Entity from)
     {
-        var from = CodeReference.To(type)!;
         return ListRelations(type)
             .Select(r => LinkOf(from, r))
             .OfType<TypeLink>()
