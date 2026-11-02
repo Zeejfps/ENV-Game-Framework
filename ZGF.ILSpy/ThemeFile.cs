@@ -18,10 +18,21 @@ public readonly record struct ThemeValue(string Text, string File, int Line)
     public bool IsPaletteName => !Text.StartsWith(ThemeFile.ColorPrefix);
 }
 
+/// <summary>What a readable theme file sets: its palette, and its <c>ui</c>, <c>code</c> and <c>icons</c> colors by key.</summary>
+/// <param name="Palette">The named colors the other sections can use, by name.</param>
+/// <param name="Ui">The colors of <see cref="UiTheme"/>, by key.</param>
+/// <param name="Code">The colors of <see cref="CodeViewPalette"/>, by key.</param>
+/// <param name="Icons">The colors of <see cref="NodeIconPalette"/>, by key.</param>
+public sealed record ThemeContents(
+    IReadOnlyDictionary<string, ThemeValue> Palette,
+    IReadOnlyDictionary<string, ThemeValue> Ui,
+    IReadOnlyDictionary<string, ThemeValue> Code,
+    IReadOnlyDictionary<string, ThemeValue> Icons);
+
 /// <summary>One theme file as it is written, without the themes it extends: its name and type, the theme
 /// it extends, its palette and its <c>ui</c>, <c>code</c> and <c>icons</c> colors by key, read as
 /// <see cref="ThemeJson"/> reads, leaving out a bad key or value.</summary>
-public sealed class ThemeFile : IThemeFile<ThemeFile>
+public sealed class ThemeFile : IThemeFile<ThemeFile, ThemeContents>
 {
     public const string Extension = ".json";
     public const char ColorPrefix = '#';
@@ -63,37 +74,23 @@ public sealed class ThemeFile : IThemeFile<ThemeFile>
     /// <summary>The theme's type, or null to take that of the theme it extends.</summary>
     public ThemeType? Type { get; private set; }
 
-    /// <summary>The id of the theme this one builds on, or null.</summary>
-    public ThemeId<ThemeFile>? Extends { get; private set; }
+    /// <summary>The theme this one builds on, or null.</summary>
+    public ThemeParent<ThemeFile>? Extends { get; private set; }
 
-    /// <summary>The line <see cref="Extends"/> is written on.</summary>
-    public int ExtendsLine { get; private set; }
-
-    /// <summary>The named colors the other sections can use, by name.</summary>
-    public IReadOnlyDictionary<string, ThemeValue> Palette => _palette;
-
-    /// <summary>The colors of <see cref="UiTheme"/>, by key.</summary>
-    public IReadOnlyDictionary<string, ThemeValue> Ui => _ui;
-
-    /// <summary>The colors of <see cref="CodeViewPalette"/>, by key.</summary>
-    public IReadOnlyDictionary<string, ThemeValue> Code => _code;
-
-    /// <summary>The colors of <see cref="NodeIconPalette"/>, by key.</summary>
-    public IReadOnlyDictionary<string, ThemeValue> Icons => _icons;
+    /// <summary>The palette and colors the file sets; null when it could not be read as a JSON object.</summary>
+    public ThemeContents? Contents { get; private set; }
 
     public IReadOnlyList<ThemeError> Errors => _json.Errors;
 
-    /// <summary>True when the file could not be read as a JSON object, so nothing in it counts.</summary>
-    public bool IsUnreadable => _json.IsUnreadable;
-
     /// <summary>Reads the theme <paramref name="id"/> from the file at <paramref name="path"/>; a file that
-    /// cannot be read is <see cref="IsUnreadable"/>.</summary>
+    /// cannot be read has no <see cref="Contents"/>.</summary>
     public static ThemeFile ReadFile(ThemeId<ThemeFile> id, string path)
     {
         var theme = new ThemeFile(id, path);
         var json = theme._json.ReadBytes(path);
         if (json != null)
             theme._json.Read(json, theme.ReadTopLevel);
+        theme.KeepContents();
         return theme;
     }
 
@@ -103,7 +100,15 @@ public sealed class ThemeFile : IThemeFile<ThemeFile>
     {
         var theme = new ThemeFile(id, file);
         theme._json.Read(json, theme.ReadTopLevel);
+        theme.KeepContents();
         return theme;
+    }
+
+    private void KeepContents()
+    {
+        if (_json.IsUnreadable)
+            return;
+        Contents = new ThemeContents(_palette, _ui, _code, _icons);
     }
 
     private void ReadTopLevel(ref Utf8JsonReader reader, string key, int line)
@@ -175,8 +180,7 @@ public sealed class ThemeFile : IThemeFile<ThemeFile>
             _json.AddError(line, ThemeProblem.UnknownParent, parent);
             return;
         }
-        Extends = id;
-        ExtendsLine = line;
+        Extends = new ThemeParent<ThemeFile>(id, line);
     }
 
     /// <summary>Reads the palette, whose colors must be written out, not named.</summary>

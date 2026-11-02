@@ -6,8 +6,9 @@ namespace ZGF.ILSpy;
 /// resolved over the themes it extends once, when the catalog loads; one that cannot be resolved falls
 /// back to its parent, else to the built-in theme <see cref="FallbackIdOf"/> names. Keeps what was wrong
 /// in each file.</summary>
-public abstract class ThemeCatalog<TFile, TTheme>
-    where TFile : class, IThemeFile<TFile>
+public abstract class ThemeCatalog<TFile, TContents, TTheme>
+    where TFile : class, IThemeFile<TFile, TContents>
+    where TContents : class
     where TTheme : class
 {
     private const string ChainArrow = " → ";
@@ -110,40 +111,59 @@ public abstract class ThemeCatalog<TFile, TTheme>
     }
 
     /// <summary>The theme <paramref name="file"/> and the themes it extends, <paramref name="chain"/>,
-    /// the one extending no other first, make; or null after reporting why they make none.</summary>
-    protected abstract TTheme? Build(TFile file, IReadOnlyList<TFile> chain);
+    /// each with what it sets, the one extending no other first, make; or null after reporting why they
+    /// make none.</summary>
+    protected abstract TTheme? Build(TFile file, IReadOnlyList<(TFile File, TContents Contents)> chain);
+
+    /// <summary><paramref name="file"/> and the themes it extends, each with what it sets, the one extending
+    /// no other first; null when one could not be read or the chain breaks off or goes in a circle.</summary>
+    private List<(TFile File, TContents Contents)>? ListChain(TFile file)
+    {
+        var files = ListFiles(file);
+        if (files == null)
+            return null;
+        var chain = new List<(TFile, TContents)>(files.Count);
+        foreach (var link in files)
+        {
+            var contents = link.Contents;
+            if (contents == null)
+                return null;
+            chain.Add((link, contents));
+        }
+        return chain;
+    }
 
     /// <summary><paramref name="file"/> and the themes it extends, the one extending no other first; null
-    /// when one is unreadable or the chain breaks off or goes in a circle.</summary>
-    private List<TFile>? ListChain(TFile file)
+    /// when the chain breaks off or goes in a circle.</summary>
+    private List<TFile>? ListFiles(TFile file)
     {
         var chain = new List<TFile> { file };
+        var extends = file.Extends;
         var current = file;
-        while (current.Extends != null)
+        while (extends != null)
         {
-            var parent = FindParent(current, chain);
+            var parent = FindParent(current, extends, chain);
             if (parent == null)
                 return null;
             chain.Insert(0, parent);
             current = parent;
+            extends = parent.Extends;
         }
-        if (chain.Any(static f => f.IsUnreadable))
-            return null;
         return chain;
     }
 
-    /// <summary>The theme <paramref name="child"/> extends, or null after reporting that there is none or
-    /// that it is already in <paramref name="chain"/>.</summary>
-    private TFile? FindParent(TFile child, List<TFile> chain)
+    /// <summary>The theme <paramref name="child"/> extends as <paramref name="extends"/> says, or null after
+    /// reporting that there is none or that it is already in <paramref name="chain"/>.</summary>
+    private TFile? FindParent(TFile child, ThemeParent<TFile> extends, List<TFile> chain)
     {
-        if (!_files.TryGetValue(child.Extends!, out var parent))
+        if (!_files.TryGetValue(extends.Id, out var parent))
         {
-            AddError(new ThemeError(child.File, child.ExtendsLine, ThemeProblem.UnknownParent, child.Extends!.Text));
+            AddError(new ThemeError(child.File, extends.Line, ThemeProblem.UnknownParent, extends.Id.Text));
             return null;
         }
         if (chain.Contains(parent))
         {
-            AddError(new ThemeError(child.File, child.ExtendsLine, ThemeProblem.ExtendsCycle, Detail: DescribeCycle(chain, parent)));
+            AddError(new ThemeError(child.File, extends.Line, ThemeProblem.ExtendsCycle, Detail: DescribeCycle(chain, parent)));
             return null;
         }
         return parent;
@@ -172,8 +192,9 @@ public abstract class ThemeCatalog<TFile, TTheme>
 
     private ThemeId<TFile> FindFallBack(TFile file)
     {
-        if (CanFallBackToParent(file))
-            return file.Extends!;
+        var extends = file.Extends;
+        if (extends != null && CanFallBackTo(extends.Id))
+            return extends.Id;
         var builtIn = FallbackIdOf(file);
         if (_resolving.Contains(builtIn))
             throw new InvalidOperationException($"The built-in theme '{builtIn}' cannot be resolved.");
@@ -183,17 +204,22 @@ public abstract class ThemeCatalog<TFile, TTheme>
     /// <summary>The built-in theme <paramref name="file"/> shows when neither it nor its parent resolves.</summary>
     protected abstract ThemeId<TFile> FallbackIdOf(TFile file);
 
-    private bool CanFallBackToParent(TFile file)
+    private bool CanFallBackTo(ThemeId<TFile> parent)
     {
-        if (file.Extends == null)
+        if (!_files.ContainsKey(parent))
             return false;
-        if (!_files.ContainsKey(file.Extends))
-            return false;
-        return !_resolving.Contains(file.Extends);
+        return !_resolving.Contains(parent);
     }
 
-    /// <summary>The file of the theme <paramref name="id"/>, which must be one of <see cref="Ids"/>.</summary>
-    protected TFile FileOf(ThemeId<TFile> id) => _files[id];
+    /// <summary>What the built-in theme <paramref name="id"/> sets; throws when it could not be read, as a
+    /// built-in theme always can.</summary>
+    protected TContents BuiltInContentsOf(ThemeId<TFile> id)
+    {
+        var contents = _files[id].Contents;
+        if (contents == null)
+            throw new InvalidOperationException($"The built-in theme '{id}' cannot be read.");
+        return contents;
+    }
 
     protected void AddErrors(IEnumerable<ThemeError> errors)
     {

@@ -183,8 +183,9 @@ public static class Theming
 
     /// <summary>True when a theme of <paramref name="themes"/> has the id <paramref name="id"/>, or a file
     /// in <paramref name="folder"/> is named by it.</summary>
-    internal static bool IsTaken<TFile, TTheme>(ThemeCatalog<TFile, TTheme> themes, string folder, ThemeId<TFile> id)
-        where TFile : class, IThemeFile<TFile>
+    internal static bool IsTaken<TFile, TContents, TTheme>(ThemeCatalog<TFile, TContents, TTheme> themes, string folder, ThemeId<TFile> id)
+        where TFile : class, IThemeFile<TFile, TContents>
+        where TContents : class
         where TTheme : class
     {
         if (themes.IndexOf(id) >= 0)

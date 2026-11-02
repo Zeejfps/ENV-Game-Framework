@@ -4,7 +4,7 @@ namespace ZGF.ILSpy;
 /// theme can draw in the reference theme's fonts, and a key no theme in its chain draws is drawn as the
 /// reference theme draws it. One that cannot be resolved falls back to its parent, else to the reference
 /// theme.</summary>
-public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconTheme>
+public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconThemeContents, IconTheme>
 {
     public static readonly ThemeId<IconThemeFile> ReferenceId = ThemeId<IconThemeFile>.Of("lucide");
 
@@ -17,14 +17,14 @@ public sealed class IconThemeCatalog : ThemeCatalog<IconThemeFile, IconTheme>
 
     protected override ThemeId<IconThemeFile> DefaultId => ReferenceId;
 
-    protected override IconTheme Build(IconThemeFile file, IReadOnlyList<IconThemeFile> chain)
+    protected override IconTheme Build(IconThemeFile file, IReadOnlyList<(IconThemeFile File, IconThemeContents Contents)> chain)
     {
         var merged = new MergedIconTheme();
         var isReference = IsReference(file);
         if (!isReference)
-            merged.AddFonts(FileOf(ReferenceId));
+            merged.AddFonts(BuiltInContentsOf(ReferenceId));
         foreach (var link in chain)
-            merged.Add(link);
+            merged.Add(link.Contents);
         var fallback = isReference ? null : Resolve(ReferenceId);
         var errors = new List<ThemeError>();
         var theme = merged.Build(fallback, errors);

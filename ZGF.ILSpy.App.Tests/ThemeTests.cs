@@ -232,7 +232,8 @@ public sealed class ThemeLoadingTests
         Assert.Equal(subject, error.Subject);
         Assert.Equal("bad.json", error.File);
         Assert.Equal(1, error.Line);
-        Assert.Empty(file.Ui);
+        if (file.Contents != null)
+            Assert.Empty(file.Contents.Ui);
     }
 
     [Fact]
@@ -251,9 +252,9 @@ public sealed class ThemeLoadingTests
 
         var error = Assert.Single(file.Errors);
 
-        Assert.False(file.IsUnreadable);
+        var contents = Assert.IsType<ThemeContents>(file.Contents);
         Assert.Equal((ThemeProblem.NotAColor, 5, "#12345"), (error.Problem, error.Line, error.Detail));
-        Assert.Equal(["text"], file.Ui.Keys);
+        Assert.Equal(["text"], contents.Ui.Keys);
     }
 
     [Fact]

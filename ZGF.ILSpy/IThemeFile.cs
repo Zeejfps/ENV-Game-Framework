@@ -12,14 +12,20 @@ public interface IThemeFile<TSelf> where TSelf : IThemeFile<TSelf>
 
     ThemeName Name { get; }
 
-    /// <summary>The id of the theme this one builds on, or null.</summary>
-    ThemeId<TSelf>? Extends { get; }
-
-    /// <summary>The line <see cref="Extends"/> is written on.</summary>
-    int ExtendsLine { get; }
-
-    /// <summary>True when the file could not be read as a JSON object, so nothing in it counts.</summary>
-    bool IsUnreadable { get; }
+    /// <summary>The theme this one builds on, or null.</summary>
+    ThemeParent<TSelf>? Extends { get; }
 
     IReadOnlyList<ThemeError> Errors { get; }
 }
+
+/// <summary>A theme file with what it sets, <typeparamref name="TContents"/>, which is null when the file
+/// could not be read as a JSON object; what was read of its header before then still counts.</summary>
+public interface IThemeFile<TSelf, out TContents> : IThemeFile<TSelf>
+    where TSelf : IThemeFile<TSelf, TContents>
+    where TContents : class
+{
+    TContents? Contents { get; }
+}
+
+/// <summary>The theme <see cref="Id"/> a theme file extends, written on <see cref="Line"/>.</summary>
+public sealed record ThemeParent<TFile>(ThemeId<TFile> Id, int Line) where TFile : IThemeFile<TFile>;

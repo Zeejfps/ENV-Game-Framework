@@ -18,21 +18,21 @@ internal sealed class MergedTheme
     private readonly Dictionary<string, List<ThemeValue>> _code = new();
     private readonly Dictionary<string, List<ThemeValue>> _icons = new();
 
-    /// <summary>Takes the code and icon colors of <paramref name="file"/>, under all that is added later.</summary>
-    public void AddCodeAndIcons(ThemeFile file)
+    /// <summary>Takes the code and icon colors of <paramref name="contents"/>, under all that is added later.</summary>
+    public void AddCodeAndIcons(ThemeContents contents)
     {
-        Stack(_code, file.Code);
-        Stack(_icons, file.Icons);
+        Stack(_code, contents.Code);
+        Stack(_icons, contents.Icons);
     }
 
-    /// <summary>Takes everything <paramref name="file"/> sets, over what was added before.</summary>
-    public void Add(ThemeFile file)
+    /// <summary>Takes everything <paramref name="contents"/> sets, over what was added before.</summary>
+    public void Add(ThemeContents contents)
     {
-        foreach (var (name, value) in file.Palette)
+        foreach (var (name, value) in contents.Palette)
             _palette[name] = value;
-        Stack(_ui, file.Ui);
-        Stack(_code, file.Code);
-        Stack(_icons, file.Icons);
+        Stack(_ui, contents.Ui);
+        Stack(_code, contents.Code);
+        Stack(_icons, contents.Icons);
     }
 
     private static void Stack(Dictionary<string, List<ThemeValue>> merged, IReadOnlyDictionary<string, ThemeValue> added)

@@ -45,10 +45,15 @@ public abstract record IconValue
     public sealed record Picture(string SvgPath, SvgDocument Svg, string File, int Line) : IconValue(File, Line);
 }
 
+/// <summary>What a readable icon theme file sets.</summary>
+/// <param name="Fonts">The fonts the icons can be drawn in, by id.</param>
+/// <param name="Icons">The icons, by key.</param>
+public sealed record IconThemeContents(IReadOnlyDictionary<string, IconFont> Fonts, IReadOnlyDictionary<string, IconValue> Icons);
+
 /// <summary>One icon theme file as it is written, without the themes it extends: its name, the theme it
 /// extends, its fonts by id and its icons by key, its fonts and pictures read as it is. Read as
 /// <see cref="ThemeJson"/> reads, leaving out a bad key, value, font or picture.</summary>
-public sealed class IconThemeFile : IThemeFile<IconThemeFile>
+public sealed class IconThemeFile : IThemeFile<IconThemeFile, IconThemeContents>
 {
     public const string Extension = ".json";
 
@@ -85,22 +90,15 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
 
     public ThemeName Name { get; private set; }
 
-    public ThemeId<IconThemeFile>? Extends { get; private set; }
+    public ThemeParent<IconThemeFile>? Extends { get; private set; }
 
-    public int ExtendsLine { get; private set; }
-
-    /// <summary>The fonts the icons can be drawn in, by id.</summary>
-    public IReadOnlyDictionary<string, IconFont> Fonts => _fonts;
-
-    /// <summary>The icons, by key.</summary>
-    public IReadOnlyDictionary<string, IconValue> Icons => _icons;
+    /// <summary>The fonts and icons the file sets; null when it could not be read as a JSON object.</summary>
+    public IconThemeContents? Contents { get; private set; }
 
     public IReadOnlyList<ThemeError> Errors => _json.Errors;
 
-    public bool IsUnreadable => _json.IsUnreadable;
-
     /// <summary>Reads the icon theme <paramref name="id"/> from the file at <paramref name="path"/> and the
-    /// fonts and pictures it names inside its folder; a file that cannot be read is <see cref="IsUnreadable"/>.</summary>
+    /// fonts and pictures it names inside its folder; a file that cannot be read has no <see cref="Contents"/>.</summary>
     public static IconThemeFile ReadFile(ThemeId<IconThemeFile> id, string path)
     {
         var folder = Path.GetDirectoryName(Path.GetFullPath(path))!;
@@ -108,6 +106,7 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
         var json = theme._json.ReadBytes(path);
         if (json != null)
             theme._json.Read(json, theme.ReadTopLevel);
+        theme.KeepContents();
         return theme;
     }
 
@@ -117,7 +116,15 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
     {
         var theme = new IconThemeFile(id, file, assets);
         theme._json.Read(json, theme.ReadTopLevel);
+        theme.KeepContents();
         return theme;
+    }
+
+    private void KeepContents()
+    {
+        if (_json.IsUnreadable)
+            return;
+        Contents = new IconThemeContents(_fonts, _icons);
     }
 
     private void ReadTopLevel(ref Utf8JsonReader reader, string key, int line)
@@ -163,8 +170,7 @@ public sealed class IconThemeFile : IThemeFile<IconThemeFile>
             _json.AddError(line, ThemeProblem.UnknownParent, parent);
             return;
         }
-        Extends = id;
-        ExtendsLine = line;
+        Extends = new ThemeParent<IconThemeFile>(id, line);
     }
 
     private void ReadFonts(ref Utf8JsonReader reader, int line)

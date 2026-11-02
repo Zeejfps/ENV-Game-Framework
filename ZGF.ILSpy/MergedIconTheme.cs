@@ -15,18 +15,18 @@ internal sealed class MergedIconTheme
     private readonly Dictionary<string, IconFont> _fonts = new();
     private readonly Dictionary<string, List<IconValue>> _icons = new();
 
-    /// <summary>Takes the fonts of <paramref name="file"/>, under all that is added later.</summary>
-    public void AddFonts(IconThemeFile file)
+    /// <summary>Takes the fonts of <paramref name="contents"/>, under all that is added later.</summary>
+    public void AddFonts(IconThemeContents contents)
     {
-        foreach (var (id, font) in file.Fonts)
+        foreach (var (id, font) in contents.Fonts)
             _fonts[id] = font;
     }
 
-    /// <summary>Takes everything <paramref name="file"/> sets, over what was added before.</summary>
-    public void Add(IconThemeFile file)
+    /// <summary>Takes everything <paramref name="contents"/> sets, over what was added before.</summary>
+    public void Add(IconThemeContents contents)
     {
-        AddFonts(file);
-        foreach (var (key, value) in file.Icons)
+        AddFonts(contents);
+        foreach (var (key, value) in contents.Icons)
             LayersOf(key).Add(value);
     }
 
