@@ -212,7 +212,7 @@ public sealed class SavedDocumentsTests : IDisposable
         var settings = _temp.Settings();
         var documents = Assert.Single(settings.AssemblyLists).Documents;
         Assert.NotNull(documents);
-        var saved = documents.Tabs.OfType<NodeDocumentRecord>().Single(t => t.GridPosition != null);
+        var saved = documents.Tabs.OfType<NodeDocumentRecord>().Single(t => t.View?.Grid != null);
         var older = saved with { View = ViewPosition.OfCode(new CodeViewPosition(row, 0f, default, new TextPosition(row, 1))) };
         documents.Tabs[documents.Tabs.IndexOf(saved)] = older;
 

@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Comparison;
@@ -11,34 +10,18 @@ namespace ZGF.ILSpy;
 public sealed record DocumentsRecord(List<DocumentRecord> Tabs, string? Active, string? Preview, DockLayout? Layout);
 
 /// <summary>An open tab as the settings keep it: the panel it was docked as, its title, and what it showed.</summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(NodeDocumentRecord), "node")]
-[JsonDerivedType(typeof(DiagramDocumentRecord), "diagram")]
-[JsonDerivedType(typeof(ComparisonDocumentRecord), "comparison")]
 public abstract record DocumentRecord(string Panel, string? Title);
 
 /// <summary>A tab showing the node at <see cref="Location"/>, in <see cref="Language"/>, its view standing
-/// at <see cref="View"/>. The file keeps the location as <see cref="Path"/>, and the view's place as
-/// <see cref="Position"/> for code or <see cref="GridPosition"/> for a grid; a tab saved by a build before
-/// versioned paths and not shown since keeps the <see cref="Place"/> it was read with.</summary>
+/// at <see cref="View"/>; a tab saved by a build before versioned paths and not shown since keeps the
+/// <see cref="Place"/> it was read with.</summary>
 public sealed record NodeDocumentRecord(
     string Panel,
     string? Title,
-    [property: JsonIgnore] NodePath Location,
+    NodePath Location,
     List<LegacyPlaceStep>? Place,
     DecompilationLanguage Language,
-    [property: JsonIgnore] ViewPosition? View) : DocumentRecord(Panel, Title)
-{
-    public AssemblyPath FilePath => Location.FilePath;
-
-    public SavedPath? Path => SavedPlaces.PathOf(Location);
-
-    /// <summary>Where the code view stood, as the file keeps it; null for a grid.</summary>
-    public CodeViewPosition? Position => View?.Code;
-
-    /// <summary>Where the grid stood, as the file keeps it; null for a code view.</summary>
-    public GridPosition? GridPosition => View?.Grid;
-}
+    ViewPosition? View) : DocumentRecord(Panel, Title);
 
 /// <summary>A tab showing a diagram of <see cref="Types"/>, in the order added, the assemblies at
 /// <see cref="HomeAssemblies"/> its own, and how it was viewed.</summary>

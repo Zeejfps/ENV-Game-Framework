@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
 
@@ -8,7 +7,6 @@ namespace ZGF.ILSpy;
 /// inherits from the base type named <see cref="InheritedFrom"/>.</summary>
 public readonly record struct CardFold(TypeAnchor Card, MemberSection? Section, string? InheritedFrom)
 {
-    [JsonIgnore]
     public bool IsInherited => InheritedFrom != null;
 
     public static CardFold Own(TypeAnchor card, MemberSection section) => new(card, section, null);

@@ -383,31 +383,6 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal("document-2", Assert.Single(list.Documents!.Tabs).Panel);
     }
 
-    [Theory]
-    [InlineData(typeof(AssemblyListRecord), typeof(AssemblyListJson))]
-    [InlineData(typeof(DocumentsRecord), typeof(DocumentsJson))]
-    [InlineData(typeof(NodeDocumentRecord), typeof(NodeDocumentJson))]
-    [InlineData(typeof(DiagramDocumentRecord), typeof(DiagramDocumentJson))]
-    [InlineData(typeof(ComparisonDocumentRecord), typeof(ComparisonDocumentJson))]
-    [InlineData(typeof(LegacyPlaceStep), typeof(LegacyPlaceStepJson))]
-    [InlineData(typeof(SavedPath), typeof(SavedPathJson))]
-    [InlineData(typeof(SavedPathStep), typeof(SavedPathStepJson))]
-    [InlineData(typeof(TypeAnchor), typeof(TypeAnchorJson))]
-    [InlineData(typeof(DiagramViewRecord), typeof(DiagramViewJson))]
-    [InlineData(typeof(CardFold), typeof(CardFoldJson))]
-    [InlineData(typeof(CodeAnchor), typeof(CodeAnchorJson))]
-    [InlineData(typeof(DockLayout), typeof(DockLayoutJson))]
-    [InlineData(typeof(DockSplit), typeof(DockSplitJson))]
-    [InlineData(typeof(DockGroup), typeof(DockGroupJson))]
-    [InlineData(typeof(DockWindow), typeof(DockWindowJson))]
-    public void Every_field_the_settings_write_is_read_back(Type written, Type read)
-    {
-        static IEnumerable<string> NamesOf(Type type) =>
-            AppSettingsJson.Default.GetTypeInfo(type)!.Properties.Where(static p => p.Get != null).Select(static p => p.Name).Order();
-
-        Assert.Equal(NamesOf(written), NamesOf(read));
-    }
-
     [Fact]
     public void Display_options_round_trip_and_a_font_missing_its_file_is_left_out_alone()
     {

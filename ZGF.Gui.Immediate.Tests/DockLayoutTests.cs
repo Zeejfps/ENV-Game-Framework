@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Diagnostics;
 using ZGF.Gui.Immediate.Widgets;
 
 namespace ZGF.Gui.Immediate.Tests;
@@ -228,23 +228,7 @@ public sealed class DockLayoutTests
     }
 
     [Fact]
-    public void A_layout_round_trips_through_json_with_its_ids()
-    {
-        var layout = TwoGroups();
-        layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
-        layout.AssignIds();
-
-        var copy = JsonSerializer.Deserialize<DockLayout>(JsonSerializer.Serialize(layout))!;
-
-        var root = Assert.IsType<DockSplit>(copy.Root);
-        Assert.Equal(layout.Root.Id, root.Id);
-        Assert.Equal(["a"], Assert.IsType<DockGroup>(root.First).Panels);
-        Assert.Equal(new UiRect(10f, 20f, 300f, 200f), copy.Windows.Single().Rect);
-        Assert.Equal(layout.NextId, copy.NextId);
-    }
-
-    [Fact]
-    public void A_copied_arrangement_serializes_as_the_layout_does_and_shares_nothing_with_it()
+    public void A_copied_arrangement_has_the_layouts_shape_and_shares_nothing_with_it()
     {
         var layout = TwoGroups();
         layout.Float("b", new UiRect(10f, 20f, 300f, 200f));
@@ -255,7 +239,7 @@ public sealed class DockLayoutTests
         var copy = layout.CopyArrangement();
         layout.GroupOf("a")!.Panels.Add("d");
 
-        Assert.Equal(JsonSerializer.Serialize(TwoGroupsFloated()), JsonSerializer.Serialize(copy));
+        Assert.Equal(ShapeOf(TwoGroupsFloated()), ShapeOf(copy));
         Assert.Null(copy.NewPanel);
         Assert.NotSame(layout.Windows[0].Root, copy.Windows[0].Root);
         Assert.Equal(["a"], copy.GroupOf("a")!.Panels);
@@ -268,6 +252,19 @@ public sealed class DockLayoutTests
         layout.AssignIds();
         return layout;
     }
+
+    private static string ShapeOf(DockLayout layout)
+    {
+        var windows = layout.Windows.Select(static w => $"{w.Id} {w.Rect} {ShapeOf(w.Root)}");
+        return $"{ShapeOf(layout.Root)} / {string.Join(" / ", windows)} / {layout.NextId}";
+    }
+
+    private static string ShapeOf(DockNode node) => node switch
+    {
+        DockSplit split => $"{split.Id} {split.Direction} {split.Ratio} ({ShapeOf(split.First)}, {ShapeOf(split.Second)})",
+        DockGroup group => $"{group.Id} [{string.Join(", ", group.Panels)}] {group.Active}",
+        _ => throw new UnreachableException(),
+    };
 
     [Fact]
     public void Ids_are_given_to_new_nodes_without_reusing_saved_ones()

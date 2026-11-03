@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace ZGF.Gui.Immediate.Widgets;
 
 /// <summary>Where a panel or window goes when docked against a node: into it as a tab
@@ -16,9 +14,6 @@ public enum DockEdge
 /// <summary>A node of a <see cref="DockLayout"/>: a <see cref="DockSplit"/> or a
 /// <see cref="DockGroup"/>. <see cref="Id"/> is given by the layout and kept across saves, so
 /// splitters and tab strips keep their state while the layout changes around them.</summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(DockSplit), "split")]
-[JsonDerivedType(typeof(DockGroup), "group")]
 public abstract class DockNode
 {
     public int Id { get; set; }
@@ -52,7 +47,6 @@ public sealed class DockWindow
     public float Width { get; set; }
     public float Height { get; set; }
 
-    [JsonIgnore]
     public UiRect Rect
     {
         get => new(X, Y, Width, Height);
@@ -63,8 +57,8 @@ public sealed class DockWindow
 /// <summary>
 /// How the panels of a <see cref="UiWidgets.DockSpace"/> are arranged: a tree of splits and tab
 /// groups filling the dock space, plus floating windows, back to front. Panels are named by the
-/// app's ids. Owned by the app like any other state, and serializable, so the arrangement can be
-/// saved; the dock space rearranges it as the user drags tabs and windows around.
+/// app's ids. Owned by the app like any other state, which saves the arrangement as it chooses;
+/// the dock space rearranges it as the user drags tabs and windows around.
 /// </summary>
 public sealed class DockLayout
 {
@@ -74,14 +68,12 @@ public sealed class DockLayout
 
     /// <summary>The panel the user last worked in: the front panel of the group last pressed, or the
     /// panel last activated, docked or floated. Moves to the panel in front of it when it closes.</summary>
-    [JsonIgnore]
     public string? Focused { get; private set; }
 
     /// <summary>Makes a new panel to stay behind when a group's only panel moves out of a group that
     /// must not go away: the group it is docked beside, which is then split, with the new panel
     /// focused; or the root group. Without it, docking a group's only panel beside the group does
     /// nothing and moving the root's only panel away leaves the root empty.</summary>
-    [JsonIgnore]
     public Func<string>? NewPanel { get; set; }
 
     /// <summary>Raised when the user closes a panel, or <see cref="Close"/> is called.</summary>
@@ -160,7 +152,6 @@ public sealed class DockLayout
     /// <summary>Counts the changes made to the arrangement: by the methods that rearrange it, and once
     /// for each splitter or window drag when it ends, never on the frames in between. Watch it to
     /// tell when the arrangement should be saved.</summary>
-    [JsonIgnore]
     public int Changes { get; private set; }
 
     private bool _isMoving;

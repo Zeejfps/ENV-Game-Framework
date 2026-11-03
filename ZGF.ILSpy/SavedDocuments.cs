@@ -227,7 +227,7 @@ public static class SavedDocuments
     /// list holds it no more.</summary>
     private static NodePath? FindListedPlace(AppState appState, NodeDocumentRecord node)
     {
-        if (!appState.IsListed(node.FilePath))
+        if (!appState.IsListed(node.Location.FilePath))
             return null;
         return node.Location;
     }
