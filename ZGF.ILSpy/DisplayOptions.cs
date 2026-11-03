@@ -31,18 +31,6 @@ public sealed record DisplayOptions(
 
     public static DisplayOptions Default { get; } = new();
 
-    /// <summary>The options the settings kept, with a font size out of range brought within it and
-    /// the interface scale made the nearest offered; the defaults when none were kept.</summary>
-    public static DisplayOptions Restore(DisplayOptions? saved)
-    {
-        if (saved == null)
-            return Default;
-        var scaled = saved.WithUiScale(saved.UiScale);
-        if (scaled.FontSize == null)
-            return scaled;
-        return scaled.WithFontSize(scaled.FontSize.Value);
-    }
-
     private static float NearestUiScale(float scale)
     {
         return Scales

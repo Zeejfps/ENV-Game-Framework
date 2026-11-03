@@ -35,7 +35,7 @@ public sealed class UiState : IUiState
         NuGetPicker.Restore(saved.NuGet);
         NuGetPicker.Window.Restore(saved.NuGetWindow);
         ExportSetup.Window.Restore(saved.ExportWindow);
-        Display = DisplayOptions.Restore(saved.Display);
+        Display = saved.Display ?? DisplayOptions.Default;
         Analyzer = new AnalyzerRows(AppCommands);
         MainLayout = RestoreLayout(this, saved.Layout);
         Documents.SkipPanels(MainLayout.ListDocuments());

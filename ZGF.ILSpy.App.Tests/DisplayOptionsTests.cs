@@ -135,15 +135,6 @@ public sealed class DisplayOptionsTests
     }
 
     [Fact]
-    public void A_saved_font_size_out_of_range_is_brought_within_it()
-    {
-        var restored = DisplayOptions.Restore(new DisplayOptions(FontSize: 100f));
-
-        Assert.Equal(DisplayOptions.MaxFontSize, restored.FontSize);
-        Assert.Same(DisplayOptions.Default, DisplayOptions.Restore(null));
-    }
-
-    [Fact]
     public void The_ui_scale_starts_at_100_percent_and_takes_the_nearest_offered_scale()
     {
         var display = DisplayOptions.Default;
@@ -153,14 +144,6 @@ public sealed class DisplayOptionsTests
         Assert.Equal(1.25f, display.WithUiScale(1.2f).UiScale);
         Assert.Equal(2f, display.WithUiScale(5f).UiScale);
         Assert.Equal(0.75f, display.WithUiScale(0.1f).UiScale);
-    }
-
-    [Fact]
-    public void A_saved_ui_scale_becomes_the_nearest_offered()
-    {
-        var restored = DisplayOptions.Restore(new DisplayOptions(UiScale: 1.3f));
-
-        Assert.Equal(1.25f, restored.UiScale);
     }
 
     [Fact]

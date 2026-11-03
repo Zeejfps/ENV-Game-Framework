@@ -22,7 +22,7 @@ internal sealed record SettingsFile(
     DecompilationLanguage Language,
     DecompilerOptions Decompiler,
     List<string>? FoldedOptionGroups,
-    DisplayOptions? Display,
+    DisplayOptionsJson? Display,
     Locale? Locale,
     ApiVisibility ApiVisibility,
     SearchKinds SearchKinds,
@@ -54,7 +54,7 @@ internal sealed record SettingsFile(
         settings.Language,
         settings.Decompiler,
         settings.FoldedOptionGroups,
-        settings.Display,
+        settings.Display == null ? null : DisplayOptionsJson.From(settings.Display),
         settings.Locale,
         settings.ApiVisibility,
         settings.SearchKinds,
@@ -387,7 +387,8 @@ internal sealed record BookmarkViewStateJson(
 }
 
 /// <summary>How the app is drawn, as a settings file can hold it. What it lacks, or holds as null, is
-/// as <see cref="DisplayOptions.Default"/> has it.</summary>
+/// as <see cref="DisplayOptions.Default"/> has it; a font size out of range is brought within it and the
+/// interface scale is the nearest offered.</summary>
 internal sealed record DisplayOptionsJson(
     float? FontSize,
     bool? ShowLineNumbers,
@@ -402,11 +403,25 @@ internal sealed record DisplayOptionsJson(
     bool? SystemTitleBar,
     bool? PreviewTabs)
 {
+    public static DisplayOptionsJson From(DisplayOptions options) => new(
+        options.FontSize,
+        options.ShowLineNumbers,
+        options.HighlightCurrentLine,
+        options.HighlightMatchingBrackets,
+        options.ShowOmnibar,
+        options.UiScale,
+        options.Font == null ? null : CodeFontJson.From(options.Font),
+        options.TreeTokens,
+        options.ShowEmptyMetadataTables,
+        options.NestedNamespaces,
+        options.SystemTitleBar,
+        options.PreviewTabs);
+
     public DisplayOptions Parse()
     {
         var d = DisplayOptions.Default;
-        return new DisplayOptions(
-            FontSize,
+        var options = new DisplayOptions(
+            null,
             ShowLineNumbers ?? d.ShowLineNumbers,
             HighlightCurrentLine ?? d.HighlightCurrentLine,
             HighlightMatchingBrackets ?? d.HighlightMatchingBrackets,
@@ -418,6 +433,10 @@ internal sealed record DisplayOptionsJson(
             NestedNamespaces ?? d.NestedNamespaces,
             SystemTitleBar ?? d.SystemTitleBar,
             PreviewTabs ?? d.PreviewTabs);
+        var scaled = options.WithUiScale(options.UiScale);
+        if (FontSize == null)
+            return scaled;
+        return scaled.WithFontSize(FontSize.Value);
     }
 }
 
@@ -425,6 +444,8 @@ internal sealed record DisplayOptionsJson(
 /// none, and the bundled font stands in.</summary>
 internal sealed record CodeFontJson(string? Family, string? Path, int FaceIndex)
 {
+    public static CodeFontJson From(CodeFont font) => new(font.Family, font.Path, font.FaceIndex);
+
     public CodeFont? Parse()
     {
         if (Family == null || Path == null)

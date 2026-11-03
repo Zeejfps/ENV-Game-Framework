@@ -399,8 +399,6 @@ public sealed class AppSettingsTests : IDisposable
     [InlineData(typeof(SavedNuGetSearch), typeof(NuGetSearchJson))]
     [InlineData(typeof(BookmarkRecord), typeof(BookmarkJson))]
     [InlineData(typeof(BookmarkViewState), typeof(BookmarkViewStateJson))]
-    [InlineData(typeof(DisplayOptions), typeof(DisplayOptionsJson))]
-    [InlineData(typeof(CodeFont), typeof(CodeFontJson))]
     [InlineData(typeof(ZGF.ILSpy.Core.Metadata.SavedFilterState), typeof(SavedFilterStateJson))]
     [InlineData(typeof(DockLayout), typeof(DockLayoutJson))]
     [InlineData(typeof(DockSplit), typeof(DockSplitJson))]
@@ -426,6 +424,18 @@ public sealed class AppSettingsTests : IDisposable
         var (loaded, problem) = AppSettings.Load(Written("""{ "Display": { "ShowLineNumbers": false, "Font": { "Family": "Mono", "Path": null } } }"""));
         Assert.IsType<SettingsProblem.None>(problem);
         Assert.Equal(DisplayOptions.Default with { ShowLineNumbers = false }, loaded.Display);
+    }
+
+    [Theory]
+    [InlineData("""{ "Display": { "FontSize": 900, "UiScale": 1.3 } }""", DisplayOptions.MaxFontSize, 1.25f)]
+    [InlineData("""{ "Display": { "FontSize": 1, "UiScale": 0.01 } }""", DisplayOptions.MinFontSize, 0.75f)]
+    public void A_saved_font_size_out_of_range_and_a_ui_scale_not_offered_load_within_what_is(string json, float fontSize, float uiScale)
+    {
+        var (loaded, problem) = AppSettings.Load(Written(json));
+
+        Assert.IsType<SettingsProblem.None>(problem);
+        Assert.Equal(fontSize, loaded.Display!.FontSize);
+        Assert.Equal(uiScale, loaded.Display.UiScale);
     }
 
     [Fact]
