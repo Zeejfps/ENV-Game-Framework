@@ -434,6 +434,17 @@ public sealed class AppStateTests
     }
 
     [Fact]
+    public void The_search_box_asked_to_take_focus_does_not_once_its_panel_closed_before_it_was_drawn()
+    {
+        var d = AppStateDriver.Opened();
+        ScreenLayout.OpenSearch(d.Ui);
+
+        OnPanelClosed(d.Ui, DockPanels.Search);
+
+        Assert.False(d.Ui.Search.TakeFocus());
+    }
+
+    [Fact]
     public void A_search_that_fails_is_reported_unless_another_replaced_it()
     {
         var posted = PostedActions.OfThisTest();

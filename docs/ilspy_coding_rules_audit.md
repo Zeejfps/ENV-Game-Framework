@@ -12,5 +12,4 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ## Rule 3: ordering and concurrency
 
-- Consume-once flags depend on the view being drawn exactly once, in the right frame: `CodeViewState.FocusFind`, `ListsDialogMode.Renaming.TakeFocus`, `CrumbMenu.TakeFocus`, `UiState.IsSearchFocusPending`, `CodeFonts.TakeListingRequest`.
 - Cross-frame layout: `CodeView.cs:292-320` hit-tests with the previous frame's rect; `Position`/`TopAnchor` do nothing until the first draw sets `RowHeight`; `BookmarksPanelView.cs:62, 67` call `Selection.TakeFrom` before and after the rows, an order nothing enforces.

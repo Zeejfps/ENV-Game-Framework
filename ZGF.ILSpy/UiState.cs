@@ -164,9 +164,6 @@ public sealed class UiState : IUiState
     /// <summary>The search panel's query, results and selection.</summary>
     public Search Search { get; }
 
-    /// <summary>Set by <see cref="ScreenLayout.OpenSearch"/> until the search box takes focus.</summary>
-    public bool IsSearchFocusPending;
-
     /// <summary>The bar over each document: its path, or its search.</summary>
     public Omnibar Omnibar { get; }
 

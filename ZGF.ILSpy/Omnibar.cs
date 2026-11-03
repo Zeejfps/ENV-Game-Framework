@@ -10,7 +10,7 @@ public sealed class Omnibar
     /// <summary>How many of the best matches the search suggests.</summary>
     public const int MaxSuggestions = 10;
 
-    private bool _isFocusPending;
+    private OmnibarSearch? _searching;
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed.</param>
@@ -24,21 +24,20 @@ public sealed class Omnibar
     public Search Search { get; }
 
     /// <summary>The document panel whose bar searches, or null while every bar shows its path.</summary>
-    public string? SearchingPanel { get; private set; }
+    public string? SearchingPanel => _searching?.Panel;
 
     /// <summary>The children of a crumb, open under it, or null while no list is open.</summary>
     public CrumbMenu? Menu { get; private set; }
 
-    public bool IsSearching => SearchingPanel != null;
+    public bool IsSearching => _searching != null;
 
     public bool IsSearchingIn(string panel) => SearchingPanel == panel;
 
     /// <summary>Has the bar of <paramref name="panel"/> search, from an empty query, its box taking focus.</summary>
     public void StartSearch(string panel)
     {
-        SearchingPanel = panel;
+        _searching = new OmnibarSearch(panel);
         Search.Clear();
-        _isFocusPending = true;
         Menu = null;
     }
 
@@ -60,17 +59,18 @@ public sealed class Omnibar
     /// <summary>Has every bar show its path again.</summary>
     public void StopSearch()
     {
-        SearchingPanel = null;
+        _searching = null;
         Search.Clear();
-        _isFocusPending = false;
     }
 
     /// <summary>True once after <see cref="StartSearch"/>: the search box should take focus.</summary>
     public bool TakeFocus()
     {
-        var focus = _isFocusPending;
-        _isFocusPending = false;
-        return focus;
+        var searching = _searching;
+        if (searching == null || !searching.IsFocusPending)
+            return false;
+        searching.IsFocusPending = false;
+        return true;
     }
 
     /// <summary>How many matches are suggested.</summary>
@@ -111,5 +111,13 @@ public sealed class Omnibar
         if (index < SuggestionCount)
             return;
         Search.Select(Search.Rows[SuggestionCount - 1]);
+    }
+
+    /// <summary>The search one bar runs, and whether its box is yet to take focus.</summary>
+    private sealed class OmnibarSearch(string panel)
+    {
+        public string Panel { get; } = panel;
+
+        public bool IsFocusPending = true;
     }
 }

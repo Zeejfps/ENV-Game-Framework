@@ -68,7 +68,7 @@ public static class ScreenLayout
     public static void OpenSearch(UiState uiState)
     {
         uiState.MainLayout.OpenSearch(FindActivePanel(uiState));
-        uiState.IsSearchFocusPending = true;
+        uiState.Search.AskForFocus();
     }
 
     /// <summary>Opens the search panel with its query kept to <paramref name="node"/>'s assembly, or to
@@ -95,14 +95,6 @@ public static class ScreenLayout
             return;
         }
         uiState.Omnibar.StartSearch(panel);
-    }
-
-    /// <summary>True once after <see cref="OpenSearch"/>: the search box should take focus.</summary>
-    public static bool TakeSearchFocus(UiState uiState)
-    {
-        var focus = uiState.IsSearchFocusPending;
-        uiState.IsSearchFocusPending = false;
-        return focus;
     }
 
     /// <summary>Asks the user whether to reset the layout before <see cref="ResetLayout"/> does.</summary>

@@ -36,6 +36,7 @@ public sealed class Search
     private string _typed = "";
     private double _typedAt;
     private Searched? _searched;
+    private bool _isFocusPending;
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed.</param>
@@ -236,7 +237,23 @@ public sealed class Search
 
     public void Move(int by) => Selection.Move(by, _rows);
 
-    public void Clear() => Query = "";
+    /// <summary>Empties the query, and drops a focus asked for that the box has not taken yet.</summary>
+    public void Clear()
+    {
+        Query = "";
+        _isFocusPending = false;
+    }
+
+    /// <summary>Has the search box take focus the next time it is drawn.</summary>
+    public void AskForFocus() => _isFocusPending = true;
+
+    /// <summary>True once after <see cref="AskForFocus"/>, unless cleared since: the box should take focus.</summary>
+    public bool TakeFocus()
+    {
+        var focus = _isFocusPending;
+        _isFocusPending = false;
+        return focus;
+    }
 
     /// <summary>Keeps the query to <paramref name="node"/>'s assembly, or to the namespace it is.</summary>
     public void ScopeTo(BrowseNode node)
