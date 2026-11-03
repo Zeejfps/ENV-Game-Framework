@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -637,16 +636,26 @@ internal sealed record CodeFontJson(string? Family, string? Path, int FaceIndex)
 internal sealed record DecompilerOptionsJson(CSharpVersion? LanguageVersion, Dictionary<string, bool>? Toggles)
 {
     public static DecompilerOptionsJson From(DecompilerOptions options) =>
-        new(options.LanguageVersion, new Dictionary<string, bool>(options.Toggles));
+        new(options.LanguageVersion, options.Changes.ToDictionary(static c => c.Key.Name, static c => c.Value));
 
-    public DecompilerOptions Parse()
+    /// <summary>The options, a toggle at its default taken as not set; a toggle the decompiler does not
+    /// have is left out, and <paramref name="leaveOut"/> is told.</summary>
+    public DecompilerOptions Parse(Action leaveOut)
     {
-        var d = DecompilerOptions.Default;
-        return new DecompilerOptions
+        var options = DecompilerOptions.Default with { LanguageVersion = LanguageVersion ?? DecompilerOptions.Default.LanguageVersion };
+        if (Toggles == null)
+            return options;
+        foreach (var (name, value) in Toggles)
         {
-            LanguageVersion = LanguageVersion ?? d.LanguageVersion,
-            Toggles = Toggles == null ? d.Toggles : Toggles.ToImmutableSortedDictionary(),
-        };
+            var toggle = DecompilerToggle.Find(name);
+            if (toggle == null)
+            {
+                leaveOut();
+                continue;
+            }
+            options = options.With(toggle, value);
+        }
+        return options;
     }
 }
 

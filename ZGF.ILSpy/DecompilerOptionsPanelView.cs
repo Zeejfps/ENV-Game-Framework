@@ -31,7 +31,7 @@ internal static class DecompilerOptionsPanelView
             if (ui.IconButton("expand", ui.State.Icons.OptionsExpandAll, t.CodeExpandAll, folded.Count > 0))
                 folded.UnfoldAll();
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("reset", ui.State.Icons.OptionsResetDecompiler, t.DecompilerOptionsReset, options.Toggles.Count > 0))
+            if (ui.IconButton("reset", ui.State.Icons.OptionsResetDecompiler, t.DecompilerOptionsReset, options.HasChanges))
                 ResetDecompilerToggles(appState);
         }
         ui.Separator();
@@ -125,7 +125,7 @@ internal static class DecompilerOptionsPanelView
     {
         foreach (var toggle in section.Toggles)
         {
-            if (options.Toggles.ContainsKey(toggle.Name)) return true;
+            if (options.IsChanged(toggle)) return true;
         }
         return false;
     }
@@ -144,7 +144,7 @@ internal static class DecompilerOptionsPanelView
         {
             var on = options.IsOn(toggle);
             if (ui.Checkbox(DecompilerOptionLabels.Label(t, toggle.Name) ?? toggle.Name, ref on, id: toggle.Name, enabled: options.Allows(toggle),
-                    width: Sizing.Grow(), bold: options.Toggles.ContainsKey(toggle.Name)))
+                    width: Sizing.Grow(), bold: options.IsChanged(toggle)))
                 SetDecompilerToggle(appState, toggle, on);
         }
     }

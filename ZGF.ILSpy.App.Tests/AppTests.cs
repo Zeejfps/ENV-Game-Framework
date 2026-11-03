@@ -337,7 +337,7 @@ public sealed class AppTests
         Assert.DoesNotContain(nameof(CSharpVersion.CSharp8), app.Ui.FoldedOptionGroups);
 
         app.Click("switch expressions").Frame();
-        Assert.Equal(csharp8.Length - 1, app.AppState.DecompilerOptions.Toggles.Count);
+        Assert.Equal(csharp8.Length - 1, csharp8.Count(app.AppState.DecompilerOptions.IsChanged));
         Assert.False(IsBold(app, "switch expressions"));
         Assert.True(IsBold(app, "Async iterators"));
         Assert.True(IsBold(app, "C# 8.0 / VS 2019"));

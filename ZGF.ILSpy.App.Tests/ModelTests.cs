@@ -175,7 +175,27 @@ public sealed class AppSettingsTests : IDisposable
 
         Assert.IsType<SettingsProblem.None>(problem);
         Assert.Equal(DecompilerOptions.Default with { LanguageVersion = version }, loaded.Decompiler);
-        Assert.Empty(loaded.Decompiler.Toggles);
+        Assert.False(loaded.Decompiler.HasChanges);
+    }
+
+    [Fact]
+    public void A_decompiler_toggle_the_decompiler_lacks_is_reported_and_left_out()
+    {
+        var (loaded, problem) = AppSettings.Load(Written("""{ "Decompiler": { "Toggles": { "NoSuchToggle": true, "AlwaysUseBraces": false } } }"""));
+
+        Assert.Equal(["Decompiler"], Assert.IsType<SettingsProblem.ValuesLeftOut>(problem).Fields);
+        Assert.Equal(DecompilerOptions.Default.With(DecompilerToggle.Find("AlwaysUseBraces")!, false), loaded.Decompiler);
+    }
+
+    [Fact]
+    public void A_decompiler_toggle_saved_at_its_default_loads_as_not_set()
+    {
+        var braces = DecompilerToggle.Find("AlwaysUseBraces")!;
+        var (loaded, problem) = AppSettings.Load(Written($$"""{ "Decompiler": { "Toggles": { "AlwaysUseBraces": {{(braces.DefaultValue ? "true" : "false")}} } } }"""));
+
+        Assert.IsType<SettingsProblem.None>(problem);
+        Assert.False(loaded.Decompiler.IsChanged(braces));
+        Assert.Equal(DecompilerOptions.Default, loaded.Decompiler);
     }
 
     [Fact]
