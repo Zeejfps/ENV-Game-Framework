@@ -401,7 +401,7 @@ public sealed class AppSettings
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(temporary, JsonSerializer.Serialize(SettingsFile.Of(this), AppSettingsJson.Default.SettingsFile));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(SettingsFile.From(this), AppSettingsJson.Default.SettingsFile));
             File.Move(temporary, FilePath, overwrite: true);
             return new SettingsWrite.Written();
         }

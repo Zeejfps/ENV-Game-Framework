@@ -10,30 +10,9 @@ namespace ZGF.ILSpy;
 /// node's kind and its label.</summary>
 public sealed record LegacyPlaceStep(string Kind, string Text);
 
-/// <summary>A place as the settings and bookmark files keep it, in the format of
-/// <see cref="Version"/>: a step per node down from the root of the listed file.</summary>
-public sealed record SavedPath(int Version, List<SavedPathStep> Steps)
-{
-    public const int CurrentVersion = 1;
-}
-
-/// <summary>A step of a <see cref="SavedPath"/>: what the node is, written as
-/// <see cref="SavedPlaces.Write"/> writes it, and the label it showed.</summary>
-public sealed record SavedPathStep(string Step, string Label);
-
 /// <summary>Writing places for the settings and bookmark files, and reading back what they wrote.</summary>
 public static class SavedPlaces
 {
-    /// <summary><paramref name="place"/> as the files keep it; null for a place read from a build before
-    /// versioned paths, which keeps only its <see cref="LegacyPlaceStep"/>s.</summary>
-    public static SavedPath? PathOf(NodePath place) => place switch
-    {
-        NodePath.Semantic semantic => new SavedPath(SavedPath.CurrentVersion,
-            semantic.Steps.Select(static s => new SavedPathStep(Write(s.Segment), s.Label)).ToList()),
-        NodePath.Legacy => null,
-        _ => throw new UnreachableException(),
-    };
-
     /// <summary>The path <paramref name="steps"/> lead along from the root of the file at
     /// <paramref name="filePath"/>; null when a step names a kind no build saved.</summary>
     public static NodePath.Legacy? LegacyPathOf(AssemblyPath filePath, List<LegacyPlaceStep> steps)
@@ -49,7 +28,7 @@ public static class SavedPlaces
         return NodePath.FromLegacy(filePath, read);
     }
 
-    /// <summary><paramref name="segment"/> as a <see cref="SavedPathStep"/> holds it: its case, a space,
+    /// <summary><paramref name="segment"/> as a step of a saved place holds it: its case, a space,
     /// then what it names, such as <c>Definition T:Ns.Calculator`1</c>.</summary>
     public static string Write(NodePathSegment segment) => segment switch
     {

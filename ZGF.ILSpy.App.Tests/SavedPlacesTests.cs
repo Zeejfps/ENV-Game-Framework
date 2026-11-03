@@ -191,7 +191,7 @@ public sealed class SavedPlacesTests : IDisposable
 
         var tab = Saved(d).GetProperty("AssemblyLists")[0].GetProperty("Documents").GetProperty("Tabs")[0];
 
-        Assert.Equal(SavedPath.CurrentVersion, tab.GetProperty("Path").GetProperty("Version").GetInt32());
+        Assert.Equal(SavedPathJson.CurrentVersion, tab.GetProperty("Path").GetProperty("Version").GetInt32());
         Assert.Equal([$"Namespace {Fixtures}", $"Definition T:{Fixtures}.Farewell"], StepsOf(tab.GetProperty("Path")));
         Assert.Equal(JsonValueKind.Null, tab.GetProperty("Place").ValueKind);
     }

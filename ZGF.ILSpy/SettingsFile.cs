@@ -48,7 +48,7 @@ internal sealed record SettingsFile(
     /// <summary>The one switch settings files kept before <see cref="ApiVisibility"/> had three choices.</summary>
     public const string OldShowNonPublic = "ShowNonPublic";
 
-    public static SettingsFile Of(AppSettings settings) => new(
+    public static SettingsFile From(AppSettings settings) => new(
         settings.AssemblyLists.ConvertAll(AssemblyListJson.From),
         settings.ActiveAssemblyList,
         settings.Theme.Text,
@@ -223,7 +223,7 @@ internal sealed record NodeDocumentJson(
         var code = node.View?.Code;
         var grid = node.View?.Grid;
         return new NodeDocumentJson(node.Panel, node.Title, node.Location.FilePath.Text, SettingsJson.LegacyPlaceJsonOf(node.Place),
-            SettingsJson.PathJsonOf(node.Location), node.Language,
+            SavedPathJson.From(node.Location), node.Language,
             code == null ? null : CodeViewPositionJson.From(code.Value),
             grid == null ? null : GridPositionJson.From(grid.Value));
     }
@@ -343,18 +343,28 @@ internal sealed record LegacyPlaceStepJson(string? Kind, string? Text)
     public static LegacyPlaceStepJson From(LegacyPlaceStep step) => new(step.Kind, step.Text);
 }
 
-/// <summary>A place as a settings or bookmarks file can hold it. Of another version, or with a step that
-/// cannot be read, it is none.</summary>
+/// <summary>A place as a settings or bookmarks file can hold it, in the format of <see cref="Version"/>: a
+/// step per node down from the root of the listed file. Of another version, or with a step that cannot be
+/// read, it is none.</summary>
 internal sealed record SavedPathJson(int Version, List<SavedPathStepJson?>? Steps)
 {
-    public static SavedPathJson From(SavedPath path) =>
-        new(path.Version, path.Steps.Select(static SavedPathStepJson? (s) => new SavedPathStepJson(s.Step, s.Label)).ToList());
+    public const int CurrentVersion = 1;
+
+    /// <summary><paramref name="place"/> as the files keep it; null for a place read from a build before
+    /// versioned paths, which keeps only its <see cref="LegacyPlaceStep"/>s.</summary>
+    public static SavedPathJson? From(NodePath place) => place switch
+    {
+        NodePath.Semantic semantic => new SavedPathJson(CurrentVersion,
+            semantic.Steps.Select(static SavedPathStepJson? (s) => new SavedPathStepJson(SavedPlaces.Write(s.Segment), s.Label)).ToList()),
+        NodePath.Legacy => null,
+        _ => throw new UnreachableException(),
+    };
 
     /// <summary>The path down from the root of the file at <paramref name="filePath"/>; null when it
     /// cannot be read.</summary>
     public NodePath.Semantic? Parse(AssemblyPath filePath)
     {
-        if (Version != SavedPath.CurrentVersion || Steps == null)
+        if (Version != CurrentVersion || Steps == null)
             return null;
         var steps = new List<NodePathStep>(Steps.Count);
         foreach (var json in Steps)
@@ -474,7 +484,7 @@ internal sealed record BookmarkJson(
         bookmark.ViewState == null ? null : BookmarkViewStateJson.From(bookmark.ViewState),
         SettingsJson.LegacyPlaceJsonOf(bookmark.Place),
         bookmark.Language,
-        SettingsJson.PathJsonOf(bookmark.Location));
+        bookmark.Location == null ? null : SavedPathJson.From(bookmark.Location));
 
     /// <summary>The bookmark, with what the file lacks filled in; null without the absolute path of an
     /// assembly file. A place that cannot be read is no place, and <paramref name="leaveOutPlace"/> is told.</summary>
@@ -700,18 +710,6 @@ internal sealed record BookmarkFileJson(int Version, List<JsonElement>? Bookmark
 /// <summary>What the shapes share.</summary>
 internal static class SettingsJson
 {
-    /// <summary><paramref name="location"/> as the file keeps it; null for none, or for a place read from a
-    /// build before versioned paths, which keeps only its <see cref="LegacyPlaceStep"/>s.</summary>
-    public static SavedPathJson? PathJsonOf(NodePath? location)
-    {
-        if (location == null)
-            return null;
-        var path = SavedPlaces.PathOf(location);
-        if (path == null)
-            return null;
-        return SavedPathJson.From(path);
-    }
-
     public static List<string?> PathsJsonOf(List<AssemblyPath> paths) => paths.ConvertAll(static string? (p) => p.Text);
 
     public static List<LegacyPlaceStepJson?>? LegacyPlaceJsonOf(List<LegacyPlaceStep>? place) =>
@@ -780,7 +778,7 @@ internal static class SettingsJson
     typeof(EnumByName<CodeAnchorKind>), typeof(EnumByName<CSharpVersion>), typeof(EnumByName<DecompilationLanguage>),
     typeof(EnumByName<Direction>), typeof(EnumByName<Locale>), typeof(EnumByName<MatchMode>),
     typeof(EnumByName<MemberSection>), typeof(EnumByName<SearchKinds>),
-    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>), typeof(AssemblyPathJson),
+    typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>),
 ])]
 [JsonSerializable(typeof(SettingsFile))]
 [JsonSerializable(typeof(BookmarkFileJson))]

@@ -17,8 +17,7 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ### Boundaries
 
-- The settings and bookmark files are written and read through their own `*Json` shapes (`SettingsFile.cs`), but the writing side still has leftovers: `SettingsFile.Of` should be `From`, as the shapes' are; `AssemblyPathJson` is registered on `AppSettingsJson` with no shape holding an `AssemblyPath` left; and `SavedPath`/`SavedPathStep` with `SavedPlaces.PathOf` exist only for `SavedPathJson.From` to copy, which can write a `NodePath` itself.
-  - `Place` (`List<LegacyPlaceStep>`) stays on `NodeDocumentRecord` and `BookmarkRecord` only to be written back; moving it needs `NodePath.Legacy` to keep the kind and text it was read from.
+- `Place` (`List<LegacyPlaceStep>`) stays on `NodeDocumentRecord` and `BookmarkRecord` only for the settings and bookmark files to write it back; moving it into the file's shapes needs `NodePath.Legacy` to keep the kind and text it was read from.
 - Persisted decompiler `Toggles` are a raw `ImmutableSortedDictionary<string,bool>`; stale keys make `ProducesSameCode` false and cause needless re-decompiles. `DecompilerToggle`'s public constructor lets `Apply` hit `KeyNotFoundException`.
 - `FeedJson`: `ReadBool` skips the kind check, `severity.GetInt32()` can throw outside the documented `InvalidDataException`, URLs stay strings, and `NuGetSource`'s public constructor bypasses `FromUrl` validation.
 - `NUGET_PACKAGES` is used as given (`NuGetConfig.cs:148`), while the config value goes through `GetFullPath`.
