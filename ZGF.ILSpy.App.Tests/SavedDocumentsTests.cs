@@ -147,6 +147,34 @@ public sealed class SavedDocumentsTests : IDisposable
     }
 
     [Fact]
+    public void A_tab_never_shown_after_a_restart_keeps_where_its_view_was_through_the_next_save()
+    {
+        var app = new AppDriver(height: 360f, settings: _temp.Settings());
+        app.Driver.OpenFixtures();
+        app.Run(3);
+        app.Show(app.Fixture("Outline"), 4);
+        var outline = app.AppState.Tabs.Active!;
+        KeepTabOpen(app.AppState, outline);
+        var outlinePosition = ScrollTo(app, outline, 20, new TextPosition(21, 4), new TextPosition(22, 8));
+        app.Show(app.Fixture("Greeter"), 4, inNewTab: true);
+        app.Run(3);
+        app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 360, false));
+
+        var hidden = new AppDriver(height: 360f, settings: _temp.Settings());
+        RestoreActiveAssemblyList(hidden.AppState);
+        hidden.Settle(4);
+        hidden.App.SaveOnExit(new WindowBounds(10, 20, 1000, 360, false));
+
+        var next = new AppDriver(height: 360f, settings: _temp.Settings());
+        RestoreActiveAssemblyList(next.AppState);
+        next.Settle(4);
+        ActivateTab(next.Ui, TabTitled(next, "Outline"));
+        next.Run(4);
+
+        Assert.Equal(outlinePosition, CodeOf(next, TabTitled(next, "Outline")).Position);
+    }
+
+    [Fact]
     public void After_a_restart_the_tabs_come_back_in_their_panels_and_groups_with_their_views_where_they_were()
     {
         var app = new AppDriver(height: 360f, settings: _temp.Settings());
@@ -190,6 +218,36 @@ public sealed class SavedDocumentsTests : IDisposable
         Assert.Equal(1.5f, restoredView.Camera.Zoom);
         Assert.False(restoredView.Folds.IsOpen(fields));
         Assert.True(restoredView.ShowsHiddenMembers);
+    }
+
+    [Fact]
+    public void A_grid_never_shown_after_a_restart_keeps_the_row_it_was_left_on_through_the_next_save()
+    {
+        var app = new AppDriver(height: 360f, settings: _temp.Settings());
+        app.Driver.OpenFixtures();
+        app.Run(3);
+        app.Show(app.Node("Metadata", "Tables").Table("TypeDef"), 4);
+        var tab = GridTab(app);
+        KeepTabOpen(app.AppState, tab);
+        var row = tab.Grid!.RowNamed("Greeter");
+        GridOf(app, tab).Reveal(row);
+        app.Run(3);
+        app.Show(app.Fixture("Greeter"), 4, inNewTab: true);
+        app.Run(3);
+        app.App.SaveOnExit(new WindowBounds(10, 20, 1000, 360, false));
+
+        var hidden = new AppDriver(height: 360f, settings: _temp.Settings());
+        RestoreActiveAssemblyList(hidden.AppState);
+        hidden.Settle(4);
+        hidden.App.SaveOnExit(new WindowBounds(10, 20, 1000, 360, false));
+
+        var next = new AppDriver(height: 360f, settings: _temp.Settings());
+        RestoreActiveAssemblyList(next.AppState);
+        next.Settle(4);
+        ActivateTab(next.Ui, GridTab(next));
+        next.Run(4);
+
+        Assert.Equal(row, GridOf(next, GridTab(next)).Selected);
     }
 
     [Fact]

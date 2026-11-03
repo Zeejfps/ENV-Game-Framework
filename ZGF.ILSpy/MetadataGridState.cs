@@ -55,11 +55,14 @@ public sealed class MetadataGridState
         Cell = new TableCellSelection(Rows);
     }
 
-    /// <summary>Where the view stands: the top row, the sideways scroll, and the selected row and current cell's column.</summary>
+    /// <summary>Where the view stands: the top row, the sideways scroll, and the selected row and current cell's
+    /// column; where it is to be returned to while that waits for it to be laid out.</summary>
     public GridPosition Position
     {
         get
         {
+            if (Pending is PendingGridScroll.Restore restoring)
+                return restoring.Position;
             var topRow = RowHeight > 0f ? (int)(Scroll.Y / RowHeight) : 0;
             int? row = Selected == None ? null : Selected;
             int? column = CurrentColumn == None ? null : CurrentColumn;

@@ -176,11 +176,13 @@ public sealed class CodeViewState
     /// flashes it, expanding the folds that hide it, once the view has been laid out.</summary>
     public void RevealLine(int line) => Pending = new PendingScroll.Reveal(line);
 
-    /// <summary>Where the view stands now.</summary>
+    /// <summary>Where the view stands now; where it is to be returned to while that waits for it to be drawn.</summary>
     public CodeViewPosition Position
     {
         get
         {
+            if (Pending is PendingScroll.Restore restoring)
+                return restoring.Position;
             var top = RowHeight > 0f && Folds.RowCount > 0 ? Folds.LineAt(Folds.Clamp(CodeRow.At(ScrollY, RowHeight))) : 0;
             return new CodeViewPosition(top, ScrollX, Selection.Anchor, Selection.Caret);
         }
