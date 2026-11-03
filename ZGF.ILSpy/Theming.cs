@@ -36,7 +36,7 @@ public static class Theming
 
     private static void LoadUserThemes(AppState appState, IReadOnlyList<ThemeError> known)
     {
-        var files = ReadUserThemes(appState.Settings.ThemesFolder);
+        var files = ReadUserThemes(appState.SettingsPlace.ThemesFolder);
         appState.Themes.LoadUserThemes(files);
         ReportNewErrors(appState, appState.Themes.Errors, known, ThemeKind.Color);
     }
@@ -103,7 +103,7 @@ public static class Theming
     /// show; null when the settings live in memory only, or after reporting why it cannot be made.</summary>
     public static string? PrepareThemesFolder(AppState appState)
     {
-        var folder = appState.Settings.ThemesFolder;
+        var folder = appState.SettingsPlace.ThemesFolder;
         if (folder == null)
             return null;
         var error = CreateThemeFolder(folder, SchemaFileName, BuiltInThemes.ReadSchema(), BuiltInThemes.ReadGuide());

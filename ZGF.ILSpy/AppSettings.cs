@@ -14,29 +14,10 @@ public sealed class AppSettings
     public static string DefaultPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZGF.ILSpy", "settings.json");
 
-    private const string ThemesFolderName = "themes";
-    private const string IconThemesFolderName = "icon-themes";
     private const string UnreadableExtension = ".unreadable.json";
 
     /// <summary>Where <see cref="Save"/> writes; null keeps the settings in memory only.</summary>
-    public string? FilePath
-    {
-        get;
-        set
-        {
-            field = value;
-            ThemesFolder = FindFolderBeside(value, ThemesFolderName);
-            IconThemesFolder = FindFolderBeside(value, IconThemesFolderName);
-        }
-    }
-
-    /// <summary>Where the user's themes are: a folder beside the settings file; null while the settings
-    /// are kept in memory only.</summary>
-    public string? ThemesFolder { get; private set; }
-
-    /// <summary>Where the user's icon themes are: a folder beside the settings file; null while the
-    /// settings are kept in memory only.</summary>
-    public string? IconThemesFolder { get; private set; }
+    public string? FilePath { get; set; }
 
     /// <summary>The named assembly lists, the open one's as it was left.</summary>
     public List<AssemblyListRecord> AssemblyLists { get; set; } = new();
@@ -121,11 +102,6 @@ public sealed class AppSettings
             Height = Math.Min(b.Height, MaxWindowSize),
             Maximized = false,
         };
-    }
-
-    public void RememberWindow(WindowBounds bounds)
-    {
-        Window = Sanitize(bounds);
     }
 
     public StartupConfig CreateWindowConfig()
@@ -381,16 +357,6 @@ public sealed class AppSettings
         if (saved == null)
             return IconThemeCatalog.ReferenceId;
         return ThemeId<IconThemeFile>.Parse(saved) ?? IconThemeCatalog.ReferenceId;
-    }
-
-    private static string? FindFolderBeside(string? settingsFile, string name)
-    {
-        if (settingsFile == null)
-            return null;
-        var folder = Path.GetDirectoryName(settingsFile);
-        if (folder == null)
-            return null;
-        return Path.Combine(folder, name);
     }
 
     /// <summary>Writes the settings to <see cref="FilePath"/>, replacing the file whole so a failed

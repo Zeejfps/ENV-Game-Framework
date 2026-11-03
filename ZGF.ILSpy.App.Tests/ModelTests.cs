@@ -626,14 +626,33 @@ public sealed class DockPanelsTests
     [Fact]
     public void The_search_mode_is_saved_and_restored()
     {
-        var settings = new AppSettings();
-        var d = new AppStateDriver(settings);
+        using var temp = new TempDir();
+        var d = new AppStateDriver(temp.Settings());
 
         d.Ui.Search.Kinds = SearchKinds.Literals;
         d.NextFrame();
         SaveSettings(d.AppState);
 
-        Assert.Equal(SearchKinds.Literals, new AppStateDriver(settings).Ui.Search.Kinds);
+        Assert.Equal(SearchKinds.Literals, new AppStateDriver(temp.Settings()).Ui.Search.Kinds);
+    }
+
+    [Fact]
+    public void Saving_leaves_the_settings_the_app_started_with_as_they_were()
+    {
+        using var temp = new TempDir();
+        var settings = temp.Settings();
+        var d = new AppStateDriver(settings);
+
+        d.Ui.Search.Kinds = SearchKinds.Literals;
+        d.AppState.Language = DecompilationLanguage.IL;
+        d.NextFrame();
+        SaveSettings(d.AppState);
+
+        Assert.Equal(SearchKinds.TypesAndMembers, settings.SearchKinds);
+        Assert.Equal(DecompilationLanguage.CSharp, settings.Language);
+        var saved = temp.Settings();
+        Assert.Equal(SearchKinds.Literals, saved.SearchKinds);
+        Assert.Equal(DecompilationLanguage.IL, saved.Language);
     }
 
     [Fact]

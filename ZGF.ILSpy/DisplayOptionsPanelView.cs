@@ -107,7 +107,7 @@ internal static class DisplayOptionsPanelView
     {
         using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
         PickTheme(ui, appState);
-        if (appState.Settings.ThemesFolder == null)
+        if (appState.SettingsPlace.ThemesFolder == null)
             return;
         CustomizeThemeButton(ui, appState);
         OpenThemesFolderButton(ui, appState);
@@ -159,7 +159,7 @@ internal static class DisplayOptionsPanelView
     {
         using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
         PickIconTheme(ui, appState);
-        if (appState.Settings.IconThemesFolder == null)
+        if (appState.SettingsPlace.IconThemesFolder == null)
             return;
         CustomizeIconThemeButton(ui, appState);
         OpenIconThemesFolderButton(ui, appState);

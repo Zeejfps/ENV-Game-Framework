@@ -1,4 +1,5 @@
 using System.Globalization;
+using ZGF.Desktop;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Bookmarks;
@@ -19,7 +20,16 @@ namespace ZGF.ILSpy;
 /// </summary>
 public sealed class AppState
 {
-    public AppSettings Settings { get; }
+    /// <summary>Where the settings are written, and the user's themes are found.</summary>
+    public SettingsPlace SettingsPlace { get; }
+
+    /// <summary>What the settings keep of the screen, as the screen last handed it over, or as the
+    /// settings held it until it does.</summary>
+    public ViewSettings View;
+
+    /// <summary>The main window as it was left: as the settings held it until the app closes.</summary>
+    public WindowBounds? Window;
+
     public AssemblyList Assemblies { get; } = new();
 
     /// <summary>The browse tree of the assemblies: their roots, the children built so far and the
@@ -51,10 +61,6 @@ public sealed class AppState
 
     /// <summary>The tabs reopened from the open list's saved documents that wait for what they showed.</summary>
     public ReopenedTabs Reopened { get; } = new();
-
-    /// <summary>The panel each open tab is docked as, and how its diagram is viewed, as the screen last
-    /// handed them over with what the settings keep of it.</summary>
-    public IReadOnlyList<TabPanel> TabPanels = [];
 
     /// <summary>The declarations and documentation shown when hovering types and members in code.</summary>
     public CodeTooltips Tooltips { get; }
@@ -174,7 +180,9 @@ public sealed class AppState
     public AppState(AppSettings settings, BrowseSession session)
     {
         Session = session;
-        Settings = settings;
+        SettingsPlace = new SettingsPlace(settings.FilePath);
+        View = ReadViewSettings(settings);
+        Window = settings.Window;
         Tooltips = new CodeTooltips(Assemblies, ReportError);
         Theme = settings.Theme;
         IconTheme = settings.IconTheme;

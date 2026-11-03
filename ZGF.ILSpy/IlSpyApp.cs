@@ -245,7 +245,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
 
     internal void SaveOnExit(WindowBounds window)
     {
-        _appState.Settings.RememberWindow(window);
+        KeepWindow(_appState, window);
         KeepViewSettings(_appState, TakeViewSettings(UiState));
         SaveSettings(_appState);
     }

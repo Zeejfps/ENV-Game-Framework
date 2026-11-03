@@ -30,7 +30,7 @@ public static class IconTheming
 
     private static void LoadUserIconThemes(AppState appState, IReadOnlyList<ThemeError> known)
     {
-        var files = ReadUserIconThemes(appState.Settings.IconThemesFolder);
+        var files = ReadUserIconThemes(appState.SettingsPlace.IconThemesFolder);
         appState.IconThemes.LoadUserThemes(files);
         ReportNewErrors(appState, appState.IconThemes.Errors, known, ThemeKind.Icon);
     }
@@ -52,7 +52,7 @@ public static class IconTheming
     /// screen to show; null when the settings live in memory only, or after reporting why it cannot be made.</summary>
     public static string? PrepareIconThemesFolder(AppState appState)
     {
-        var folder = appState.Settings.IconThemesFolder;
+        var folder = appState.SettingsPlace.IconThemesFolder;
         if (folder == null)
             return null;
         var error = CreateThemeFolder(folder, SchemaFileName, BuiltInIconThemes.ReadSchema(), BuiltInIconThemes.ReadGuide());

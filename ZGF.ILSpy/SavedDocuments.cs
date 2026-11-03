@@ -104,7 +104,7 @@ public static class SavedDocuments
         var records = saved.ConvertAll(static s => s.Record);
         var active = FindSavedPanel(saved, appState.Tabs.Active);
         var preview = FindSavedPanel(saved, appState.Tabs.Preview);
-        var layout = ArrangeSaved(appState.Settings.Layout, records);
+        var layout = ArrangeSaved(appState.View.Layout, records);
         return new DocumentsRecord(records, active, preview, layout);
     }
 
@@ -124,7 +124,7 @@ public static class SavedDocuments
 
     private static TabPanel? FindTabPanel(AppState appState, DocumentTab tab)
     {
-        foreach (var panel in appState.TabPanels)
+        foreach (var panel in appState.View.Tabs ?? [])
         {
             if (panel.Tab == tab)
                 return panel;

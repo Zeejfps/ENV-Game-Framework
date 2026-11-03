@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ZGF.Desktop;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.AssemblyLists;
 
@@ -35,7 +36,7 @@ public static class Settings
     {
         if (problem is SettingsProblem.None)
             return;
-        appState.ReportError(new AppProblem.SettingsUnreadable(appState.Settings.FilePath, problem));
+        appState.ReportError(new AppProblem.SettingsUnreadable(appState.SettingsPlace.FilePath, problem));
     }
 
     /// <summary>Writes the settings, counting what they were copied from as saved only once the write
@@ -43,9 +44,8 @@ public static class Settings
     public static SettingsWrite SaveSettings(AppState appState)
     {
         RememberActiveAssemblyList(appState);
-        CopyStateToSettings(appState);
         var sources = CaptureSavedSources(appState);
-        var write = appState.Settings.Save();
+        var write = CreateSettings(appState).Save();
         TakeWrite(appState, sources, write);
         return write;
     }
@@ -67,18 +67,36 @@ public static class Settings
             appState.Locale);
     }
 
-    private static void CopyStateToSettings(AppState appState)
+    /// <summary>The settings as the app state and the screen it was handed hold them now, to be written
+    /// where they were read from.</summary>
+    private static AppSettings CreateSettings(AppState appState)
     {
-        var settings = appState.Settings;
-        settings.AssemblyLists = appState.Lists.Save();
-        settings.ActiveAssemblyList = appState.Lists.Active;
-        settings.Theme = appState.Theme;
-        settings.IconTheme = appState.IconTheme;
-        settings.Language = appState.Language;
-        settings.Decompiler = appState.DecompilerOptions;
-        settings.ApiVisibility = appState.ApiVisibility;
-        settings.Locale = appState.Locale;
-        settings.Bookmarks = appState.Bookmarks.Save();
+        var view = appState.View;
+        return new AppSettings
+        {
+            FilePath = appState.SettingsPlace.FilePath,
+            AssemblyLists = appState.Lists.Save(),
+            ActiveAssemblyList = appState.Lists.Active,
+            Theme = appState.Theme,
+            IconTheme = appState.IconTheme,
+            Language = appState.Language,
+            Decompiler = appState.DecompilerOptions,
+            ApiVisibility = appState.ApiVisibility,
+            Locale = appState.Locale,
+            Bookmarks = appState.Bookmarks.Save(),
+            Window = appState.Window,
+            BookmarkColumns = view.BookmarkColumns,
+            SearchColumns = view.SearchColumns,
+            ExportColumns = view.ExportColumns,
+            FoldedOptionGroups = view.FoldedOptionGroups,
+            SearchKinds = view.SearchKinds,
+            FlagsFilters = view.FlagsFilters,
+            ExportWindow = view.ExportWindow,
+            Layout = view.Layout,
+            Display = view.Display,
+            NuGet = view.NuGet,
+            NuGetWindow = view.NuGetWindow,
+        };
     }
 
     private static void TakeWrite(AppState appState, SavedSources sources, SettingsWrite write)
@@ -108,33 +126,19 @@ public static class Settings
     /// <summary>Takes what the settings keep of the screen, as it changed, to be written with the next save.</summary>
     public static void KeepViewSettings(AppState appState, ViewSettings view)
     {
-        var settings = appState.Settings;
-        settings.BookmarkColumns = view.BookmarkColumns;
-        settings.SearchColumns = view.SearchColumns;
-        settings.ExportColumns = view.ExportColumns;
-        settings.FoldedOptionGroups = view.FoldedOptionGroups;
-        settings.SearchKinds = view.SearchKinds;
-        settings.FlagsFilters = view.FlagsFilters;
-        settings.ExportWindow = view.ExportWindow;
-        settings.Layout = view.Layout;
-        settings.Display = view.Display;
-        settings.NuGet = view.NuGet;
-        settings.NuGetWindow = view.NuGetWindow;
-        KeepTabPanels(appState, view.Tabs);
+        appState.View = view;
         appState.ViewSettingsChanges++;
     }
 
-    private static void KeepTabPanels(AppState appState, IReadOnlyList<TabPanel>? panels)
+    /// <summary>The main window as it was left, to be written with the next save.</summary>
+    public static void KeepWindow(AppState appState, WindowBounds window)
     {
-        if (panels == null)
-            return;
-        appState.TabPanels = panels;
+        appState.Window = AppSettings.Sanitize(window);
     }
 
-    /// <summary>What the settings kept of the screen when they were last saved.</summary>
-    public static ViewSettings ReadViewSettings(AppState appState)
+    /// <summary>What <paramref name="settings"/> kept of the screen.</summary>
+    public static ViewSettings ReadViewSettings(AppSettings settings)
     {
-        var settings = appState.Settings;
         return new ViewSettings(
             settings.BookmarkColumns,
             settings.SearchColumns,
