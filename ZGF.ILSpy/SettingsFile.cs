@@ -212,7 +212,6 @@ internal sealed record NodeDocumentJson(
     string? Panel,
     string? Title,
     string? FilePath,
-    List<LegacyPlaceStepJson?>? Place,
     SavedPathJson? Path,
     DecompilationLanguage Language,
     CodeViewPositionJson? Position,
@@ -222,7 +221,7 @@ internal sealed record NodeDocumentJson(
     {
         var code = node.View?.Code;
         var grid = node.View?.Grid;
-        return new NodeDocumentJson(node.Panel, node.Title, node.Location.FilePath.Text, SettingsJson.LegacyPlaceJsonOf(node.Place),
+        return new NodeDocumentJson(node.Panel, node.Title, node.Location.FilePath.Text,
             SavedPathJson.From(node.Location), node.Language,
             code == null ? null : CodeViewPositionJson.From(code.Value),
             grid == null ? null : GridPositionJson.From(grid.Value));
@@ -235,11 +234,10 @@ internal sealed record NodeDocumentJson(
         var file = AssemblyPath.Parse(FilePath);
         if (file == null)
             return null;
-        var place = SettingsJson.LegacyPlaceOf(Place);
-        var location = SettingsJson.LocationOf(file, Path, place, leaveOut);
+        var location = SettingsJson.LocationOf(file, Path, leaveOut);
         if (location == null)
             return null;
-        return new NodeDocumentRecord(Panel, Title, location, place, Language, ViewOf(Position, GridPosition));
+        return new NodeDocumentRecord(Panel, Title, location, Language, ViewOf(Position, GridPosition));
     }
 
     /// <summary>The view's place as the file keeps it: a code view's, else a grid's, else none.</summary>
@@ -336,13 +334,6 @@ internal sealed record ComparisonViewJson(bool OnlyDifferences)
     public ComparisonViewRecord Parse() => new(OnlyDifferences);
 }
 
-/// <summary>A step down the tree as builds before versioned paths wrote it, as a settings or bookmarks file
-/// can hold it. Without a kind or a label it is none.</summary>
-internal sealed record LegacyPlaceStepJson(string? Kind, string? Text)
-{
-    public static LegacyPlaceStepJson From(LegacyPlaceStep step) => new(step.Kind, step.Text);
-}
-
 /// <summary>A place as a settings or bookmarks file can hold it, in the format of <see cref="Version"/>: a
 /// step per node down from the root of the listed file. Of another version, or with a step that cannot be
 /// read, it is none.</summary>
@@ -350,19 +341,13 @@ internal sealed record SavedPathJson(int Version, List<SavedPathStepJson?>? Step
 {
     public const int CurrentVersion = 1;
 
-    /// <summary><paramref name="place"/> as the files keep it; null for a place read from a build before
-    /// versioned paths, which keeps only its <see cref="LegacyPlaceStep"/>s.</summary>
-    public static SavedPathJson? From(NodePath place) => place switch
-    {
-        NodePath.Semantic semantic => new SavedPathJson(CurrentVersion,
-            semantic.Steps.Select(static SavedPathStepJson? (s) => new SavedPathStepJson(SavedPlaces.Write(s.Segment), s.Label)).ToList()),
-        NodePath.Legacy => null,
-        _ => throw new UnreachableException(),
-    };
+    /// <summary><paramref name="place"/> as the files keep it.</summary>
+    public static SavedPathJson From(NodePath place) => new(CurrentVersion,
+        place.Steps.Select(static SavedPathStepJson? (s) => new SavedPathStepJson(SavedPlaces.Write(s.Segment), s.Label)).ToList());
 
     /// <summary>The path down from the root of the file at <paramref name="filePath"/>; null when it
     /// cannot be read.</summary>
-    public NodePath.Semantic? Parse(AssemblyPath filePath)
+    public NodePath? Parse(AssemblyPath filePath)
     {
         if (Version != CurrentVersion || Steps == null)
             return null;
@@ -465,7 +450,6 @@ internal sealed record BookmarkJson(
     string? MemberName,
     string? LocationNodeName,
     BookmarkViewStateJson? ViewState,
-    List<LegacyPlaceStepJson?>? Place,
     DecompilationLanguage? Language,
     SavedPathJson? Path)
 {
@@ -482,7 +466,6 @@ internal sealed record BookmarkJson(
         bookmark.MemberName,
         bookmark.LocationNodeName,
         bookmark.ViewState == null ? null : BookmarkViewStateJson.From(bookmark.ViewState),
-        SettingsJson.LegacyPlaceJsonOf(bookmark.Place),
         bookmark.Language,
         bookmark.Location == null ? null : SavedPathJson.From(bookmark.Location));
 
@@ -495,10 +478,9 @@ internal sealed record BookmarkJson(
         var path = AssemblyPath.Parse(FileName);
         if (path == null)
             return null;
-        var place = SettingsJson.LegacyPlaceOf(Place);
-        var location = SettingsJson.LocationOf(path, Path, place, leaveOutPlace);
+        var location = SettingsJson.LocationOf(path, Path, leaveOutPlace);
         return new BookmarkRecord(Name ?? "", Enabled, path, AssemblyFullName ?? "", ModuleName ?? path.FileName,
-            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), location, place, Language);
+            Token, Kind, ILOffset, LineNumber, MemberName ?? "", LocationNodeName, ViewState?.Parse(), location, Language);
     }
 }
 
@@ -712,9 +694,6 @@ internal static class SettingsJson
 {
     public static List<string?> PathsJsonOf(List<AssemblyPath> paths) => paths.ConvertAll(static string? (p) => p.Text);
 
-    public static List<LegacyPlaceStepJson?>? LegacyPlaceJsonOf(List<LegacyPlaceStep>? place) =>
-        place?.Select(static LegacyPlaceStepJson? (s) => LegacyPlaceStepJson.From(s)).ToList();
-
     /// <summary>The absolute paths among <paramref name="paths"/>; none when there are none.</summary>
     public static List<AssemblyPath> PathsOf(List<string?>? paths)
     {
@@ -735,40 +714,17 @@ internal static class SettingsJson
         return anchors.Select(static a => a?.Parse()).OfType<CodeAnchor>().ToList();
     }
 
-    /// <summary>The steps of <paramref name="place"/>, or null when it has none or a step lacks its kind or label.</summary>
-    public static List<LegacyPlaceStep>? LegacyPlaceOf(List<LegacyPlaceStepJson?>? place)
+    /// <summary>Where a tab or bookmark in the file at <paramref name="filePath"/> was, as
+    /// <paramref name="path"/> says. Null when there is none, or when it cannot be read, which
+    /// <paramref name="leaveOut"/> is told; never the root for a path that cannot be read.</summary>
+    public static NodePath? LocationOf(AssemblyPath filePath, SavedPathJson? path, Action leaveOut)
     {
-        if (place == null)
+        if (path == null)
             return null;
-        var steps = new List<LegacyPlaceStep>(place.Count);
-        foreach (var step in place)
-        {
-            if (step == null || step.Kind == null || step.Text == null)
-                return null;
-            steps.Add(new LegacyPlaceStep(step.Kind, step.Text));
-        }
-        return steps;
-    }
-
-    /// <summary>Where a tab or bookmark in the file at <paramref name="filePath"/> was: what
-    /// <paramref name="path"/> says when there is one, else what <paramref name="place"/>, as builds before
-    /// versioned paths wrote it, says. Null when there is neither, or when what there is cannot be read,
-    /// which <paramref name="leaveOut"/> is told; never the root for a path that cannot be read.</summary>
-    public static NodePath? LocationOf(AssemblyPath filePath, SavedPathJson? path, List<LegacyPlaceStep>? place, Action leaveOut)
-    {
-        if (path != null)
-        {
-            var semantic = path.Parse(filePath);
-            if (semantic == null)
-                leaveOut();
-            return semantic;
-        }
-        if (place == null)
-            return null;
-        var legacy = SavedPlaces.LegacyPathOf(filePath, place);
-        if (legacy == null)
+        var location = path.Parse(filePath);
+        if (location == null)
             leaveOut();
-        return legacy;
+        return location;
     }
 }
 

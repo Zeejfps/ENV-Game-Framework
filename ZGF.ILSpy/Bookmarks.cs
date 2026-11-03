@@ -142,12 +142,12 @@ public static class Bookmarks
     private static FoundBookmark FindPlace(AppState appState, BookmarkRecord record)
     {
         if (record.Location != null)
-            return new FoundBookmark(record, record.Location, record.Place);
+            return new FoundBookmark(record, record.Location);
         var treePath = record.ViewState?.SelectedTreeNodePath;
         var node = ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token, record.MemberName);
         if (node == null)
-            return new FoundBookmark(record, null, null);
-        return new FoundBookmark(record, node.Path, null);
+            return new FoundBookmark(record, null);
+        return new FoundBookmark(record, node.Path);
     }
 
     private static void TakeImported(AppState appState, Outcome<List<FoundBookmark>> found, string file)
@@ -227,14 +227,14 @@ public static class Bookmarks
         appState.ReportError(new AppProblem.BookmarksLeftOut(leftOut));
     }
 
-    /// <summary>A bookmark read, where it was found, and where builds before versioned paths find it.</summary>
-    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place, List<LegacyPlaceStep>? LegacyPlace)
+    /// <summary>A bookmark read, and where it was found.</summary>
+    private sealed record FoundBookmark(BookmarkRecord Record, NodePath? Place)
     {
         public Bookmark? ToBookmark()
         {
             if (Place == null)
                 return null;
-            return Bookmark.FromRecord(Record, Place, LegacyPlace);
+            return Bookmark.FromRecord(Record, Place);
         }
     }
 }

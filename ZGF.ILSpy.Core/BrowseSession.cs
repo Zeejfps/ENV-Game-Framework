@@ -286,13 +286,7 @@ public sealed class BrowseSession
     {
         if (!path.FilePath.Equals(item.FilePath))
             return null;
-        var root = RootOf(item);
-        return path switch
-        {
-            NodePath.Semantic semantic => Follow(root, semantic.Steps),
-            NodePath.Legacy legacy => Follow(root, legacy.Steps),
-            _ => throw new UnreachableException(),
-        };
+        return Follow(RootOf(item), path.Steps);
     }
 
     /// <summary>The node <paramref name="steps"/> lead to from <paramref name="root"/>; null when a step
@@ -330,21 +324,6 @@ public sealed class BrowseSession
         if (holder == null)
             return null;
         return FindChild(ChildrenOf(holder), segment);
-    }
-
-    /// <summary>The node <paramref name="steps"/> lead to from <paramref name="root"/>, each step taken to
-    /// the first child of its role and label, as builds before versioned paths did.</summary>
-    private BrowseNode? Follow(BrowseNode root, IReadOnlyList<LegacyPathStep> steps)
-    {
-        var node = root;
-        foreach (var step in steps)
-        {
-            var next = ChildrenOf(node).FirstOrDefault(c => LegacyPathStep.Of(c) == step);
-            if (next is null)
-                return null;
-            node = next;
-        }
-        return node;
     }
 
     /// <summary>The node of the type or member <paramref name="handle"/> defines in <paramref name="module"/>;

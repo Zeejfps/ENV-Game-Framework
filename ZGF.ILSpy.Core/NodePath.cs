@@ -24,7 +24,7 @@ public enum MetadataSource
     Debug,
 }
 
-/// <summary>What a node is among its siblings, as a <see cref="NodePath.Semantic"/> names it: by what it
+/// <summary>What a node is among its siblings, as a <see cref="NodePath"/> names it: by what it
 /// stands for, not by the label its row shows, so that a renamed generic parameter, a table's row count or
 /// a class turned record leaves it the same.</summary>
 public abstract record NodePathSegment
@@ -138,173 +138,39 @@ public abstract record NodePathSegment
     }
 }
 
-/// <summary>One step of a <see cref="NodePath.Semantic"/>: what the node is, and the label it showed when
+/// <summary>One step of a <see cref="NodePath"/>: what the node is, and the label it showed when
 /// the path was taken, which describes the step but does not name it.</summary>
 public readonly record struct NodePathStep(NodePathSegment Segment, string Label);
 
-/// <summary>What a node is, as builds before versioned paths told it by the kind they saved with each
-/// step: a class, a record and a struct are all types, a constant is a field and an indexer a property.</summary>
-public enum LegacyRole
-{
-    Module,
-    FailedAssembly,
-    Namespace,
-    Type,
-    Field,
-    Property,
-    Event,
-    Method,
-    ReferencesFolder,
-    AssemblyReference,
-    ReferencedTypes,
-    TypeReference,
-    MemberReference,
-    ModuleReference,
-    ImportedMethod,
-    ForwardedType,
-    BaseTypes,
-    BaseType,
-    DerivedTypes,
-    DerivedType,
-    ResourcesFolder,
-    Resource,
-    Metadata,
-    MetadataTables,
-    MetadataPart,
-    Package,
-}
-
-/// <summary>One step of a <see cref="NodePath.Legacy"/>: the role the saved kind implies, and the label.</summary>
-public readonly record struct LegacyPathStep(LegacyRole Role, string Label)
-{
-    /// <summary>The role each kind a build before versioned paths saved implies, by the kind's name.</summary>
-    private static readonly Dictionary<string, LegacyRole> Kinds = new(StringComparer.Ordinal)
-    {
-        ["Assembly"] = LegacyRole.Module,
-        ["FailedAssembly"] = LegacyRole.FailedAssembly,
-        ["Namespace"] = LegacyRole.Namespace,
-        ["Class"] = LegacyRole.Type,
-        ["Interface"] = LegacyRole.Type,
-        ["Struct"] = LegacyRole.Type,
-        ["Enum"] = LegacyRole.Type,
-        ["Delegate"] = LegacyRole.Type,
-        ["Record"] = LegacyRole.Type,
-        ["RecordStruct"] = LegacyRole.Type,
-        ["Field"] = LegacyRole.Field,
-        ["Constant"] = LegacyRole.Field,
-        ["Property"] = LegacyRole.Property,
-        ["Indexer"] = LegacyRole.Property,
-        ["Event"] = LegacyRole.Event,
-        ["Method"] = LegacyRole.Method,
-        ["Constructor"] = LegacyRole.Method,
-        ["Operator"] = LegacyRole.Method,
-        ["ReferencesFolder"] = LegacyRole.ReferencesFolder,
-        ["AssemblyReference"] = LegacyRole.AssemblyReference,
-        ["ReferencedTypes"] = LegacyRole.ReferencedTypes,
-        ["TypeReference"] = LegacyRole.TypeReference,
-        ["MethodReference"] = LegacyRole.MemberReference,
-        ["FieldReference"] = LegacyRole.MemberReference,
-        ["PropertyReference"] = LegacyRole.MemberReference,
-        ["EventReference"] = LegacyRole.MemberReference,
-        ["ModuleReference"] = LegacyRole.ModuleReference,
-        ["ImportedMethod"] = LegacyRole.ImportedMethod,
-        ["ForwardedType"] = LegacyRole.ForwardedType,
-        ["BaseTypes"] = LegacyRole.BaseTypes,
-        ["BaseType"] = LegacyRole.BaseType,
-        ["DerivedTypes"] = LegacyRole.DerivedTypes,
-        ["DerivedType"] = LegacyRole.DerivedType,
-        ["ResourcesFolder"] = LegacyRole.ResourcesFolder,
-        ["Resource"] = LegacyRole.Resource,
-        ["ResourcesFile"] = LegacyRole.Resource,
-        ["ResourceImage"] = LegacyRole.Resource,
-        ["Metadata"] = LegacyRole.Metadata,
-        ["MetadataTables"] = LegacyRole.MetadataTables,
-        ["MetadataHeader"] = LegacyRole.MetadataPart,
-        ["MetadataDirectory"] = LegacyRole.MetadataPart,
-        ["MetadataTable"] = LegacyRole.MetadataPart,
-        ["MetadataHeap"] = LegacyRole.MetadataPart,
-        ["Package"] = LegacyRole.Package,
-        ["PackageFolder"] = LegacyRole.Package,
-        ["Bundle"] = LegacyRole.Package,
-    };
-
-    /// <summary>The step a build before versioned paths saved as the kind named <paramref name="kind"/> and
-    /// <paramref name="label"/>; null for a kind no build saved.</summary>
-    public static LegacyPathStep? Read(string kind, string label)
-    {
-        if (!Kinds.TryGetValue(kind, out var role))
-            return null;
-        return new LegacyPathStep(role, label);
-    }
-
-    /// <summary>The role of a node of <paramref name="subject"/>.</summary>
-    internal static LegacyRole RoleOf(NodeSubject subject) => subject switch
-    {
-        NodeSubject.TypeDefinition => LegacyRole.Type,
-        NodeSubject.MemberDefinition member => member.Definition.Symbol switch
-        {
-            IField => LegacyRole.Field,
-            IProperty => LegacyRole.Property,
-            IEvent => LegacyRole.Event,
-            IMethod => LegacyRole.Method,
-            _ => throw new UnreachableException(),
-        },
-        NodeSubject.References => LegacyRole.ReferencesFolder,
-        NodeSubject.AssemblyReference => LegacyRole.AssemblyReference,
-        NodeSubject.ReferencedTypes => LegacyRole.ReferencedTypes,
-        NodeSubject.TypeReference => LegacyRole.TypeReference,
-        NodeSubject.MemberReference => LegacyRole.MemberReference,
-        NodeSubject.ModuleReference => LegacyRole.ModuleReference,
-        NodeSubject.ImportedMethod => LegacyRole.ImportedMethod,
-        NodeSubject.ForwardedType => LegacyRole.ForwardedType,
-        NodeSubject.BaseTypes => LegacyRole.BaseTypes,
-        NodeSubject.BaseType => LegacyRole.BaseType,
-        NodeSubject.DerivedTypes => LegacyRole.DerivedTypes,
-        NodeSubject.DerivedType => LegacyRole.DerivedType,
-        NodeSubject.Resources => LegacyRole.ResourcesFolder,
-        NodeSubject.ResourceContainer or NodeSubject.ResourceEntry or NodeSubject.PackageFile => LegacyRole.Resource,
-        NodeSubject.Metadata => LegacyRole.Metadata,
-        NodeSubject.MetadataTables => LegacyRole.MetadataTables,
-        NodeSubject.MetadataTable => LegacyRole.MetadataPart,
-        NodeSubject.Package => LegacyRole.Package,
-        NodeSubject.Module => LegacyRole.Module,
-        NodeSubject.Namespace => LegacyRole.Namespace,
-        NodeSubject.FailedAssembly => LegacyRole.FailedAssembly,
-        _ => throw new UnreachableException(),
-    };
-
-    /// <summary>The step to <paramref name="node"/> from its parent.</summary>
-    internal static LegacyPathStep Of(BrowseNode node) => new(RoleOf(node.Subject), node.Text);
-}
-
 /// <summary>
 /// Where a <see cref="BrowseNode"/> sits: the listed file whose tree it is in, and the steps down from that
-/// tree's root. Unlike the node, it stays meaningful after the assembly is closed or reloaded;
-/// <see cref="BrowseSession.Find(LoadedAssembly, NodePath)"/> finds the node it names again. A path is
-/// <see cref="Semantic"/>, naming each node by what it is, or <see cref="Legacy"/>, read from a place saved
-/// by a build before paths were versioned, and naming each by its role and label.
+/// tree's root, naming each node by what it is. Unlike the node, it stays meaningful after the assembly is
+/// closed or reloaded; <see cref="BrowseSession.Find(LoadedAssembly, NodePath)"/> finds the node it names again.
 /// </summary>
-public abstract class NodePath : IEquatable<NodePath>
+public sealed class NodePath : IEquatable<NodePath>
 {
-    private readonly string[] _labels;
+    private readonly NodePathStep[] _steps;
 
-    private NodePath(AssemblyPath filePath, string[] labels)
+    private NodePath(AssemblyPath filePath, NodePathStep[] steps)
     {
         FilePath = filePath;
-        _labels = labels;
+        _steps = steps;
     }
 
     /// <summary>The absolute path of the listed file the path starts from: an assembly, or the package
     /// an assembly was read out of.</summary>
     public AssemblyPath FilePath { get; }
 
+    /// <summary>What each node down from the root is, and its label, the node itself last.</summary>
+    public IReadOnlyList<NodePathStep> Steps => _steps;
+
     /// <summary>The label of the node this names, as it showed when the path was taken; the file's name
     /// for the root.</summary>
-    public string Label => _labels.Length == 0 ? FilePath.FileName : _labels[^1];
+    public string Label => _steps.Length == 0 ? FilePath.FileName : _steps[^1].Label;
 
     /// <summary>The path to <paramref name="node"/> from the root of its tree: for a node of an assembly
     /// read out of a package, from the package's root, through one step naming the assembly's file.</summary>
-    public static Semantic Of(BrowseNode node)
+    public static NodePath Of(BrowseNode node)
     {
         var steps = new List<NodePathStep>();
         var n = node;
@@ -320,107 +186,38 @@ public abstract class NodePath : IEquatable<NodePath>
             n = n.Parent;
         }
         steps.Reverse();
-        return new Semantic(n.Assembly.FilePath, steps.ToArray());
+        return new NodePath(n.Assembly.FilePath, steps.ToArray());
     }
 
     /// <summary>The path to the node reached from the root of the file at <paramref name="filePath"/>
-    /// through <paramref name="steps"/>, as <see cref="Semantic.Steps"/> gives them.</summary>
-    public static Semantic From(AssemblyPath filePath, IEnumerable<NodePathStep> steps) => new(filePath, steps.ToArray());
+    /// through <paramref name="steps"/>, as <see cref="Steps"/> gives them.</summary>
+    public static NodePath From(AssemblyPath filePath, IEnumerable<NodePathStep> steps) => new(filePath, steps.ToArray());
 
-    /// <summary>The path a build before versioned paths saved: the root of the file at
-    /// <paramref name="filePath"/>, then a step per node down.</summary>
-    public static Legacy FromLegacy(AssemblyPath filePath, IEnumerable<LegacyPathStep> steps) => new(filePath, steps.ToArray());
-
-    /// <summary>Whether this path names <paramref name="node"/>.</summary>
-    public abstract bool Names(BrowseNode node);
-
-    public abstract bool Equals(NodePath? other);
+    /// <summary>Equal when it starts from the same file and names the same node at each step, whatever
+    /// the labels.</summary>
+    public bool Equals(NodePath? other)
+    {
+        if (ReferenceEquals(this, other)) return true;
+        if (other == null) return false;
+        if (other._steps.Length != _steps.Length) return false;
+        if (!FilePath.Equals(other.FilePath)) return false;
+        for (var i = _steps.Length - 1; i >= 0; i--)
+        {
+            if (_steps[i].Segment != other._steps[i].Segment) return false;
+        }
+        return true;
+    }
 
     public override bool Equals(object? obj) => obj is NodePath other && Equals(other);
 
-    public abstract override int GetHashCode();
-
-    public override string ToString() => _labels.Length == 0 ? FilePath.Text : $"{FilePath}: {string.Join(" › ", _labels)}";
-
-    public sealed class Semantic : NodePath
+    public override int GetHashCode()
     {
-        private readonly NodePathStep[] _steps;
-
-        internal Semantic(AssemblyPath filePath, NodePathStep[] steps) : base(filePath, steps.Select(static s => s.Label).ToArray())
-        {
-            _steps = steps;
-        }
-
-        /// <summary>What each node down from the root is, and its label, the node itself last.</summary>
-        public IReadOnlyList<NodePathStep> Steps => _steps;
-
-        public override bool Names(BrowseNode node) => Equals(node.Path);
-
-        /// <summary>Equal when it starts from the same file and names the same node at each step, whatever
-        /// the labels.</summary>
-        public override bool Equals(NodePath? other)
-        {
-            if (ReferenceEquals(this, other)) return true;
-            if (other is not Semantic semantic) return false;
-            if (semantic._steps.Length != _steps.Length) return false;
-            if (!FilePath.Equals(semantic.FilePath)) return false;
-            for (var i = _steps.Length - 1; i >= 0; i--)
-            {
-                if (_steps[i].Segment != semantic._steps[i].Segment) return false;
-            }
-            return true;
-        }
-
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            hash.Add(FilePath);
-            foreach (var step in _steps)
-                hash.Add(step.Segment);
-            return hash.ToHashCode();
-        }
+        var hash = new HashCode();
+        hash.Add(FilePath);
+        foreach (var step in _steps)
+            hash.Add(step.Segment);
+        return hash.ToHashCode();
     }
 
-    public sealed class Legacy : NodePath
-    {
-        private readonly LegacyPathStep[] _steps;
-
-        internal Legacy(AssemblyPath filePath, LegacyPathStep[] steps) : base(filePath, steps.Select(static s => s.Label).ToArray())
-        {
-            _steps = steps;
-        }
-
-        /// <summary>The role and label of each node down from the root, the node itself last.</summary>
-        public IReadOnlyList<LegacyPathStep> Steps => _steps;
-
-        public override bool Names(BrowseNode node)
-        {
-            var n = node;
-            for (var i = _steps.Length - 1; i >= 0; i--)
-            {
-                if (n.Parent == null) return false;
-                if (LegacyPathStep.Of(n) != _steps[i]) return false;
-                n = n.Parent;
-            }
-            if (n.Parent != null) return false;
-            return FilePath.Equals(n.Assembly.FilePath);
-        }
-
-        public override bool Equals(NodePath? other)
-        {
-            if (ReferenceEquals(this, other)) return true;
-            if (other is not Legacy legacy) return false;
-            if (!FilePath.Equals(legacy.FilePath)) return false;
-            return _steps.AsSpan().SequenceEqual(legacy._steps);
-        }
-
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            hash.Add(FilePath);
-            foreach (var step in _steps)
-                hash.Add(step);
-            return hash.ToHashCode();
-        }
-    }
+    public override string ToString() => _steps.Length == 0 ? FilePath.Text : $"{FilePath}: {string.Join(" › ", _steps.Select(static s => s.Label))}";
 }

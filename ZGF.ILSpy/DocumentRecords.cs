@@ -13,13 +13,11 @@ public sealed record DocumentsRecord(List<DocumentRecord> Tabs, string? Active, 
 public abstract record DocumentRecord(string Panel, string? Title);
 
 /// <summary>A tab showing the node at <see cref="Location"/>, in <see cref="Language"/>, its view standing
-/// at <see cref="View"/>; a tab saved by a build before versioned paths and not shown since keeps the
-/// <see cref="Place"/> it was read with.</summary>
+/// at <see cref="View"/>.</summary>
 public sealed record NodeDocumentRecord(
     string Panel,
     string? Title,
     NodePath Location,
-    List<LegacyPlaceStep>? Place,
     DecompilationLanguage Language,
     ViewPosition? View) : DocumentRecord(Panel, Title);
 

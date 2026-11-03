@@ -6,28 +6,9 @@ using ZGF.ILSpy.Core.Metadata;
 
 namespace ZGF.ILSpy;
 
-/// <summary>A step down the tree as builds before versioned paths save and read it: the name of the
-/// node's kind and its label.</summary>
-public sealed record LegacyPlaceStep(string Kind, string Text);
-
 /// <summary>Writing places for the settings and bookmark files, and reading back what they wrote.</summary>
 public static class SavedPlaces
 {
-    /// <summary>The path <paramref name="steps"/> lead along from the root of the file at
-    /// <paramref name="filePath"/>; null when a step names a kind no build saved.</summary>
-    public static NodePath.Legacy? LegacyPathOf(AssemblyPath filePath, List<LegacyPlaceStep> steps)
-    {
-        var read = new List<LegacyPathStep>(steps.Count);
-        foreach (var step in steps)
-        {
-            var legacy = LegacyPathStep.Read(step.Kind, step.Text);
-            if (legacy == null)
-                return null;
-            read.Add(legacy.Value);
-        }
-        return NodePath.FromLegacy(filePath, read);
-    }
-
     /// <summary><paramref name="segment"/> as a step of a saved place holds it: its case, a space,
     /// then what it names, such as <c>Definition T:Ns.Calculator`1</c>.</summary>
     public static string Write(NodePathSegment segment) => segment switch

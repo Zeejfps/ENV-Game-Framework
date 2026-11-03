@@ -41,7 +41,6 @@
           "Calculator"
         ]
       },
-      "Place": null,
       "Language": "IL",
       "Path": {
         "Version": 1,
@@ -70,16 +69,6 @@
       "MemberName": "Ns.Other",
       "LocationNodeName": "Other",
       "ViewState": null,
-      "Place": [
-        {
-          "Kind": "Namespace",
-          "Text": "Ns"
-        },
-        {
-          "Kind": "Class",
-          "Text": "Other"
-        }
-      ],
       "Language": null,
       "Path": null
     }

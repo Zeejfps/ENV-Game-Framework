@@ -560,7 +560,7 @@ public sealed class BookmarkTests : IDisposable
         Assert.Equal(1, root.GetProperty("Version").GetInt32());
         Assert.Equal(
             ["Name", "Enabled", "FileName", "AssemblyFullName", "ModuleName", "Token", "Kind", "ILOffset", "LineNumber", "MemberName", "LocationNodeName",
-                "ViewState", "Place", "Language", "Path"],
+                "ViewState", "Language", "Path"],
             entry.EnumerateObject().Select(p => p.Name));
         Assert.Equal("Body", entry.GetProperty("Kind").GetString());
         Assert.Equal((uint)TokenOf("Third"), entry.GetProperty("Token").GetUInt32());

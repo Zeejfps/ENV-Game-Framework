@@ -429,7 +429,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         var (loaded, problem) = AppSettings.Load(Written("""
             { "FlagsFilters": { "TypeDef/Attributes": { "Groups": { "Visibility": null, "Layout": [ 8 ] }, "Mode": "Any" }, "Gone": null },
-              "Bookmarks": [ { "Name": "B", "FileName": "C:\\a.dll", "Place": [],
+              "Bookmarks": [ { "Name": "B", "FileName": "C:\\a.dll",
                 "ViewState": { "ExpandedFoldings": [ null, { "Start": 1, "End": 2 } ], "SelectedTreeNodePath": [ "C:\\a.dll", null ] } } ] }
             """));
 
@@ -448,10 +448,10 @@ public sealed class AppSettingsTests : IDisposable
             { "AssemblyLists": [ { "Name": "Work", "Assemblies": [ null, "C:\\a.dll" ],
                 "Analyzed": [ { "Kind": "Definition", "FilePath": null, "Token": 1 } ],
                 "Documents": { "Tabs": [
-                    { "kind": "node", "Panel": "document-1", "FilePath": null, "Place": [] },
-                    { "kind": "node", "Panel": "document-2", "FilePath": "C:\\a.dll", "Place": [ { "Kind": "Assembly", "Text": null } ] },
+                    { "kind": "node", "Panel": "document-1", "FilePath": null, "Path": { "Version": 1, "Steps": [] } },
+                    { "kind": "node", "Panel": "document-2", "FilePath": "C:\\a.dll", "Path": null },
                     { "kind": "diagram", "Panel": "document-3", "Types": [ { "AssemblyPath": "C:\\a.dll", "FullName": null } ] } ] } } ],
-              "Bookmarks": [ { "Name": null, "FileName": "C:\\a.dll", "Place": [] }, { "Name": "Gone", "FileName": null } ],
+              "Bookmarks": [ { "Name": null, "FileName": "C:\\a.dll" }, { "Name": "Gone", "FileName": null } ],
               "NuGet": { "FeedUrl": null },
               "FoldedOptionGroups": [ null, "Other" ] }
             """));

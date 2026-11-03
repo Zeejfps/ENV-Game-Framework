@@ -154,7 +154,7 @@ public static class SavedDocuments
         var location = tab.Location;
         if (location == null)
             return null;
-        return new NodeDocumentRecord(panel.Panel, tab.Title, location, null, tab.Language, tab.PositionToReopen);
+        return new NodeDocumentRecord(panel.Panel, tab.Title, location, tab.Language, tab.PositionToReopen);
     }
 
     private static DiagramDocumentRecord SaveDiagram(DocumentTab tab, TypeDiagram diagram, TabPanel panel)

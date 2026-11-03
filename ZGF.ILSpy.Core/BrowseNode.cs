@@ -21,7 +21,7 @@ public enum NodeAccessibility
 /// </summary>
 public sealed partial class BrowseNode
 {
-    private NodePath.Semantic? _path;
+    private NodePath? _path;
     private NodePathSegment? _segment;
 
     /// <summary>The label: a name, or for members an ILSpy-style signature such as <c>Add(T) : void</c>.</summary>
@@ -50,7 +50,7 @@ public sealed partial class BrowseNode
     public LoadedAssembly Assembly { get; }
 
     /// <summary>Where this node sits, for finding it again after its assembly is reloaded.</summary>
-    public NodePath.Semantic Path => _path ??= NodePath.Of(this);
+    public NodePath Path => _path ??= NodePath.Of(this);
 
     /// <summary>What the node is among its siblings, as a path names it; null for the root of a tree.</summary>
     internal NodePathSegment? Segment => _segment ??= NodePathSegment.Of(Subject);

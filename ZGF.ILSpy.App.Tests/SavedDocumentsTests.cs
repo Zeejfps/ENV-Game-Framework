@@ -226,7 +226,7 @@ public sealed class SavedDocumentsTests : IDisposable
     [Fact]
     public void A_tab_whose_node_is_gone_after_a_restart_says_so_in_its_panel()
     {
-        var missing = new NodeDocumentRecord(MissingPanel, "Missing", FixturePlace("Missing"), null, DecompilationLanguage.CSharp, null);
+        var missing = new NodeDocumentRecord(MissingPanel, "Missing", FixturePlace("Missing"), DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([missing], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -242,7 +242,7 @@ public sealed class SavedDocumentsTests : IDisposable
     [Fact]
     public void Clearing_the_list_before_it_reopens_settles_its_tabs_rather_than_leaving_them_reloading()
     {
-        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", FixturePlace("Greeter"), null, DecompilationLanguage.CSharp, null);
+        var greeter = new NodeDocumentRecord(MissingPanel, "Greeter", FixturePlace("Greeter"), DecompilationLanguage.CSharp, null);
         var d = new AppStateDriver(SettingsWith(new DocumentsRecord([greeter], MissingPanel, null, null)));
 
         RestoreActiveAssemblyList(d.AppState);
@@ -348,7 +348,7 @@ public sealed class SavedDocumentsTests : IDisposable
     }
 
     private static NodeDocumentRecord HandTab(string panel, string title) =>
-        new(panel, title, NodePath.From(PathOf(AppStateDriver.FixturePath), []), null, DecompilationLanguage.CSharp, null);
+        new(panel, title, NodePath.From(PathOf(AppStateDriver.FixturePath), []), DecompilationLanguage.CSharp, null);
 
     [Fact]
     public void A_new_panel_skips_every_panel_saved_documents_were_docked_as_however_numbered()

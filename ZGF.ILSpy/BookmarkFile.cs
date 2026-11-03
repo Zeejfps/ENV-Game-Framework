@@ -43,8 +43,7 @@ public sealed record BookmarkViewState(
 /// <see cref="LineNumber"/> counts from 1. <see cref="Location"/> and <see cref="Language"/> are this
 /// app's own — where in its tree the node the bookmark was made in is, and that document's language —
 /// which ILSpy skips; a record without a location finds one through
-/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>. A bookmark saved by a build before versioned paths
-/// and not gone to since keeps the <see cref="Place"/> it was read with.
+/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>.
 /// </summary>
 public sealed record BookmarkRecord(
     string Name,
@@ -60,7 +59,6 @@ public sealed record BookmarkRecord(
     string? LocationNodeName,
     BookmarkViewState? ViewState,
     NodePath? Location = null,
-    List<LegacyPlaceStep>? Place = null,
     DecompilationLanguage? Language = null);
 
 /// <summary>The bookmarks file the real ILSpy reads and writes.</summary>

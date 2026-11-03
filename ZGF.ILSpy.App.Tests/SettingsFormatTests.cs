@@ -135,8 +135,8 @@ public sealed class SettingsFormatTests : IDisposable
         var view = new DiagramViewRecord(10.5f, -20.25f, 1.5f, [CardFold.Own(Calculator, MemberSection.Methods), CardFold.Inherited(Calculator, "Base")], true);
         DocumentRecord[] tabs =
         [
-            new NodeDocumentRecord("document-1", "Calculator", SemanticPlace(), null, DecompilationLanguage.IL, code),
-            new NodeDocumentRecord("document-2", "Legacy", LegacyPlace(), LegacySteps(), DecompilationLanguage.ILWithCSharp, grid),
+            new NodeDocumentRecord("document-1", "Calculator", CalculatorPlace(), DecompilationLanguage.IL, code),
+            new NodeDocumentRecord("document-2", "Other", OtherPlace(), DecompilationLanguage.ILWithCSharp, grid),
             new DiagramDocumentRecord("document-3", "Diagram", [Calculator, new TypeAnchor(B, "Ns.Other")], [A], view),
             new ComparisonDocumentRecord("document-4", "Comparison", A, B, ApiScope.AllDeclared, new ComparisonViewRecord(true)),
         ];
@@ -161,19 +161,21 @@ public sealed class SettingsFormatTests : IDisposable
         return
         [
             new BookmarkRecord("Mark", true, A, "A, Version=1.0.0.0", "A.dll", 0x06000002, BookmarkKind.Body, 12, 34,
-                "Ns.Calculator.Add", "Add(int, int) : int", view, SemanticPlace(), null, DecompilationLanguage.IL),
+                "Ns.Calculator.Add", "Add(int, int) : int", view, CalculatorPlace(), DecompilationLanguage.IL),
             new BookmarkRecord("Old", true, B, "B, Version=2.0.0.0", "B.dll", 0x02000003, BookmarkKind.Line, 5, 56,
-                "Ns.Other", "Other", null, LegacyPlace(), LegacySteps()),
+                "Ns.Other", "Other", null),
         ];
     }
 
-    private static NodePath SemanticPlace() => NodePath.From(A,
+    private static NodePath CalculatorPlace() => NodePath.From(A,
     [
         new NodePathStep(new NodePathSegment.Namespace("Ns"), "Ns"),
         new NodePathStep(new NodePathSegment.Definition("T:Ns.Calculator"), "Calculator"),
     ]);
 
-    private static List<LegacyPlaceStep> LegacySteps() => [new("Namespace", "Ns"), new("Class", "Other")];
-
-    private static NodePath LegacyPlace() => SavedPlaces.LegacyPathOf(B, LegacySteps())!;
+    private static NodePath OtherPlace() => NodePath.From(B,
+    [
+        new NodePathStep(new NodePathSegment.Namespace("Ns"), "Ns"),
+        new NodePathStep(new NodePathSegment.Definition("T:Ns.Other"), "Other"),
+    ]);
 }

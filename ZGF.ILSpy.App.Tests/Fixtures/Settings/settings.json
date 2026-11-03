@@ -24,7 +24,6 @@
         "Tabs": [
           {
             "kind": "node",
-            "Place": null,
             "Language": "IL",
             "FilePath": "C:\\Fixture\\A.dll",
             "Path": {
@@ -58,19 +57,21 @@
           },
           {
             "kind": "node",
-            "Place": [
-              {
-                "Kind": "Namespace",
-                "Text": "Ns"
-              },
-              {
-                "Kind": "Class",
-                "Text": "Other"
-              }
-            ],
             "Language": "ILWithCSharp",
             "FilePath": "C:\\Fixture\\B.dll",
-            "Path": null,
+            "Path": {
+              "Version": 1,
+              "Steps": [
+                {
+                  "Step": "Namespace Ns",
+                  "Label": "Ns"
+                },
+                {
+                  "Step": "Definition T:Ns.Other",
+                  "Label": "Other"
+                }
+              ]
+            },
             "Position": null,
             "GridPosition": {
               "TopRow": 4,
@@ -79,7 +80,7 @@
               "Column": 2
             },
             "Panel": "document-2",
-            "Title": "Legacy"
+            "Title": "Other"
           },
           {
             "kind": "diagram",
@@ -311,7 +312,6 @@
           "Calculator"
         ]
       },
-      "Place": null,
       "Language": "IL",
       "Path": {
         "Version": 1,
@@ -340,16 +340,6 @@
       "MemberName": "Ns.Other",
       "LocationNodeName": "Other",
       "ViewState": null,
-      "Place": [
-        {
-          "Kind": "Namespace",
-          "Text": "Ns"
-        },
-        {
-          "Kind": "Class",
-          "Text": "Other"
-        }
-      ],
       "Language": null,
       "Path": null
     }
