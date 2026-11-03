@@ -190,15 +190,15 @@ internal static class MainMenuView
         var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
         var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: new UiIcon(icons.FileClose)))
-            CloseAssembly(appState, selected!);
+            ui.State.Later(selected!, static (a, assembly) => CloseAssembly(a, assembly));
         if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: new UiIcon(icons.FileCloseFailed)))
-            CloseFailedAssemblies(appState);
+            ui.State.Later(static a => CloseFailedAssemblies(a));
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: new UiIcon(icons.FileClearList)))
-            CloseAllAssemblies(appState);
+            ui.State.Later(static a => CloseAllAssemblies(a));
         if (ui.MenuItem(t.FileSortList, enabled: anyOpen, id: "sort-list", icon: new UiIcon(icons.FileSortList)))
-            SortAssemblies(appState);
+            ui.State.Later(static a => SortAssemblies(a));
         if (ui.MenuItem(t.FileReloadAll, Shortcuts.ReloadAll, enabled: anyOpen, id: "reload-all", icon: new UiIcon(icons.FileReloadAll)))
-            RefreshAssemblies(appState, tree.ExpandedPaths());
+            ui.State.Later(tree.ExpandedPaths(), static (a, expanded) => RefreshAssemblies(a, expanded));
     }
 
     private static void ExportItems(Ui<UiState> ui, AppState appState)
@@ -218,9 +218,9 @@ internal static class MainMenuView
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.ViewBack, Shortcuts.Back, enabled: appState.History.CanGoBack, id: "back"))
-            GoBack(appState);
+            ui.State.Later(static a => GoBack(a));
         if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: appState.History.CanGoForward, id: "forward"))
-            GoForward(appState);
+            ui.State.Later(static a => GoForward(a));
         ui.MenuSeparator();
         DecompilerMenu(ui, appState);
         ui.MenuSeparator();
@@ -248,7 +248,7 @@ internal static class MainMenuView
         {
             var id = catalog.Ids[i];
             if (ui.MenuRadioItem(names[i], appState.Theme == id, id: id.Text))
-                SetTheme(appState, id);
+                ui.State.Later(id, static (a, theme) => SetTheme(a, theme));
         }
     }
 
@@ -267,7 +267,7 @@ internal static class MainMenuView
     {
         var selected = appState.ApiVisibility == visibility;
         if (ui.MenuRadioItem(label, selected))
-            SetApiVisibility(appState, visibility);
+            ui.State.Later(visibility, static (a, v) => SetApiVisibility(a, v));
     }
 
     /// <summary>The submenu of the views, each checked while open, that opens the one picked.</summary>
@@ -310,7 +310,7 @@ internal static class MainMenuView
         foreach (var language in DecompilationLanguages.All)
         {
             if (ui.MenuRadioItem(DecompilationLanguages.Label(language), appState.Language == language))
-                SetLanguage(appState, language);
+                ui.State.Later(language, static (a, l) => SetLanguage(a, l));
         }
     }
 
@@ -329,7 +329,7 @@ internal static class MainMenuView
         foreach (var (locale, endonym) in Locales.All)
         {
             if (ui.MenuRadioItem(endonym, appState.Locale == locale))
-                SetLocale(appState, locale);
+                ui.State.Later(locale, static (a, l) => SetLocale(a, l));
         }
     }
 }

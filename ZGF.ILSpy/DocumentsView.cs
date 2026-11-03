@@ -34,7 +34,7 @@ internal static class DocumentsView
                 ResourceImageView.Render(ui, appState, tab, picture);
                 break;
             case TabContent.Table table:
-                RenderGrid(ui, appState, tab, table.Grid);
+                RenderGrid(ui, tab, table.Grid);
                 break;
             case TabContent.Diagram diagram:
                 DiagramView.Render(ui, appState, tab, diagram.Types);
@@ -54,14 +54,14 @@ internal static class DocumentsView
         }
     }
 
-    private static void RenderGrid(Ui<UiState> ui, AppState appState, DocumentTab tab, MetadataGrid grid)
+    private static void RenderGrid(Ui<UiState> ui, DocumentTab tab, MetadataGrid grid)
     {
         var view = ui.State.Documents.ViewOf(tab);
         var picked = ui.MetadataGridView("grid", grid, view.Grid, ui.State.MetadataFilters);
         if (picked.Target != null && tab.Node != null)
-            ShowMetadataLink(appState, tab.Node, picked.Target.Value, picked.InNewTab);
+            ui.State.Later((node: tab.Node, target: picked.Target.Value, picked.InNewTab), static (a, s) => ShowMetadataLink(a, s.node, s.target, s.InNewTab));
         if (picked.Definition != null)
-            Navigate(appState, picked.Definition, picked.InNewTab);
+            ui.State.Later((definition: picked.Definition, picked.InNewTab), static (a, s) => Navigate(a, s.definition, s.InNewTab));
     }
 
     /// <summary>The tab's document in the code view, with its bookmarks, or the note saying why it has none.</summary>
@@ -72,36 +72,36 @@ internal static class DocumentsView
         var document = FindDocumentToShow(ui.State, view, tab);
         var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);
         if (result.Intent != null)
-            Act(ui, appState, tab, result.Intent);
+            Act(ui, tab, result.Intent);
         Zoom(ui.State, result.Zoom);
     }
 
     /// <summary>Does what the user asked the code view of <paramref name="tab"/> to do.</summary>
-    private static void Act(Ui<UiState> ui, AppState appState, DocumentTab tab, CodeViewIntent intent)
+    private static void Act(Ui<UiState> ui, DocumentTab tab, CodeViewIntent intent)
     {
         var t = ui.State.Strings;
         switch (intent)
         {
             case CodeViewIntent.Navigate navigate:
-                Navigate(appState, navigate.Target, navigate.InNewTab);
+                ui.State.Later(navigate, static (a, n) => Navigate(a, n.Target, n.InNewTab));
                 break;
             case CodeViewIntent.ToggleBookmark toggle:
-                ToggleLineBookmark(ui, appState, tab, toggle.Line);
+                ui.State.Later((screen: ui.State, tab, line: toggle.Line, t), static (a, s) => ToggleLineBookmark(s.screen, a, s.tab, s.line, s.t));
                 break;
             case CodeViewIntent.Analyze analyze:
-                AnalyzerPanelView.Analyze(ui.State, appState, analyze.Entity);
+                ui.State.Later((screen: ui.State, entity: analyze.Entity), static (a, s) => AnalyzerPanelView.Analyze(s.screen, a, s.entity));
                 break;
             case CodeViewIntent.ShowInMetadata metadata:
-                ShowInMetadata(appState, metadata.Target, inNewTab: false);
+                ui.State.Later(metadata.Target, static (a, target) => ShowInMetadata(a, target, inNewTab: false));
                 break;
             case CodeViewIntent.ShowInApiReference reference:
-                ShowInApiReference(appState, reference.Entity);
+                ui.State.Later(reference.Entity, static (a, entity) => ShowInApiReference(a, entity));
                 break;
             case CodeViewIntent.ShowInDiagram diagram:
-                ShowInDiagram(appState, diagram.Type, t.DiagramTitle(diagram.Type.Name));
+                ui.State.Later((type: diagram.Type, title: t.DiagramTitle(diagram.Type.Name)), static (a, s) => ShowInDiagram(a, s.type, s.title));
                 break;
             case CodeViewIntent.ShowInNewDiagram diagram:
-                ShowInNewDiagram(appState, diagram.Type, t.DiagramTitle(diagram.Type.Name));
+                ui.State.Later((type: diagram.Type, title: t.DiagramTitle(diagram.Type.Name)), static (a, s) => ShowInNewDiagram(a, s.type, s.title));
                 break;
             default:
                 throw new UnreachableException();
@@ -140,10 +140,10 @@ internal static class DocumentsView
 
     /// <summary>Toggles the bookmark on <paramref name="line"/>, selecting the one made, or passing the
     /// selection of the one removed on.</summary>
-    private static void ToggleLineBookmark(Ui<UiState> ui, AppState appState, DocumentTab tab, int line)
+    private static void ToggleLineBookmark(UiState screen, AppState appState, DocumentTab tab, int line, Strings t)
     {
-        var toggle = ToggleBookmark(appState, tab, line, number => ui.State.Strings.BookmarksDefaultName(number));
-        ui.State.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
+        var toggle = ToggleBookmark(appState, tab, line, number => t.BookmarksDefaultName(number));
+        screen.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 
     public static DockTab Tab(UiState screen, AppState appState, DocumentTab tab)

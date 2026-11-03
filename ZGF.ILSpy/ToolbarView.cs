@@ -36,7 +36,7 @@ internal static class ToolbarView
             {
                 ListPicker(ui, appState);
                 if (ui.IconButton("manage-lists", ui.State.Icons.ToolbarManageLists, t.ListsManage, variant: ButtonVariant.Neutral))
-                    AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
+                    ui.State.Later(ui.State.ListsDialog, static (a, dialog) => AssemblyListsDialogView.Open(dialog, a));
             }
 
             using (Group(ui))
@@ -55,7 +55,7 @@ internal static class ToolbarView
                            ui.Memo("back-tip", t, static s => s.ToolbarBack(Shortcuts.Back)), t.ToolbarBackHistory, appState.History.CanGoBack, appState.History.Revision))
                 {
                     if (back.Clicked)
-                        GoBack(appState);
+                        ui.State.Later(static a => GoBack(a));
                     if (back.IsOpen)
                         HistoryItems(ui, appState, -1);
                 }
@@ -64,7 +64,7 @@ internal static class ToolbarView
                            appState.History.Revision))
                 {
                     if (forward.Clicked)
-                        GoForward(appState);
+                        ui.State.Later(static a => GoForward(a));
                     if (forward.IsOpen)
                         HistoryItems(ui, appState, 1);
                 }
@@ -74,7 +74,7 @@ internal static class ToolbarView
             {
                 var language = appState.Language;
                 if (ui.SegmentedControl("language", ref language, Languages(t)))
-                    SetLanguage(appState, language);
+                    ui.State.Later(language, static (a, l) => SetLanguage(a, l));
                 if (DecompilationLanguages.ShowsCSharp(language))
                 {
                     LanguageVersion(ui, appState);
@@ -99,7 +99,7 @@ internal static class ToolbarView
             ListItem(ui, appState, name);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsManage, id: "manage", icon: new UiIcon(ui.State.Icons.ListsManage)))
-            AssemblyListsDialogView.Open(ui.State.ListsDialog, appState);
+            ui.State.Later(ui.State.ListsDialog, static (a, dialog) => AssemblyListsDialogView.Open(dialog, a));
     }
 
     /// <summary>Measured again only when the lists or the theme changed, so a frame allocates nothing.</summary>
@@ -130,7 +130,7 @@ internal static class ToolbarView
         var active = name == appState.Lists.Active;
         if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
             return;
-        SwitchAssemblyList(appState, name);
+        ui.State.Later(name, static (a, list) => SwitchAssemblyList(a, list));
     }
 
     private static Segment<DecompilationLanguage>[] Languages(Strings t)
@@ -156,7 +156,7 @@ internal static class ToolbarView
         foreach (var (version, label) in CSharpVersions.All)
         {
             if (ui.MenuRadioItem(label, version == current))
-                SetLanguageVersion(appState, version);
+                ui.State.Later(version, static (a, v) => SetLanguageVersion(a, v));
         }
     }
 
@@ -173,7 +173,7 @@ internal static class ToolbarView
                 var entry = entries[i];
                 if (ui.MenuItem(TextOf(entry), id: "entry", icon: IconOf(ui.State, entry)))
                 {
-                    GoToHistoryEntry(appState, i);
+                    ui.State.Later(i, static (a, index) => GoToHistoryEntry(a, index));
                     return;
                 }
             }

@@ -1,29 +1,28 @@
-using ZGF.ILSpy.Core.Diagrams;
-
 namespace ZGF.ILSpy;
 
 /// <summary>What the screen asks of the app state, which <see cref="UiState"/> queues while it draws
-/// and <see cref="IlSpyApp"/> runs, in the order queued, once the frame is drawn.</summary>
-public abstract record AppCommand
+/// and <see cref="IlSpyApp"/> runs, in the order queued, once the frame is drawn. Made only through
+/// <see cref="UiState.Later(Action{AppState})"/> and its overload, from a <c>static</c> lambda handed
+/// what it acts on, so that a view drawn every frame allocates nothing until it asks.</summary>
+public abstract class AppCommand
 {
     private AppCommand()
     {
     }
 
-    /// <summary>Open an empty tab shown in <see cref="Panel"/>, which the layout made for itself, and
-    /// make it the active tab when <see cref="Focus"/>.</summary>
-    public sealed record OpenTab(string Panel, bool Focus) : AppCommand;
+    public abstract void Run(AppState appState);
 
-    /// <summary>Close <see cref="Tab"/>, whose panel the layout closed.</summary>
-    public sealed record CloseTab(DocumentTab Tab) : AppCommand;
+    internal static AppCommand Of(Action<AppState> run) => new Plain(run);
 
-    /// <summary>Make <see cref="Tab"/> the active tab and reveal what it shows in the tree.</summary>
-    public sealed record FocusTab(DocumentTab Tab) : AppCommand;
+    internal static AppCommand Of<T>(T subject, Action<AppState, T> run) => new On<T>(subject, run);
 
-    /// <summary>Run the analysis <see cref="Kind"/> stands for, whose row was expanded.</summary>
-    public sealed record RunAnalysis(AnalyzerKindNode Kind) : AppCommand;
+    private sealed class Plain(Action<AppState> run) : AppCommand
+    {
+        public override void Run(AppState appState) => run(appState);
+    }
 
-    /// <summary>Lay out <see cref="Diagram"/> anew, its cards and labels as large as <see cref="Measures"/>
-    /// says they are drawn.</summary>
-    public sealed record LayOutDiagram(TypeDiagram Diagram, DiagramMeasures Measures) : AppCommand;
+    private sealed class On<T>(T subject, Action<AppState, T> run) : AppCommand
+    {
+        public override void Run(AppState appState) => run(appState, subject);
+    }
 }

@@ -32,21 +32,21 @@ internal static class ComparisonView
             DocumentsView.Hint(ui, hint);
             return;
         }
-        Tree(ui, appState, rows);
-        ContextMenu(ui, appState, rows);
+        Tree(ui, rows);
+        ContextMenu(ui, rows);
     }
 
     /// <summary>The tools in a bar of the tab's own, while the bar over documents, where they sit otherwise, is hidden.</summary>
     private static void OwnToolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
     {
         using (ui.PaneToolbar())
-            Tools(ui, appState, tab, comparison);
+            Tools(ui, tab, comparison);
         ui.Separator();
     }
 
     /// <summary>The comparison's tools, for the bar over the document: collapsing and expanding the tree,
     /// swapping the assemblies' sides, and what it shows.</summary>
-    public static void Tools(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
+    public static void Tools(Ui<UiState> ui, DocumentTab tab, AssemblyComparison comparison)
     {
         var t = ui.State.Strings;
         var icons = ui.State.Icons;
@@ -60,10 +60,10 @@ internal static class ComparisonView
                 rows.ExpandAll();
             ui.Separator(ui.Theme.IconSize);
             if (ui.IconButton("swap", icons.ComparisonSwap, t.ComparisonSwap))
-                SwapComparedAssemblies(appState, comparison);
+                ui.State.Later(comparison, static (a, c) => SwapComparedAssemblies(a, c));
             ui.Separator(ui.Theme.IconSize);
             OnlyDifferencesCheckbox(ui, rows);
-            HiddenMembersCheckbox(ui, appState, comparison);
+            HiddenMembersCheckbox(ui, comparison);
         }
     }
 
@@ -74,11 +74,11 @@ internal static class ComparisonView
             rows.ShowOnlyDifferences(only);
     }
 
-    private static void HiddenMembersCheckbox(Ui<UiState> ui, AppState appState, AssemblyComparison comparison)
+    private static void HiddenMembersCheckbox(Ui<UiState> ui, AssemblyComparison comparison)
     {
         var all = comparison.Scope == ApiScope.AllDeclared;
         if (ui.Checkbox(ui.State.Strings.ComparisonShowHiddenMembers, ref all, id: "show-hidden-members"))
-            ChangeComparedScope(appState, comparison, ScopeOf(all));
+            ui.State.Later((comparison, scope: ScopeOf(all)), static (a, s) => ChangeComparedScope(a, s.comparison, s.scope));
     }
 
     private static ApiScope ScopeOf(bool all)
@@ -132,12 +132,12 @@ internal static class ComparisonView
         _ => throw new UnreachableException(),
     };
 
-    private static void Tree(Ui<UiState> ui, AppState appState, ComparisonRows rows)
+    private static void Tree(Ui<UiState> ui, ComparisonRows rows)
     {
         var box = new Box { Padding = new Spacing(0f, ui.Theme.GapTight) };
         var result = ui.TreeView(TreeId, rows.Roots, rows, rows.View, box);
         if (result.Activated)
-            Open(appState, result.Node, inNewTab: false);
+            ui.State.Later(result.Node, static (a, n) => Open(a, n, inNewTab: false));
         if (result.ContextMenuRequested && result.Node != null)
             ui.OpenContextMenu(MenuId, result.ContextMenuAt);
     }
@@ -181,7 +181,7 @@ internal static class ComparisonView
         };
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState appState, ComparisonRows rows)
+    private static void ContextMenu(Ui<UiState> ui, ComparisonRows rows)
     {
         var t = ui.State.Strings;
         using var menu = ui.ContextMenu(MenuId);
@@ -193,8 +193,8 @@ internal static class ComparisonView
         var left = LeftOf(entry);
         var right = RightOf(entry);
         if (ui.MenuItem(t.ComparisonOpenLeft, enabled: left != null, id: "open-left") && left != null)
-            Navigate(appState, left.Reference, inNewTab: false);
+            ui.State.Later(left.Reference, static (a, r) => Navigate(a, r, inNewTab: false));
         if (ui.MenuItem(t.ComparisonOpenRight, enabled: right != null, id: "open-right") && right != null)
-            Navigate(appState, right.Reference, inNewTab: false);
+            ui.State.Later(right.Reference, static (a, r) => Navigate(a, r, inNewTab: false));
     }
 }

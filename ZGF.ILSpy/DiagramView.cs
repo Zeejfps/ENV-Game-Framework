@@ -36,7 +36,7 @@ internal static class DiagramView
         }
         DiagramFaces.MeasureIfChanged(ui, view, diagram);
         Canvas(ui, appState, view, diagram);
-        CardMenu(ui, appState, view, diagram);
+        CardMenu(ui, view, diagram);
     }
 
     /// <summary>The tools in a bar of the tab's own, while the bar over documents, where they sit otherwise, is hidden.</summary>
@@ -113,7 +113,7 @@ internal static class DiagramView
         Press(view, i, hit);
         Pan(ui, view, i);
         SettleCamera(view, i);
-        Click(ui, appState, view, diagram, i, hit);
+        Click(ui, view, diagram, i, hit);
         ShowHandOverClickable(ui, view, i, hit);
         FillFrame(ui, view, diagram, hit);
         using (ui.Box(id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Background = ui.Theme.EditorBackground, Clip = true }))
@@ -291,14 +291,14 @@ internal static class DiagramView
         view.PressMoved = false;
     }
 
-    private static void OpenCode(AppState appState, TypeDiagram diagram, CardRow? row, bool inNewTab)
+    private static void OpenCode(UiState screen, TypeDiagram diagram, CardRow? row, bool inNewTab)
     {
         if (row == null)
             return;
         var target = row.Value.Target;
         if (target == null)
             return;
-        OpenFromDiagram(appState, diagram, target, inNewTab);
+        screen.Later((diagram, target, inNewTab), static (a, s) => OpenFromDiagram(a, s.diagram, s.target, s.inNewTab));
     }
 
     /// <summary>A press dragged further than a click pans the diagram along with the pointer.</summary>
@@ -337,7 +337,7 @@ internal static class DiagramView
     /// <summary>A right click opens the menu of the card under the pointer, a middle click opens its code in
     /// a new tab, and a left click that did not pan picks what it was pressed on and opens the code of the
     /// type or member there, in a new tab with Ctrl held.</summary>
-    private static void Click(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram, Interaction i, DiagramHit hit)
+    private static void Click(Ui<UiState> ui, DiagramViewState view, TypeDiagram diagram, Interaction i, DiagramHit hit)
     {
         if (i.ClickedWith(PointerButton.Right))
         {
@@ -346,7 +346,7 @@ internal static class DiagramView
         }
         if (i.ClickedWith(PointerButton.Middle))
         {
-            OpenCode(appState, diagram, RowOf(hit), inNewTab: true);
+            OpenCode(ui.State, diagram, RowOf(hit), inNewTab: true);
             return;
         }
         if (!i.Clicked)
@@ -354,7 +354,7 @@ internal static class DiagramView
         if (view.PressMoved)
             return;
         Pick(view, view.PressedOn);
-        OpenCode(appState, diagram, RowOf(view.PressedOn), IsCommandHeld(ui.Input.Modifiers));
+        OpenCode(ui.State, diagram, RowOf(view.PressedOn), IsCommandHeld(ui.Input.Modifiers));
     }
 
     private static void OpenMenu(Ui<UiState> ui, DiagramViewState view, DiagramHit hit)
@@ -495,7 +495,7 @@ internal static class DiagramView
         if (shown == null)
             return;
         var click = CodeTooltipView.Render(ui, shown);
-        FollowLink(ui, appState, diagram, click);
+        FollowLink(ui, diagram, click);
     }
 
     private static CodeTooltip? FindTooltip(AppState appState, bool isPanning, DiagramHit hit)
@@ -523,16 +523,16 @@ internal static class DiagramView
 
     /// <summary>A link clicked in the tooltip opens its code, in a new tab with a middle click or Ctrl, and
     /// closes the tooltip.</summary>
-    private static void FollowLink(Ui<UiState> ui, AppState appState, TypeDiagram diagram, RichTextClick click)
+    private static void FollowLink(Ui<UiState> ui, TypeDiagram diagram, RichTextClick click)
     {
         if (click.Link is not CodeReference.Entity reference)
             return;
         ui.HideTooltip();
         var inNewTab = click.Button == PointerButton.Middle || IsCommandHeld(ui.Input.Modifiers);
-        OpenFromDiagram(appState, diagram, reference, inNewTab);
+        ui.State.Later((diagram, reference, inNewTab), static (a, s) => OpenFromDiagram(a, s.diagram, s.reference, s.inNewTab));
     }
 
-    private static void CardMenu(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram)
+    private static void CardMenu(Ui<UiState> ui, DiagramViewState view, TypeDiagram diagram)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -542,36 +542,36 @@ internal static class DiagramView
             return;
         if (!diagram.Contains(card.Type))
             return;
-        CardMenuItems(ui, appState, view, diagram, card);
+        CardMenuItems(ui, view, diagram, card);
     }
 
-    private static void CardMenuItems(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram, TypeCard card)
+    private static void CardMenuItems(Ui<UiState> ui, DiagramViewState view, TypeDiagram diagram, TypeCard card)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeOpen, id: "open"))
-            OpenFromDiagram(appState, diagram, card.Type, inNewTab: false);
+            ui.State.Later((diagram, card), static (a, s) => OpenFromDiagram(a, s.diagram, s.card.Type, inNewTab: false));
         if (ui.MenuItem(t.TreeOpenInNewTab, id: "open-in-new-tab"))
-            OpenFromDiagram(appState, diagram, card.Type, inNewTab: true);
+            ui.State.Later((diagram, card), static (a, s) => OpenFromDiagram(a, s.diagram, s.card.Type, inNewTab: true));
         ui.MenuSeparator();
-        GrowItems(ui, appState, diagram, card);
+        GrowItems(ui, diagram, card);
         ui.MenuSeparator();
         if (ui.MenuItem(t.DiagramRemove, id: "remove"))
-            Remove(appState, view, diagram, card);
+            ui.State.Later((view, diagram, card), static (a, s) => Remove(a, s.view, s.diagram, s.card));
     }
 
     /// <summary>The items that add the types <paramref name="card"/> is related to, each offered when it has
     /// such relations, and enabled while the diagram lacks some of them.</summary>
-    private static void GrowItems(Ui<UiState> ui, AppState appState, TypeDiagram diagram, TypeCard card)
+    private static void GrowItems(Ui<UiState> ui, TypeDiagram diagram, TypeCard card)
     {
         var t = ui.State.Strings;
         if (HasLinks(card, IsBaseLink) && ui.MenuItem(t.DiagramAddBases, enabled: HasMissingBases(diagram, card), id: "add-bases"))
-            ExpandBases(appState, diagram, card);
+            ui.State.Later((diagram, card), static (a, s) => ExpandBases(a, s.diagram, s.card));
         if (HasLinks(card, IsInterfaceLink) && ui.MenuItem(t.DiagramAddInterfaces, enabled: HasMissingInterfaces(diagram, card), id: "add-interfaces"))
-            ExpandInterfaces(appState, diagram, card);
+            ui.State.Later((diagram, card), static (a, s) => ExpandInterfaces(a, s.diagram, s.card));
         if (card.CanHaveDerived && ui.MenuItem(DerivedItemOf(ui, card), id: "add-derived"))
-            ExpandDerived(appState, diagram, card);
+            ui.State.Later((diagram, card), static (a, s) => ExpandDerived(a, s.diagram, s.card));
         if (HasLinks(card, IsHeldLink) && ui.MenuItem(t.DiagramAddHeld, enabled: HasMissingHeld(diagram, card), id: "add-held"))
-            ExpandHeld(appState, diagram, card);
+            ui.State.Later((diagram, card), static (a, s) => ExpandHeld(a, s.diagram, s.card));
     }
 
     private static bool HasLinks(TypeCard card, Func<TypeLink, bool> isKind) => card.Links.Any(isKind);

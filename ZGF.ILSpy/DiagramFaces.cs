@@ -39,7 +39,7 @@ internal static class DiagramFaces
         var faces = Measure(ui, view, diagram);
         view.Faces.Keep(key, faces);
         view.MeasuredVersion = diagram.Version;
-        ui.State.AppCommands.Enqueue(new AppCommand.LayOutDiagram(diagram, MeasuresOf(ui, diagram, faces)));
+        ui.State.Later((diagram, measures: MeasuresOf(ui, diagram, faces)), static (a, s) => Diagrams.LayOutDiagram(a, s.diagram, s.measures));
     }
 
     private static FaceKey KeyOf(Ui<UiState> ui, DiagramViewState view, TypeDiagram diagram)

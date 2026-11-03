@@ -30,11 +30,11 @@ internal static class SearchPanelView
         using (ui.PaneToolbar(new Box { Gap = ui.Theme.Gap }))
         {
             KindsButton(ui, appState);
-            Field(ui, appState);
+            Field(ui);
             ResultCount(ui, ui.State.Search);
         }
         ui.Separator();
-        Results(ui, appState);
+        Results(ui);
     }
 
     private static void KindsButton(Ui<UiState> ui, AppState appState)
@@ -131,7 +131,7 @@ internal static class SearchPanelView
         return left;
     }
 
-    private static void Field(Ui<UiState> ui, AppState appState)
+    private static void Field(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var search = ui.State.Search;
@@ -145,20 +145,20 @@ internal static class SearchPanelView
             return;
         if (submitted)
         {
-            ShowSelected(appState, search);
+            var row = PickSelected(search);
+            if (row != null)
+                ui.State.Later(row.Node, static (a, node) => ShowNode(a, node));
             return;
         }
         if (ui.Input.IsKeyPressed(KeyboardKey.DownArrow) && search.Rows.Count > 0)
             ui.Focus(ResultsId, takesText: false);
     }
 
-    private static void ShowSelected(AppState appState, Search search)
+    private static SearchResult? PickSelected(Search search)
     {
         if (search.SelectedRow == null)
             search.Move(1);
-        var row = search.SelectedRow;
-        if (row != null)
-            ShowNode(appState, row.Node);
+        return search.SelectedRow;
     }
 
     private static void ResultCount(Ui<UiState> ui, Search search)
@@ -176,7 +176,7 @@ internal static class SearchPanelView
         return t.SearchResults(count);
     }
 
-    private static void Results(Ui<UiState> ui, AppState appState)
+    private static void Results(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var search = ui.State.Search;
@@ -187,7 +187,7 @@ internal static class SearchPanelView
         var clicked = table.Header(headers, sort);
         if (clicked >= 0)
             search.SortBy(SortOf(clicked));
-        ResultRows(ui, appState, table);
+        ResultRows(ui, table);
     }
 
     private static int ColumnOf(SearchSort sort) => (int)sort - 1;
@@ -200,20 +200,20 @@ internal static class SearchPanelView
 
     private static SearchSort SortOf(int column) => (SearchSort)(column + 1);
 
-    private static void ResultRows(Ui<UiState> ui, AppState appState, TableFrame table)
+    private static void ResultRows(Ui<UiState> ui, TableFrame table)
     {
         var search = ui.State.Search;
         using var body = table.Body(search.Rows.Count);
         search.Selection.TakeFrom(search.Rows);
         for (var i = body.First; i < body.End; i++)
-            ResultRow(ui, appState, body, i);
+            ResultRow(ui, body, i);
         search.Selection.TakeFrom(search.Rows);
         var selected = search.SelectedRow;
         if (body.Activated && selected != null)
-            ShowNode(appState, selected.Node, body.InNewTab);
+            ui.State.Later((node: selected.Node, inNewTab: body.InNewTab), static (a, s) => ShowNode(a, s.node, s.inNewTab));
     }
 
-    private static void ResultRow(Ui<UiState> ui, AppState appState, TableBody body, int index)
+    private static void ResultRow(Ui<UiState> ui, TableBody body, int index)
     {
         var theme = ui.Theme;
         var result = ui.State.Search.Rows[index];
@@ -222,7 +222,7 @@ internal static class SearchPanelView
         using (row)
         {
             if (row.Interaction.Clicked)
-                ShowNode(appState, node);
+                ui.State.Later(node, static (a, n) => ShowNode(a, n));
             NameCell(ui, row, result);
             row.TextCell(1, result.Location, theme.TextMuted, overflow: TextOverflow.EllipsisMiddle);
             row.TextCell(2, NodeText.AssemblyLabel(node.Assembly), theme.TextMuted);

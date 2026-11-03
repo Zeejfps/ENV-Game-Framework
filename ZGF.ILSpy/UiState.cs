@@ -62,6 +62,15 @@ public sealed class UiState : IUiState
     /// <summary>What the screen asked of the app state while it drew, for the app to run once the frame is drawn.</summary>
     public Queue<AppCommand> AppCommands { get; } = new();
 
+    /// <summary>Asks for <paramref name="run"/> to be done to the app state once the frame is drawn.
+    /// Pass a <c>static</c> lambda.</summary>
+    public void Later(Action<AppState> run) => AppCommands.Enqueue(AppCommand.Of(run));
+
+    /// <summary>Asks for <paramref name="run"/> to be done to the app state and <paramref name="subject"/>
+    /// once the frame is drawn. Pass a <c>static</c> lambda, handing it what it acts on as
+    /// <paramref name="subject"/>, so that nothing is allocated unless this is called.</summary>
+    public void Later<T>(T subject, Action<AppState, T> run) => AppCommands.Enqueue(AppCommand.Of(subject, run));
+
     /// <summary>Where the views and the open documents are docked, all as tabs: side by side,
     /// stacked or in floating windows.</summary>
     public MainLayout MainLayout { get; }
@@ -105,6 +114,10 @@ public sealed class UiState : IUiState
     /// <summary>The files the features asked to open, which the app hands to the OS once the frame is
     /// drawn.</summary>
     public Queue<string> FilesToOpen { get; } = new();
+
+    /// <summary>The folders the features asked to open, which the app hands to the OS once the frame is
+    /// drawn.</summary>
+    public Queue<string> FoldersToOpen { get; } = new();
 
     /// <summary>The analyzer's tree as its view shows it.</summary>
     public AnalyzerRows Analyzer { get; }

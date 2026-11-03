@@ -85,6 +85,7 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         FollowIconTheme(ui);
         OpenAskedWebPages(ui);
         OpenAskedFiles(ui);
+        OpenAskedFolders(ui);
     }
 
     private static void OpenAskedWebPages(Ui<UiState> ui)
@@ -92,6 +93,13 @@ public sealed partial class IlSpyApp : ImmediateGuiApp<UiState>
         var pages = ui.State.WebPagesToOpen;
         while (pages.TryDequeue(out var url))
             ui.OpenUrl(url);
+    }
+
+    private static void OpenAskedFolders(Ui<UiState> ui)
+    {
+        var folders = ui.State.FoldersToOpen;
+        while (folders.TryDequeue(out var path))
+            ui.OpenFolder(path);
     }
 
     private static void OpenAskedFiles(Ui<UiState> ui)

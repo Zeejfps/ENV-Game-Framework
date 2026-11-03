@@ -66,7 +66,7 @@ internal static class FrameworkPickerView
 
         if (open && picker.HasSelection)
         {
-            OpenSelected(appState, picker);
+            ui.State.Later(picker.ListSelected(), static (a, selected) => OpenSelected(a, selected));
             close = true;
         }
         if (close)
@@ -75,9 +75,9 @@ internal static class FrameworkPickerView
 
     private static string Summary(Strings t, int shown, int selected) => $"{t.PickerCount(shown)} · {t.PickerSelected(selected)}";
 
-    private static void OpenSelected(AppState appState, FrameworkPicker picker)
+    private static void OpenSelected(AppState appState, List<RuntimeAssembly> selected)
     {
-        var paths = picker.ListSelected()
+        var paths = selected
             .Select(a => a.FilePath);
         OpenAssemblies(appState, paths);
     }

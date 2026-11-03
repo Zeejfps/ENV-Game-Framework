@@ -134,7 +134,7 @@ public static class ScreenLayout
     private static string OpenActiveTabPanel(UiState uiState)
     {
         var panel = uiState.Documents.NewPanel();
-        uiState.AppCommands.Enqueue(new AppCommand.OpenTab(panel, Focus: true));
+        uiState.Later((uiState, panel), static (a, s) => IlSpyApp.OpenTabIn(s.uiState, a, s.panel, focus: true));
         return panel;
     }
 }

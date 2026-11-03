@@ -29,7 +29,7 @@ internal static class AssemblyListDeleteDialogView
                     if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))
                         dialog.StopAsking();
                     if (ui.Button(t.ListsDeleteConfirm, id: "delete-confirm", variant: ButtonVariant.Primary))
-                        Delete(dialog, appState, name);
+                        ui.State.Later((dialog, name), static (a, s) => Delete(s.dialog, a, s.name));
                 }
             }
         }

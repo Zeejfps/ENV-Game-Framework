@@ -30,7 +30,7 @@ internal static class OmnibarView
             return;
         var panel = ui.State.Documents.PanelOf(tab);
         if (ContinueSearch(ui, panel))
-            SearchBar(ui, appState);
+            SearchBar(ui);
         else
             PathBar(ui, appState, tab, panel);
         ui.Separator();
@@ -67,7 +67,7 @@ internal static class OmnibarView
             {
                 using (ui.Id(i))
                 {
-                    CrumbButton(ui, appState, crumbs[i], i);
+                    CrumbButton(ui, crumbs[i], i);
                     var owner = ChildrenButton(ui, panel, crumbs, i);
                     if (owner != 0)
                         menuOwner = owner;
@@ -77,7 +77,7 @@ internal static class OmnibarView
             SearchArea(ui, panel);
             SearchButton(ui, panel);
         }
-        ChildrenMenu(ui, appState, panel, menuOwner);
+        ChildrenMenu(ui, panel, menuOwner);
     }
 
     /// <summary>The tools of what the tab shows that no node stands for: a diagram's or a comparison's.</summary>
@@ -89,14 +89,14 @@ internal static class OmnibarView
                 DiagramView.Tools(ui, tab);
                 break;
             case TabContent.Comparison comparison:
-                ComparisonView.Tools(ui, appState, tab, comparison.Assemblies);
+                ComparisonView.Tools(ui, tab, comparison.Assemblies);
                 break;
         }
     }
 
     /// <summary>The node's icon and name, which gives up room, earlier crumbs first, while the path is
     /// too long for the bar.</summary>
-    private static void CrumbButton(Ui<UiState> ui, AppState appState, Crumb crumb, int depth)
+    private static void CrumbButton(Ui<UiState> ui, Crumb crumb, int depth)
     {
         var theme = ui.Theme;
         var node = crumb.Node;
@@ -118,9 +118,9 @@ internal static class OmnibarView
         }
         ui.Tooltip(i.Id, NodeText.Tooltip(node));
         if (i.Clicked)
-            PickNode(ui, appState, node);
+            ui.State.Later((node, inNewTab: IsCommandHeld(ui)), static (a, s) => PickNode(a, s.node, s.inNewTab));
         if (i.ClickedWith(PointerButton.Middle))
-            ShowNode(appState, node, inNewTab: true);
+            ui.State.Later(node, static (a, n) => ShowNode(a, n, inNewTab: true));
     }
 
     /// <summary>Public API in the text color, the rest muted, as the tree shows them.</summary>
@@ -131,10 +131,10 @@ internal static class OmnibarView
         return theme.TextMuted;
     }
 
-    /// <summary>Shows <paramref name="node"/> as one picked in the tree is, or in a new tab while Ctrl, or ⌘ on macOS, is held.</summary>
-    private static void PickNode(Ui<UiState> ui, AppState appState, BrowseNode node)
+    /// <summary>Shows <paramref name="node"/> as one picked in the tree is, or in a new tab when <paramref name="inNewTab"/>.</summary>
+    private static void PickNode(AppState appState, BrowseNode node, bool inNewTab)
     {
-        if (IsCommandHeld(ui))
+        if (inNewTab)
         {
             ShowNode(appState, node, inNewTab: true);
             return;
@@ -217,7 +217,7 @@ internal static class OmnibarView
     /// <summary>The list of the open crumb's children under its arrow <paramref name="owner"/>, with a
     /// filter over them; 0 when no list is open in this bar, which forgets one left open on a crumb gone
     /// from it.</summary>
-    private static void ChildrenMenu(Ui<UiState> ui, AppState appState, string panel, int owner)
+    private static void ChildrenMenu(Ui<UiState> ui, string panel, int owner)
     {
         var omnibar = ui.State.Omnibar;
         var menu = omnibar.Menu;
@@ -247,8 +247,11 @@ internal static class OmnibarView
         var picked = ChildRows(ui, menu, shown, listId);
         if (submitted)
             picked = new PickedChild(menu.Selection.Item, IsCommandHeld(ui));
-        if (picked.Node != null)
-            ShowChild(appState, omnibar, picked.Node, picked.InNewTab);
+        var node = picked.Node;
+        if (node == null)
+            return;
+        omnibar.CloseMenu();
+        ui.State.Later((node, inNewTab: picked.InNewTab), static (a, s) => PickNode(a, s.node, s.inNewTab));
     }
 
     private static void CloseIfIn(Omnibar omnibar, CrumbMenu menu, string panel)
@@ -320,20 +323,9 @@ internal static class OmnibarView
         return new PickedChild(null, false);
     }
 
-    private static void ShowChild(AppState appState, Omnibar omnibar, BrowseNode node, bool inNewTab)
-    {
-        omnibar.CloseMenu();
-        if (inNewTab)
-        {
-            ShowNode(appState, node, inNewTab: true);
-            return;
-        }
-        PreviewNode(appState, node);
-    }
-
     /// <summary>The search box, whose Enter goes to the selected match, else the best, and whose Up and
     /// Down walk the matches suggested under it.</summary>
-    private static void SearchBar(Ui<UiState> ui, AppState appState)
+    private static void SearchBar(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var omnibar = ui.State.Omnibar;
@@ -348,8 +340,11 @@ internal static class OmnibarView
         var clicked = Suggestions(ui, omnibar, fieldId);
         if (submitted)
             clicked = new PickedMatch(omnibar.FindSuggestionToShow(), IsCommandHeld(ui));
-        if (clicked.Match != null)
-            ShowMatch(appState, omnibar, clicked);
+        var match = clicked.Match;
+        if (match == null)
+            return;
+        omnibar.StopSearch();
+        ui.State.Later((node: match.Node, inNewTab: clicked.InNewTab), static (a, s) => ShowNode(a, s.node, s.inNewTab));
     }
 
     /// <summary>The query syntax, over the box while it is empty, so it never covers the suggestions.</summary>
@@ -463,10 +458,4 @@ internal static class OmnibarView
         AlignY = Align.Center,
         Background = theme.PickRowBackground(selected, focused: true, hovered),
     };
-
-    private static void ShowMatch(AppState appState, Omnibar omnibar, PickedMatch picked)
-    {
-        omnibar.StopSearch();
-        ShowNode(appState, picked.Match!.Node, picked.InNewTab);
-    }
 }

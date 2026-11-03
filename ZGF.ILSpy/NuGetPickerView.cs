@@ -24,10 +24,10 @@ internal static class NuGetPickerView
     private const float LoadingStripHeight = 3f;
     private const int DescriptionLines = 2;
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui)
     {
         var picker = ui.State.NuGetPicker;
-        OpenDownloaded(ui, appState, picker);
+        OpenDownloaded(ui, picker);
         if (picker.IsOpen)
             UpdateSearch(ui, picker);
         var wasOpen = picker.IsOpen;
@@ -36,12 +36,12 @@ internal static class NuGetPickerView
         picker.Window.Settle(ui.Input.IsDown(PointerButton.Left));
     }
 
-    private static void OpenDownloaded(Ui<UiState> ui, AppState appState, NuGetPicker picker)
+    private static void OpenDownloaded(Ui<UiState> ui, NuGetPicker picker)
     {
         var path = picker.TakeDownloaded();
         if (path == null)
             return;
-        OpenAssembly(appState, path);
+        ui.State.Later(path, static (a, p) => OpenAssembly(a, p));
         Close(ui, picker);
     }
 

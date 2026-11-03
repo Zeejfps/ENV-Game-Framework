@@ -32,7 +32,7 @@ internal static class DecompilerOptionsPanelView
                 folded.UnfoldAll();
             ui.Separator(theme.IconSize);
             if (ui.IconButton("reset", ui.State.Icons.OptionsResetDecompiler, t.DecompilerOptionsReset, options.HasChanges))
-                ResetDecompilerToggles(appState);
+                ui.State.Later(static a => ResetDecompilerToggles(a));
         }
         ui.Separator();
         var tooNew = options.LanguageVersion < Newest ? ui.Memo("too-new", (t, options.LanguageVersion), static a => TooNew(a.t, a.LanguageVersion)) : null;
@@ -54,12 +54,12 @@ internal static class DecompilerOptionsPanelView
                 {
                     if (toggle is null)
                     {
-                        if (Header(ui, appState, folded, section, options, rowHeight, tooNew))
+                        if (Header(ui, folded, section, options, rowHeight, tooNew))
                             flipped = section.Key;
                     }
                     else
                     {
-                        Toggle(ui, appState, toggle, options, rowHeight);
+                        Toggle(ui, toggle, options, rowHeight);
                     }
                 }
             }
@@ -71,7 +71,7 @@ internal static class DecompilerOptionsPanelView
     /// <summary>Draws a section's header: a chevron and a checkbox that sets every toggle in it,
     /// showing a square when only some are on. Returns true when the row besides the checkbox was
     /// clicked to fold or unfold.</summary>
-    private static bool Header(Ui<UiState> ui, AppState appState, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
+    private static bool Header(Ui<UiState> ui, FoldedGroups folded, Section section, DecompilerOptions options, float rowHeight,
         string? tooNew)
     {
         var t = ui.State.Strings;
@@ -94,7 +94,7 @@ internal static class DecompilerOptionsPanelView
             ui.Icon(new UiIcon(mark, theme.TextMuted));
             var all = State(section, options);
             if (ui.Checkbox(Title(t, section), ref all, id: "all", enabled: allowed, width: Sizing.Grow(), bold: Changed(section, options)))
-                SetDecompilerToggles(appState, section.Toggles, all == true);
+                ui.State.Later((toggles: section.Toggles, on: all == true), static (a, s) => SetDecompilerToggles(a, s.toggles, s.on));
         }
         if (!allowed && tooNew != null)
             ui.Tooltip(item.Id, tooNew);
@@ -130,7 +130,7 @@ internal static class DecompilerOptionsPanelView
         return false;
     }
 
-    private static void Toggle(Ui<UiState> ui, AppState appState, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
+    private static void Toggle(Ui<UiState> ui, DecompilerToggle toggle, DecompilerOptions options, float rowHeight)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -145,7 +145,7 @@ internal static class DecompilerOptionsPanelView
             var on = options.IsOn(toggle);
             if (ui.Checkbox(DecompilerOptionLabels.Label(t, toggle.Name) ?? toggle.Name, ref on, id: toggle.Name, enabled: options.Allows(toggle),
                     width: Sizing.Grow(), bold: options.IsChanged(toggle)))
-                SetDecompilerToggle(appState, toggle, on);
+                ui.State.Later((toggle, on), static (a, s) => SetDecompilerToggle(a, s.toggle, s.on));
         }
     }
 

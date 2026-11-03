@@ -56,7 +56,7 @@ internal static class ExportDialogView
                 return;
             }
             Body(ui, appState);
-            Footer(ui, appState);
+            Footer(ui);
         }
     }
 
@@ -315,7 +315,7 @@ internal static class ExportDialogView
         var label = DecompilerOptionLabels.Label(t, name) ?? name;
         var on = appState.DecompilerOptions.IsOn(toggle);
         if (ui.Checkbox(label, ref on, id: name, compact: true))
-            SetDecompilerToggle(appState, toggle, on);
+            ui.State.Later((toggle, on), static (a, s) => SetDecompilerToggle(a, s.toggle, s.on));
     }
 
     /// <summary>What is written besides the code: the strong-name key to sign with, and PDBs.</summary>
@@ -358,7 +358,7 @@ internal static class ExportDialogView
     }
 
     /// <summary>What stops the export, if anything, beside the buttons, set off from the body by a rule.</summary>
-    private static void Footer(Ui<UiState> ui, AppState appState)
+    private static void Footer(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -372,7 +372,7 @@ internal static class ExportDialogView
             if (ui.Button(t.ExportCancel, id: "export-cancel", variant: ButtonVariant.Ghost))
                 setup.Close();
             if (ui.Button(t.ExportConfirm, enabled: setup.CanExport, id: "export-start", variant: ButtonVariant.Primary))
-                Start(setup, appState);
+                ui.State.Later(setup, static (a, s) => Start(s, a));
         }
     }
 

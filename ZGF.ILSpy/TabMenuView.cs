@@ -24,14 +24,14 @@ internal static class TabMenuView
     }
 
     /// <summary>Keeps the tab double-clicked open, when it is a document's.</summary>
-    public static void KeepOpenOnDoubleClick(Ui<UiState> ui, AppState appState, string? panel)
+    public static void KeepOpenOnDoubleClick(Ui<UiState> ui, string? panel)
     {
         if (panel == null)
             return;
         var tab = ui.State.Documents.FindTab(panel);
         if (tab == null)
             return;
-        KeepTabOpen(appState, tab);
+        ui.State.Later(tab, static (a, kept) => KeepTabOpen(a, kept));
     }
 
     public static void Render(Ui<UiState> ui, AppState appState)
@@ -73,7 +73,7 @@ internal static class TabMenuView
         if (tab != appState.Tabs.Preview)
             return;
         if (ui.MenuItem(ui.State.Strings.TabKeepOpen, id: "keep-open"))
-            KeepTabOpen(appState, tab);
+            ui.State.Later(tab, static (a, kept) => KeepTabOpen(a, kept));
         ui.MenuSeparator();
     }
 }

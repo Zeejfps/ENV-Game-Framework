@@ -14,10 +14,10 @@ internal static class BookmarkImportDialogView
         var import = appState.Imports.Asking;
         if (import == null)
             return;
-        Ask(ui, appState, import);
+        Ask(ui, import);
     }
 
-    private static void Ask(Ui<UiState> ui, AppState appState, PendingImport import)
+    private static void Ask(Ui<UiState> ui, PendingImport import)
     {
         var t = ui.State.Strings;
         var open = true;
@@ -29,15 +29,15 @@ internal static class BookmarkImportDialogView
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.BookmarksImportCancel, id: "import-cancel", variant: ButtonVariant.Ghost))
-                        FinishBookmarkImport(appState, import, null);
+                        ui.State.Later(import, static (a, i) => FinishBookmarkImport(a, i, null));
                     if (ui.Button(t.BookmarksImportReplace, id: "import-replace"))
-                        FinishBookmarkImport(appState, import, BookmarkImportMode.Replace);
+                        ui.State.Later(import, static (a, i) => FinishBookmarkImport(a, i, BookmarkImportMode.Replace));
                     if (ui.Button(t.BookmarksImportMerge, id: "import-merge", variant: ButtonVariant.Primary))
-                        FinishBookmarkImport(appState, import, BookmarkImportMode.Merge);
+                        ui.State.Later(import, static (a, i) => FinishBookmarkImport(a, i, BookmarkImportMode.Merge));
                 }
             }
         }
         if (!open)
-            FinishBookmarkImport(appState, import, null);
+            ui.State.Later(import, static (a, i) => FinishBookmarkImport(a, i, null));
     }
 }

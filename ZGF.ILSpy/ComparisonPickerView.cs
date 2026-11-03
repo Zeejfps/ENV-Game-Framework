@@ -49,7 +49,7 @@ internal static class ComparisonPickerView
             }
         }
         if (compare)
-            close |= CompareWithSelected(appState, picker, compared, t);
+            close |= CompareWithSelected(ui.State, picker, compared, t);
         if (close)
             picker.Close();
     }
@@ -112,12 +112,12 @@ internal static class ComparisonPickerView
     }
 
     /// <summary>Compares the assembly to compare with the one selected, if any; true when it did.</summary>
-    private static bool CompareWithSelected(AppState appState, ComparisonPicker picker, LoadedModule compared, Strings t)
+    private static bool CompareWithSelected(UiState screen, ComparisonPicker picker, LoadedModule compared, Strings t)
     {
         var other = picker.Selected;
         if (other == null)
             return false;
-        CompareAssemblies(appState, compared, other, t.ComparisonTitle(compared.Name));
+        screen.Later((compared, other, title: t.ComparisonTitle(compared.Name)), static (a, s) => CompareAssemblies(a, s.compared, s.other, s.title));
         return true;
     }
 }

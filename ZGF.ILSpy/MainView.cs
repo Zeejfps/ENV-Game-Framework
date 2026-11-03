@@ -16,7 +16,7 @@ public static class MainView
     {
         using var screen = ui.Screen();
         Shortcuts.Handle(ui, appState);
-        OpenDropped(ui, appState);
+        OpenDropped(ui);
         using (ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f }))
         {
             MainMenuView.Render(ui, appState);
@@ -29,7 +29,7 @@ public static class MainView
         }
         FrameworkPickerView.Render(ui, appState);
         ComparisonPickerView.Render(ui, appState);
-        NuGetPickerView.Render(ui, appState);
+        NuGetPickerView.Render(ui);
         AssemblyListsDialogView.Render(ui, appState);
         AssemblyListDeleteDialogView.Render(ui, appState);
         BookmarkImportDialogView.Render(ui, appState);
@@ -41,12 +41,12 @@ public static class MainView
     }
 
     /// <summary>Opens the files dropped on the window.</summary>
-    private static void OpenDropped(Ui<UiState> ui, AppState appState)
+    private static void OpenDropped(Ui<UiState> ui)
     {
         var dropped = ui.Input.TakeDroppedFiles();
         if (dropped.Count == 0)
             return;
-        OpenDroppedFiles(appState, dropped);
+        ui.State.Later(dropped, static (a, paths) => OpenDroppedFiles(a, paths));
     }
 
     private static void Panels(Ui<UiState> ui, AppState appState)
@@ -105,7 +105,7 @@ public static class MainView
         }
         TabMenuView.OpenOnRightClick(ui, tabMenu);
         TabMenuView.Render(ui, appState);
-        TabMenuView.KeepOpenOnDoubleClick(ui, appState, doubleClicked);
+        TabMenuView.KeepOpenOnDoubleClick(ui, doubleClicked);
     }
 
     private static DockTab Tab(UiState screen, AppState appState, Strings t, string panel)

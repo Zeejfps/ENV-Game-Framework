@@ -134,34 +134,12 @@ public sealed partial class IlSpyApp
     {
         var commands = uiState.AppCommands;
         while (commands.TryDequeue(out var command))
-            Run(command, uiState, appState);
-    }
-
-    private static void Run(AppCommand command, UiState uiState, AppState appState)
-    {
-        switch (command)
-        {
-            case AppCommand.OpenTab open:
-                OpenTabIn(uiState, appState, open.Panel, open.Focus);
-                break;
-            case AppCommand.CloseTab close:
-                CloseTabAndFocusNext(uiState, appState, close.Tab);
-                break;
-            case AppCommand.FocusTab focus:
-                FocusTab(appState, focus.Tab);
-                break;
-            case AppCommand.RunAnalysis run:
-                RunAnalysis(appState, run.Kind);
-                break;
-            case AppCommand.LayOutDiagram layOut:
-                LayOutDiagram(appState, layOut.Diagram, layOut.Measures);
-                break;
-        }
+            command.Run(appState);
     }
 
     /// <summary>Opens an empty tab shown in <paramref name="panel"/>, unless the panel was closed meanwhile,
     /// and makes it the active tab when asked to or when the layout focuses its panel.</summary>
-    private static void OpenTabIn(UiState uiState, AppState appState, string panel, bool focus)
+    internal static void OpenTabIn(UiState uiState, AppState appState, string panel, bool focus)
     {
         if (!uiState.Layout.Contains(panel))
             return;
@@ -172,7 +150,7 @@ public sealed partial class IlSpyApp
             FocusTab(appState, tab);
     }
 
-    private static void CloseTabAndFocusNext(UiState uiState, AppState appState, DocumentTab tab)
+    internal static void CloseTabAndFocusNext(UiState uiState, AppState appState, DocumentTab tab)
     {
         var wasActive = CloseTab(appState, tab);
         if (!wasActive)
