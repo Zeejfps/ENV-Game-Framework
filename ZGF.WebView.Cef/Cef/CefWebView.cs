@@ -70,7 +70,7 @@ internal sealed class CefWebView : IWebView
         {
             WindowlessFrameRate = _options.FrameRate,
             // Opaque background sidesteps CEF's premultiplied-alpha OnPaint buffer (plan decision 5).
-            BackgroundColor = new CefColor(255, 255, 255, 255),
+            BackgroundColor = new CefColor(_setup.Background | 0xFF000000),
         };
 
         CefLog.Write($"CreateBrowser url={_initialUrl} logical={_logicalWidth}x{_logicalHeight} paint={_paintPath}");

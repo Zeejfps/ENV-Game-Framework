@@ -68,6 +68,12 @@ public sealed record WebViewSetup
     /// <summary>Scripts run in the top frame of every document the view loads, in order, before any of the
     /// page's own: for globals a page expects its host to have put there.</summary>
     public IReadOnlyList<string> DocumentStartScripts { get; init; } = [];
+
+    /// <summary>The color, ARGB, the view shows before a document has painted and wherever a document paints no
+    /// background of its own; also what its element shows before the view's first frame. Opaque: its alpha is ignored.
+    /// White, as a browser starts, unless set: a page with a dark background set it to that, or the view flashes white
+    /// as it loads.</summary>
+    public uint Background { get; init; } = 0xFFFFFFFF;
 }
 
 /// <summary>Receives a web view's painted frames on the UI thread. Each frame is valid only for the
