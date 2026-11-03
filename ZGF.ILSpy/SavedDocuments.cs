@@ -238,7 +238,9 @@ public static class SavedDocuments
             return;
         var places = nodes.ConvertAll(static n => n.Place);
         appState.Reopened.StartFinding();
-        var found = await Background.Run(() => FindNodes(appState.Assemblies, appState.Session, places));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => FindNodes(assemblies, session, places));
         appState.Reopened.StopFinding();
         var shown = found switch
         {

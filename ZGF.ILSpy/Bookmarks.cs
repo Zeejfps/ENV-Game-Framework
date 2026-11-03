@@ -59,7 +59,9 @@ public static class Bookmarks
         var destination = ChooseDestination(appState, inNewTab: false);
         var place = bookmark.Place;
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, place));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => NodeLookup.Find(assemblies, session, place));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -129,22 +131,24 @@ public static class Bookmarks
             appState.ReportError(new AppProblem.ImportedBookmarksUnreadable(file, read.Unreadable));
         var records = read.Bookmarks;
         appState.Imports.StartFinding();
-        var found = await Background.Run(() => FindPlaces(appState, records));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => FindPlaces(assemblies, session, records));
         appState.Imports.StopFinding();
         TakeImported(appState, found, file);
     }
 
-    private static List<FoundBookmark> FindPlaces(AppState appState, List<BookmarkRecord> records)
+    private static List<FoundBookmark> FindPlaces(AssemblyList assemblies, BrowseSession session, List<BookmarkRecord> records)
     {
-        return records.ConvertAll(r => FindPlace(appState, r));
+        return records.ConvertAll(r => FindPlace(assemblies, session, r));
     }
 
-    private static FoundBookmark FindPlace(AppState appState, BookmarkRecord record)
+    private static FoundBookmark FindPlace(AssemblyList assemblies, BrowseSession session, BookmarkRecord record)
     {
         if (record.Location != null)
             return new FoundBookmark(record, record.Location);
         var treePath = record.ViewState?.SelectedTreeNodePath;
-        var node = ILSpyTree.Locate(appState.Assemblies, appState.Session, record.FileName, treePath, record.Token, record.MemberName);
+        var node = ILSpyTree.Locate(assemblies, session, record.FileName, treePath, record.Token, record.MemberName);
         if (node == null)
             return new FoundBookmark(record, null);
         return new FoundBookmark(record, node.Path);

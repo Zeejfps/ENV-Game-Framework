@@ -45,7 +45,9 @@ public static class Analysis
     public static async void AddToAnalyzer(AppState appState, CodeReference.Navigable reference)
     {
         var root = appState.Analyzer.AddPending(savedAs: null);
-        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, reference));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => NodeLookup.Find(assemblies, session, reference));
         if (!appState.Analyzer.Contains(root))
             return;
         switch (found)
@@ -97,8 +99,9 @@ public static class Analysis
         if (restoring.Count == 0)
             return;
         var analyzed = restoring.ConvertAll(static r => r.SavedAs!.Value);
-        var generation = appState.Assemblies.Generation;
-        var found = await Background.Run(() => FindAnalyzed(appState, analyzed));
+        var assemblies = appState.Assemblies;
+        var generation = assemblies.Generation;
+        var found = await Background.Run(() => FindAnalyzed(assemblies, analyzed));
         if (WasListCleared(appState, generation))
             return;
         switch (found)
@@ -117,9 +120,9 @@ public static class Analysis
 
     private static bool WasListCleared(AppState appState, int generation) => appState.Assemblies.Generation != generation;
 
-    private static List<AnalysisSymbol?> FindAnalyzed(AppState appState, List<CodeAnchor> analyzed)
+    private static List<AnalysisSymbol?> FindAnalyzed(AssemblyList assemblies, List<CodeAnchor> analyzed)
     {
-        return analyzed.ConvertAll(a => Analyzers.Find(appState.Assemblies, a));
+        return analyzed.ConvertAll(a => Analyzers.Find(assemblies, a));
     }
 
     private static void AnalyzeAgain(AppState appState, List<AnalyzerPendingNode> restoring, List<AnalysisSymbol?> found)

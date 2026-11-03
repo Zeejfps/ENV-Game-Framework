@@ -71,7 +71,8 @@ public static class Diagrams
         var diagram = tab.Diagram!;
         var token = diagram.Token;
         diagram.StartReading();
-        var read = await Background.Run(() => TypeCards.ReadWithNeighbours(appState.Assemblies, type, token));
+        var assemblies = appState.Assemblies;
+        var read = await Background.Run(() => TypeCards.ReadWithNeighbours(assemblies, type, token));
         diagram.FinishReading();
         if (diagram.IsClosed)
             return;
@@ -162,7 +163,8 @@ public static class Diagrams
         if (types.Count == 0)
             return;
         diagram.StartReading();
-        var read = await Background.Run(() => ReadCards(appState.Assemblies, types));
+        var assemblies = appState.Assemblies;
+        var read = await Background.Run(() => ReadCards(assemblies, types));
         FinishAdding(appState, diagram, card, read);
     }
 
@@ -180,7 +182,9 @@ public static class Diagrams
     {
         var token = diagram.Token;
         diagram.StartReading();
-        var read = await Background.Run(() => TypeCards.ReadDerived(appState.Assemblies, card.Type, token));
+        var assemblies = appState.Assemblies;
+        var type = card.Type;
+        var read = await Background.Run(() => TypeCards.ReadDerived(assemblies, type, token));
         FinishAdding(appState, diagram, card, read);
     }
 
@@ -221,7 +225,9 @@ public static class Diagrams
         var diagram = ShowSavedDiagram(appState, tab, saved);
         var reading = appState.Reopened.Wait(tab, saved);
         diagram.StartReading();
-        var read = await Background.Run(() => ReadCards(appState.Assemblies, saved.Types));
+        var assemblies = appState.Assemblies;
+        var types = saved.Types;
+        var read = await Background.Run(() => ReadCards(assemblies, types));
         diagram.FinishReading();
         if (!appState.Reopened.Finish(reading))
             return;

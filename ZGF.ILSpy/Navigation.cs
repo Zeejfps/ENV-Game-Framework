@@ -92,7 +92,9 @@ public static class Navigation
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
-        var found = await Background.Run(() => OpenAndFindId(appState, paths, idString, token));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => OpenAndFindId(assemblies, session, paths, idString, token));
         switch (found)
         {
             case Outcome<BrowseNode>.Ok ok when ok.Value != null:
@@ -111,20 +113,21 @@ public static class Navigation
         }
     }
 
-    private static BrowseNode? OpenAndFindId(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString, CancellationToken token)
+    private static BrowseNode? OpenAndFindId(AssemblyList assemblies, BrowseSession session, IReadOnlyList<AssemblyPath> paths, string idString,
+        CancellationToken token)
     {
         var opened = new List<LoadedAssembly>();
         foreach (var path in paths)
-            opened.Add(appState.Assemblies.Open(path, token));
-        var scope = ListIdScope(appState, opened);
-        return NodeLookup.FindById(appState.Session, idString, scope);
+            opened.Add(assemblies.Open(path, token));
+        var scope = ListIdScope(assemblies, opened);
+        return NodeLookup.FindById(session, idString, scope);
     }
 
     /// <summary>The assemblies an id is looked for in: those read from the files opened, a package's
     /// among them, else every open one.</summary>
-    private static List<LoadedModule> ListIdScope(AppState appState, List<LoadedAssembly> opened)
+    private static List<LoadedModule> ListIdScope(AssemblyList assemblies, List<LoadedAssembly> opened)
     {
-        var open = appState.Assemblies.Assemblies;
+        var open = assemblies.Assemblies;
         if (opened.Count == 0)
             return open.ToList();
         return open
@@ -144,7 +147,9 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, reference));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => NodeLookup.Find(assemblies, session, reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -196,7 +201,9 @@ public static class Navigation
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => NodeLookup.FindMetadataRow(appState.Assemblies, appState.Session, reference));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => NodeLookup.FindMetadataRow(assemblies, session, reference));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();
@@ -232,7 +239,8 @@ public static class Navigation
     /// the .NET API reference, or reports that it has none.</summary>
     public static async void ShowInApiReference(AppState appState, CodeReference.Entity reference)
     {
-        var found = await Background.Run(() => appState.Assemblies.FindApiReferencePage(reference));
+        var assemblies = appState.Assemblies;
+        var found = await Background.Run(() => assemblies.FindApiReferencePage(reference));
         if (found is Outcome<string>.Ok ok && ok.Value != null)
             appState.EnqueueCommand(new ViewCommand.OpenWebPage(ok.Value));
         else
@@ -292,7 +300,9 @@ public static class Navigation
             return;
         }
         appState.Intent.StartResolving(ticket);
-        var found = await Background.Run(() => NodeLookup.Find(appState.Assemblies, appState.Session, place));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var found = await Background.Run(() => NodeLookup.Find(assemblies, session, place));
         if (appState.Intent.IsStale(ticket))
             return;
         appState.Intent.StopResolving();

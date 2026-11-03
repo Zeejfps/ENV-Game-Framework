@@ -24,7 +24,8 @@ public static class Assemblies
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
-        var opened = await Background.Run(() => OpenFiles(appState, files, token));
+        var assemblies = appState.Assemblies;
+        var opened = await Background.Run(() => OpenFiles(assemblies, files, token));
         ShowOpened(appState, opened, ticket);
     }
 
@@ -81,7 +82,8 @@ public static class Assemblies
     public static async void OpenDependencies(AppState appState, LoadedModule assembly)
     {
         var token = appState.Opens.Token;
-        var opened = await Background.Run(() => appState.Assemblies.ListReferences(assembly, token));
+        var assemblies = appState.Assemblies;
+        var opened = await Background.Run(() => assemblies.ListReferences(assembly, token));
         if (opened is Outcome<List<LoadedModule>>.Failed failed)
             ReportOpenFailure(appState, failed.Error);
     }
@@ -156,7 +158,9 @@ public static class Assemblies
         var ticket = appState.Reopens.Start(item.FilePath);
         var tabs = ListTabsShowing(appState, item);
         var places = tabs.ConvertAll(t => t.Location);
-        var reopened = await Background.Run(() => ReadAgain(appState, item, places));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var reopened = await Background.Run(() => ReadAgain(assemblies, session, item, places));
         FinishReopen(appState, item, reopened, ticket, tabs);
     }
 
@@ -181,10 +185,9 @@ public static class Assemblies
         return path.FilePath.Equals(item.FilePath);
     }
 
-    private static Reopened ReadAgain(AppState appState, LoadedAssembly item, List<NodePath> places)
+    private static Reopened ReadAgain(AssemblyList assemblies, BrowseSession session, LoadedAssembly item, List<NodePath> places)
     {
-        var fresh = appState.Assemblies.ReadAgain(item);
-        var session = appState.Session;
+        var fresh = assemblies.ReadAgain(item);
         LoadAsLoaded(session, session.RootOf(item), session.RootOf(fresh));
         var placeNodes = places
             .Select(p => session.Find(fresh, p))
@@ -288,7 +291,9 @@ public static class Assemblies
         var places = tabs.ConvertAll(t => t.Location);
         ClearAssemblies(appState);
 
-        var reloaded = await Background.Run(() => ReopenFiles(appState, paths, expanded, places, ticket.Token));
+        var assemblies = appState.Assemblies;
+        var session = appState.Session;
+        var reloaded = await Background.Run(() => ReopenFiles(assemblies, session, paths, expanded, places, ticket.Token));
         FinishReload(appState, reloaded, ticket, intent, tabs);
     }
 
@@ -310,36 +315,38 @@ public static class Assemblies
     private static ViewPosition? FindPositionToKeep(AppState appState, DocumentTab tab) =>
         ViewPosition.KeptIn(tab.Position, tab.Language, appState.Language);
 
-    private static Reloaded ReopenFiles(AppState appState, IReadOnlyList<AssemblyPath> paths, List<NodePath> expanded, List<NodePath> places, CancellationToken cancellationToken)
+    private static Reloaded ReopenFiles(AssemblyList assemblies, BrowseSession session, IReadOnlyList<AssemblyPath> paths, List<NodePath> expanded,
+        List<NodePath> places, CancellationToken cancellationToken)
     {
-        OpenFiles(appState, paths, cancellationToken);
-        var expandedNodes = LoadExpandedNodes(appState, expanded, cancellationToken);
-        var placeNodes = FindNodes(appState, places, cancellationToken);
+        OpenFiles(assemblies, paths, cancellationToken);
+        var expandedNodes = LoadExpandedNodes(assemblies, session, expanded, cancellationToken);
+        var placeNodes = FindNodes(assemblies, session, places, cancellationToken);
         return new Reloaded(expandedNodes, placeNodes);
     }
 
-    private static List<BrowseNode> LoadExpandedNodes(AppState appState, List<NodePath> expanded, CancellationToken cancellationToken)
+    private static List<BrowseNode> LoadExpandedNodes(AssemblyList assemblies, BrowseSession session, List<NodePath> expanded,
+        CancellationToken cancellationToken)
     {
         var nodes = new List<BrowseNode>();
         foreach (var path in expanded)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var node = NodeLookup.Find(appState.Assemblies, appState.Session, path);
+            var node = NodeLookup.Find(assemblies, session, path);
             if (node == null)
                 continue;
-            appState.Session.LoadChildren(node);
+            session.LoadChildren(node);
             nodes.Add(node);
         }
         return nodes;
     }
 
-    private static BrowseNode?[] FindNodes(AppState appState, List<NodePath> places, CancellationToken cancellationToken)
+    private static BrowseNode?[] FindNodes(AssemblyList assemblies, BrowseSession session, List<NodePath> places, CancellationToken cancellationToken)
     {
         var found = new BrowseNode?[places.Count];
         for (var i = 0; i < found.Length; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            found[i] = NodeLookup.Find(appState.Assemblies, appState.Session, places[i]);
+            found[i] = NodeLookup.Find(assemblies, session, places[i]);
         }
         return found;
     }
@@ -408,7 +415,8 @@ public static class Assemblies
     internal static async void OpenAssembliesAsReload(AppState appState, List<AssemblyPath> paths)
     {
         var ticket = appState.Reload.Start();
-        var opened = await Background.Run(() => OpenFiles(appState, paths, ticket.Token));
+        var assemblies = appState.Assemblies;
+        var opened = await Background.Run(() => OpenFiles(assemblies, paths, ticket.Token));
         FinishOpeningAsReload(appState, opened, ticket);
     }
 
@@ -431,13 +439,13 @@ public static class Assemblies
     }
 
     /// <summary>Lists the files, those that fail to load as failed, and returns the last.</summary>
-    private static LoadedAssembly? OpenFiles(AppState appState, IEnumerable<AssemblyPath> paths, CancellationToken cancellationToken)
+    private static LoadedAssembly? OpenFiles(AssemblyList assemblies, IEnumerable<AssemblyPath> paths, CancellationToken cancellationToken)
     {
         LoadedAssembly? last = null;
         foreach (var path in paths)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            last = appState.Assemblies.Open(path, cancellationToken);
+            last = assemblies.Open(path, cancellationToken);
         }
         return last;
     }
