@@ -139,6 +139,60 @@ public sealed class NuGetFeedTests
     }
 
     [Fact]
+    public async Task A_package_of_another_shape_is_left_out_and_the_rest_of_the_page_kept()
+    {
+        var fake = new FakeFeed();
+        fake.AnswerSearches("""
+            { "totalHits": 3, "data": [
+                { "id": "Odd", "version": "1.0.0", "description": { "text": "not a string" } },
+                "not a package",
+                { "id": "Tiny", "version": "1.0.0", "totalDownloads": "42", "tags": "small tiny" } ] }
+            """);
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var package = Assert.Single((await feed.SearchAsync("tiny", includePrerelease: false)).Packages);
+
+        Assert.Equal("Tiny", package.Id.Text);
+        Assert.Equal(42, package.TotalDownloads);
+        Assert.Equal(["small", "tiny"], package.Tags);
+    }
+
+    [Theory]
+    [InlineData("""[ { "catalogEntry": { "licenseExpression": "MIT" } } ]""")]
+    [InlineData("""{ "catalogEntry": [] }""")]
+    [InlineData("""{ "catalogEntry": "https://feed.test/catalog/array.json" }""")]
+    [InlineData("""{ "catalogEntry": { "deprecation": "old" } }""")]
+    public async Task Details_of_another_shape_cannot_be_read(string registration)
+    {
+        var fake = new FakeFeed();
+        fake.Answer("https://feed.test/reg/tiny/1.0.0.json", registration);
+        fake.Answer("https://feed.test/catalog/array.json", "[]");
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0")!, 0, WebUrl.Parse("https://feed.test/reg/tiny/1.0.0.json"))));
+    }
+
+    [Fact]
+    public async Task A_resource_may_name_its_types_as_a_list_and_one_of_another_shape_is_passed_over()
+    {
+        var fake = new FakeFeed();
+        fake.Answer(FakeFeed.IndexUrl, $$"""
+            { "version": "3.0.0", "resources": [
+                "not a resource",
+                { "@id": "https://feed.test/elsewhere", "@type": 3 },
+                { "@id": "{{FakeFeed.SearchUrl}}", "@type": [ "SearchQueryService/3.5.0", "SearchQueryService" ] },
+                { "@id": "{{FakeFeed.PackagesUrl}}", "@type": "PackageBaseAddress/3.0.0" } ] }
+            """);
+        fake.AnswerSearches("""{ "data": [ { "id": "Tiny", "version": "1.0.0" } ] }""");
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var found = await feed.SearchAsync("tiny", includePrerelease: false);
+
+        Assert.Equal("Tiny", Assert.Single(found.Packages).Id.Text);
+    }
+
+    [Fact]
     public async Task A_version_the_search_gave_no_address_for_is_found_through_the_registrations()
     {
         var fake = new FakeFeed();

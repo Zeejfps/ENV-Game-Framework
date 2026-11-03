@@ -88,10 +88,10 @@ public sealed class NuGetFeed
     {
         var url = await FindDetailsUrlAsync(id, version, cancellationToken).ConfigureAwait(false);
         using var leaf = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
-        var listedAt = FeedJson.ReadDate(leaf.RootElement, "published");
-        if (!leaf.RootElement.TryGetProperty("catalogEntry", out var entry))
+        var registration = FeedJson.ReadRegistration(leaf.RootElement);
+        if (registration.CatalogEntry == null)
             throw new InvalidDataException($"{url} names no catalog entry.");
-        return await ReadCatalogEntryAsync(entry, listedAt, cancellationToken).ConfigureAwait(false);
+        return await ReadCatalogEntryAsync(registration.CatalogEntry.Value, registration.Published, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<WebUrl> FindDetailsUrlAsync(PackageId id, FeedVersion version, CancellationToken cancellationToken)
@@ -176,7 +176,7 @@ public sealed class NuGetFeed
     private async Task<ServiceIndex> FetchIndexAsync(CancellationToken cancellationToken)
     {
         using var document = await ReadJsonAsync(Source.Url, cancellationToken).ConfigureAwait(false);
-        var resources = FeedJson.ReadArray(document.RootElement, "resources");
+        var resources = FeedJson.ReadResources(document.RootElement);
         var search = FindResource(resources, SearchType);
         var folder = FindResource(resources, PackageFolderType);
         var registrations = FindOptionalResource(resources, RegistrationsType);
@@ -184,7 +184,7 @@ public sealed class NuGetFeed
     }
 
     /// <summary>The URL of the first resource whose type is <paramref name="type"/>, or a version of it.</summary>
-    private WebUrl FindResource(JsonElement resources, string type)
+    private WebUrl FindResource(List<FeedResource> resources, string type)
     {
         var url = FindOptionalResource(resources, type);
         if (url == null)
@@ -194,19 +194,18 @@ public sealed class NuGetFeed
 
     /// <summary>The web URL of the first resource whose type is <paramref name="type"/>; null when there is
     /// none, or its URL is none.</summary>
-    private static WebUrl? FindOptionalResource(JsonElement resources, string type)
+    private static WebUrl? FindOptionalResource(List<FeedResource> resources, string type)
     {
-        foreach (var resource in resources.EnumerateArray())
+        foreach (var resource in resources)
         {
-            if (IsOfType(resource, type))
-                return FeedJson.ReadUrl(resource, "@id");
+            if (resource.Types.Any(t => IsOfType(t, type)))
+                return resource.Url;
         }
         return null;
     }
 
-    private static bool IsOfType(JsonElement resource, string type)
+    private static bool IsOfType(string found, string type)
     {
-        var found = FeedJson.ReadString(resource, "@type");
         if (found == type)
             return true;
         return found.StartsWith(type + "/", StringComparison.Ordinal);
