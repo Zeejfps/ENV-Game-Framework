@@ -8,10 +8,7 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ### Escape hatches
 
-- Swallowed: swallow-all at `LoadedAssembly.cs:258` (`WarmUp`); unfiltered catches at `BrowseSession.cs:258`, `NodeDecompiler.cs:43`, `Batches.cs:26`, `Search.cs:179`, `AnalyzerTree.cs:88`; catch-all-but-cancellation at `AssemblySearch.cs:62`, `AssemblyExport.cs:296`, `MethodBodyWithCSharp.cs:65`, `NodeContentLoader.cs:89`.
-- Downcasts: analyzers cast `ISymbol` input, e.g. `(ITypeDefinition)analyzedSymbol` in `Analysis/*Analyzer.cs`; `(int)sort - 1` and `(SearchSort)(column + 1)` in `SearchPanelView.cs:193, 201` tie enum order to column order.
-- `(LanguageVersion)options.LanguageVersion` in `ZGF.ILSpy.Core/Settings.cs:14` casts numerically between two mirrored enums.
-- "Enable the button, then force-unwrap": `TreePaneView.cs:49-58` is correct only while disabled widgets never fire.
+- Force-unwrapped fields valid only in some states: `MetadataGridState.Grid!` and `MetadataGridView`'s `_state.Columns!`, `ComparisonPicker.Compared!`, `Search._query!`, `ThemeFolderWatch._pendingLoss!`, `NuGetPickerView`'s `icon!`, `BrowseTree.Reveal(View.Selected!)`, `TreeViewState.Selected` meaningful only while `HasSelection`.
 
 ## Rule 2: coupling
 

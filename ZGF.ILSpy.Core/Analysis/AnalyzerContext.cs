@@ -11,11 +11,12 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// overrides, and so on.</summary>
 internal interface IAnalyzer
 {
-    /// <summary>Whether the analysis applies to <paramref name="symbol"/>; false for null.</summary>
-    bool Show(ISymbol? symbol);
-
-    IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context);
+    /// <summary>The analysis of <paramref name="symbol"/>; null when it does not apply to it, or for null.</summary>
+    AnalysisRun? For(ISymbol? symbol);
 }
+
+/// <summary>An analysis of one symbol, run against the open assemblies.</summary>
+internal delegate IEnumerable<ISymbol> AnalysisRun(AnalyzerContext context);
 
 /// <summary>What an analysis runs against: the open assemblies and cancellation.</summary>
 internal sealed class AnalyzerContext

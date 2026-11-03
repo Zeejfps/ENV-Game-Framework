@@ -8,11 +8,15 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// <summary>Shows the members whose code instantiates a type.</summary>
 internal sealed class TypeInstantiatedByAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is ITypeDefinition type && !type.IsAbstract && !type.IsStatic;
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var type = (ITypeDefinition)analyzedSymbol;
+        if (symbol is not ITypeDefinition type || type.IsAbstract || type.IsStatic)
+            return null;
+        return context => Analyze(type, context);
+    }
+
+    private static IEnumerable<ISymbol> Analyze(ITypeDefinition type, AnalyzerContext context)
+    {
         return context.GetScopeOf(type).MembersWhoseCode(
             method => method.ParentModule is MetadataModule module
                 && context.GetMethodBody(method).AnyToken((opCode, token) => Instantiates(module, opCode, token, type)),

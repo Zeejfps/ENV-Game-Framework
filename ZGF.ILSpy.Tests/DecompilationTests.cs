@@ -9,6 +9,12 @@ namespace ZGF.ILSpy.Tests;
 public sealed class DecompilationTests
 {
     [Fact]
+    public void Each_CSharp_version_decompiles_as_the_decompiler_version_of_the_same_number()
+    {
+        Assert.All(Enum.GetValues<CSharpVersion>(), v => Assert.Equal((int)v, (int)Settings.LanguageVersionOf(v)));
+    }
+
+    [Fact]
     public void CSharp_spans_are_classified()
     {
         var document = Trees.CalculatorDocument(DecompilationLanguage.CSharp);

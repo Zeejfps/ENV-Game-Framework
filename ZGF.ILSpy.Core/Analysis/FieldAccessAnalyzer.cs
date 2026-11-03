@@ -18,11 +18,15 @@ internal enum FieldAccessKind
 /// one particular way.</summary>
 internal sealed class FieldAccessAnalyzer(FieldAccessKind kind) : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is IField field && (kind == FieldAccessKind.Read || !field.IsConst);
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var field = (IField)analyzedSymbol;
+        if (symbol is not IField field || (kind != FieldAccessKind.Read && field.IsConst))
+            return null;
+        return context => Analyze(field, context);
+    }
+
+    private IEnumerable<ISymbol> Analyze(IField field, AnalyzerContext context)
+    {
         return context.GetScopeOf(field).MembersWhoseCode(method => Accesses(method, field, context), context.CancellationToken);
     }
 

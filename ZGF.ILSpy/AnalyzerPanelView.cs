@@ -44,8 +44,8 @@ internal static class AnalyzerPanelView
             if (ui.IconButton("expand", ui.State.Icons.AnalyzerExpandAll, t.CodeExpandAll, any))
                 rows.ExpandAll();
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("remove", ui.State.Icons.AnalyzerRemove, t.AnalyzerRemoveAnalysis, root != null))
-                ui.State.Later(root!, static (a, r) => a.Analyzer.Remove(r));
+            if (ui.IconButton("remove", ui.State.Icons.AnalyzerRemove, t.AnalyzerRemoveAnalysis, root != null) && root != null)
+                ui.State.Later(root, static (a, r) => a.Analyzer.Remove(r));
             if (ui.IconButton("clear", ui.State.Icons.AnalyzerRemoveAll, t.AnalyzerRemoveAll, any))
                 ui.State.Later(static a => a.Analyzer.Clear());
         }

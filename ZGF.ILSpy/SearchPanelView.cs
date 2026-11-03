@@ -190,7 +190,16 @@ internal static class SearchPanelView
         ResultRows(ui, table);
     }
 
-    private static int ColumnOf(SearchSort sort) => (int)sort - 1;
+    private const int NoColumn = -1;
+
+    private static int ColumnOf(SearchSort sort) => sort switch
+    {
+        SearchSort.Relevance => NoColumn,
+        SearchSort.Name => 0,
+        SearchSort.Location => 1,
+        SearchSort.Assembly => 2,
+        _ => throw new UnreachableException(),
+    };
 
     private static UiIcon SortIcon(AppIcons icons, Search search)
     {
@@ -198,7 +207,13 @@ internal static class SearchPanelView
         return new UiIcon(glyph);
     }
 
-    private static SearchSort SortOf(int column) => (SearchSort)(column + 1);
+    private static SearchSort SortOf(int column) => column switch
+    {
+        0 => SearchSort.Name,
+        1 => SearchSort.Location,
+        2 => SearchSort.Assembly,
+        _ => throw new UnreachableException(),
+    };
 
     private static void ResultRows(Ui<UiState> ui, TableFrame table)
     {

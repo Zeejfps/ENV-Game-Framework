@@ -11,11 +11,15 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// <summary>Shows the symbols outside a type whose metadata or code uses it.</summary>
 internal sealed class TypeUsedByAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is ITypeDefinition;
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var analyzedType = (ITypeDefinition)analyzedSymbol;
+        if (symbol is not ITypeDefinition type)
+            return null;
+        return context => Analyze(type, context);
+    }
+
+    private IEnumerable<ISymbol> Analyze(ITypeDefinition analyzedType, AnalyzerContext context)
+    {
         var scope = context.GetScopeOf(analyzedType);
         return scope.GetModulesInScope(context.CancellationToken)
             .AsParallel().AsOrdered()

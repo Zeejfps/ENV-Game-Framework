@@ -7,16 +7,18 @@ internal sealed class MemberUsedByAnalyzer : IAnalyzer
 {
     private readonly MethodUsedByAnalyzer _accessorUsedBy = new();
 
-    public bool Show(ISymbol? symbol)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        if (symbol is not (IProperty or IEvent))
-            return false;
-        return Members.Accessors((IEntity)symbol).Any();
+        if (symbol is not IMember member || member is not (IProperty or IEvent))
+            return null;
+        if (!Members.Accessors(member).Any())
+            return null;
+        return context => Analyze(member, context);
     }
 
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    private IEnumerable<ISymbol> Analyze(IMember member, AnalyzerContext context)
     {
-        var accessors = Members.Accessors((IEntity)analyzedSymbol);
+        var accessors = Members.Accessors(member);
         return accessors
             .SelectMany(a => _accessorUsedBy.Analyze(a, context))
             .Distinct();

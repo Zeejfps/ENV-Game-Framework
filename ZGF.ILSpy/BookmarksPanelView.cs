@@ -114,8 +114,8 @@ internal static class BookmarksPanelView
             if (ui.IconButton("next", ui.State.Icons.BookmarksNext, t.BookmarksNext, any))
                 ui.State.Later(panel, static (a, p) => Step(p, a, 1));
             ui.Separator(theme.IconSize);
-            if (ui.IconButton("delete", ui.State.Icons.BookmarksDelete, t.BookmarksDelete, selected != null))
-                ui.State.Later((panel, selected: selected!), static (a, s) => Remove(s.panel, a.Bookmarks, s.selected));
+            if (ui.IconButton("delete", ui.State.Icons.BookmarksDelete, t.BookmarksDelete, selected != null) && selected != null)
+                ui.State.Later((panel, selected), static (a, s) => Remove(s.panel, a.Bookmarks, s.selected));
             ui.Separator(theme.IconSize);
             if (ui.IconButton("export", ui.State.Icons.BookmarksExport, t.BookmarksExport, bookmarks.Items.Count > 0))
                 PickExportFile(ui, appState);

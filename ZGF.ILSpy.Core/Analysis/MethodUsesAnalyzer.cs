@@ -9,11 +9,16 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// <summary>Shows the members and types a method's code, compiler-generated parts included, uses.</summary>
 internal sealed class MethodUsesAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is IMethod method && method.HasBody;
-
-    public IEnumerable<ISymbol> Analyze(ISymbol symbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        if (symbol is not IMethod method || method.ParentModule?.MetadataFile == null)
+        if (symbol is not IMethod method || !method.HasBody)
+            return null;
+        return context => Analyze(method, context);
+    }
+
+    private IEnumerable<ISymbol> Analyze(IMethod method, AnalyzerContext context)
+    {
+        if (method.ParentModule?.MetadataFile == null)
             throw new InvalidOperationException("Should never happen.");
         var file = method.ParentModule.MetadataFile;
         var module = context.AssemblyList.TypeSystemOf(file).MainModule;

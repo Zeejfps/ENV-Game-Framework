@@ -9,11 +9,15 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// the method it came from. A virtual call to the member a non-virtual method overrides counts.</summary>
 internal sealed class MethodUsedByAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is IMethod method && (method.IsVirtual || method.ParentModule is not null);
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var analyzed = (IMethod)analyzedSymbol;
+        if (symbol is not IMethod method || (!method.IsVirtual && method.ParentModule == null))
+            return null;
+        return context => Analyze(method, context);
+    }
+
+    internal IEnumerable<ISymbol> Analyze(IMethod analyzed, AnalyzerContext context)
+    {
         if (analyzed.ParentModule?.MetadataFile == null || analyzed.DeclaringTypeDefinition?.MetadataToken.IsNil != false)
             yield break;
         var baseMethod = analyzed.IsVirtual ? null : (IMethod?)InheritanceHelper.GetBaseMember(analyzed);

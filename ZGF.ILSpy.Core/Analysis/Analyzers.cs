@@ -186,7 +186,7 @@ public static class Analyzers
 
     /// <summary>The analyses that apply to <paramref name="symbol"/>, in ILSpy's order.</summary>
     public static IReadOnlyList<AnalysisKind> KindsFor(AnalysisSymbol symbol) =>
-        Kinds.Where(k => k.Analyzer.Show(symbol.Symbol)).OrderBy(static k => k.Order).ToArray();
+        Kinds.Where(k => k.Analyzer.For(symbol.Symbol) != null).OrderBy(static k => k.Order).ToArray();
 
     /// <summary>The accessors of a property or event, which ILSpy analyzes on their own.</summary>
     public static IReadOnlyList<AnalysisSymbol> AccessorsOf(AnalysisSymbol symbol) =>
@@ -199,7 +199,10 @@ public static class Analyzers
         CancellationToken cancellationToken = default) =>
         Batches.Stream<AnalysisSymbol>((emit, token) =>
         {
-            var found = kind.Analyzer.Analyze(symbol.Symbol, new AnalyzerContext { AssemblyList = list, CancellationToken = token })
+            var run = kind.Analyzer.For(symbol.Symbol);
+            if (run == null)
+                throw new ArgumentException($"The analysis {kind.Name} does not apply to {symbol.Label}.", nameof(kind));
+            var found = run(new AnalyzerContext { AssemblyList = list, CancellationToken = token })
                 .Select(Describe).OfType<AnalysisSymbol>();
             if (kind.SortsResults)
                 found = found.OrderBy(static s => s.Label, StringComparer.OrdinalIgnoreCase);

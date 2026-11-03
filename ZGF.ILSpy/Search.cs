@@ -176,7 +176,7 @@ public sealed class Search
             await foreach (var batch in search)
                 Deliver(batch, work);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (work.IsCancellationRequested)
         {
         }
         catch (Exception e)

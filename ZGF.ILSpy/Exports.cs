@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Core.Diagrams;
 using static ZGF.ILSpy.Navigation;
@@ -17,7 +18,7 @@ public static class Exports
 
     /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
     /// whose bytes are saved.</summary>
-    public static bool CanSaveCode(AppState appState, BrowseNode? node)
+    public static bool CanSaveCode(AppState appState, [NotNullWhen(true)] BrowseNode? node)
     {
         if (node == null)
             return false;

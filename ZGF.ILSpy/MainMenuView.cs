@@ -187,10 +187,11 @@ internal static class MainMenuView
         ExportItems(ui, appState);
         ui.MenuSeparator();
         var tree = ui.State.Tree;
-        var selected = tree.View.HasSelection ? tree.View.Selected!.Assembly : null;
+        var picked = tree.View.HasSelection ? tree.View.Selected : null;
+        var selected = picked?.Assembly;
         var anyOpen = tree.Roots.Count > 0;
-        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: new UiIcon(icons.FileClose)))
-            ui.State.Later(selected!, static (a, assembly) => CloseAssembly(a, assembly));
+        if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: new UiIcon(icons.FileClose)) && selected != null)
+            ui.State.Later(selected, static (a, assembly) => CloseAssembly(a, assembly));
         if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: new UiIcon(icons.FileCloseFailed)))
             ui.State.Later(static a => CloseFailedAssemblies(a));
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: new UiIcon(icons.FileClearList)))

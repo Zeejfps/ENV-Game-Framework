@@ -7,11 +7,15 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// <summary>Finds all extension methods defined for a type.</summary>
 internal sealed class TypeExtensionMethodsAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is ITypeDefinition type && !type.IsStatic;
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var analyzed = (ITypeDefinition)analyzedSymbol;
+        if (symbol is not ITypeDefinition type || type.IsStatic)
+            return null;
+        return context => Analyze(type, context);
+    }
+
+    private static IEnumerable<ISymbol> Analyze(ITypeDefinition analyzed, AnalyzerContext context)
+    {
         if (analyzed.ParentModule?.MetadataFile == null)
             yield break;
         foreach (var type in context.GetScopeOf(analyzed).GetTypesInScope(context.CancellationToken))

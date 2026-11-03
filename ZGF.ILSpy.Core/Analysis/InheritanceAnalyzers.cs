@@ -8,14 +8,19 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// or with <paramref name="overrides"/> those that override a class member.</summary>
 internal sealed class InheritorsAnalyzer<T>(bool overrides) : IAnalyzer where T : class, IMember
 {
-    public bool Show(ISymbol? symbol) =>
-        symbol is T member && (overrides
-            ? member.IsOverridable && member.DeclaringType.Kind != TypeKind.Interface
-            : member.DeclaringType.Kind == TypeKind.Interface);
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var analyzed = (T)analyzedSymbol;
+        if (symbol is not T member || !Applies(member))
+            return null;
+        return context => Analyze(member, context);
+    }
+
+    private bool Applies(T member) => overrides
+        ? member.IsOverridable && member.DeclaringType.Kind != TypeKind.Interface
+        : member.DeclaringType.Kind == TypeKind.Interface;
+
+    private IEnumerable<ISymbol> Analyze(T analyzed, AnalyzerContext context)
+    {
         if (analyzed.DeclaringTypeDefinition is not { ParentModule.MetadataFile: not null } declaring)
             yield break;
         foreach (var type in context.GetScopeOf(analyzed).GetTypesInScope(context.CancellationToken))
@@ -34,24 +39,31 @@ internal sealed class InheritorsAnalyzer<T>(bool overrides) : IAnalyzer where T 
 /// <summary>Shows the interface members a class or struct member implements.</summary>
 internal sealed class MemberImplementsInterfaceAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) =>
-        symbol is IMember { SymbolKind: SymbolKind.Event or SymbolKind.Indexer or SymbolKind.Method or SymbolKind.Property, IsStatic: false } member
-        && member.DeclaringTypeDefinition?.Kind is TypeKind.Class or TypeKind.Struct;
+    public AnalysisRun? For(ISymbol? symbol)
+    {
+        if (symbol is not IMember { SymbolKind: SymbolKind.Event or SymbolKind.Indexer or SymbolKind.Method or SymbolKind.Property, IsStatic: false } member
+            || member.DeclaringTypeDefinition?.Kind is not (TypeKind.Class or TypeKind.Struct))
+            return null;
+        return _ => Analyze(member);
+    }
 
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context) =>
-        InheritanceHelper.GetBaseMembers((IMember)analyzedSymbol, includeImplementedInterfaces: true)
+    private static IEnumerable<ISymbol> Analyze(IMember member) =>
+        InheritanceHelper.GetBaseMembers(member, includeImplementedInterfaces: true)
             .Where(m => m.DeclaringTypeDefinition?.Kind == TypeKind.Interface);
 }
 
 /// <summary>Shows the base members a member overrides, up its override chain.</summary>
 internal sealed class MemberOverridesAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) =>
-        symbol is IMember { SymbolKind: SymbolKind.Event or SymbolKind.Indexer or SymbolKind.Method or SymbolKind.Property, IsOverride: true };
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var member = (IMember)analyzedSymbol;
+        if (symbol is not IMember { SymbolKind: SymbolKind.Event or SymbolKind.Indexer or SymbolKind.Method or SymbolKind.Property, IsOverride: true } member)
+            return null;
+        return _ => Analyze(member);
+    }
+
+    private static IEnumerable<ISymbol> Analyze(IMember member)
+    {
         var visited = new HashSet<IMember>();
         while (member.IsOverride)
         {

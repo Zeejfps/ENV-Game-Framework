@@ -7,11 +7,15 @@ namespace ZGF.ILSpy.Core.Analysis;
 /// <summary>Finds the visible members whose signature exposes a type.</summary>
 internal sealed class TypeExposedByAnalyzer : IAnalyzer
 {
-    public bool Show(ISymbol? symbol) => symbol is ITypeDefinition;
-
-    public IEnumerable<ISymbol> Analyze(ISymbol analyzedSymbol, AnalyzerContext context)
+    public AnalysisRun? For(ISymbol? symbol)
     {
-        var analyzed = (ITypeDefinition)analyzedSymbol;
+        if (symbol is not ITypeDefinition type)
+            return null;
+        return context => Analyze(type, context);
+    }
+
+    private static IEnumerable<ISymbol> Analyze(ITypeDefinition analyzed, AnalyzerContext context)
+    {
         var visitor = new TypeDefinitionUsedVisitor(analyzed);
         foreach (var type in context.GetScopeOf(analyzed).GetTypesInScope(context.CancellationToken))
         {

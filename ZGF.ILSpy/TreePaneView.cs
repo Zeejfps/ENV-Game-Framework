@@ -47,16 +47,16 @@ internal static class TreePaneView
         using (ui.PaneToolbar())
         {
             var opened = FindOpenedNode(appState);
-            if (ui.IconButton("select-opened", ui.State.Icons.AssembliesSelectOpened, t.TreeSelectOpenedNode, opened != null))
-                SelectOpenedNode(ui, appState, opened!);
+            if (ui.IconButton("select-opened", ui.State.Icons.AssembliesSelectOpened, t.TreeSelectOpenedNode, opened != null) && opened != null)
+                SelectOpenedNode(ui, appState, opened);
             if (ui.IconButton("collapse", ui.State.Icons.AssembliesCollapseAll, t.CodeCollapseAll, any))
                 tree.CollapseAll();
             if (ui.IconButton("expand", ui.State.Icons.AssembliesExpandNamespaces, t.TreeExpandNamespaces, any))
                 tree.ExpandNamespaces();
             ui.Separator(theme.IconSize);
             var picked = FindPickedAssembly(tree);
-            if (ui.IconButton("close-assembly", ui.State.Icons.AssembliesCloseAssembly, t.TreeCloseAssembly, picked != null))
-                ui.State.Later(picked!.Assembly, static (a, assembly) => CloseAssembly(a, assembly));
+            if (ui.IconButton("close-assembly", ui.State.Icons.AssembliesCloseAssembly, t.TreeCloseAssembly, picked != null) && picked != null)
+                ui.State.Later(picked.Assembly, static (a, assembly) => CloseAssembly(a, assembly));
         }
     }
 

@@ -16,7 +16,7 @@ internal static class SaveDialogs
         var node = appState.Tabs.Active?.Node;
         if (!CanSaveCode(appState, node))
             return;
-        PickCodeFile(ui, appState, node!);
+        PickCodeFile(ui, appState, node);
     }
 
     /// <summary>Asks where to save <paramref name="node"/>: a resource's bytes under its own name,
