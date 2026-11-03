@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ZGF.Desktop;
@@ -20,7 +21,7 @@ internal sealed record SettingsFile(
     string Theme,
     string IconTheme,
     DecompilationLanguage Language,
-    DecompilerOptions Decompiler,
+    DecompilerOptionsJson Decompiler,
     List<string>? FoldedOptionGroups,
     DisplayOptionsJson? Display,
     Locale? Locale,
@@ -52,7 +53,7 @@ internal sealed record SettingsFile(
         settings.Theme.Text,
         settings.IconTheme.Text,
         settings.Language,
-        settings.Decompiler,
+        DecompilerOptionsJson.From(settings.Decompiler),
         settings.FoldedOptionGroups,
         settings.Display == null ? null : DisplayOptionsJson.From(settings.Display),
         settings.Locale,
@@ -473,6 +474,24 @@ internal sealed record CodeFontJson(string? Family, string? Path, int FaceIndex)
     }
 }
 
+/// <summary>The choices that change how C# is decompiled, as a settings file can hold them. What it
+/// lacks, or holds as null, is as <see cref="DecompilerOptions.Default"/> has it.</summary>
+internal sealed record DecompilerOptionsJson(CSharpVersion? LanguageVersion, Dictionary<string, bool>? Toggles)
+{
+    public static DecompilerOptionsJson From(DecompilerOptions options) =>
+        new(options.LanguageVersion, new Dictionary<string, bool>(options.Toggles));
+
+    public DecompilerOptions Parse()
+    {
+        var d = DecompilerOptions.Default;
+        return new DecompilerOptions
+        {
+            LanguageVersion = LanguageVersion ?? d.LanguageVersion,
+            Toggles = Toggles == null ? d.Toggles : Toggles.ToImmutableSortedDictionary(),
+        };
+    }
+}
+
 /// <summary>Where a window sat and how big it was, as a settings file can hold it.</summary>
 internal sealed record WindowBoundsJson(int X, int Y, int Width, int Height, bool Maximized)
 {
@@ -592,7 +611,7 @@ internal static class SettingsJson
 [JsonSerializable(typeof(SearchKinds?))]
 [JsonSerializable(typeof(Locale?))]
 [JsonSerializable(typeof(WindowBoundsJson))]
-[JsonSerializable(typeof(DecompilerOptions))]
+[JsonSerializable(typeof(DecompilerOptionsJson))]
 [JsonSerializable(typeof(DisplayOptionsJson))]
 [JsonSerializable(typeof(DockLayoutJson))]
 [JsonSerializable(typeof(List<string?>))]

@@ -218,7 +218,7 @@ public sealed class AppSettings
             Theme = ThemeIdOf(file.Read(nameof(SettingsFile.Theme), json.String)),
             IconTheme = IconThemeIdOf(file.Read(nameof(SettingsFile.IconTheme), json.String)),
             Language = file.Read(nameof(SettingsFile.Language), json.NullableDecompilationLanguage) ?? DecompilationLanguage.CSharp,
-            Decompiler = file.Read(nameof(SettingsFile.Decompiler), json.DecompilerOptions) ?? DecompilerOptions.Default,
+            Decompiler = file.Read(nameof(SettingsFile.Decompiler), json.DecompilerOptionsJson)?.Parse() ?? DecompilerOptions.Default,
             FoldedOptionGroups = NamesOf(file.Read(nameof(SettingsFile.FoldedOptionGroups), json.ListString)),
             Display = file.Read(nameof(SettingsFile.Display), json.DisplayOptionsJson)?.Parse(),
             Locale = file.Read(nameof(SettingsFile.Locale), json.NullableLocale),
