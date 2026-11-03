@@ -107,7 +107,11 @@ public static class Exports
     /// ends. Once its turn comes, does <paramref name="work"/> in the background, then records how it
     /// ended, exporting <paramref name="subject"/> as a failure tells, and lets <paramref name="complete"/>
     /// add what a finished one wrote. One taken out of the queue leaves nothing behind.</summary>
-    private static async void RunExport<T>(AppState appState, ExportJob job, string subject, Func<ExportStart, T> work,
+    private static void RunExport<T>(AppState appState, ExportJob job, string subject, Func<ExportStart, T> work,
+        Func<ExportReport, T, ExportReport> complete) =>
+        Background.Start(RunExportAsync(appState, job, subject, work, complete), appState.ReportError);
+
+    private static async Task RunExportAsync<T>(AppState appState, ExportJob job, string subject, Func<ExportStart, T> work,
         Func<ExportReport, T, ExportReport> complete)
     {
         appState.EnqueueCommand(new ViewCommand.OpenPanel(DockView.Exports));

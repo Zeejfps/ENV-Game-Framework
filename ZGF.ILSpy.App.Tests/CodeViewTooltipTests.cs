@@ -17,7 +17,7 @@ public sealed class CodeViewTooltipTests
         var list = new AssemblyList();
         var type = typeof(Farewell);
         var node = list.Open(type.Assembly.Location).Root.Child(type.Namespace!, type.Name);
-        var view = new CodeViewDriver(node.Decompile(DecompilationLanguage.CSharp), WindowHeight) { Tooltips = new CodeTooltips(list) };
+        var view = new CodeViewDriver(node.Decompile(DecompilationLanguage.CSharp), WindowHeight) { Tooltips = new CodeTooltips(list, static _ => { }) };
         view.Run();
         return view;
     }

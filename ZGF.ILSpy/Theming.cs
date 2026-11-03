@@ -221,7 +221,10 @@ public static class Theming
     /// <summary>Reads the themes of <paramref name="folder"/> again whenever it changes, until its watch
     /// stops. Makes the folder when it is missing, and again when it is removed while watched. When the
     /// folder cannot be made or watched, reports why and leaves the themes to be read again by hand.</summary>
-    internal static async void WatchThemeFolder(AppState appState, WatchedThemeFolder folder)
+    internal static void WatchThemeFolder(AppState appState, WatchedThemeFolder folder) =>
+        Background.Start(WatchThemeFolderAsync(appState, folder), appState.ReportError);
+
+    private static async Task WatchThemeFolderAsync(AppState appState, WatchedThemeFolder folder)
     {
         if (!StartWatching(appState, folder))
             return;

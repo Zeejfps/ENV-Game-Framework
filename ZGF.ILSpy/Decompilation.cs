@@ -20,7 +20,10 @@ public static class Decompilation
         Load(appState, tab, node, load);
     }
 
-    private static async void Load(AppState appState, DocumentTab tab, BrowseNode node, LoadTicket load)
+    private static void Load(AppState appState, DocumentTab tab, BrowseNode node, LoadTicket load) =>
+        Background.Start(LoadAsync(appState, tab, node, load), appState.ReportError);
+
+    private static async Task LoadAsync(AppState appState, DocumentTab tab, BrowseNode node, LoadTicket load)
     {
         var loading = NodeContentLoader.LoadAsync(appState.Session, node, tab.Language, tab.Options, load.Token);
         await Background.Wait(loading);

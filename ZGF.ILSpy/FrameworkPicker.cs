@@ -44,7 +44,10 @@ public sealed class FrameworkPicker
     public IReadOnlyList<RuntimeAssembly> Filtered => _filtered;
 
     /// <summary>Scans the runtime the first time it opens, and again after a scan failed.</summary>
-    public async void Open()
+    public void Open() =>
+        Background.Start(OpenAsync(), _reportError);
+
+    private async Task OpenAsync()
     {
         IsOpen = true;
         _focusFilter = true;

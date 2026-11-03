@@ -20,7 +20,10 @@ public static class Assemblies
         OpenInBackground(appState, files);
     }
 
-    private static async void OpenInBackground(AppState appState, AssemblyPath[] files)
+    private static void OpenInBackground(AppState appState, AssemblyPath[] files) =>
+        Background.Start(OpenInBackgroundAsync(appState, files), appState.ReportError);
+
+    private static async Task OpenInBackgroundAsync(AppState appState, AssemblyPath[] files)
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
@@ -79,7 +82,10 @@ public static class Assemblies
 
     /// <summary>Opens, in the background, the assemblies <paramref name="assembly"/> references that
     /// can be found.</summary>
-    public static async void OpenDependencies(AppState appState, LoadedModule assembly)
+    public static void OpenDependencies(AppState appState, LoadedModule assembly) =>
+        Background.Start(OpenDependenciesAsync(appState, assembly), appState.ReportError);
+
+    private static async Task OpenDependenciesAsync(AppState appState, LoadedModule assembly)
     {
         var token = appState.Opens.Token;
         var assemblies = appState.Assemblies;
@@ -91,7 +97,10 @@ public static class Assemblies
     /// <summary>Checks in the background that the PDB at <paramref name="pdbPath"/> can be read for
     /// <paramref name="assembly"/>, then has the assembly read it in place of the one it finds itself,
     /// kept with the list, and reopens the assembly to show it. Reports why when it cannot be read.</summary>
-    public static async void UsePdb(AppState appState, LoadedModule assembly, string pdbPath)
+    public static void UsePdb(AppState appState, LoadedModule assembly, string pdbPath) =>
+        Background.Start(UsePdbAsync(appState, assembly, pdbPath), appState.ReportError);
+
+    private static async Task UsePdbAsync(AppState appState, LoadedModule assembly, string pdbPath)
     {
         var checking = await Background.Run(() => assembly.CheckPdb(pdbPath));
         var check = checking switch
@@ -152,7 +161,10 @@ public static class Assemblies
     /// <summary>Reads the item of the list holding <paramref name="assembly"/> again in the background,
     /// its nodes loaded as far as they were, then lists it where the item is and shows each tab's place
     /// in it again. The other assemblies stay as they are.</summary>
-    private static async void ReopenAssembly(AppState appState, LoadedAssembly assembly)
+    private static void ReopenAssembly(AppState appState, LoadedAssembly assembly) =>
+        Background.Start(ReopenAssemblyAsync(appState, assembly), appState.ReportError);
+
+    private static async Task ReopenAssemblyAsync(AppState appState, LoadedAssembly assembly)
     {
         var item = assembly.ListedItem;
         var ticket = appState.Reopens.Start(item.FilePath);
@@ -280,7 +292,10 @@ public static class Assemblies
     /// <summary>Reloads every assembly of the open list from disk in the background, then commands the view
     /// to expand the tree at <paramref name="expanded"/>, the paths of the nodes it had expanded, and
     /// shows each tab's place again, decompiled from the fresh files.</summary>
-    public static async void RefreshAssemblies(AppState appState, List<NodePath> expanded)
+    public static void RefreshAssemblies(AppState appState, List<NodePath> expanded) =>
+        Background.Start(RefreshAssembliesAsync(appState, expanded), appState.ReportError);
+
+    private static async Task RefreshAssembliesAsync(AppState appState, List<NodePath> expanded)
     {
         RememberOpenAssemblies(appState);
         var intent = appState.Intent.Begin();
@@ -412,7 +427,10 @@ public static class Assemblies
 
     /// <summary>Opens <paramref name="paths"/> in the background as a reload does, so that another
     /// reload or clearing the list stops it, and the settings are saved once it is done.</summary>
-    internal static async void OpenAssembliesAsReload(AppState appState, List<AssemblyPath> paths)
+    internal static void OpenAssembliesAsReload(AppState appState, List<AssemblyPath> paths) =>
+        Background.Start(OpenAssembliesAsReloadAsync(appState, paths), appState.ReportError);
+
+    private static async Task OpenAssembliesAsReloadAsync(AppState appState, List<AssemblyPath> paths)
     {
         var ticket = appState.Reload.Start();
         var assemblies = appState.Assemblies;

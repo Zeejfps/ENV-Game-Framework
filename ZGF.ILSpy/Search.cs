@@ -166,7 +166,10 @@ public sealed class Search
         Run(search, work);
     }
 
-    private async void Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work)
+    private void Run(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work) =>
+        Background.Start(RunAsync(search, work), _reportError);
+
+    private async Task RunAsync(IAsyncEnumerable<IReadOnlyList<SearchResult>> search, CancellationTokenSource work)
     {
         try
         {

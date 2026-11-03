@@ -21,7 +21,7 @@ public sealed class UiState : IUiState
     /// <param name="session">The browse tree the tree and searches show nodes of.</param>
     public UiState(ViewSettings saved, Action<AppProblem> reportError, BrowseSession session)
     {
-        Tree = new BrowseTree(session);
+        Tree = new BrowseTree(session, reportError);
         FoldedOptionGroups = new FoldedGroups(saved.FoldedOptionGroups);
         BookmarkColumns.Restore(saved.BookmarkColumns);
         SearchColumns.Restore(saved.SearchColumns);

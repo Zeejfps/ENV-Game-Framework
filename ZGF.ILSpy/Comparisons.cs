@@ -53,7 +53,10 @@ public static class Comparisons
     /// <summary>Compares the assemblies of <paramref name="comparison"/>, as they are open now, in the
     /// background, and shows what changed unless another comparison started or it was closed meanwhile.
     /// Shows why when either is no longer open or the comparison fails.</summary>
-    private static async void Compare(AppState appState, AssemblyComparison comparison)
+    private static void Compare(AppState appState, AssemblyComparison comparison) =>
+        Background.Start(CompareAsync(appState, comparison), appState.ReportError);
+
+    private static async Task CompareAsync(AppState appState, AssemblyComparison comparison)
     {
         var left = FindOpen(appState, comparison.LeftPath);
         if (left == null)

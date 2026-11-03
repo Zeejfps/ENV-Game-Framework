@@ -63,15 +63,15 @@ public sealed class AnalyzerKindNode(AnalysisSymbol subject, AnalysisKind kind) 
     /// <summary>Runs the analysis over <paramref name="assemblies"/> unless it already started,
     /// calling <paramref name="changed"/> each time results come in. When it fails, it ends with a row
     /// telling why and hands the exception to <paramref name="failed"/>.</summary>
-    internal void StartOnce(AssemblyList assemblies, Action changed, Action<Exception> failed)
+    internal void StartOnce(AssemblyList assemblies, Action changed, Action<Exception> failed, Action<AppProblem> reportError)
     {
         if (HasStarted)
             return;
         HasStarted = true;
-        Run(assemblies, changed, failed);
+        Background.Start(RunAsync(assemblies, changed, failed), reportError);
     }
 
-    private async void Run(AssemblyList assemblies, Action changed, Action<Exception> failed)
+    private async Task RunAsync(AssemblyList assemblies, Action changed, Action<Exception> failed)
     {
         var work = new CancellationTokenSource();
         _work = work;

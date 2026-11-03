@@ -14,6 +14,7 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private const string LoadingLabel = "Loading…";
 
     private readonly BrowseSession _session;
+    private readonly Action<AppProblem> _reportError;
     private readonly ConditionalWeakTable<BrowseNode, BrowseNode[]> _shownChildren = new();
     private readonly HashSet<BrowseNode> _building = new(ReferenceEqualityComparer.Instance);
     private BrowseNode[] _roots = [];
@@ -30,9 +31,11 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     private IReadOnlyCollection<AssemblyPath> _reopening = [];
 
     /// <param name="session">The browse tree whose nodes this shows.</param>
-    public BrowseTree(BrowseSession session)
+    /// <param name="reportError">Tells the user that something done in the background failed.</param>
+    public BrowseTree(BrowseSession session, Action<AppProblem> reportError)
     {
         _session = session;
+        _reportError = reportError;
     }
 
     public TreeViewState<BrowseNode> View { get; } = new(ReferenceEqualityComparer.Instance);
@@ -310,7 +313,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         View.Refresh();
     }
 
-    private async void ExpandAssembly(BrowseNode root, int ticket)
+    private void ExpandAssembly(BrowseNode root, int ticket) =>
+        Background.Start(ExpandAssemblyAsync(root, ticket), _reportError);
+
+    private async Task ExpandAssemblyAsync(BrowseNode root, int ticket)
     {
         View.SetExpanded(root, true);
         var built = await Background.Wait(_session.LoadChildrenAsync(root));
@@ -457,7 +463,10 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
         return nodes.Select(static n => n.Assembly.FilePath.Text).ToArray();
     }
 
-    private async void Build(BrowseNode node)
+    private void Build(BrowseNode node) =>
+        Background.Start(BuildAsync(node), _reportError);
+
+    private async Task BuildAsync(BrowseNode node)
     {
         if (!_building.Add(node)) return;
         await Background.Wait(_session.LoadChildrenAsync(node));

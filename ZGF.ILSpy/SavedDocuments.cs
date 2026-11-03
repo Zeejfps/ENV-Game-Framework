@@ -232,7 +232,10 @@ public static class SavedDocuments
         return node.Location;
     }
 
-    private static async void FindReopenedNodes(AppState appState, List<WaitingNode> nodes)
+    private static void FindReopenedNodes(AppState appState, List<WaitingNode> nodes) =>
+        Background.Start(FindReopenedNodesAsync(appState, nodes), appState.ReportError);
+
+    private static async Task FindReopenedNodesAsync(AppState appState, List<WaitingNode> nodes)
     {
         if (nodes.Count == 0)
             return;

@@ -175,7 +175,7 @@ public sealed class AppState
     {
         Session = session;
         Settings = settings;
-        Tooltips = new CodeTooltips(Assemblies);
+        Tooltips = new CodeTooltips(Assemblies, ReportError);
         Theme = settings.Theme;
         IconTheme = settings.IconTheme;
         Language = settings.Language;

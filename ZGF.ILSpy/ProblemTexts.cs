@@ -74,6 +74,7 @@ public static class ProblemTexts
         AppProblem.NuGetSearchFailed p => (t.ErrorSearchNuget(p.Feed), p.Error.ToString()),
         AppProblem.PackageNotDownloaded p => (t.ErrorDownloadPackage(p.Package), p.Error.ToString()),
         AppProblem.SearchFailed p => (t.ErrorSearch, p.Error.ToString()),
+        AppProblem.Unexpected p => (t.ErrorUnexpected, p.Error.ToString()),
         _ => throw new UnreachableException(),
     };
 

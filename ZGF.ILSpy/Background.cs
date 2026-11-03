@@ -21,6 +21,21 @@ public static class Background
 
     /// <summary>Waits for <paramref name="task"/> as <see cref="BackgroundWork{T}"/> does.</summary>
     public static BackgroundWork<T> Wait<T>(Task<T> task) => new(task);
+
+    /// <summary>Lets <paramref name="workflow"/>, started on the UI thread, run to its end, and reports an
+    /// exception it ends with as <see cref="AppProblem.Unexpected"/> rather than letting it end the process.
+    /// The one <c>async void</c> in the app.</summary>
+    public static async void Start(Task workflow, Action<AppProblem> reportError)
+    {
+        try
+        {
+            await workflow;
+        }
+        catch (Exception e)
+        {
+            reportError(new AppProblem.Unexpected(e));
+        }
+    }
 }
 
 /// <summary>Work running on the thread pool. Awaited on the UI thread, it always continues on a

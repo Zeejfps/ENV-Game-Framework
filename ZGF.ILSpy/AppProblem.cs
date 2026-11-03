@@ -104,4 +104,7 @@ public abstract record AppProblem
     public sealed record PackageNotDownloaded(string Package, Exception Error) : AppProblem;
 
     public sealed record SearchFailed(Exception Error) : AppProblem;
+
+    /// <summary>Work started on the UI thread failed where it does not expect to fail.</summary>
+    public sealed record Unexpected(Exception Error) : AppProblem;
 }

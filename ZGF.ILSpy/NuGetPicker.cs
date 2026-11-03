@@ -236,7 +236,10 @@ public sealed class NuGetPicker
 
     /// <summary>Reads the user's NuGet.Config in the background; one that cannot be read at all is
     /// reported, and nuget.org searched in its place.</summary>
-    private async void ReadSetup()
+    private void ReadSetup() =>
+        Background.Start(ReadSetupAsync(), _reportError);
+
+    private async Task ReadSetupAsync()
     {
         _setup = new SetupState.Reading();
         var read = await Background.Run(NuGetSetup.ReadUser);
@@ -490,7 +493,10 @@ public sealed class NuGetPicker
         return wanted.Page == last.Page;
     }
 
-    private async void StartSearch(FeedSearch wanted)
+    private void StartSearch(FeedSearch wanted) =>
+        Background.Start(StartSearchAsync(wanted), _reportError);
+
+    private async Task StartSearchAsync(FeedSearch wanted)
     {
         StopSearch();
         KeepSearched(wanted);
@@ -565,7 +571,10 @@ public sealed class NuGetPicker
 
     /// <summary>Gives <paramref name="icon"/> its pixels once they are in; one that cannot be fetched
     /// keeps none, so its row keeps the stand-in.</summary>
-    private async void FetchIcon(NuGetSetup setup, WebUrl url, PackageIcon icon)
+    private void FetchIcon(NuGetSetup setup, WebUrl url, PackageIcon icon) =>
+        Background.Start(FetchIconAsync(setup, url, icon), _reportError);
+
+    private async Task FetchIconAsync(NuGetSetup setup, WebUrl url, PackageIcon icon)
     {
         var token = _fetches.Token;
         var fetched = await Background.Wait(setup.Icons.FetchAsync(url, IconPixels, token));
@@ -608,7 +617,10 @@ public sealed class NuGetPicker
 
     /// <summary>Puts the details read in place of <paramref name="loading"/>, unless they were dropped
     /// or asked for again meanwhile.</summary>
-    private async void ReadDetails(DetailsKey key, NuGetFeed feed, FeedVersion version, VersionDetails.Loading loading)
+    private void ReadDetails(DetailsKey key, NuGetFeed feed, FeedVersion version, VersionDetails.Loading loading) =>
+        Background.Start(ReadDetailsAsync(key, feed, version, loading), _reportError);
+
+    private async Task ReadDetailsAsync(DetailsKey key, NuGetFeed feed, FeedVersion version, VersionDetails.Loading loading)
     {
         var token = _fetches.Token;
         var read = await Background.Wait(feed.ReadDetailsAsync(key.Id, version, token));
@@ -666,7 +678,10 @@ public sealed class NuGetPicker
 
     /// <summary>Fetches <see cref="Version"/> of the selected package, from the feed it was found in,
     /// into the cache, in the background, for <see cref="TakeDownloaded"/> to hand over.</summary>
-    public async void Download()
+    public void Download() =>
+        Background.Start(DownloadAsync(), _reportError);
+
+    private async Task DownloadAsync()
     {
         var version = Version;
         var package = Selected;

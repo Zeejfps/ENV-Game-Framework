@@ -10,13 +10,15 @@ namespace ZGF.ILSpy;
 public sealed class CodeTooltips
 {
     private readonly AssemblyList _assemblies;
+    private readonly Action<AppProblem> _reportError;
     private readonly Dictionary<CodeReference.Entity, CodeTooltip?> _found = new();
     private readonly HashSet<CodeReference.Entity> _pending = new();
     private int _version;
 
-    public CodeTooltips(AssemblyList assemblies)
+    public CodeTooltips(AssemblyList assemblies, Action<AppProblem> reportError)
     {
         _assemblies = assemblies;
+        _reportError = reportError;
         _version = assemblies.Version;
     }
 
@@ -43,7 +45,10 @@ public sealed class CodeTooltips
         _pending.Clear();
     }
 
-    private async void LookUp(CodeReference.Entity reference)
+    private void LookUp(CodeReference.Entity reference) =>
+        Background.Start(LookUpAsync(reference), _reportError);
+
+    private async Task LookUpAsync(CodeReference.Entity reference)
     {
         if (!_pending.Add(reference))
             return;

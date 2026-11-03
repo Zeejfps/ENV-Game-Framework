@@ -53,7 +53,10 @@ public static class Bookmarks
 
     /// <summary>Shows the line <paramref name="bookmark"/> marks in the active tab, opening its
     /// assembly first if it is not open, and records it in the history.</summary>
-    public static async void GoToBookmark(AppState appState, Bookmark bookmark)
+    public static void GoToBookmark(AppState appState, Bookmark bookmark) =>
+        Background.Start(GoToBookmarkAsync(appState, bookmark), appState.ReportError);
+
+    private static async Task GoToBookmarkAsync(AppState appState, Bookmark bookmark)
     {
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab: false);
@@ -118,7 +121,10 @@ public static class Bookmarks
     /// ILSpy's — and finds the place of each in the background: takes them at once when there are
     /// none yet, and otherwise waits in <see cref="AppState.Imports"/> for the user to say how. Bookmarks
     /// whose place is not found are left out and reported.</summary>
-    public static async void ImportBookmarks(AppState appState, string path)
+    public static void ImportBookmarks(AppState appState, string path) =>
+        Background.Start(ImportBookmarksAsync(appState, path), appState.ReportError);
+
+    private static async Task ImportBookmarksAsync(AppState appState, string path)
     {
         var file = Path.GetFileName(path);
         var read = BookmarkFile.Read(path, out var error);

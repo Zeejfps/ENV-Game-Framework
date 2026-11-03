@@ -29,7 +29,8 @@ public static class Analysis
     /// background, unless it already started. When it fails, why is reported.</summary>
     public static void RunAnalysis(AppState appState, AnalyzerKindNode kind)
     {
-        kind.StartOnce(appState.Assemblies, appState.Analyzer.NoteFindings, error => ReportAnalysisFailure(appState, kind, error));
+        kind.StartOnce(appState.Assemblies, appState.Analyzer.NoteFindings, error => ReportAnalysisFailure(appState, kind, error),
+            appState.ReportError);
     }
 
     private static void ReportAnalysisFailure(AppState appState, AnalyzerKindNode kind, Exception error)
@@ -42,7 +43,10 @@ public static class Analysis
     /// its analysis, which the view is commanded to show. The root goes when the reference does not
     /// resolve, which is reported. Once the root was removed, as clearing the list removes them all,
     /// what is found is dropped.</summary>
-    public static async void AddToAnalyzer(AppState appState, CodeReference.Navigable reference)
+    public static void AddToAnalyzer(AppState appState, CodeReference.Navigable reference) =>
+        Background.Start(AddToAnalyzerAsync(appState, reference), appState.ReportError);
+
+    private static async Task AddToAnalyzerAsync(AppState appState, CodeReference.Navigable reference)
     {
         var root = appState.Analyzer.AddPending(savedAs: null);
         var assemblies = appState.Assemblies;
@@ -93,7 +97,10 @@ public static class Analysis
     /// opening their assemblies' files without listing them, and turns each root into the analysis of
     /// its symbol, or removes it when its symbol is gone, unless the list was cleared meanwhile.
     /// Reports why the symbols could not be found.</summary>
-    public static async void RestoreAnalyses(AppState appState)
+    public static void RestoreAnalyses(AppState appState) =>
+        Background.Start(RestoreAnalysesAsync(appState), appState.ReportError);
+
+    private static async Task RestoreAnalysesAsync(AppState appState)
     {
         var restoring = appState.Analyzer.ListRestoring();
         if (restoring.Count == 0)

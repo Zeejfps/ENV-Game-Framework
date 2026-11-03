@@ -633,6 +633,7 @@
   "error.search_nuget": "无法搜索 {source}",
   "error.download_package": "无法下载 {name}",
   "error.search": "搜索失败",
+  "error.unexpected": "发生意外错误",
   "error.restore_analyses": "无法重新分析上次分析的内容",
   "error.duplicate_bookmarks": {"other": "{count:N0} 个书签与其他书签标记同一行，已被忽略"},
   "error.go_to_bookmark": "无法转到 {name}",

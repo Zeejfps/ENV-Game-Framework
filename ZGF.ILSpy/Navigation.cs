@@ -88,7 +88,10 @@ public static class Navigation
     /// type or member <paramref name="idString"/> names, written as XML documentation ids are, looked
     /// for in the assemblies read from them, or in every open one when there are none. Reports when
     /// none has it.</summary>
-    public static async void OpenAndShowId(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString)
+    public static void OpenAndShowId(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString) =>
+        Background.Start(OpenAndShowIdAsync(appState, paths, idString), appState.ReportError);
+
+    private static async Task OpenAndShowIdAsync(AppState appState, IReadOnlyList<AssemblyPath> paths, string idString)
     {
         var ticket = appState.Intent.Begin();
         var token = appState.Opens.Token;
@@ -142,7 +145,10 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background (it may load an assembly),
     /// then shows it in the tab it was asked from, or a new one.</summary>
-    public static async void Navigate(AppState appState, CodeReference.Navigable reference, bool inNewTab)
+    public static void Navigate(AppState appState, CodeReference.Navigable reference, bool inNewTab) =>
+        Background.Start(NavigateAsync(appState, reference, inNewTab), appState.ReportError);
+
+    private static async Task NavigateAsync(AppState appState, CodeReference.Navigable reference, bool inNewTab)
     {
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
@@ -196,7 +202,10 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background, as <see cref="Navigate"/> does,
     /// then shows the metadata table row that defines it in the tab it was asked from, or a new one.</summary>
-    public static async void ShowInMetadata(AppState appState, CodeReference.Navigable reference, bool inNewTab)
+    public static void ShowInMetadata(AppState appState, CodeReference.Navigable reference, bool inNewTab) =>
+        Background.Start(ShowInMetadataAsync(appState, reference, inNewTab), appState.ReportError);
+
+    private static async Task ShowInMetadataAsync(AppState appState, CodeReference.Navigable reference, bool inNewTab)
     {
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab);
@@ -237,7 +246,10 @@ public static class Navigation
 
     /// <summary>Resolves <paramref name="reference"/> in the background, then has the view open its page of
     /// the .NET API reference, or reports that it has none.</summary>
-    public static async void ShowInApiReference(AppState appState, CodeReference.Entity reference)
+    public static void ShowInApiReference(AppState appState, CodeReference.Entity reference) =>
+        Background.Start(ShowInApiReferenceAsync(appState, reference), appState.ReportError);
+
+    private static async Task ShowInApiReferenceAsync(AppState appState, CodeReference.Entity reference)
     {
         var assemblies = appState.Assemblies;
         var found = await Background.Run(() => assemblies.FindApiReferencePage(reference));
@@ -287,7 +299,10 @@ public static class Navigation
         return index != appState.History.CurrentIndex;
     }
 
-    private static async void Restore(AppState appState, HistoryEntry.Node entry)
+    private static void Restore(AppState appState, HistoryEntry.Node entry) =>
+        Background.Start(RestoreAsync(appState, entry), appState.ReportError);
+
+    private static async Task RestoreAsync(AppState appState, HistoryEntry.Node entry)
     {
         var ticket = appState.Intent.Begin();
         var destination = ChooseDestination(appState, inNewTab: false);
