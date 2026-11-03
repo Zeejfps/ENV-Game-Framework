@@ -15,10 +15,6 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 - "Enable the button, then force-unwrap": `TreePaneView.cs:51-60` is correct only while disabled widgets never fire.
 - The other ~90 catches are properly filtered with `when e is IOException or …`.
 
-### Boundaries
-
-- `--language=bogus` becomes null (`CommandLine.cs:318`) and unknown flags are dropped (`:303`), with no feedback.
-
 ## Rule 2: coupling
 
 - `AppState` is a god object: referenced from 50 files, about 35 public members, 7 mutable public fields. Its constructor does file I/O through functions that take `AppState` back (`AppState.cs:187-191`). `UiState` is referenced from 54 files with about 45 members.

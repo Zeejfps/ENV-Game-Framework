@@ -652,6 +652,7 @@
   "error.pdb_windows": "Es ist ein Windows-PDB; nur portable PDBs können gelesen werden.",
   "error.pdb_unreadable": "Es ist kein lesbares PDB.",
   "error.navigate_to": "In den geöffneten Assemblys wurde nichts mit dem Namen {id} gefunden",
+  "error.arguments_ignored": {"one": "{count:N0} Befehlszeilenargument wurde nicht verstanden und ignoriert", "other": "{count:N0} Befehlszeilenargumente wurden nicht verstanden und ignoriert"},
   "error.show_in_diagram": "{name} kann nicht in einem Diagramm angezeigt werden",
   "error.lay_out_diagram": "Das Diagramm kann nicht angeordnet werden",
   "error.compare": "{left} kann nicht mit {right} verglichen werden",

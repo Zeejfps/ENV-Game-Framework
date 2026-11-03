@@ -652,6 +652,7 @@
   "error.pdb_windows": "这是 Windows PDB;只能读取可移植 PDB。",
   "error.pdb_unreadable": "这不是可读取的 PDB。",
   "error.navigate_to": "在打开的程序集中找不到名为 {id} 的项",
+  "error.arguments_ignored": {"other": "{count:N0} 个命令行参数无法识别，已忽略"},
   "error.show_in_diagram": "无法在类图中显示 {name}",
   "error.lay_out_diagram": "无法排列类图",
   "error.compare": "无法比较 {left} 与 {right}",

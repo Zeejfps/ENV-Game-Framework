@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate;
 using ZGF.ILSpy.Core;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.AssemblyLists;
@@ -73,13 +74,59 @@ public sealed class CommandLineTests
     }
 
     [Fact]
-    public void A_language_the_app_does_not_have_and_a_blank_list_name_are_left_out()
+    public void A_language_the_app_does_not_have_and_blank_values_are_ignored_as_given()
     {
-        var commandLine = CommandLine.Parse(["--language=VB", "--list=  "]);
+        var commandLine = CommandLine.Parse(["--language=VB", "--list=  ", "--navigateto=", "--settings= "]);
 
         Assert.Null(commandLine.Language);
         Assert.Null(commandLine.AssemblyList);
-        Assert.False(commandLine.ClearList);
+        Assert.Null(commandLine.NavigateTo);
+        Assert.Equal(AppSettings.DefaultPath, commandLine.SettingsPath);
+        Assert.Equal(["--language=VB", "--list=  ", "--navigateto=", "--settings= "], commandLine.Ignored);
+    }
+
+    [Fact]
+    public void An_option_the_app_does_not_have_and_a_file_that_is_no_path_are_ignored_as_given()
+    {
+        var commandLine = CommandLine.Parse(["--opengl", "--GL", "a\0.dll", "a.dll"]);
+
+        Assert.Equal(RenderBackendKind.Auto, commandLine.RenderBackend);
+        Assert.Equal([Path.GetFullPath("a.dll")], commandLine.AssemblyPaths.Select(static p => p.Text));
+        Assert.Equal(["--opengl", "--GL", "a\0.dll"], commandLine.Ignored);
+    }
+
+    [Fact]
+    public void The_arguments_ignored_are_handed_over_for_the_open_window_to_tell_of()
+    {
+        var commandLine = CommandLine.Parse(["--language=VB", "--opengl", "a.dll"]);
+
+        var handed = CommandLine.Parse(commandLine.ListHandedArguments().ToArray());
+
+        Assert.Equal(["--language=VB", "--opengl"], handed.Ignored);
+        Assert.Equal([Path.GetFullPath("a.dll")], handed.AssemblyPaths.Select(static p => p.Text));
+    }
+
+    [Fact]
+    public void Starting_with_arguments_the_app_ignores_tells_of_them()
+    {
+        var d = new AppStateDriver();
+
+        FollowStartupCommandLine(d.AppState, CommandLine.Parse(["--language=il-csharp", "--opengl", "--language=IL"]));
+
+        var error = Assert.Single(d.AppState.Errors.Entries).Words();
+        Assert.Contains("2", error.Title);
+        Assert.Equal($"--language=il-csharp{Environment.NewLine}--opengl", error.Details);
+        Assert.Equal(DecompilationLanguage.IL, d.AppState.Language);
+    }
+
+    [Fact]
+    public void Starting_with_arguments_the_app_understands_tells_of_nothing()
+    {
+        var d = new AppStateDriver();
+
+        FollowStartupCommandLine(d.AppState, CommandLine.Parse(["--language=IL", "--gl", "--newinstance"]));
+
+        Assert.Empty(d.AppState.Errors.Entries);
     }
 
     [Fact]

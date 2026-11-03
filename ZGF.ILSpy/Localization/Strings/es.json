@@ -652,6 +652,7 @@
   "error.pdb_windows": "Es un PDB de Windows; solo se pueden leer PDB portables.",
   "error.pdb_unreadable": "No es un PDB que se pueda leer.",
   "error.navigate_to": "No se encontró nada llamado {id} en los ensamblados abiertos",
+  "error.arguments_ignored": {"one": "{count:N0} argumento de la línea de comandos no se entendió y se omitió", "other": "{count:N0} argumentos de la línea de comandos no se entendieron y se omitieron"},
   "error.show_in_diagram": "No se puede mostrar {name} en un diagrama",
   "error.lay_out_diagram": "No se puede organizar el diagrama",
   "error.compare": "No se puede comparar {left} con {right}",

@@ -652,6 +652,7 @@
   "error.pdb_windows": "Windows PDB です。読み取れるのはポータブル PDB だけです。",
   "error.pdb_unreadable": "読み取れる PDB ではありません。",
   "error.navigate_to": "開いたアセンブリに {id} という名前のものは見つかりませんでした",
+  "error.arguments_ignored": {"other": "{count:N0} 個のコマンドライン引数を解釈できなかったため無視しました"},
   "error.show_in_diagram": "{name} をクラス図に表示できません",
   "error.lay_out_diagram": "クラス図をレイアウトできません",
   "error.compare": "{left} と {right} を比較できません",

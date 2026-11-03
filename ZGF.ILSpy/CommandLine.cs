@@ -37,6 +37,10 @@ public sealed class CommandLine
     /// already open with the same settings.</summary>
     public bool NewInstance { get; private set; }
 
+    /// <summary>The arguments that ask for nothing the app can do, as they were given: an option it does
+    /// not have, a language it does not have, an option with no value, or a file that is no path.</summary>
+    public List<string> Ignored { get; } = new();
+
     public static CommandLine Parse(string[] args)
     {
         var commandLine = new CommandLine();
@@ -48,30 +52,79 @@ public sealed class CommandLine
     private void Read(string arg)
     {
         if (arg.StartsWith(SettingsOption, StringComparison.Ordinal))
-            SettingsPath = arg.Substring(SettingsOption.Length);
+            ReadSettingsPath(arg);
         else if (arg == OpenGlFlag)
             RenderBackend = RenderBackendKind.OpenGl;
         else if (arg.StartsWith(LanguageOption, StringComparison.Ordinal))
-            Language = ParseLanguage(arg.Substring(LanguageOption.Length));
+            ReadLanguage(arg);
         else if (arg.StartsWith(ListOption, StringComparison.Ordinal))
-            AssemblyList = ReadName(arg.Substring(ListOption.Length));
+            ReadAssemblyList(arg);
         else if (arg == ClearListFlag)
             ClearList = true;
         else if (arg.StartsWith(NavigateToOption, StringComparison.Ordinal))
-            NavigateTo = ReadName(arg.Substring(NavigateToOption.Length));
+            ReadNavigateTo(arg);
         else if (arg == NewInstanceFlag)
             NewInstance = true;
-        else if (!arg.StartsWith(FlagPrefix, StringComparison.Ordinal))
+        else if (arg.StartsWith(FlagPrefix, StringComparison.Ordinal))
+            Ignored.Add(arg);
+        else
             AddAssemblyPath(arg);
     }
 
-    /// <summary>Takes <paramref name="arg"/> as a file, made absolute from this process's folder; leaves it
-    /// out when it is no path.</summary>
+    private void ReadSettingsPath(string arg)
+    {
+        var path = ReadName(arg.Substring(SettingsOption.Length));
+        if (path == null)
+        {
+            Ignored.Add(arg);
+            return;
+        }
+        SettingsPath = path;
+    }
+
+    private void ReadLanguage(string arg)
+    {
+        var language = ParseLanguage(arg.Substring(LanguageOption.Length));
+        if (language == null)
+        {
+            Ignored.Add(arg);
+            return;
+        }
+        Language = language;
+    }
+
+    private void ReadAssemblyList(string arg)
+    {
+        var name = ReadName(arg.Substring(ListOption.Length));
+        if (name == null)
+        {
+            Ignored.Add(arg);
+            return;
+        }
+        AssemblyList = name;
+    }
+
+    private void ReadNavigateTo(string arg)
+    {
+        var id = ReadName(arg.Substring(NavigateToOption.Length));
+        if (id == null)
+        {
+            Ignored.Add(arg);
+            return;
+        }
+        NavigateTo = id;
+    }
+
+    /// <summary>Takes <paramref name="arg"/> as a file, made absolute from this process's folder.</summary>
     private void AddAssemblyPath(string arg)
     {
         var path = AssemblyPath.Parse(Path.Combine(Environment.CurrentDirectory, arg));
-        if (path != null)
-            AssemblyPaths.Add(path);
+        if (path == null)
+        {
+            Ignored.Add(arg);
+            return;
+        }
+        AssemblyPaths.Add(path);
     }
 
     /// <summary>The language named <paramref name="name"/>, in any case; null for one the app does not have.</summary>
@@ -99,7 +152,8 @@ public sealed class CommandLine
     }
 
     /// <summary>The arguments that ask a window already open for what this command line asks: the
-    /// language, the list, what to show and the files, made absolute from this process's folder.</summary>
+    /// language, the list, what to show and the files, made absolute from this process's folder; and the
+    /// arguments ignored, for that window to tell of.</summary>
     public List<string> ListHandedArguments()
     {
         var args = new List<string>();
@@ -113,6 +167,7 @@ public sealed class CommandLine
             args.Add(NavigateToOption + NavigateTo);
         foreach (var path in AssemblyPaths)
             args.Add(path.Text);
+        args.AddRange(Ignored);
         return args;
     }
 }

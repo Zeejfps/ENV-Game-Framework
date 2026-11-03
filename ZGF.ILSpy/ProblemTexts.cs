@@ -45,6 +45,7 @@ public static class ProblemTexts
         AppProblem.AnalysisFailed p => (t.ErrorAnalyze(p.Subject, AnalyzerText.Header(t, p.Kind)), p.Error.ToString()),
         AppProblem.AnalysesNotRestored p => (t.ErrorRestoreAnalyses, p.Error.ToString()),
         AppProblem.IdNotFound p => (t.ErrorNavigateTo(p.Id), ""),
+        AppProblem.ArgumentsIgnored p => (t.ErrorArgumentsIgnored(p.Arguments.Count), string.Join(Environment.NewLine, p.Arguments)),
         AppProblem.NoApiReferencePage p => (t.ErrorNoApiReferencePage(p.Name), t.ErrorNoApiReferencePageDetails),
         AppProblem.Unresolved p => (t.ErrorResolve(p.Reference.Name), Failure(p.Error, t.ErrorNoDefinition(p.Reference))),
         AppProblem.HistoryPlaceGone p => (t.ErrorGoBack(p.Place.Label), Failure(p.Error, t.ErrorNoLongerThere(p.Place))),

@@ -37,6 +37,9 @@ public abstract record AppProblem
     /// <summary>No open assembly has what the documentation id <see cref="Id"/> names.</summary>
     public sealed record IdNotFound(string Id) : AppProblem;
 
+    /// <summary>The command line's <see cref="Arguments"/> asked for nothing the app can do.</summary>
+    public sealed record ArgumentsIgnored(IReadOnlyList<string> Arguments) : AppProblem;
+
     public sealed record NoApiReferencePage(string Name) : AppProblem;
 
     /// <summary>What <see cref="Reference"/> points at was not found, or finding it failed with <see cref="Error"/>.</summary>

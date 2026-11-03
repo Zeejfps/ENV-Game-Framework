@@ -6,13 +6,14 @@ using static ZGF.ILSpy.Preferences;
 namespace ZGF.ILSpy;
 
 /// <summary>Doing what a command line asks: the one the app starts with, and those later runs hand the
-/// window already open.</summary>
+/// window already open; either tells of the arguments it ignored.</summary>
 public static class CommandLines
 {
     /// <summary>Decompiles to the language the command line names, and starts with the assembly list it
     /// names, emptied first when it asks for that.</summary>
     public static void FollowStartupCommandLine(AppState appState, CommandLine commandLine)
     {
+        ReportIgnored(appState, commandLine);
         if (commandLine.Language != null)
             SetLanguage(appState, commandLine.Language.Value);
         if (commandLine.AssemblyList != null)
@@ -26,6 +27,7 @@ public static class CommandLines
     /// its files and shows what it names.</summary>
     public static void FollowHandedCommandLine(AppState appState, CommandLine commandLine)
     {
+        ReportIgnored(appState, commandLine);
         if (commandLine.Language != null)
             SetLanguage(appState, commandLine.Language.Value);
         if (commandLine.AssemblyList != null)
@@ -33,6 +35,12 @@ public static class CommandLines
         if (commandLine.ClearList)
             CloseAllAssemblies(appState);
         OpenCommandLineFiles(appState, commandLine);
+    }
+
+    private static void ReportIgnored(AppState appState, CommandLine commandLine)
+    {
+        if (commandLine.Ignored.Count > 0)
+            appState.ReportError(new AppProblem.ArgumentsIgnored(commandLine.Ignored.ToList()));
     }
 
     /// <summary>Opens the files the command line names, then shows the namespace, type or member it
