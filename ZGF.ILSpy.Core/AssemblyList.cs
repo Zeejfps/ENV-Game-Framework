@@ -29,8 +29,7 @@ public sealed class AssemblyList
     private ImmutableArray<LoadedModule> _loaded = ImmutableArray<LoadedModule>.Empty;
     private int _version;
     private int _generation;
-    private volatile bool _loadsReferences = true;
-    private volatile MetadataReaderOptions _readerOptions = MetadataReaderOptions.ApplyWindowsRuntimeProjections;
+    private volatile LoadOptions _options = LoadOptions.Default;
 
     /// <summary>The open assemblies that loaded, in the order they were opened, with an open package's
     /// assemblies where the package is. A snapshot: it never changes after it is read.</summary>
@@ -167,19 +166,25 @@ public sealed class AssemblyList
     }
 
     /// <summary>Whether resolving a reference reads its assembly from a file, rather than only finding one listed.</summary>
-    internal bool LoadsReferences => _loadsReferences;
+    internal bool LoadsReferences => _options.LoadsReferences;
 
     /// <summary>Takes from <paramref name="options"/> the toggles that apply as assemblies are read: whether
     /// references load their assemblies, and whether Windows Runtime metadata is projected. Returns true
-    /// when they changed, so that the open assemblies must be read again to follow them.</summary>
+    /// when they changed, so that the open assemblies must be read again to follow them. A change ends the
+    /// <see cref="Generation"/>, as a clear does, so that no assembly read with the options before is kept.</summary>
     public bool UseLoadOptions(DecompilerOptions options)
     {
         var loadsReferences = options.IsOn(DecompilerToggle.AutoLoadAssemblyReferences);
         var readerOptions = ChooseReaderOptions(options);
-        if (loadsReferences == _loadsReferences && readerOptions == _readerOptions)
+        if (_options.IsSame(loadsReferences, readerOptions))
             return false;
-        _loadsReferences = loadsReferences;
-        _readerOptions = readerOptions;
+        lock (_gate)
+        {
+            if (_options.IsSame(loadsReferences, readerOptions))
+                return false;
+            _options = new LoadOptions(loadsReferences, readerOptions);
+            _generation++;
+        }
         return true;
     }
 
@@ -702,7 +707,7 @@ public sealed class AssemblyList
     {
         try
         {
-            return WebCilFile.FromFile(path.Text, _readerOptions);
+            return WebCilFile.FromFile(path.Text, _options.ReaderOptions);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
         {
@@ -765,7 +770,7 @@ public sealed class AssemblyList
     {
         try
         {
-            var file = new PEFile(path.Text, stream, PEStreamOptions.PrefetchEntireImage, _readerOptions);
+            var file = new PEFile(path.Text, stream, PEStreamOptions.PrefetchEntireImage, _options.ReaderOptions);
             if (!file.Reader.HasMetadata)
                 throw new AssemblyLoadException(path, $"'{path}' is not a .NET assembly.");
             return file;
@@ -774,5 +779,14 @@ public sealed class AssemblyList
         {
             throw new AssemblyLoadException(path, $"Cannot open '{path}': {e.Message}", e);
         }
+    }
+
+    /// <summary>The options that apply as assemblies are read, changed together.</summary>
+    private sealed record LoadOptions(bool LoadsReferences, MetadataReaderOptions ReaderOptions)
+    {
+        public static LoadOptions Default { get; } = new(true, MetadataReaderOptions.ApplyWindowsRuntimeProjections);
+
+        public bool IsSame(bool loadsReferences, MetadataReaderOptions readerOptions) =>
+            LoadsReferences == loadsReferences && ReaderOptions == readerOptions;
     }
 }

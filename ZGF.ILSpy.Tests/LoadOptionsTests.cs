@@ -42,6 +42,31 @@ public sealed class LoadOptionsTests
     }
 
     [Fact]
+    public void An_assembly_read_before_the_load_options_changed_is_not_kept()
+    {
+        var list = new AssemblyList();
+        var generation = list.Generation;
+        list.UseLoadOptions(Off(DecompilerToggle.ApplyWindowsRuntimeProjections));
+
+        var readBefore = list.TryLoad(AssemblyPath.Of(Trees.TestAssemblyPath), generation);
+        var opened = list.OpenModule(Trees.TestAssemblyPath);
+
+        Assert.NotSame(readBefore, opened);
+        Assert.Equal(MetadataReaderOptions.None, opened.File.Metadata.Options);
+    }
+
+    [Fact]
+    public void Load_options_left_as_they_are_keep_what_was_read()
+    {
+        var list = new AssemblyList();
+        var generation = list.Generation;
+
+        list.UseLoadOptions(DecompilerOptions.Default);
+
+        Assert.Equal(generation, list.Generation);
+    }
+
+    [Fact]
     public void Without_loading_references_a_reference_to_an_assembly_not_listed_resolves_to_none()
     {
         var (_, assembly) = OpenWith(Off(DecompilerToggle.AutoLoadAssemblyReferences));
