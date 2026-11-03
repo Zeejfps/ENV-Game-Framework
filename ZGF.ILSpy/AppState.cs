@@ -177,7 +177,22 @@ public sealed class AppState
         return comparison.IsComparing;
     }
 
-    public AppState(AppSettings settings, BrowseSession session)
+    /// <summary>The app state <paramref name="settings"/> describe, with the open list's documents
+    /// reopened, what is saved recorded as saved, and the user's themes and icon themes read.</summary>
+    public static AppState Load(AppSettings settings, BrowseSession session)
+    {
+        var appState = new AppState(settings, session, out var leftOutBookmarks);
+        ReopenDocuments(appState);
+        appState.LastSave.Record(CaptureSavedSources(appState));
+        ReportLeftOutBookmarks(appState, leftOutBookmarks);
+        LoadThemes(appState);
+        LoadIconThemes(appState);
+        return appState;
+    }
+
+    /// <summary>The app state <paramref name="settings"/> describe, before anything is reopened or read
+    /// from disk; <see cref="Load"/> does that.</summary>
+    private AppState(AppSettings settings, BrowseSession session, out int leftOutBookmarks)
     {
         Session = session;
         SettingsPlace = new SettingsPlace(settings.FilePath);
@@ -195,13 +210,8 @@ public sealed class AppState
         Tabs.MakeActive(first);
         Analyzer = new AnalyzerTree();
         Lists.Load(settings.AssemblyLists, settings.ActiveAssemblyList);
-        var leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
+        leftOutBookmarks = Bookmarks.Load(settings.Bookmarks);
         Analyzer.AddPending(Lists.ActiveAnalyses);
-        ReopenDocuments(this);
-        LastSave.Record(CaptureSavedSources(this));
-        ReportLeftOutBookmarks(this, leftOutBookmarks);
-        LoadThemes(this);
-        LoadIconThemes(this);
     }
 
     private static Locale ChooseLocale(AppSettings settings)

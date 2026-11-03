@@ -311,7 +311,7 @@ public sealed class AppSettingsTests : IDisposable
     public void An_unreadable_file_falls_back_to_defaults_and_is_reported()
     {
         var (loaded, problem) = AppSettings.Load(Written("""{ "Assemblies": [ "a.dll", """));
-        var appState = new AppState(loaded, TestSession.Shared);
+        var appState = AppState.Load(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         Assert.Empty(loaded.AssemblyLists);
@@ -325,7 +325,7 @@ public sealed class AppSettingsTests : IDisposable
     {
         const string broken = """{ "Assemblies": [ "a.dll", """;
         var (loaded, problem) = AppSettings.Load(Written(broken));
-        var appState = new AppState(loaded, TestSession.Shared);
+        var appState = AppState.Load(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         Assert.IsType<SettingsWrite.Written>(loaded.Save());
@@ -369,7 +369,7 @@ public sealed class AppSettingsTests : IDisposable
               "AssemblyLists": [ { "Name": "Work", "Assemblies": [ "C:\\a.dll" ] } ] }
             """;
         var (loaded, problem) = AppSettings.Load(Written(json));
-        var appState = new AppState(loaded, TestSession.Shared);
+        var appState = AppState.Load(loaded, TestSession.Shared);
         ReportSettingsProblem(appState, problem);
 
         var leftOut = Assert.IsType<SettingsProblem.ValuesLeftOut>(problem);

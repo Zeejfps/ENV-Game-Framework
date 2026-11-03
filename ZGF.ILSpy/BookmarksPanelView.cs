@@ -20,8 +20,7 @@ internal static class BookmarksPanelView
     private const int LocationColumn = 2;
     private const int ModuleColumn = 3;
 
-    private static Strings? _headersFor;
-    private static string[] _headers = [];
+    private static readonly ConditionalWeakTable<Strings, string[]> HeaderTexts = new();
 
     public static void Render(Ui<UiState> ui, BookmarkList bookmarks, AssemblyList assemblies)
     {
@@ -40,7 +39,7 @@ internal static class BookmarksPanelView
 
         panel.Selection.ShowIn(bookmarks.Items);
         var table = ui.Table(ListId, ui.State.BookmarkColumns, panel.Cells);
-        table.Header(Headers(t));
+        table.Header(HeaderTexts.GetValue(t, static t => ListHeaders(t)));
         var removed = List(ui, bookmarks, assemblies, table);
         Menu(ui);
         if (removed != null)
@@ -84,13 +83,7 @@ internal static class BookmarksPanelView
             ui.OpenContextMenu(MenuId, body.ContextMenuAt);
     }
 
-    private static string[] Headers(Strings t)
-    {
-        if (ReferenceEquals(t, _headersFor)) return _headers;
-        _headersFor = t;
-        _headers = ["", t.BookmarksColumnName, t.BookmarksColumnLocation, t.BookmarksColumnModule];
-        return _headers;
-    }
+    private static string[] ListHeaders(Strings t) => ["", t.BookmarksColumnName, t.BookmarksColumnLocation, t.BookmarksColumnModule];
 
     private static FileFilter[] Filters(Strings t) =>
     [

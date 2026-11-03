@@ -124,7 +124,7 @@ internal static class TempSettings
 internal static class Screens
 {
     /// <summary>A screen over an app state with nothing open, for drawing a widget alone.</summary>
-    public static UiState Blank() => IlSpyApp.CreateUiState(new AppState(new AppSettings { Locale = Locale.En }, TestSession.Shared));
+    public static UiState Blank() => IlSpyApp.CreateUiState(AppState.Load(new AppSettings { Locale = Locale.En }, TestSession.Shared));
 }
 
 /// <summary>A <see cref="AppState"/> and, unless made without one, the screen over it, whose posted
@@ -147,7 +147,7 @@ internal sealed class AppStateDriver
     {
         settings ??= new AppSettings();
         settings.Locale ??= Locale.En;
-        AppState = new AppState(settings, TestSession.Shared);
+        AppState = AppState.Load(settings, TestSession.Shared);
         if (withScreen)
             _ui = IlSpyApp.CreateUiState(AppState);
         RestoreAnalyses(AppState);
