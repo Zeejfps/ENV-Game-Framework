@@ -17,7 +17,6 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ### Boundaries
 
-- `NUGET_PACKAGES` is used as given (`NuGetConfig.cs:148`), while the config value goes through `GetFullPath`.
 - `--language=bogus` becomes null (`CommandLine.cs:318`) and unknown flags are dropped (`:303`), with no feedback.
 
 ## Rule 2: coupling

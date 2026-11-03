@@ -468,7 +468,7 @@ public sealed class NuGetConfigTests
             </configuration>
             """);
 
-        var config = NuGetConfig.Read(path);
+        var config = NuGetConfig.Read(path, null);
 
         Assert.Equal(["nuget.org", "company"], config.Sources.Select(s => s.Name));
         Assert.Equal("https://company.test/nuget/v3/index.json", config.Sources[1].Url.Text);
@@ -479,7 +479,7 @@ public sealed class NuGetConfigTests
     {
         using var temp = new TempDir();
 
-        var config = NuGetConfig.Read(temp.PathOf("NuGet.Config"));
+        var config = NuGetConfig.Read(temp.PathOf("NuGet.Config"), null);
 
         Assert.Equal([NuGetSource.NuGetOrg], config.Sources);
     }
@@ -490,7 +490,7 @@ public sealed class NuGetConfigTests
         using var temp = new TempDir();
         var path = temp.Write("NuGet.Config", "not xml");
 
-        var config = NuGetConfig.Read(path);
+        var config = NuGetConfig.Read(path, null);
 
         Assert.Equal([NuGetSource.NuGetOrg], config.Sources);
     }
@@ -498,19 +498,45 @@ public sealed class NuGetConfigTests
     [Fact]
     public void The_global_packages_folder_the_config_names_is_found_from_the_config_s_folder()
     {
-        if (Environment.GetEnvironmentVariable("NUGET_PACKAGES") != null)
-            return;
         using var temp = new TempDir();
-        var path = temp.Write("NuGet.Config", """
-            <configuration>
-              <config>
-                <add key="globalPackagesFolder" value="restored" />
-              </config>
-            </configuration>
-            """);
+        var path = WriteConfigNamingRestored(temp);
 
-        var config = NuGetConfig.Read(path);
+        var config = NuGetConfig.Read(path, null);
 
         Assert.Equal(temp.PathOf("restored"), config.GlobalPackagesFolder);
     }
+
+    [Fact]
+    public void An_absolute_nuget_packages_folder_comes_before_the_config_s()
+    {
+        using var temp = new TempDir();
+        var path = WriteConfigNamingRestored(temp);
+        var fromEnvironment = Path.Combine(temp.Path, "env", "..", "elsewhere");
+
+        var config = NuGetConfig.Read(path, fromEnvironment);
+
+        Assert.Equal(temp.PathOf("elsewhere"), config.GlobalPackagesFolder);
+    }
+
+    [Theory]
+    [InlineData("packages")]
+    [InlineData(@"%USERPROFILE%\.nuget\packages")]
+    [InlineData("")]
+    public void A_nuget_packages_folder_that_is_no_absolute_path_is_passed_over_for_the_config_s(string fromEnvironment)
+    {
+        using var temp = new TempDir();
+        var path = WriteConfigNamingRestored(temp);
+
+        var config = NuGetConfig.Read(path, fromEnvironment);
+
+        Assert.Equal(temp.PathOf("restored"), config.GlobalPackagesFolder);
+    }
+
+    private static string WriteConfigNamingRestored(TempDir temp) => temp.Write("NuGet.Config", """
+        <configuration>
+          <config>
+            <add key="globalPackagesFolder" value="restored" />
+          </config>
+        </configuration>
+        """);
 }
