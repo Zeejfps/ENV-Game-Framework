@@ -134,8 +134,9 @@ public sealed class ThemeFolderWatch
     {
         lock (_lock)
         {
-            if (_pendingLoss != null)
-                return TakePendingLoss();
+            var loss = _pendingLoss;
+            if (loss != null)
+                return TakePendingLoss(loss);
             if (_watcher == null)
                 return Stopped;
             if (_isChangePending)
@@ -145,11 +146,10 @@ public sealed class ThemeFolderWatch
         }
     }
 
-    private Task<ThemeFolderEvent> TakePendingLoss()
+    private Task<ThemeFolderEvent> TakePendingLoss(string loss)
     {
-        var loss = new ThemeFolderEvent(ThemeFolderEventKind.Lost, _pendingLoss!);
         _pendingLoss = null;
-        return Task.FromResult(loss);
+        return Task.FromResult(new ThemeFolderEvent(ThemeFolderEventKind.Lost, loss));
     }
 
     private Task<ThemeFolderEvent> TakePendingChange()

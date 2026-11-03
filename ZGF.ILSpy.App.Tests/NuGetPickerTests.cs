@@ -464,14 +464,14 @@ public sealed class NuGetPickerTests : IDisposable
         picker.Open();
         app.RunUntil(() => picker.Results.Count > 0);
         var icon = picker.IconOf(picker.Results[0])!;
-        app.RunUntil(() => icon.Pixels != null);
+        app.RunUntil(() => icon.Shown != null);
         app.Run(2);
         var drawn = app.Frames.Canvas.Images.Any(i => i.Inputs.ImageId == icon.ImageId);
         app.Frames.Key(KeyboardKey.Escape);
         app.Run(2);
 
         Assert.True(drawn);
-        Assert.Equal(NuGetPicker.IconPixels, icon.Pixels!.Width);
+        Assert.Equal(NuGetPicker.IconPixels, icon.Shown!.Pixels.Width);
         Assert.False(app.Frames.Canvas.HasImage(icon.ImageId));
     }
 

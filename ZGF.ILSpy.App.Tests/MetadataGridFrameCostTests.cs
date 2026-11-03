@@ -18,7 +18,7 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
     public void A_metadata_grid_with_a_row_selected_allocates_nothing_per_frame(bool scrolling)
     {
         var grid = OpenTable("TypeRef");
-        var state = new MetadataGridState();
+        var state = new MetadataGridState(grid);
         var flags = new MetadataFilters(null);
         var frames = new UiFrames(Screens.Blank(), width: 1200f, height: 300f, body: ui => Render(ui, grid, state, flags)) { FrameTime = 1f / 60f };
         frames.Frame();
@@ -44,7 +44,7 @@ public sealed class MetadataGridFrameCostTests(ITestOutputHelper output)
     private static void Render(Ui<UiState> ui, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
     {
         using var screen = ui.Screen();
-        ui.MetadataGridView("grid", grid, state, flags);
+        ui.MetadataGridView("grid", state, flags);
     }
 
     /// <summary>Scrolls down and back up the table in sweeps, so the measured frames show rows the

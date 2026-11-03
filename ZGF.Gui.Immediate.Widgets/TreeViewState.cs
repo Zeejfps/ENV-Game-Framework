@@ -94,6 +94,18 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     /// <summary>The selected node; meaningful only while <see cref="HasSelection"/>.</summary>
     public TNode? Selected { get; private set; }
 
+    /// <summary>The selected node, when one is.</summary>
+    public bool TryGetSelected([MaybeNullWhen(false)] out TNode node)
+    {
+        if (!HasSelection)
+        {
+            node = default;
+            return false;
+        }
+        node = Selected!;
+        return true;
+    }
+
     /// <summary>How many rows are showing, as of the last frame.</summary>
     public int VisibleCount => Rows.Count;
 
@@ -197,7 +209,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
         RowsChanged();
         EndRevealOnceShown();
 
-        if (shown < 0) return;
+        if (shown < 0 || !TryGetSelected(out var selected)) return;
         _selectedIndex = -1;
         var deepest = -1;
         for (var i = 0; i < Rows.Count; i++)
@@ -205,7 +217,7 @@ public sealed class TreeViewState<TNode> where TNode : notnull
             if (Rows[i].IsPlaceholder)
                 continue;
             var node = Rows[i].Node;
-            if (Comparer.Equals(node, Selected!))
+            if (Comparer.Equals(node, selected))
             {
                 _selectedIndex = i;
                 break;
@@ -255,11 +267,11 @@ public sealed class TreeViewState<TNode> where TNode : notnull
     {
         get
         {
-            if (!HasSelection) return -1;
-            if (_selectedIndex >= 0 && _selectedIndex < Rows.Count && Comparer.Equals(Rows[_selectedIndex].Node, Selected!))
+            if (!TryGetSelected(out var selected)) return -1;
+            if (_selectedIndex >= 0 && _selectedIndex < Rows.Count && Comparer.Equals(Rows[_selectedIndex].Node, selected))
                 return _selectedIndex;
             if (_selectionMissingAt == _rowsVersion) return -1;
-            _selectedIndex = IndexOf(Selected!);
+            _selectedIndex = IndexOf(selected);
             if (_selectedIndex < 0) _selectionMissingAt = _rowsVersion;
             return _selectedIndex;
         }

@@ -80,7 +80,7 @@ public sealed class TreeViewTests
 
         public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
-        public string Selected => State.HasSelection ? State.Selected!.Name : "";
+        public string Selected => State.TryGetSelected(out var node) ? node.Name : "";
     }
 
     private static Node[] Sample() =>

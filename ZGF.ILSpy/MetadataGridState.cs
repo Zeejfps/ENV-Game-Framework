@@ -16,17 +16,19 @@ internal abstract record PendingGridScroll
     public sealed record Restore(GridPosition Position) : PendingGridScroll;
 }
 
-/// <summary>Everything a <see cref="MetadataGridWidget.MetadataGridView"/> keeps between frames:
-/// the columns' widths, the sort and text filters, the selected cell and the text selected in it,
-/// the scroll and the selected row's decoded details. One per open tab, owned by the app.</summary>
+/// <summary>Everything a <see cref="MetadataGridWidget.MetadataGridView"/> keeps between frames of one
+/// grid: the columns' widths, the sort and text filters, the selected cell and the text selected in it,
+/// the scroll and the selected row's decoded details. Made for the grid a tab shows, and made anew when
+/// the tab shows another, so that a grid starts unsorted, unfiltered but for the flags filters kept for
+/// its kind of rows, nothing selected, at the top.</summary>
 public sealed class MetadataGridState
 {
     internal const int None = -1;
 
-    internal MetadataGrid? Grid;
+    internal readonly MetadataGrid Grid;
     internal TableColumns? Columns;
-    internal string[] Headers = [];
-    internal MetadataColumnFilter?[] Filters = [];
+    internal readonly string[] Headers;
+    internal readonly MetadataColumnFilter?[] Filters;
     internal int SortColumn = None;
     internal bool Descending;
     internal int[]? Order;
@@ -45,7 +47,13 @@ public sealed class MetadataGridState
     internal readonly DetailTexts Details = new();
     internal readonly TallRowLayout TallRows = new();
 
-    public MetadataGridState() => Cell = new TableCellSelection(Rows);
+    public MetadataGridState(MetadataGrid grid)
+    {
+        Grid = grid;
+        Headers = ListHeaders(grid);
+        Filters = new MetadataColumnFilter?[grid.Columns.Count];
+        Cell = new TableCellSelection(Rows);
+    }
 
     /// <summary>Where the view stands: the top row, the sideways scroll, and the selected row and current cell's column.</summary>
     public GridPosition Position
@@ -57,32 +65,6 @@ public sealed class MetadataGridState
             int? column = CurrentColumn == None ? null : CurrentColumn;
             return new GridPosition(topRow, Scroll.X, row, column);
         }
-    }
-
-    /// <summary>Starts over on <paramref name="grid"/>: unsorted, unfiltered but for the flags
-    /// filters kept for its kind of rows, nothing selected, at the top.</summary>
-    public void Show(MetadataGrid grid)
-    {
-        if (ReferenceEquals(grid, Grid)) return;
-        Grid = grid;
-        Columns = null;
-        Headers = ListHeaders(grid);
-        Filters = new MetadataColumnFilter?[grid.Columns.Count];
-        SortColumn = None;
-        EditingColumn = None;
-        FlagsColumn = None;
-        Cell.Clear();
-        Descending = false;
-        BeginEdit = false;
-        FlagsOpen = false;
-        Order = null;
-        View = [];
-        ViewKey = 0;
-        Scroll.X = 0f;
-        Scroll.Y = 0f;
-        Pending = null;
-        Open.Clear();
-        Details.Clear();
     }
 
     private static string[] ListHeaders(MetadataGrid grid)
@@ -104,7 +86,7 @@ public sealed class MetadataGridState
     {
         Descending = SortColumn == column && !Descending;
         SortColumn = column;
-        Order = Grid!.Order(column, Descending);
+        Order = Grid.Order(column, Descending);
         if (Selected != None)
             Pending = new PendingGridScroll.Reveal(Selected);
     }
@@ -125,10 +107,10 @@ public sealed class MetadataGridState
     {
         if (!IsFlagsColumn(column))
             return new MetadataColumnFilter();
-        return new MetadataColumnFilter { Flags = flags.For(Grid!, column) };
+        return new MetadataColumnFilter { Flags = flags.For(Grid, column) };
     }
 
-    private bool IsFlagsColumn(int column) => Grid!.Columns[column].Flags != null;
+    private bool IsFlagsColumn(int column) => Grid.Columns[column].Flags != null;
 
     /// <summary>Filters and sorts the rows again when a filter or the sort changed.</summary>
     internal void UpdateView(MetadataFilters flags)
@@ -137,7 +119,7 @@ public sealed class MetadataGridState
         if (key == ViewKey) return;
         var selected = Selected;
         ViewKey = key;
-        View = Grid!.Filter(Order, Filters);
+        View = Grid.Filter(Order, Filters);
         KeepSelected(selected);
     }
 
@@ -158,7 +140,7 @@ public sealed class MetadataGridState
         var key = new HashCode();
         key.Add(SortColumn);
         key.Add(Descending);
-        for (var c = 0; c < Grid!.Columns.Count; c++)
+        for (var c = 0; c < Grid.Columns.Count; c++)
         {
             if (IsFlagsColumn(c))
                 key.Add(FilterOf(c, flags).Flags!.Revision);
@@ -220,7 +202,7 @@ public sealed class MetadataGridState
     /// the cell grown downward to show every line, which leaves the rows above where they were.</summary>
     internal void Expand(int row, int column)
     {
-        var lines = Grid!.Text(row, column).Count(static ch => ch == '\n') + 1;
+        var lines = Grid.Text(row, column).Count(static ch => ch == '\n') + 1;
         Open[(row, column)] = lines;
     }
 
@@ -235,8 +217,8 @@ public sealed class MetadataGridState
     {
         if (row < 0) return "";
         if (column < 0) return "";
-        if (IsOpenAt(row, column)) return Grid!.Text(row, column);
-        return Grid!.Lines(row, column).FirstLine;
+        if (IsOpenAt(row, column)) return Grid.Text(row, column);
+        return Grid.Lines(row, column).FirstLine;
     }
 
     /// <summary>What copying takes: the current cell's text, or the whole row's without one.</summary>
@@ -248,11 +230,11 @@ public sealed class MetadataGridState
 
     /// <summary>What copying the current cell takes: the part of its text selected, else all of it,
     /// lines hidden while it is closed included.</summary>
-    internal string CellText() => Cell.Copied(ShownText, Grid!.Text(Selected, CurrentColumn));
+    internal string CellText() => Cell.Copied(ShownText, Grid.Text(Selected, CurrentColumn));
 
     internal string RowText(int row)
     {
-        var grid = Grid!;
+        var grid = Grid;
         var cells = Enumerable.Range(0, grid.Columns.Count)
             .Select(c => grid.Text(row, c));
         return string.Join('\t', cells);

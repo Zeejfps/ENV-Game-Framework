@@ -252,14 +252,14 @@ internal static class NuGetPickerView
     /// theme would hide; else the stand-in every package shares.</summary>
     internal static void DrawIcon(Ui<UiState> ui, NuGetPicker picker, FeedPackage package, float side)
     {
-        var icon = picker.IconOf(package);
-        if (!HasPixels(icon))
+        var icon = ShownIconOf(picker, package);
+        if (icon == null)
         {
             StandIn(ui, side);
             return;
         }
-        Upload(ui, icon!);
-        var backdrop = NeedsBackdrop(ui, icon!);
+        Upload(ui, icon);
+        var backdrop = NeedsBackdrop(ui, icon);
         var tile = new Box
         {
             Width = side,
@@ -269,17 +269,18 @@ internal static class NuGetPickerView
             Radius = ui.Theme.RadiusSmall,
         };
         using (ui.Box(tile))
-            ui.Image(icon!.ImageId, side, side, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
+            ui.Image(icon.ImageId, side, side, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() });
     }
 
-    private static bool HasPixels(PackageIcon? icon)
+    private static ShownIcon? ShownIconOf(NuGetPicker picker, FeedPackage package)
     {
+        var icon = picker.IconOf(package);
         if (icon == null)
-            return false;
-        return icon.Pixels != null;
+            return null;
+        return icon.Shown;
     }
 
-    private static bool NeedsBackdrop(Ui<UiState> ui, PackageIcon icon)
+    private static bool NeedsBackdrop(Ui<UiState> ui, ShownIcon icon)
     {
         if (!ui.Theme.IsDark)
             return false;
@@ -287,11 +288,11 @@ internal static class NuGetPickerView
     }
 
     /// <summary>Gives the canvas the icon's pixels unless it holds them already.</summary>
-    private static void Upload(Ui<UiState> ui, PackageIcon icon)
+    private static void Upload(Ui<UiState> ui, ShownIcon icon)
     {
         if (ui.HasImage(icon.ImageId))
             return;
-        var pixels = icon.Pixels!;
+        var pixels = icon.Pixels;
         ui.SetImage(icon.ImageId, pixels.Width, pixels.Height, pixels.Rgba);
     }
 

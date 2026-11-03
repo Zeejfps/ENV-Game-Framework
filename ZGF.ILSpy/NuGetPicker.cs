@@ -776,24 +776,25 @@ public sealed class NuGetPicker
     private readonly record struct DetailsKey(WebUrl Feed, PackageId Id, PackageVersion Version);
 }
 
-/// <summary>A package's icon: the image the screen draws it as, and its pixels, null until they are
-/// in; with whether it is dark marks on a clear background, which a dark theme would hide.</summary>
+/// <summary>A package's icon: the image the screen draws it as, and what it shows once its pixels are in.</summary>
 public sealed class PackageIcon(string imageId)
 {
     public string ImageId { get; } = imageId;
 
-    public ResourceImage? Pixels { get; private set; }
-
-    public bool IsDarkOnClear { get; private set; }
+    /// <summary>The icon's pixels as drawn; null until they are in.</summary>
+    public ShownIcon? Shown { get; private set; }
 
     public void Show(ResourceImage? pixels)
     {
         if (pixels == null)
             return;
-        Pixels = pixels;
-        IsDarkOnClear = pixels.IsDarkOnClear();
+        Shown = new ShownIcon(ImageId, pixels, pixels.IsDarkOnClear());
     }
 }
+
+/// <summary>An icon's pixels, drawn as the image <paramref name="ImageId"/>, with whether they are dark
+/// marks on a clear background, which a dark theme would hide.</summary>
+public sealed record ShownIcon(string ImageId, ResourceImage Pixels, bool IsDarkOnClear);
 
 /// <summary>What a feed says of one version of a package: loading, read, or why it could not be.</summary>
 public abstract record VersionDetails

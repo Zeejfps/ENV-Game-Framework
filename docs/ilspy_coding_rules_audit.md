@@ -4,12 +4,6 @@
 
 These are reviewer findings with file and line, not re-checked one by one. Not deeply covered: byte parsing in `ResourceImage`, `ResourceText`, `BundleContents`, and `ZGF.ILSpy.Core/Diagrams/*`.
 
-## Rule 1: illegal states representable
-
-### Escape hatches
-
-- Force-unwrapped fields valid only in some states: `MetadataGridState.Grid!` and `MetadataGridView`'s `_state.Columns!`, `ComparisonPicker.Compared!`, `Search._query!`, `ThemeFolderWatch._pendingLoss!`, `NuGetPickerView`'s `icon!`, `BrowseTree.Reveal(View.Selected!)`, `TreeViewState.Selected` meaningful only while `HasSelection`.
-
 ## Rule 2: coupling
 
 - `AppState` is a god object: referenced from 50 files, 5 mutable public fields. Its constructor does file I/O through functions that take `AppState` back (`AppState.cs:192-197`). `UiState` is referenced from 55 files.

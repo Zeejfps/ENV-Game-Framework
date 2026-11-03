@@ -27,7 +27,7 @@ public sealed class SavedDocumentsTests : IDisposable
 
     private static DiagramViewState DiagramOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).Diagram;
 
-    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).Grid;
+    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).GridOf(tab.Grid!);
 
     private static DocumentTab GridTab(AppDriver app) => app.AppState.Tabs.Single(t => t.Grid != null);
 

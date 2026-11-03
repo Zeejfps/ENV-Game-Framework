@@ -1,3 +1,5 @@
+using ZGF.ILSpy.Core.Metadata;
+
 namespace ZGF.ILSpy;
 
 /// <summary>How one open tab is shown: the panel it is docked as, the path its omnibar shows, its code view
@@ -23,7 +25,7 @@ public sealed class TabView
 
     public ShownReport Report { get; } = new();
 
-    public MetadataGridState Grid { get; } = new();
+    private MetadataGridState? _grid;
 
     public PictureView Picture { get; } = new();
 
@@ -34,22 +36,30 @@ public sealed class TabView
     /// <summary>The image the tab's picture is drawn as.</summary>
     public string ImageId { get; }
 
-    /// <summary>Starts the grid view over on a grid <paramref name="tab"/> shows that it did not, and the
-    /// picture view on a new picture.</summary>
+    /// <summary>Starts the picture view over on a new picture.</summary>
     public void Follow(DocumentTab tab)
     {
         Picture.Follow(tab.Image);
-        var grid = tab.Grid;
-        if (grid == null)
-            return;
-        Grid.Show(grid);
+    }
+
+    /// <summary>The view of <paramref name="grid"/>: the one kept for it, or a new one when the tab
+    /// showed another grid, or none, before.</summary>
+    public MetadataGridState GridOf(MetadataGrid grid)
+    {
+        var shown = _grid;
+        if (shown != null && ReferenceEquals(shown.Grid, grid))
+            return shown;
+        shown = new MetadataGridState(grid);
+        _grid = shown;
+        return shown;
     }
 
     /// <summary>Where the view of what <paramref name="tab"/> shows stands: its grid's or its code's.</summary>
     public ViewPosition PositionOf(DocumentTab tab)
     {
-        if (tab.Grid != null)
-            return ViewPosition.OfGrid(Grid.Position);
+        var grid = tab.Grid;
+        if (grid != null)
+            return ViewPosition.OfGrid(GridOf(grid).Position);
         return ViewPosition.OfCode(Code.Position);
     }
 }

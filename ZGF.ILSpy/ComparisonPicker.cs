@@ -66,41 +66,34 @@ public sealed class ComparisonPicker
     /// closes the dialog when the assembly to compare is no longer open.</summary>
     public void Update(AssemblyList assemblies)
     {
-        RefreshCandidates(assemblies);
+        var compared = Compared;
+        if (compared == null)
+            return;
+        RefreshCandidates(assemblies, compared);
         ApplyFilter();
     }
 
-    private void RefreshCandidates(AssemblyList assemblies)
+    private void RefreshCandidates(AssemblyList assemblies, LoadedModule compared)
     {
         if (assemblies.Version == _listedVersion)
             return;
         _listedVersion = assemblies.Version;
         var open = assemblies.Assemblies;
-        if (!open.Contains(Compared!))
+        if (!open.Contains(compared))
         {
             Close();
             return;
         }
         _candidates.Clear();
-        _candidates.AddRange(ListCandidates(open));
+        _candidates.AddRange(ListCandidates(open, compared));
         _appliedFilter = null;
     }
 
-    private IEnumerable<LoadedModule> ListCandidates(IReadOnlyList<LoadedModule> open)
+    private static IEnumerable<LoadedModule> ListCandidates(IReadOnlyList<LoadedModule> open, LoadedModule compared)
     {
         return open
-            .Where(IsCandidate)
-            .OrderByDescending(IsNamedAsCompared);
-    }
-
-    private bool IsCandidate(LoadedModule assembly)
-    {
-        return assembly != Compared;
-    }
-
-    private bool IsNamedAsCompared(LoadedModule assembly)
-    {
-        return string.Equals(assembly.Name, Compared!.Name, StringComparison.OrdinalIgnoreCase);
+            .Where(a => a != compared)
+            .OrderByDescending(a => string.Equals(a.Name, compared.Name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Filters the candidates, selecting the first shown unless the one selected still is.</summary>

@@ -93,9 +93,8 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
     {
         if (replacement == null)
             return;
-        if (!View.HasSelection)
+        if (!View.TryGetSelected(out var selected))
             return;
-        var selected = View.Selected!;
         if (selected.Root != gone)
             return;
         var counterpart = FindCounterpart(selected, replacement);
@@ -185,9 +184,9 @@ public sealed class BrowseTree : ITreeModel<BrowseNode>
 
     private void RevealSelected()
     {
-        if (!View.HasSelection)
+        if (!View.TryGetSelected(out var selected))
             return;
-        Reveal(View.Selected!);
+        Reveal(selected);
     }
 
     public void SetStyle(UiTheme theme, NodeIconPalette iconColors, AppIcons icons)

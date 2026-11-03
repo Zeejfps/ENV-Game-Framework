@@ -180,7 +180,8 @@ public sealed class DocumentViews
         var view = _views.GetValueOrDefault(tab);
         if (view == null)
             return;
-        if (tab.Grid == null)
+        var shown = tab.Grid;
+        if (shown == null)
         {
             var code = position.Code;
             if (code != null)
@@ -189,7 +190,7 @@ public sealed class DocumentViews
         }
         var grid = position.Grid;
         if (grid != null)
-            view.Grid.Restore(grid.Value);
+            view.GridOf(shown).Restore(grid.Value);
     }
 
     /// <summary>Returns the view of the diagram <paramref name="tab"/>, an open tab, shows to how
@@ -229,9 +230,10 @@ public sealed class DocumentViews
         var view = _views.GetValueOrDefault(tab);
         if (view == null)
             return;
-        if (!HasRow(tab, row))
+        var grid = tab.Grid;
+        if (grid == null || row >= grid.RowCount)
             return;
-        view.Grid.Reveal(row);
+        view.GridOf(grid).Reveal(row);
     }
 
     /// <summary>Selects the card of <paramref name="type"/> on the diagram <paramref name="tab"/>, an open tab,
@@ -242,13 +244,5 @@ public sealed class DocumentViews
         if (view == null)
             return;
         view.Diagram.Focus(type);
-    }
-
-    private static bool HasRow(DocumentTab tab, int row)
-    {
-        var grid = tab.Grid;
-        if (grid == null)
-            return false;
-        return row < grid.RowCount;
     }
 }

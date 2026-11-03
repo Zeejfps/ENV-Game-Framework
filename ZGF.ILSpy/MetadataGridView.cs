@@ -17,9 +17,9 @@ public readonly record struct MetadataGridResult(MetadataAddress? Target, CodeRe
 
 public static class MetadataGridWidget
 {
-    public static MetadataGridResult MetadataGridView(this Ui<UiState> ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
+    public static MetadataGridResult MetadataGridView(this Ui<UiState> ui, string id, MetadataGridState state, MetadataFilters flags)
     {
-        var frame = new MetadataGridFrame(ui, id, grid, state, flags);
+        var frame = new MetadataGridFrame(ui, id, state, flags);
         return frame.Render();
     }
 }
@@ -44,10 +44,10 @@ internal ref struct MetadataGridFrame
     private bool _focused;
     private MetadataGridResult _result;
 
-    public MetadataGridFrame(Ui<UiState> ui, string id, MetadataGrid grid, MetadataGridState state, MetadataFilters flags)
+    public MetadataGridFrame(Ui<UiState> ui, string id, MetadataGridState state, MetadataFilters flags)
     {
         _ui = ui;
-        _grid = grid;
+        _grid = state.Grid;
         _state = state;
         _flags = flags;
         _t = ui.State.Strings;
@@ -57,14 +57,12 @@ internal ref struct MetadataGridFrame
 
     public MetadataGridResult Render()
     {
-        _state.Show(_grid);
-        if (_state.Columns == null)
-            _state.Columns = Measure();
+        var columns = _state.Columns ??= Measure();
         _state.RowHeight = _ui.Theme.RowHeight;
         _state.UpdateView(_flags);
 
         using var pane = _ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = _ui.Theme.PaneBackground });
-        var table = _ui.Table(_listId, _state.Columns!, _state.Cell, _state.Scroll);
+        var table = _ui.Table(_listId, columns, _state.Cell, _state.Scroll);
         Header(table);
         FlagsFlyout();
         _state.UpdateView(_flags);
@@ -73,7 +71,7 @@ internal ref struct MetadataGridFrame
         table.TakeKeys(_state.View.Length);
         if (_focused)
             _result = Keys();
-        Rows(table);
+        Rows(table, columns);
         var picked = Menu();
         if (picked != null)
             _result = picked.Value;
@@ -173,10 +171,10 @@ internal ref struct MetadataGridFrame
         return result;
     }
 
-    private void Rows(TableFrame table)
+    private void Rows(TableFrame table, TableColumns columns)
     {
         var rowHeight = _state.RowHeight;
-        var width = _state.Columns!.TotalWidth + _ui.Theme.ShellPaddingX * 2;
+        var width = columns.TotalWidth + _ui.Theme.ShellPaddingX * 2;
         var details = MetadataDetailsView.Height(_ui, _grid, _state.Details, _state.Selected, width);
         var tall = _state.TallRows;
         tall.Measure(_state, rowHeight, details);

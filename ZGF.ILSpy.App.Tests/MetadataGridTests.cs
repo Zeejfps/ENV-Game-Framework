@@ -23,7 +23,7 @@ public sealed class MetadataGridTests
         return (app, tab, tab.Grid!);
     }
 
-    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).Grid;
+    private static MetadataGridState GridOf(AppDriver app, DocumentTab tab) => app.Ui.Documents.ViewOf(tab).GridOf(tab.Grid!);
 
     private static (AppDriver App, DocumentTab Tab, MetadataGrid Grid, int Row) ShowGreeterRow()
     {

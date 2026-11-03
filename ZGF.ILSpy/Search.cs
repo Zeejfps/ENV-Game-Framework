@@ -30,14 +30,12 @@ public sealed class Search
     private readonly Action<AppProblem> _reportError;
     private readonly SearchStream _stream;
     private readonly List<SearchResult> _rows = new();
-    private readonly HashSet<LoadedAssembly> _searched = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<LoadedAssembly> _searchedAssemblies = new(ReferenceEqualityComparer.Instance);
     private readonly List<CancellationTokenSource> _runs = new();
     private readonly IComparer<SearchResult> _order;
     private string _typed = "";
     private double _typedAt;
-    private string? _query;
-    private SearchKinds _kinds;
-    private int _version = -1;
+    private Searched? _searched;
 
     /// <param name="strings">The interface's strings in the current language.</param>
     /// <param name="reportError">Tells the user a search failed.</param>
@@ -61,7 +59,7 @@ public sealed class Search
 
     /// <summary>Whether <see cref="Rows"/> are the hits of the query as typed, rather than of one typed
     /// before it settled; more may still arrive.</summary>
-    public bool ShowsQuery => _query == Query;
+    public bool ShowsQuery => _searched?.Query == Query;
 
     public ItemSelection<SearchResult> Selection { get; } = new();
 
@@ -78,10 +76,11 @@ public sealed class Search
         NoteTyping(now);
         if (!shown)
             return 0;
-        if (IsQueryChanged())
-            return RestartWhenSettled(assemblies, now);
-        if (assemblies.Version != _version)
-            Extend(assemblies);
+        var searched = _searched;
+        if (searched == null || IsQueryChanged(searched))
+            return RestartWhenSettled(assemblies, now, searched);
+        if (assemblies.Version != searched.Version)
+            Extend(assemblies, searched);
         return 0;
     }
 
@@ -93,12 +92,12 @@ public sealed class Search
         _typedAt = now;
     }
 
-    private bool IsQueryChanged() => _typed != _query || Kinds != _kinds;
+    private bool IsQueryChanged(Searched searched) => _typed != searched.Query || Kinds != searched.Kinds;
 
-    private double RestartWhenSettled(AssemblyList assemblies, double now)
+    private double RestartWhenSettled(AssemblyList assemblies, double now, Searched? searched)
     {
         var remaining = DebounceSeconds - (now - _typedAt);
-        if (remaining > 0 && Kinds == _kinds)
+        if (remaining > 0 && searched != null && Kinds == searched.Kinds)
             return remaining;
         Restart(assemblies);
         return 0;
@@ -107,15 +106,14 @@ public sealed class Search
     private void Restart(AssemblyList assemblies)
     {
         CancelRuns();
-        _query = _typed;
-        _kinds = Kinds;
-        _version = assemblies.Version;
+        var searched = new Searched(_typed, Kinds, assemblies.Version);
+        _searched = searched;
         _rows.Clear();
         Selection.Clear();
         var listed = assemblies.Assemblies;
-        _searched.Clear();
-        _searched.UnionWith(listed);
-        Start(assemblies, listed);
+        _searchedAssemblies.Clear();
+        _searchedAssemblies.UnionWith(listed);
+        Start(assemblies, searched, listed);
     }
 
     private void CancelRuns()
@@ -125,22 +123,23 @@ public sealed class Search
         _runs.Clear();
     }
 
-    private void Extend(AssemblyList assemblies)
+    private void Extend(AssemblyList assemblies, Searched searched)
     {
-        _version = assemblies.Version;
+        searched = searched with { Version = assemblies.Version };
+        _searched = searched;
         var listed = assemblies.Assemblies;
         DropClosed(listed);
         var added = MarkSearched(listed);
         if (added.Count > 0)
-            Start(assemblies, added);
+            Start(assemblies, searched, added);
     }
 
     private void DropClosed(IReadOnlyList<LoadedModule> listed)
     {
-        var closed = _searched.RemoveWhere(a => !listed.Contains(a));
+        var closed = _searchedAssemblies.RemoveWhere(a => !listed.Contains(a));
         if (closed == 0)
             return;
-        _rows.RemoveAll(r => !_searched.Contains(r.Node.Assembly));
+        _rows.RemoveAll(r => !_searchedAssemblies.Contains(r.Node.Assembly));
         Selection.DropIfGone(_rows);
     }
 
@@ -149,15 +148,15 @@ public sealed class Search
         var added = new List<LoadedModule>();
         foreach (var assembly in listed)
         {
-            if (_searched.Add(assembly))
+            if (_searchedAssemblies.Add(assembly))
                 added.Add(assembly);
         }
         return added;
     }
 
-    private void Start(AssemblyList assemblies, IEnumerable<LoadedModule> within)
+    private void Start(AssemblyList assemblies, Searched searched, IEnumerable<LoadedModule> within)
     {
-        var query = SearchQuery.Parse(_query!, _kinds);
+        var query = SearchQuery.Parse(searched.Query, searched.Kinds);
         if (query.IsEmpty)
             return;
         var work = new CancellationTokenSource();
@@ -208,7 +207,7 @@ public sealed class Search
         MergeIntoRows(arrived);
     }
 
-    private bool IsSearched(SearchResult row) => _searched.Contains(row.Node.Assembly);
+    private bool IsSearched(SearchResult row) => _searchedAssemblies.Contains(row.Node.Assembly);
 
     /// <summary>Merges the sorted <paramref name="arrived"/> into the sorted rows, each after the
     /// rows it ties with, filling from the end so no row moves more than once.</summary>
@@ -307,4 +306,7 @@ public sealed class Search
             return order;
         return StringComparer.OrdinalIgnoreCase.Compare(a3, b3);
     }
+
+    /// <summary>The query last searched for, what it looked for, and the assembly list's version it searched.</summary>
+    private sealed record Searched(string Query, SearchKinds Kinds, int Version);
 }
