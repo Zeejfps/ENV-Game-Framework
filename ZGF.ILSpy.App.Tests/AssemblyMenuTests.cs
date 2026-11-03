@@ -31,7 +31,7 @@ public sealed class AssemblyMenuTests
 
         var roots = app.Ui.Tree.Roots;
         Assert.Equal([CoreLibPath, AppStateDriver.FixturePath], roots.Select(r => r.Assembly.FilePath.Text));
-        Assert.False(AnyFailedToLoad(app.AppState));
+        Assert.False(AnyFailedToLoad(app.AppState.Assemblies));
     }
 
     [Fact]

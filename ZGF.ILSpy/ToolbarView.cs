@@ -34,7 +34,7 @@ internal static class ToolbarView
         {
             using (Group(ui))
             {
-                ListPicker(ui, appState);
+                ListPicker(ui, appState.Lists);
                 if (ui.IconButton("manage-lists", ui.State.Icons.ToolbarManageLists, t.ListsManage, variant: ButtonVariant.Neutral))
                     ui.State.Later(ui.State.ListsDialog, static (a, dialog) => AssemblyListsDialogView.Open(dialog, a));
             }
@@ -43,7 +43,7 @@ internal static class ToolbarView
             {
                 if (ui.IconButton("open", ui.State.Icons.ToolbarOpen, ui.Memo("open-tip", t, static s => s.ToolbarOpen(Shortcuts.Open)),
                         variant: ButtonVariant.Neutral))
-                    MainMenuView.OpenFile(ui, appState);
+                    MainMenuView.OpenFile(ui);
                 if (ui.IconButton("search", ui.State.Icons.ToolbarSearch, ui.Memo("search-tip", t, static s => s.SearchFieldTooltip(Shortcuts.Search)),
                         variant: ButtonVariant.Neutral))
                     OpenSearch(ui.State);
@@ -57,7 +57,7 @@ internal static class ToolbarView
                     if (back.Clicked)
                         ui.State.Later(static a => GoBack(a));
                     if (back.IsOpen)
-                        HistoryItems(ui, appState, -1);
+                        HistoryItems(ui, appState.History, -1);
                 }
                 using (var forward = ui.SplitIconButton("forward", ui.State.Icons.ToolbarForward,
                            ui.Memo("forward-tip", t, static s => s.ToolbarForward(Shortcuts.Forward)), t.ToolbarForwardHistory, appState.History.CanGoForward,
@@ -66,7 +66,7 @@ internal static class ToolbarView
                     if (forward.Clicked)
                         ui.State.Later(static a => GoForward(a));
                     if (forward.IsOpen)
-                        HistoryItems(ui, appState, 1);
+                        HistoryItems(ui, appState.History, 1);
                 }
             }
 
@@ -77,7 +77,7 @@ internal static class ToolbarView
                     ui.State.Later(language, static (a, l) => SetLanguage(a, l));
                 if (DecompilationLanguages.ShowsCSharp(language))
                 {
-                    LanguageVersion(ui, appState);
+                    LanguageVersion(ui, appState.DecompilerOptions);
                     if (ui.IconButton("decompiler-options", ui.State.Icons.ToolbarDecompilerOptions, t.PanelDecompilerOptions, variant: ButtonVariant.Neutral))
                         OpenDecompilerOptions(ui.State);
                 }
@@ -87,16 +87,15 @@ internal static class ToolbarView
 
     /// <summary>The open assembly list's name, opening a menu of every list to switch to, and of the
     /// dialog that manages them. As wide as the longest name, within limits.</summary>
-    private static void ListPicker(Ui<UiState> ui, AppState appState)
+    private static void ListPicker(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var t = ui.State.Strings;
-        var lists = appState.Lists;
         var width = ListPickerWidth(ui, lists);
         using var menu = ui.SelectButton("list", lists.Active, width, t.ListsPick, revision: lists.Count);
         if (!menu.IsOpen)
             return;
         foreach (var name in lists.Names)
-            ListItem(ui, appState, name);
+            ListItem(ui, lists, name);
         ui.MenuSeparator();
         if (ui.MenuItem(t.ListsManage, id: "manage", icon: new UiIcon(ui.State.Icons.ListsManage)))
             ui.State.Later(ui.State.ListsDialog, static (a, dialog) => AssemblyListsDialogView.Open(dialog, a));
@@ -125,9 +124,9 @@ internal static class ToolbarView
         public float Width;
     }
 
-    private static void ListItem(Ui<UiState> ui, AppState appState, string name)
+    private static void ListItem(Ui<UiState> ui, SavedAssemblyLists lists, string name)
     {
-        var active = name == appState.Lists.Active;
+        var active = name == lists.Active;
         if (!ui.MenuRadioItem(name, active, id: ListItemPrefix + name))
             return;
         ui.State.Later(name, static (a, list) => SwitchAssemblyList(a, list));
@@ -146,10 +145,10 @@ internal static class ToolbarView
         return _languages;
     }
 
-    private static void LanguageVersion(Ui<UiState> ui, AppState appState)
+    private static void LanguageVersion(Ui<UiState> ui, DecompilerOptions options)
     {
         var t = ui.State.Strings;
-        var current = appState.DecompilerOptions.LanguageVersion;
+        var current = options.LanguageVersion;
         using var menu = ui.SelectButton("language-version", CSharpVersions.Label(current), ui.SelectButtonWidth(CSharpVersions.Labels),
             t.ToolbarLanguageVersion);
         if (!menu.IsOpen) return;
@@ -163,10 +162,10 @@ internal static class ToolbarView
     private static Ui.Scope Group(Ui<UiState> ui) =>
         ui.Row(new Box { Width = Sizing.Fit(), Gap = ui.Theme.Gap, AlignY = Align.Center });
 
-    private static void HistoryItems(Ui<UiState> ui, AppState appState, int direction)
+    private static void HistoryItems(Ui<UiState> ui, NavigationHistory history, int direction)
     {
-        var entries = appState.History.Entries;
-        for (var i = appState.History.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
+        var entries = history.Entries;
+        for (var i = history.CurrentIndex + direction; i >= 0 && i < entries.Count; i += direction)
         {
             using (ui.Id(i))
             {

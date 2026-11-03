@@ -23,7 +23,7 @@ internal static class DiagramView
     private const float PanThreshold = 4f;
     private const float WheelZoomStep = 1.1f;
 
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, TypeDiagram diagram)
+    public static void Render(Ui<UiState> ui, CodeTooltips tooltips, DocumentTab tab, TypeDiagram diagram)
     {
         var view = ui.State.Documents.ViewOf(tab).Diagram;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = ui.Theme.PaneBackground });
@@ -35,7 +35,7 @@ internal static class DiagramView
             return;
         }
         DiagramFaces.MeasureIfChanged(ui, view, diagram);
-        Canvas(ui, appState, view, diagram);
+        Canvas(ui, tooltips, view, diagram);
         CardMenu(ui, view, diagram);
     }
 
@@ -98,7 +98,7 @@ internal static class DiagramView
         DocumentsView.Hint(ui, text);
     }
 
-    private static void Canvas(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram)
+    private static void Canvas(Ui<UiState> ui, CodeTooltips tooltips, DiagramViewState view, TypeDiagram diagram)
     {
         var id = ui.GetId(CanvasId);
         var i = ui.Interact(id);
@@ -119,7 +119,7 @@ internal static class DiagramView
         using (ui.Box(id, new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Background = ui.Theme.EditorBackground, Clip = true }))
             ui.Paint(view.Frame, DiagramFrame.Paint);
         if (hasRect)
-            MemberTooltip(ui, appState, view, diagram, id, IsPanning(view, i), hit);
+            MemberTooltip(ui, tooltips, view, diagram, id, IsPanning(view, i), hit);
     }
 
     /// <summary>Where the selected card is drawn now, before the layout moves on; null when none is.</summary>
@@ -482,10 +482,10 @@ internal static class DiagramView
 
     /// <summary>The declaration and documentation of the type or member under the pointer, once it has
     /// rested there, under the pointer; none while the diagram pans.</summary>
-    private static void MemberTooltip(Ui<UiState> ui, AppState appState, DiagramViewState view, TypeDiagram diagram, int canvasId,
+    private static void MemberTooltip(Ui<UiState> ui, CodeTooltips tooltips, DiagramViewState view, TypeDiagram diagram, int canvasId,
         bool isPanning, DiagramHit hit)
     {
-        var tooltip = FindTooltip(appState, isPanning, hit);
+        var tooltip = FindTooltip(tooltips, isPanning, hit);
         var part = PartOf(tooltip, hit);
         using var popup = ui.TooltipContentAtPointer(canvasId, part, out var shownPart, CodeTooltipView.Look);
         view.Tooltip.Keep(tooltip, part, shownPart);
@@ -498,7 +498,7 @@ internal static class DiagramView
         FollowLink(ui, diagram, click);
     }
 
-    private static CodeTooltip? FindTooltip(AppState appState, bool isPanning, DiagramHit hit)
+    private static CodeTooltip? FindTooltip(CodeTooltips tooltips, bool isPanning, DiagramHit hit)
     {
         if (isPanning)
             return null;
@@ -508,7 +508,7 @@ internal static class DiagramView
         var target = row.Value.Target;
         if (target == null)
             return null;
-        appState.Tooltips.TryGet(target, out var tooltip);
+        tooltips.TryGet(target, out var tooltip);
         return tooltip;
     }
 

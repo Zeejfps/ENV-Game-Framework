@@ -24,12 +24,12 @@ internal static class SearchPanelView
     private static readonly ConditionalWeakTable<Strings, string[]> Summaries = new();
     private static readonly ConditionalWeakTable<Strings, string[]> Headers = new();
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui)
     {
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
         using (ui.PaneToolbar(new Box { Gap = ui.Theme.Gap }))
         {
-            KindsButton(ui, appState);
+            KindsButton(ui);
             Field(ui);
             ResultCount(ui, ui.State.Search);
         }
@@ -37,7 +37,7 @@ internal static class SearchPanelView
         Results(ui);
     }
 
-    private static void KindsButton(Ui<UiState> ui, AppState appState)
+    private static void KindsButton(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var kinds = ui.State.Search.Kinds;
@@ -46,7 +46,7 @@ internal static class SearchPanelView
         var tooltip = ui.Memo("search-kinds-tip", (kinds, t), static a => Description(a.t, a.kinds));
         using var menu = ui.SelectButton("search-kinds", summary, width, tooltip);
         if (menu.IsOpen)
-            KindsMenu(ui, appState);
+            KindsMenu(ui);
     }
 
     private static string Summary(Strings t, SearchKinds kinds)
@@ -95,7 +95,7 @@ internal static class SearchPanelView
     /// <summary>A check item for all kinds over one per kind, kept open so several can be flipped
     /// in a row. While all is checked no kind is: checking a kind then picks it alone, and
     /// unchecking the last one picked checks all again.</summary>
-    private static void KindsMenu(Ui<UiState> ui, AppState appState)
+    private static void KindsMenu(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
         var search = ui.State.Search;

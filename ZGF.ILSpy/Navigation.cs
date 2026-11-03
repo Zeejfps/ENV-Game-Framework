@@ -333,7 +333,7 @@ public static class Navigation
             return null;
         if (!place.Equals(tab.Location))
             return null;
-        if (!appState.IsListed(node))
+        if (!appState.Assemblies.IsListed(node.Root.Assembly))
             return null;
         return node;
     }

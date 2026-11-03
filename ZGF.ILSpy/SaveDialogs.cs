@@ -10,27 +10,29 @@ namespace ZGF.ILSpy;
 /// <summary>The dialogs that ask where code, resources, PDBs, class diagrams and the files of packages are written.</summary>
 internal static class SaveDialogs
 {
-    /// <summary>Asks where to save the code of the active tab's node, when it can be saved.</summary>
-    public static void PickActiveCodeFile(Ui<UiState> ui, AppState appState)
+    /// <summary>Asks where to save the active tab's node, when it can be saved: a resource's bytes
+    /// under its own name, else its code in the current language as one file.</summary>
+    public static void PickActiveCodeFile(Ui<UiState> ui, DocumentTabs tabs, DecompilationLanguage language)
     {
-        var node = appState.Tabs.Active?.Node;
-        if (!CanSaveCode(appState, node))
+        var node = tabs.Active?.Node;
+        if (!CanSaveCode(node))
             return;
-        PickCodeFile(ui, appState, node);
-    }
-
-    /// <summary>Asks where to save <paramref name="node"/>: a resource's bytes under its own name,
-    /// else its code in the current language as one file.</summary>
-    public static void PickCodeFile(Ui<UiState> ui, AppState appState, BrowseNode node)
-    {
         if (node.HasResource)
         {
-            ResourceImageView.PickExport(ui, appState, node);
+            ResourceImageView.PickExport(ui, node);
             return;
         }
+        PickCodeFile(ui, language, node);
+    }
+
+    /// <summary>Asks where to save the code of <paramref name="node"/> in <paramref name="language"/> as one file.</summary>
+    public static void PickCodeFile(Ui<UiState> ui, DecompilationLanguage language, BrowseNode node)
+    {
         var t = ui.State.Strings;
-        var fileName = NodeContentLoader.SuggestCodeFileName(node, appState.Language);
-        ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, appState.Language), path => SaveCode(appState, node, path));
+        var screen = ui.State;
+        var fileName = NodeContentLoader.SuggestCodeFileName(node, language);
+        ui.PickSaveFile(t.ExportSaveCodeTitle, null, fileName, CodeFilters(t, language),
+            path => screen.Later((node, path), static (a, s) => SaveCode(a, s.node, s.path)));
     }
 
     private static FileFilter[] CodeFilters(Strings t, DecompilationLanguage language)
@@ -42,40 +44,48 @@ internal static class SaveDialogs
 
 
     /// <summary>Asks where to write the portable PDB of <paramref name="assembly"/>.</summary>
-    public static void PickPdbFile(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    public static void PickPdbFile(Ui<UiState> ui, LoadedModule assembly)
     {
         var t = ui.State.Strings;
+        var screen = ui.State;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"])];
-        ui.PickSaveFile(t.ExportPdbTitle, null, assembly.PdbFileName, filters, path => GeneratePdb(appState, assembly, path));
+        ui.PickSaveFile(t.ExportPdbTitle, null, assembly.PdbFileName, filters,
+            path => screen.Later((assembly, path), static (a, s) => GeneratePdb(a, s.assembly, s.path)));
     }
 
     /// <summary>Asks for the folder the class diagram of <paramref name="assembly"/> is written into.</summary>
-    public static void PickDiagramFolder(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    public static void PickDiagramFolder(Ui<UiState> ui, LoadedModule assembly)
     {
         var t = ui.State.Strings;
-        ui.PickFolder(t.ExportDiagramTitle, null, folder => CreateDiagram(appState, assembly, folder));
+        var screen = ui.State;
+        ui.PickFolder(t.ExportDiagramTitle, null, folder => screen.Later((assembly, folder), static (a, s) => CreateDiagram(a, s.assembly, s.folder)));
     }
 
     /// <summary>Asks for the folder the portable PDBs of every open assembly are written into.</summary>
-    public static void PickPdbFolder(Ui<UiState> ui, AppState appState)
+    public static void PickPdbFolder(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
-        ui.PickFolder(t.ExportPdbsTitle, null, folder => GeneratePdbs(appState, folder));
+        var screen = ui.State;
+        ui.PickFolder(t.ExportPdbsTitle, null, folder => screen.Later(folder, static (a, f) => GeneratePdbs(a, f)));
     }
 
     /// <summary>Asks where to write the file of a package <paramref name="place"/> stands for.</summary>
-    public static void PickPackageFile(Ui<UiState> ui, AppState appState, PackagePlace place)
+    public static void PickPackageFile(Ui<UiState> ui, PackagePlace place)
     {
         var t = ui.State.Strings;
+        var screen = ui.State;
         FileFilter[] filters = [new FileFilter(t.FileFilterAll, ["*.*"])];
-        ui.PickSaveFile(t.ExportExtractFileTitle, null, place.File.Name, filters, path => ExtractPackageFile(appState, place, path));
+        ui.PickSaveFile(t.ExportExtractFileTitle, null, place.File.Name, filters,
+            path => screen.Later((place, path), static (a, s) => ExtractPackageFile(a, s.place, s.path)));
     }
 
     /// <summary>Asks for the folder the files of the package folder <paramref name="place"/> stands for,
     /// shown as <paramref name="name"/>, are extracted into.</summary>
-    public static void PickExtractFolder(Ui<UiState> ui, AppState appState, string name, PackageFolderPlace place)
+    public static void PickExtractFolder(Ui<UiState> ui, string name, PackageFolderPlace place)
     {
         var t = ui.State.Strings;
-        ui.PickFolder(t.ExportExtractFolderTitle, null, folder => ExtractPackageFolder(appState, name, place, folder));
+        var screen = ui.State;
+        ui.PickFolder(t.ExportExtractFolderTitle, null,
+            folder => screen.Later((name, place, folder), static (a, s) => ExtractPackageFolder(a, s.name, s.place, s.folder)));
     }
 }

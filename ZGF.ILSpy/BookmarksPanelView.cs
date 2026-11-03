@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Widgets;
+using ZGF.ILSpy.Core;
 using ZGF.ILSpy.Localization;
 using ZGF.KeyboardModule;
 using static ZGF.ILSpy.Bookmarks;
@@ -22,14 +23,13 @@ internal static class BookmarksPanelView
     private static Strings? _headersFor;
     private static string[] _headers = [];
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, BookmarkList bookmarks, AssemblyList assemblies)
     {
         var t = ui.State.Strings;
-        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         panel.Follow(bookmarks.Items);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, appState);
+        Toolbar(ui, bookmarks);
         ui.Separator();
 
         if (bookmarks.Items.Count == 0)
@@ -41,16 +41,15 @@ internal static class BookmarksPanelView
         panel.Selection.ShowIn(bookmarks.Items);
         var table = ui.Table(ListId, ui.State.BookmarkColumns, panel.Cells);
         table.Header(Headers(t));
-        var removed = List(ui, appState, table);
+        var removed = List(ui, bookmarks, assemblies, table);
         Menu(ui);
         if (removed != null)
             ui.State.Later((panel, removed), static (a, s) => Remove(s.panel, a.Bookmarks, s.removed));
     }
 
     /// <summary>Returns the bookmark Delete asked to remove.</summary>
-    private static Bookmark? List(Ui<UiState> ui, AppState appState, TableFrame table)
+    private static Bookmark? List(Ui<UiState> ui, BookmarkList bookmarks, AssemblyList assemblies, TableFrame table)
     {
-        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         var palette = ui.State.CodeViewPalette;
         var renaming = panel.Renaming != null;
@@ -63,7 +62,7 @@ internal static class BookmarksPanelView
         if (body.Focused && !renaming)
             removed = HandleKeys(ui, panel);
         for (var i = body.First; i < body.End; i++)
-            Row(ui, appState, body, bookmarks.Items[i], i, palette);
+            Row(ui, assemblies, body, bookmarks.Items[i], i, palette);
         panel.Selection.TakeFrom(bookmarks.Items);
         Answer(ui, body);
         return removed;
@@ -99,11 +98,10 @@ internal static class BookmarksPanelView
         new(t.FileFilterAll, ["*.*"]),
     ];
 
-    private static void Toolbar(Ui<UiState> ui, AppState appState)
+    private static void Toolbar(Ui<UiState> ui, BookmarkList bookmarks)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var bookmarks = appState.Bookmarks;
         var panel = ui.State.BookmarksPanel;
         var any = bookmarks.Items.Any(static b => b.Enabled);
         var selected = panel.Selected;
@@ -118,22 +116,24 @@ internal static class BookmarksPanelView
                 ui.State.Later((panel, selected), static (a, s) => Remove(s.panel, a.Bookmarks, s.selected));
             ui.Separator(theme.IconSize);
             if (ui.IconButton("export", ui.State.Icons.BookmarksExport, t.BookmarksExport, bookmarks.Items.Count > 0))
-                PickExportFile(ui, appState);
+                PickExportFile(ui);
             if (ui.IconButton("import", ui.State.Icons.BookmarksImport, t.BookmarksImport))
-                PickImportFile(ui, appState);
+                PickImportFile(ui);
         }
     }
 
-    private static void PickExportFile(Ui<UiState> ui, AppState appState)
+    private static void PickExportFile(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
-        ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), path => ExportBookmarks(appState, path));
+        var screen = ui.State;
+        ui.PickSaveFile(t.BookmarksExportTitle, null, BookmarkFile.SuggestedName, Filters(t), path => screen.Later(path, static (a, p) => ExportBookmarks(a, p)));
     }
 
-    private static void PickImportFile(Ui<UiState> ui, AppState appState)
+    private static void PickImportFile(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
-        ui.PickFile(t.BookmarksImportTitle, null, Filters(t), path => ImportBookmarks(appState, path));
+        var screen = ui.State;
+        ui.PickFile(t.BookmarksImportTitle, null, Filters(t), path => screen.Later(path, static (a, p) => ImportBookmarks(a, p)));
     }
 
     /// <summary>What <paramref name="column"/> shows of <paramref name="bookmark"/>; nothing for the
@@ -146,10 +146,10 @@ internal static class BookmarksPanelView
         _ => "",
     };
 
-    private static void Row(Ui<UiState> ui, AppState appState, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
+    private static void Row(Ui<UiState> ui, AssemblyList assemblies, TableBody body, Bookmark bookmark, int index, CodeViewPalette palette)
     {
         var panel = ui.State.BookmarksPanel;
-        var listed = appState.IsListed(bookmark.Place.FilePath);
+        var listed = assemblies.IsListed(bookmark.Place.FilePath);
         var row = body.Row(index, RuntimeHelpers.GetHashCode(bookmark));
         int locationId;
         int moduleId;

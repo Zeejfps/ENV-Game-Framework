@@ -68,11 +68,11 @@ internal static class DisplayOptionsPanelView
         using var section = Section(ui, ui.Memo("interface", t, static s => Heading(s.DisplayOptionsInterface)));
         using var card = Card(ui);
         using (OptionRow(ui, t.DisplayOptionsTheme, null, false))
-            ThemePicker(ui, appState);
+            ThemePicker(ui, appState.Themes, appState.Theme, appState.SettingsPlace);
         ui.Separator();
 
         using (OptionRow(ui, t.DisplayOptionsIconTheme, null, false))
-            IconThemePicker(ui, appState);
+            IconThemePicker(ui, appState.IconThemes, appState.IconTheme, appState.SettingsPlace);
         ui.Separator();
 
         var changed = ui.State.Display.UiScale != DisplayOptions.Default.UiScale;
@@ -81,7 +81,7 @@ internal static class DisplayOptionsPanelView
         ui.Separator();
 
         using (OptionRow(ui, t.DisplayOptionsLanguage, null, false))
-            LanguagePicker(ui, appState);
+            LanguagePicker(ui, appState.Locale);
         SystemTitleBarRow(ui);
     }
 
@@ -103,22 +103,21 @@ internal static class DisplayOptionsPanelView
     /// <summary>The themes of the catalog, built-in ones first, then the buttons that start a custom theme
     /// from the one shown, open the themes folder and read the user's themes again, while the settings
     /// have a folder to keep themes in.</summary>
-    private static void ThemePicker(Ui<UiState> ui, AppState appState)
+    private static void ThemePicker(Ui<UiState> ui, ThemeCatalog themes, ThemeId<ThemeFile> chosen, SettingsPlace settingsPlace)
     {
         using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
-        PickTheme(ui, appState);
-        if (appState.SettingsPlace.ThemesFolder == null)
+        PickTheme(ui, themes, chosen);
+        if (settingsPlace.ThemesFolder == null)
             return;
         CustomizeThemeButton(ui);
         OpenThemesFolderButton(ui);
         ReloadThemesButton(ui);
     }
 
-    private static void PickTheme(Ui<UiState> ui, AppState appState)
+    private static void PickTheme(Ui<UiState> ui, ThemeCatalog themes, ThemeId<ThemeFile> chosen)
     {
-        var themes = appState.Themes;
         var labels = themes.ListNames(ui.State.Strings.Culture);
-        var current = themes.IndexOf(appState.Theme);
+        var current = themes.IndexOf(chosen);
         var picked = PickFrom(ui, "theme", labels, current, themes.Ids, themes.Revision);
         if (picked != NothingPicked)
             ui.State.Later(themes.Ids[picked], static (a, theme) => SetTheme(a, theme));
@@ -158,22 +157,21 @@ internal static class DisplayOptionsPanelView
     /// <summary>The icon themes of the catalog, built-in ones first, then the buttons that start a custom
     /// icon theme from the one shown, open the icon themes folder and read the user's icon themes again,
     /// while the settings have a folder to keep icon themes in.</summary>
-    private static void IconThemePicker(Ui<UiState> ui, AppState appState)
+    private static void IconThemePicker(Ui<UiState> ui, IconThemeCatalog themes, ThemeId<IconThemeFile> chosen, SettingsPlace settingsPlace)
     {
         using var controls = ui.Row(new Box { Width = ControlWidth(0f, 0f), Gap = ui.Theme.GapTight, AlignY = Align.Center });
-        PickIconTheme(ui, appState);
-        if (appState.SettingsPlace.IconThemesFolder == null)
+        PickIconTheme(ui, themes, chosen);
+        if (settingsPlace.IconThemesFolder == null)
             return;
         CustomizeIconThemeButton(ui);
         OpenIconThemesFolderButton(ui);
         ReloadIconThemesButton(ui);
     }
 
-    private static void PickIconTheme(Ui<UiState> ui, AppState appState)
+    private static void PickIconTheme(Ui<UiState> ui, IconThemeCatalog themes, ThemeId<IconThemeFile> chosen)
     {
-        var themes = appState.IconThemes;
         var labels = themes.ListNames(ui.State.Strings.Culture);
-        var current = themes.IndexOf(appState.IconTheme);
+        var current = themes.IndexOf(chosen);
         var picked = PickFrom(ui, "icon-theme", labels, current, themes.Ids, themes.Revision);
         if (picked != NothingPicked)
             ui.State.Later(themes.Ids[picked], static (a, theme) => SetIconTheme(a, theme));
@@ -249,13 +247,13 @@ internal static class DisplayOptionsPanelView
         return t.DisplayOptionsUiScalePercent(percent);
     }
 
-    private static void LanguagePicker(Ui<UiState> ui, AppState appState)
+    private static void LanguagePicker(Ui<UiState> ui, Locale chosen)
     {
         var locales = Locales.All;
         var current = NothingPicked;
         for (var i = 0; i < locales.Count; i++)
         {
-            if (locales[i].Locale == appState.Locale)
+            if (locales[i].Locale == chosen)
                 current = i;
         }
         var picked = PickFrom(ui, "language", LocaleLabels, current);

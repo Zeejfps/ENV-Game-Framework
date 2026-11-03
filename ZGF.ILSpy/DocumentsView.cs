@@ -15,14 +15,14 @@ namespace ZGF.ILSpy;
 /// it shows nothing.</summary>
 internal static class DocumentsView
 {
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    public static void Render(Ui<UiState> ui, BookmarkList bookmarks, CodeTooltips tooltips, DocumentTab tab)
     {
         using var document = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        OmnibarView.Render(ui, appState, tab);
-        Content(ui, appState, tab);
+        OmnibarView.Render(ui, tab);
+        Content(ui, bookmarks, tooltips, tab);
     }
 
-    private static void Content(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    private static void Content(Ui<UiState> ui, BookmarkList bookmarks, CodeTooltips tooltips, DocumentTab tab)
     {
         var t = ui.State.Strings;
         switch (tab.Content)
@@ -31,23 +31,23 @@ internal static class DocumentsView
                 Hint(ui, t.DocumentsHint);
                 break;
             case TabContent.Picture picture:
-                ResourceImageView.Render(ui, appState, tab, picture);
+                ResourceImageView.Render(ui, bookmarks, tooltips, tab, picture);
                 break;
             case TabContent.Table table:
                 RenderGrid(ui, tab, table.Grid);
                 break;
             case TabContent.Diagram diagram:
-                DiagramView.Render(ui, appState, tab, diagram.Types);
+                DiagramView.Render(ui, tooltips, tab, diagram.Types);
                 break;
             case TabContent.Comparison comparison:
-                ComparisonView.Render(ui, appState, tab, comparison.Assemblies);
+                ComparisonView.Render(ui, tab, comparison.Assemblies);
                 break;
             case TabContent.Loading loading when !NodeContentLoader.DependsOnLanguage(loading.Node):
                 Hint(ui, t.MetadataLoading);
                 break;
             case TabContent.Code or TabContent.Report or TabContent.Loading or TabContent.Failed or TabContent.Reloading
                 or TabContent.Reopening or TabContent.Gone:
-                RenderCode(ui, appState, tab);
+                RenderCode(ui, bookmarks, tooltips, tab);
                 break;
             default:
                 throw new UnreachableException();
@@ -65,12 +65,12 @@ internal static class DocumentsView
     }
 
     /// <summary>The tab's document in the code view, with its bookmarks, or the note saying why it has none.</summary>
-    public static void RenderCode(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    public static void RenderCode(Ui<UiState> ui, BookmarkList bookmarks, CodeTooltips tooltips, DocumentTab tab)
     {
-        var bookmarks = !tab.IsBusy && tab.Node != null && tab.Document.Error == null ? appState.Bookmarks.LinesIn(tab.Document, tab.Node) : null;
+        var lines = !tab.IsBusy && tab.Node != null && tab.Document.Error == null ? bookmarks.LinesIn(tab.Document, tab.Node) : null;
         var view = ui.State.Documents.ViewOf(tab);
         var document = FindDocumentToShow(ui.State, view, tab);
-        var result = ui.CodeView("code", document, view.Code, bookmarks, tooltips: appState.Tooltips, display: ui.State.Display);
+        var result = ui.CodeView("code", document, view.Code, lines, tooltips: tooltips, display: ui.State.Display);
         if (result.Intent != null)
             Act(ui, tab, result.Intent);
         Zoom(ui.State, result.Zoom);
@@ -146,19 +146,19 @@ internal static class DocumentsView
         screen.BookmarksPanel.Take(toggle, appState.Bookmarks.Items);
     }
 
-    public static DockTab Tab(UiState screen, AppState appState, DocumentTab tab)
+    public static DockTab Tab(UiState screen, DocumentTabs tabs, DocumentTab tab)
     {
         var title = TitleOf(screen, tab);
         var tooltip = tab.Tooltip ?? title;
         var icon = IconOf(screen, tab);
-        var font = TitleFontOf(appState, tab);
-        return new DockTab(title, Tooltip: tooltip, Current: tab == appState.Tabs.Active, Icon: icon, TitleFont: font);
+        var font = TitleFontOf(tabs, tab);
+        return new DockTab(title, Tooltip: tooltip, Current: tab == tabs.Active, Icon: icon, TitleFont: font);
     }
 
     /// <summary>Italics for the preview tab's title, the theme's font for any other.</summary>
-    private static string? TitleFontOf(AppState appState, DocumentTab tab)
+    private static string? TitleFontOf(DocumentTabs tabs, DocumentTab tab)
     {
-        if (tab != appState.Tabs.Preview)
+        if (tab != tabs.Preview)
             return null;
         return TextFonts.Italic;
     }

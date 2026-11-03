@@ -162,15 +162,16 @@ internal static class MainMenuView
         }
     }
 
-    public static void OpenFile(Ui<UiState> ui, AppState appState)
+    public static void OpenFile(Ui<UiState> ui)
     {
         var t = ui.State.Strings;
+        var screen = ui.State;
         FileFilter[] filters =
         [
             new(t.FileFilterAssembliesAndPackages, ["*.dll", "*.exe", "*.winmd", "*.wasm", "*.nupkg", "*.zip"]),
             new(t.FileFilterAll, ["*.*"]),
         ];
-        ui.PickFile(t.FileOpenTitle, null, filters, path => OpenAssembly(appState, path));
+        ui.PickFile(t.FileOpenTitle, null, filters, path => screen.Later(path, static (a, p) => OpenAssembly(a, p)));
     }
 
     private static void FileMenu(Ui<UiState> ui, AppState appState)
@@ -178,7 +179,7 @@ internal static class MainMenuView
         var t = ui.State.Strings;
         var icons = ui.State.Icons;
         if (ui.MenuItem(t.FileOpen, Shortcuts.Open, id: "open", icon: new UiIcon(icons.FileOpen)))
-            OpenFile(ui, appState);
+            OpenFile(ui);
         if (ui.MenuItem(t.FileOpenFromFramework, id: "open-from-framework", icon: new UiIcon(icons.FileOpenFromFramework)))
             ui.State.Picker.Open();
         if (ui.MenuItem(t.FileOpenFromNuget, id: "open-from-nuget", icon: new UiIcon(icons.FileOpenFromNuGet)))
@@ -191,7 +192,7 @@ internal static class MainMenuView
         var anyOpen = tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileClose, enabled: selected != null, id: "close", icon: new UiIcon(icons.FileClose)) && selected != null)
             ui.State.Later(selected, static (a, assembly) => CloseAssembly(a, assembly));
-        if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState), id: "close-failed", icon: new UiIcon(icons.FileCloseFailed)))
+        if (ui.MenuItem(t.FileCloseFailed, enabled: AnyFailedToLoad(appState.Assemblies), id: "close-failed", icon: new UiIcon(icons.FileCloseFailed)))
             ui.State.Later(static a => CloseFailedAssemblies(a));
         if (ui.MenuItem(t.FileClearList, enabled: anyOpen, id: "clear-list", icon: new UiIcon(icons.FileClearList)))
             ui.State.Later(static a => CloseAllAssemblies(a));
@@ -204,14 +205,14 @@ internal static class MainMenuView
     private static void ExportItems(Ui<UiState> ui, AppState appState)
     {
         var t = ui.State.Strings;
-        var canSave = CanSaveCode(appState, appState.Tabs.Active?.Node);
+        var canSave = CanSaveCode(appState.Tabs.Active?.Node);
         if (ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: canSave, id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
-            SaveDialogs.PickActiveCodeFile(ui, appState);
+            SaveDialogs.PickActiveCodeFile(ui, appState.Tabs, appState.Language);
         var anyOpen = ui.State.Tree.Roots.Count > 0;
         if (ui.MenuItem(t.FileExport, Shortcuts.Export, enabled: anyOpen, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
-            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState));
+            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, FindActiveAssembly(appState.Tabs));
         if (ui.MenuItem(t.FileGeneratePdbs, enabled: anyOpen, id: "generate-pdbs", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
-            SaveDialogs.PickPdbFolder(ui, appState);
+            SaveDialogs.PickPdbFolder(ui);
     }
 
     private static void ViewMenu(Ui<UiState> ui, AppState appState)
@@ -222,9 +223,9 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewForward, Shortcuts.Forward, enabled: appState.History.CanGoForward, id: "forward"))
             ui.State.Later(static a => GoForward(a));
         ui.MenuSeparator();
-        DecompilerMenu(ui, appState);
+        DecompilerMenu(ui, appState.Language);
         ui.MenuSeparator();
-        ApiVisibilityMenu(ui, appState);
+        ApiVisibilityMenu(ui, appState.ApiVisibility);
         ui.MenuSeparator();
         PanelsMenu(ui);
         if (ui.MenuItem(t.ViewCloseAllDocuments, enabled: appState.Tabs.Count > 0, id: "close-all-documents"))
@@ -232,40 +233,39 @@ internal static class MainMenuView
         if (ui.MenuItem(t.ViewResetLayout, id: "reset-layout"))
             AskToResetLayout(ui.State);
         ui.MenuSeparator();
-        ThemeMenu(ui, appState);
-        LanguageMenu(ui, appState);
+        ThemeMenu(ui, appState.Themes, appState.Theme);
+        LanguageMenu(ui, appState.Locale);
     }
 
     /// <summary>The submenu of the catalog's themes, built-in ones first, the one shown picked.</summary>
-    private static void ThemeMenu(Ui<UiState> ui, AppState appState)
+    private static void ThemeMenu(Ui<UiState> ui, ThemeCatalog catalog, ThemeId<ThemeFile> current)
     {
         var t = ui.State.Strings;
         using var themes = ui.SubMenu(t.ViewTheme, id: "theme");
         if (!themes.IsOpen) return;
-        var catalog = appState.Themes;
         var names = catalog.ListNames(t.Culture);
         for (var i = 0; i < catalog.Ids.Count; i++)
         {
             var id = catalog.Ids[i];
-            if (ui.MenuRadioItem(names[i], appState.Theme == id, id: id.Text))
+            if (ui.MenuRadioItem(names[i], current == id, id: id.Text))
                 ui.State.Later(id, static (a, theme) => SetTheme(a, theme));
         }
     }
 
     /// <summary>The submenu of which types and members the tree shows, the one shown picked.</summary>
-    private static void ApiVisibilityMenu(Ui<UiState> ui, AppState appState)
+    private static void ApiVisibilityMenu(Ui<UiState> ui, ApiVisibility current)
     {
         var t = ui.State.Strings;
         using var shown = ui.SubMenu(t.ViewShownApi, id: "shown-api");
         if (!shown.IsOpen) return;
-        ApiVisibilityItem(ui, appState, t.ViewShownPublicOnly, ApiVisibility.PublicOnly);
-        ApiVisibilityItem(ui, appState, t.ViewShownSourceDeclared, ApiVisibility.AllButCompilerGenerated);
-        ApiVisibilityItem(ui, appState, t.ViewShownAll, ApiVisibility.All);
+        ApiVisibilityItem(ui, current, t.ViewShownPublicOnly, ApiVisibility.PublicOnly);
+        ApiVisibilityItem(ui, current, t.ViewShownSourceDeclared, ApiVisibility.AllButCompilerGenerated);
+        ApiVisibilityItem(ui, current, t.ViewShownAll, ApiVisibility.All);
     }
 
-    private static void ApiVisibilityItem(Ui<UiState> ui, AppState appState, string label, ApiVisibility visibility)
+    private static void ApiVisibilityItem(Ui<UiState> ui, ApiVisibility current, string label, ApiVisibility visibility)
     {
-        var selected = appState.ApiVisibility == visibility;
+        var selected = current == visibility;
         if (ui.MenuRadioItem(label, selected))
             ui.State.Later(visibility, static (a, v) => SetApiVisibility(a, v));
     }
@@ -302,14 +302,14 @@ internal static class MainMenuView
         return ui.MenuItem(label, shortcut, check: open, id: panel, icon: DockPanels.Icon(ui.State.Icons, view));
     }
 
-    private static void DecompilerMenu(Ui<UiState> ui, AppState appState)
+    private static void DecompilerMenu(Ui<UiState> ui, DecompilationLanguage current)
     {
         var t = ui.State.Strings;
         using var decompilers = ui.SubMenu(t.ViewDecompiler, id: "decompiler");
         if (!decompilers.IsOpen) return;
         foreach (var language in DecompilationLanguages.All)
         {
-            if (ui.MenuRadioItem(DecompilationLanguages.Label(language), appState.Language == language))
+            if (ui.MenuRadioItem(DecompilationLanguages.Label(language), current == language))
                 ui.State.Later(language, static (a, l) => SetLanguage(a, l));
         }
     }
@@ -321,14 +321,14 @@ internal static class MainMenuView
             OpenAbout(ui.State);
     }
 
-    private static void LanguageMenu(Ui<UiState> ui, AppState appState)
+    private static void LanguageMenu(Ui<UiState> ui, Locale current)
     {
         var t = ui.State.Strings;
         using var languages = ui.SubMenu(t.ViewLanguage, id: "language");
         if (!languages.IsOpen) return;
         foreach (var (locale, endonym) in Locales.All)
         {
-            if (ui.MenuRadioItem(endonym, appState.Locale == locale))
+            if (ui.MenuRadioItem(endonym, current == locale))
                 ui.State.Later(locale, static (a, l) => SetLocale(a, l));
         }
     }

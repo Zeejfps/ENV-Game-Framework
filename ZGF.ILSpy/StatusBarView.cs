@@ -29,7 +29,7 @@ internal static class StatusBarView
 
             using (ui.Row(new Box { Width = Sizing.Fit(), Height = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
             {
-                if (ExportStatusView.Render(ui, appState))
+                if (ExportStatusView.Render(ui, appState.Export))
                     Dot(ui);
                 var activity = DescribeActivity(appState, t);
                 if (activity != null)
@@ -39,7 +39,7 @@ internal static class StatusBarView
                 }
                 if (appState.Errors.Entries.Count > 0)
                 {
-                    ErrorIndicator(ui, appState);
+                    ErrorIndicator(ui, appState.Errors);
                     Dot(ui);
                 }
                 ui.Text(DecompilationLanguages.Label(appState.Language), color: theme.TextMuted, size: size);
@@ -55,26 +55,24 @@ internal static class StatusBarView
             return t.StatusReloading;
         if (appState.IsReopening)
             return t.StatusReloading;
-        if (IsDecompiling(appState))
+        if (IsDecompiling(appState.Tabs.Active))
             return t.StatusDecompiling;
         if (appState.IsResolving)
             return t.StatusResolving;
         return null;
     }
 
-    private static bool IsDecompiling(AppState appState)
+    private static bool IsDecompiling(DocumentTab? tab)
     {
-        var tab = appState.Tabs.Active;
         return tab != null && tab.IsBusy;
     }
 
     private static void Dot(Ui<UiState> ui) => ui.Text("·", color: ui.Theme.TextDisabled, size: ui.Theme.FontSizeSmall);
 
-    private static void ErrorIndicator(Ui<UiState> ui, AppState appState)
+    private static void ErrorIndicator(Ui<UiState> ui, ErrorLog errors)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var errors = appState.Errors;
         var i = ui.Clickable("errors");
         if (i.Clicked)
             ui.State.ErrorDialog.Open(errors.Entries);

@@ -16,11 +16,11 @@ internal static class ComparisonPickerView
     private const string FilterId = "compare-picker-filter";
     private const string ListId = "compare-picker-list";
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, AssemblyList assemblies)
     {
         var picker = ui.State.ComparisonPicker;
         if (picker.IsOpen)
-            picker.Update(appState.Assemblies);
+            picker.Update(assemblies);
         var compared = picker.Compared;
         if (compared == null)
             return;

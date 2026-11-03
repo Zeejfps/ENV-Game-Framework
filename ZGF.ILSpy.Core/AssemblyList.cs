@@ -39,6 +39,23 @@ public sealed class AssemblyList
     /// (<see cref="FailedAssembly"/>) among them. A snapshot, like <see cref="Assemblies"/>.</summary>
     public IReadOnlyList<LoadedAssembly> Listed => _listed;
 
+    /// <summary>Whether the list holds <paramref name="assembly"/>, or the package it was read out of.</summary>
+    public bool IsListed(LoadedAssembly assembly) => _listed.Contains(assembly.ListedItem);
+
+    /// <summary>True when the assembly or package at <paramref name="filePath"/> is listed and loaded.</summary>
+    public bool IsListed(AssemblyPath filePath)
+    {
+        var listed = _listed;
+        for (var i = 0; i < listed.Length; i++)
+        {
+            if (listed[i] is FailedAssembly)
+                continue;
+            if (listed[i].FilePath.Equals(filePath))
+                return true;
+        }
+        return false;
+    }
+
     /// <summary>The open files' paths, in order, failed ones included, for persisting the list.</summary>
     public IReadOnlyList<AssemblyPath> FilePaths => _listed.Select(a => a.FilePath).ToArray();
 

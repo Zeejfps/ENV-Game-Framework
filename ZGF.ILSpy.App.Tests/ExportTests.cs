@@ -30,7 +30,7 @@ public sealed class ExportTests : IDisposable
     {
         var d = new AppStateDriver();
         OpenAssembly(d.AppState, SampleAppPath);
-        d.RunUntil(() => d.AppState.IsListed(PathOf(SampleAppPath)));
+        d.RunUntil(() => d.AppState.Assemblies.IsListed(PathOf(SampleAppPath)));
         d.Settle();
         return d;
     }
@@ -73,7 +73,7 @@ public sealed class ExportTests : IDisposable
         var node = d.Node("Resources", "data.json");
         var path = _temp.PathOf("data.json");
 
-        Assert.True(CanSaveCode(d.AppState, node));
+        Assert.True(CanSaveCode(node));
         SaveCode(d.AppState, node, path);
 
         Assert.Equal(node.ReadResource(), File.ReadAllBytes(path));
@@ -97,7 +97,7 @@ public sealed class ExportTests : IDisposable
     {
         var app = new AppDriver();
         OpenAssembly(app.AppState, SampleAppPath);
-        app.RunUntil(() => app.AppState.IsListed(PathOf(SampleAppPath)));
+        app.RunUntil(() => app.AppState.Assemblies.IsListed(PathOf(SampleAppPath)));
         app.Settle(2);
         app.Frames.FilePicker.Answer = _temp.Path;
 

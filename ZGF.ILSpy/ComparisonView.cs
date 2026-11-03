@@ -17,14 +17,14 @@ internal static class ComparisonView
     private const string MenuId = "comparison-menu";
     private const string Arrow = "  →  ";
 
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
+    public static void Render(Ui<UiState> ui, DocumentTab tab, AssemblyComparison comparison)
     {
         var rows = ui.State.Documents.ViewOf(tab).Comparison;
         rows.SetStyle(ui.Theme, ui.State.NodeIconPalette, ui.State.Icons, ui.State.Strings);
         rows.Follow(comparison.Diff);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = ui.Theme.PaneBackground });
         if (!ui.State.Display.ShowOmnibar)
-            OwnToolbar(ui, appState, tab, comparison);
+            OwnToolbar(ui, tab, comparison);
         Summary(ui, comparison);
         var hint = FindHint(ui, comparison, rows);
         if (hint != null)
@@ -37,7 +37,7 @@ internal static class ComparisonView
     }
 
     /// <summary>The tools in a bar of the tab's own, while the bar over documents, where they sit otherwise, is hidden.</summary>
-    private static void OwnToolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, AssemblyComparison comparison)
+    private static void OwnToolbar(Ui<UiState> ui, DocumentTab tab, AssemblyComparison comparison)
     {
         using (ui.PaneToolbar())
             Tools(ui, tab, comparison);

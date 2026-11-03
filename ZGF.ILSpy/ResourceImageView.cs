@@ -20,24 +20,24 @@ internal static class ResourceImageView
         public float Scale;
     }
 
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab, TabContent.Picture shown)
+    public static void Render(Ui<UiState> ui, BookmarkList bookmarks, CodeTooltips tooltips, DocumentTab tab, TabContent.Picture shown)
     {
         var theme = ui.Theme;
         var view = ui.State.Documents.ViewOf(tab);
         var image = shown.Image;
         var hasSource = shown.Source != null;
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f, Background = theme.PaneBackground });
-        Toolbar(ui, appState, tab, view.Picture, image, hasSource);
+        Toolbar(ui, tab, view.Picture, image, hasSource);
         ui.Separator();
         if (view.Picture.ShowsSource)
         {
-            DocumentsView.RenderCode(ui, appState, tab);
+            DocumentsView.RenderCode(ui, bookmarks, tooltips, tab);
             return;
         }
         Picture(ui, view, image);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState appState, DocumentTab tab, PictureView picture, ResourceImage image, bool hasSource)
+    private static void Toolbar(Ui<UiState> ui, DocumentTab tab, PictureView picture, ResourceImage image, bool hasSource)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -49,8 +49,9 @@ internal static class ResourceImageView
                 ZoomButtons(ui, picture.Zoom);
             if (hasSource)
                 SourceButton(ui, picture);
-            if (tab.Node is { HasResource: true } node && ui.Button(t.ResourceExport, id: "export", icon: new UiIcon(ui.State.Icons.ResourceExport)))
-                PickExport(ui, appState, node);
+            var node = tab.Node;
+            if (node != null && node.HasResource && ui.Button(t.ResourceExport, id: "export", icon: new UiIcon(ui.State.Icons.ResourceExport)))
+                PickExport(ui, node);
         }
     }
 
@@ -120,11 +121,13 @@ internal static class ResourceImageView
     }
 
     /// <summary>Asks where to export the resource <paramref name="node"/> stands for, then writes it there.</summary>
-    public static void PickExport(Ui<UiState> ui, AppState appState, BrowseNode node)
+    public static void PickExport(Ui<UiState> ui, BrowseNode node)
     {
         var t = ui.State.Strings;
         var fileName = node.ResourceFileName;
-        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName), path => SaveResource(appState, node, path));
+        var screen = ui.State;
+        ui.PickSaveFile(t.ResourceExportTitle, null, fileName, ExportFilters(t, fileName),
+            path => screen.Later((node, path), static (a, s) => SaveResource(a, s.node, s.path)));
     }
 
     private const string XamlExtension = ".xaml";

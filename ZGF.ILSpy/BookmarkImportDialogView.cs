@@ -9,9 +9,9 @@ namespace ZGF.ILSpy;
 /// import at a time.</summary>
 internal static class BookmarkImportDialogView
 {
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, BookmarkImports imports)
     {
-        var import = appState.Imports.Asking;
+        var import = imports.Asking;
         if (import == null)
             return;
         Ask(ui, import);

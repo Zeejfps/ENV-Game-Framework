@@ -205,5 +205,5 @@ public sealed class CommandLineTests
         d.Settle();
     }
 
-    private static bool AreListed(AppState appState, List<AssemblyPath> paths) => paths.All(appState.IsListed);
+    private static bool AreListed(AppState appState, List<AssemblyPath> paths) => paths.All(appState.Assemblies.IsListed);
 }

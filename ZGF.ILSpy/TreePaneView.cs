@@ -7,7 +7,6 @@ using ZGF.ILSpy.Core.Analysis;
 using ZGF.ILSpy.Localization;
 using static ZGF.ILSpy.Assemblies;
 using static ZGF.ILSpy.Diagrams;
-using static ZGF.ILSpy.Exports;
 using static ZGF.ILSpy.Navigation;
 using static ZGF.ILSpy.ScreenLayout;
 
@@ -18,7 +17,7 @@ internal static class TreePaneView
     private const string TreeId = "tree";
     private const string MenuId = "tree-menu";
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, DocumentTabs tabs, AssemblyList assemblies, DecompilationLanguage language)
     {
         var theme = ui.Theme;
         var tree = ui.State.Tree;
@@ -27,18 +26,18 @@ internal static class TreePaneView
         tree.ShowEmptyTables(ui.State.Display.ShowEmptyMetadataTables);
         tree.NestNamespaces(ui.State.Display.NestedNamespaces);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, appState);
+        Toolbar(ui, tabs, assemblies);
         ui.Separator();
         if (tree.Roots.Count == 0)
             EmptyHint(ui);
         var result = ui.TreeView(TreeId, tree.Roots, tree, tree.View, new Box { Padding = new Spacing(0f, theme.GapTight) });
         AnalyzeOnShortcut(ui);
         CloseOnDelete(ui);
-        Respond(ui, appState, result);
-        ContextMenu(ui, appState);
+        Respond(ui, result);
+        ContextMenu(ui, assemblies, language);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState appState)
+    private static void Toolbar(Ui<UiState> ui, DocumentTabs tabs, AssemblyList assemblies)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -46,9 +45,9 @@ internal static class TreePaneView
         var any = tree.Roots.Count > 0;
         using (ui.PaneToolbar())
         {
-            var opened = FindOpenedNode(appState);
+            var opened = FindOpenedNode(tabs);
             if (ui.IconButton("select-opened", ui.State.Icons.AssembliesSelectOpened, t.TreeSelectOpenedNode, opened != null) && opened != null)
-                SelectOpenedNode(ui, appState, opened);
+                SelectOpenedNode(ui, assemblies, opened);
             if (ui.IconButton("collapse", ui.State.Icons.AssembliesCollapseAll, t.CodeCollapseAll, any))
                 tree.CollapseAll();
             if (ui.IconButton("expand", ui.State.Icons.AssembliesExpandNamespaces, t.TreeExpandNamespaces, any))
@@ -61,9 +60,9 @@ internal static class TreePaneView
     }
 
     /// <summary>The node the active tab shows, or null when it shows none.</summary>
-    private static BrowseNode? FindOpenedNode(AppState appState)
+    private static BrowseNode? FindOpenedNode(DocumentTabs tabs)
     {
-        var tab = appState.Tabs.Active;
+        var tab = tabs.Active;
         if (tab == null)
             return null;
         return tab.Node;
@@ -71,9 +70,9 @@ internal static class TreePaneView
 
     /// <summary>Expands the tree down to <paramref name="node"/>, when its assembly is listed, selects it,
     /// scrolls to it and focuses the tree.</summary>
-    private static void SelectOpenedNode(Ui<UiState> ui, AppState appState, BrowseNode node)
+    private static void SelectOpenedNode(Ui<UiState> ui, AssemblyList assemblies, BrowseNode node)
     {
-        if (!appState.IsListed(node))
+        if (!assemblies.IsListed(node.Root.Assembly))
             return;
         ui.State.Tree.Reveal(node);
         ui.Focus(ui.GetId(TreeId), takesText: false);
@@ -130,7 +129,7 @@ internal static class TreePaneView
         ui.State.Later(picked.Assembly, static (a, assembly) => CloseAssembly(a, assembly));
     }
 
-    private static void Respond(Ui<UiState> ui, AppState appState, TreeViewResult<BrowseNode> result)
+    private static void Respond(Ui<UiState> ui, TreeViewResult<BrowseNode> result)
     {
         var node = result.Node;
         if (node == null)
@@ -140,7 +139,7 @@ internal static class TreePaneView
         if (result.Activated)
             ui.State.Later(node, static (a, n) => Open(a, n));
         if (result.ContextMenuRequested)
-            OpenContextMenu(ui, appState, node, result.ContextMenuAt);
+            OpenContextMenu(ui, node, result.ContextMenuAt);
     }
 
     /// <summary>Whether the user picked the node, rather than pressed it for its menu.</summary>
@@ -170,13 +169,13 @@ internal static class TreePaneView
         OpenNode(appState, node);
     }
 
-    private static void OpenContextMenu(Ui<UiState> ui, AppState appState, BrowseNode node, PointF at)
+    private static void OpenContextMenu(Ui<UiState> ui, BrowseNode node, PointF at)
     {
         ui.State.MenuTarget = node;
         ui.OpenContextMenu(MenuId, at);
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState appState)
+    private static void ContextMenu(Ui<UiState> ui, AssemblyList assemblies, DecompilationLanguage language)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -184,10 +183,10 @@ internal static class TreePaneView
         var node = ui.State.MenuTarget;
         if (node == null)
             return;
-        NodeMenu(ui, appState, node);
+        NodeMenu(ui, assemblies, language, node);
     }
 
-    private static void NodeMenu(Ui<UiState> ui, AppState appState, BrowseNode node)
+    private static void NodeMenu(Ui<UiState> ui, AssemblyList assemblies, DecompilationLanguage language, BrowseNode node)
     {
         var t = ui.State.Strings;
         var jump = Activation.Of(node.Subject) as Activation.Navigate;
@@ -209,12 +208,12 @@ internal static class TreePaneView
         if (node.Subject is NodeSubject.TypeDefinition type)
             DiagramItems(ui, type.Definition.Reference);
         if (node.HasResource && ui.MenuItem(t.ResourceExport, id: "export-resource", icon: new UiIcon(ui.State.Icons.ResourceExport)))
-            ResourceImageView.PickExport(ui, appState, node);
-        ExtractItems(ui, appState, node);
-        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, enabled: CanSaveCode(appState, node), id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
-            SaveDialogs.PickCodeFile(ui, appState, node);
+            ResourceImageView.PickExport(ui, node);
+        ExtractItems(ui, node);
+        if (OffersSaveCode(node) && ui.MenuItem(t.FileSaveCode, Shortcuts.SaveCode, id: "save-code", icon: new UiIcon(ui.State.Icons.FileSaveCode)))
+            SaveDialogs.PickCodeFile(ui, language, node);
         if (node.Subject is NodeSubject.Module module)
-            AssemblyItems(ui, appState, module.Value);
+            AssemblyItems(ui, assemblies, module.Value);
         if (node.Subject is NodeSubject.Module && ui.MenuItem(t.TreeScopeSearchToAssembly, id: "scope-search"))
             ScopeSearch(ui.State, node);
         if (node.Subject is NodeSubject.Namespace && ui.MenuItem(t.TreeScopeSearchToNamespace, id: "scope-search"))
@@ -254,15 +253,15 @@ internal static class TreePaneView
 
     /// <summary>The items that write files out of a package: the file of an assembly read out of one,
     /// or every file of a package or a folder of one.</summary>
-    private static void ExtractItems(Ui<UiState> ui, AppState appState, BrowseNode node)
+    private static void ExtractItems(Ui<UiState> ui, BrowseNode node)
     {
         var t = ui.State.Strings;
         var file = PackedAssemblyOf(node);
         if (file != null && ui.MenuItem(t.TreeExtractFile, id: "extract-file", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
-            SaveDialogs.PickPackageFile(ui, appState, file);
+            SaveDialogs.PickPackageFile(ui, file);
         var folder = node.FolderInPackage;
         if (folder != null && ui.MenuItem(t.TreeExtractAll, id: "extract-all", icon: new UiIcon(ui.State.Icons.AssembliesExtract)))
-            SaveDialogs.PickExtractFolder(ui, appState, node.Text, folder);
+            SaveDialogs.PickExtractFolder(ui, node.Text, folder);
     }
 
     /// <summary>Where the assembly is read from, when <paramref name="node"/> is the root of one read
@@ -285,14 +284,14 @@ internal static class TreePaneView
 
     /// <summary>What only an assembly's node offers: exporting it, its PDBs, a diagram of it, comparing it
     /// with another, the framework it resolves against, and opening what it references.</summary>
-    private static void AssemblyItems(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    private static void AssemblyItems(Ui<UiState> ui, AssemblyList assemblies, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.FileExport, id: "export", icon: new UiIcon(ui.State.Icons.FileExportProject)))
-            ui.State.ExportSetup.Open(appState.Assemblies.Assemblies, assembly);
-        PdbItems(ui, appState, assembly);
+            ui.State.ExportSetup.Open(assemblies.Assemblies, assembly);
+        PdbItems(ui, assembly);
         if (ui.MenuItem(t.TreeCreateDiagram, id: "create-diagram"))
-            SaveDialogs.PickDiagramFolder(ui, appState, assembly);
+            SaveDialogs.PickDiagramFolder(ui, assembly);
         if (ui.MenuItem(t.TreeCompareWith, id: "compare-with"))
             ui.State.ComparisonPicker.Open(assembly);
         TargetFrameworkMenu(ui, assembly);
@@ -301,13 +300,13 @@ internal static class TreePaneView
     }
 
     /// <summary>Generating a portable PDB for the assembly, and picking the PDB it reads.</summary>
-    private static void PdbItems(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    private static void PdbItems(Ui<UiState> ui, LoadedModule assembly)
     {
         var t = ui.State.Strings;
         if (ui.MenuItem(t.TreeGeneratePdb, enabled: assembly.CanGeneratePdb, id: "generate-pdb", icon: new UiIcon(ui.State.Icons.FileGeneratePdb)))
-            SaveDialogs.PickPdbFile(ui, appState, assembly);
+            SaveDialogs.PickPdbFile(ui, assembly);
         if (assembly.CanPickPdb && ui.MenuItem(t.TreeSelectPdb, id: "select-pdb"))
-            PickPdbToRead(ui, appState, assembly);
+            PickPdbToRead(ui, assembly);
     }
 
     /// <summary>The submenu of the framework the assembly's references are resolved against: the one it
@@ -343,12 +342,13 @@ internal static class TreePaneView
     }
 
     /// <summary>Asks for the PDB <paramref name="assembly"/> reads, starting in its folder, then has it read that one.</summary>
-    private static void PickPdbToRead(Ui<UiState> ui, AppState appState, LoadedModule assembly)
+    private static void PickPdbToRead(Ui<UiState> ui, LoadedModule assembly)
     {
         var t = ui.State.Strings;
+        var screen = ui.State;
         FileFilter[] filters = [new FileFilter(t.FileFilterPdb, ["*.pdb"]), new FileFilter(t.FileFilterAll, ["*.*"])];
         var title = t.TreeSelectPdbTitle(assembly.Name);
-        ui.PickFile(title, FindFolderOf(assembly), filters, path => UsePdb(appState, assembly, path));
+        ui.PickFile(title, FindFolderOf(assembly), filters, path => screen.Later((assembly, path), static (a, s) => UsePdb(a, s.assembly, s.path)));
     }
 
     /// <summary>The folder the assembly's file is in; null for one read out of a package, whose path runs through it.</summary>

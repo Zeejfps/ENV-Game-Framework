@@ -34,7 +34,7 @@ internal static class TabMenuView
         ui.State.Later(tab, static (a, kept) => KeepTabOpen(a, kept));
     }
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, DocumentTabs tabs)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
@@ -44,33 +44,33 @@ internal static class TabMenuView
             return;
         if (!ui.State.Documents.Contains(tab))
             return;
-        TabMenu(ui, appState, tab);
+        TabMenu(ui, tabs, tab);
     }
 
-    private static void TabMenu(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    private static void TabMenu(Ui<UiState> ui, DocumentTabs tabs, DocumentTab tab)
     {
         var t = ui.State.Strings;
         var screen = ui.State;
-        var tabs = ListTabsInGroup(screen, tab);
-        var index = tabs.IndexOf(tab);
-        KeepOpenItem(ui, appState, tab);
+        var group = ListTabsInGroup(screen, tab);
+        var index = group.IndexOf(tab);
+        KeepOpenItem(ui, tabs, tab);
         if (ui.MenuItem(t.TabClose, Shortcuts.CloseTab, id: "close"))
             CloseTab(screen, tab);
-        if (ui.MenuItem(t.TabCloseOthers, enabled: tabs.Count > 1, id: "close-others"))
+        if (ui.MenuItem(t.TabCloseOthers, enabled: group.Count > 1, id: "close-others"))
             CloseOtherTabs(screen, tab);
         if (ui.MenuItem(t.TabCloseAll, id: "close-all"))
             CloseTabsInGroup(screen, tab);
         ui.MenuSeparator();
         if (ui.MenuItem(t.TabCloseLeft, enabled: index > 0, id: "close-left"))
             CloseTabsLeftOf(screen, tab);
-        if (ui.MenuItem(t.TabCloseRight, enabled: index < tabs.Count - 1, id: "close-right"))
+        if (ui.MenuItem(t.TabCloseRight, enabled: index < group.Count - 1, id: "close-right"))
             CloseTabsRightOf(screen, tab);
     }
 
     /// <summary>The item keeping the tab open, with a separator after it, while it is the preview tab.</summary>
-    private static void KeepOpenItem(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    private static void KeepOpenItem(Ui<UiState> ui, DocumentTabs tabs, DocumentTab tab)
     {
-        if (tab != appState.Tabs.Preview)
+        if (tab != tabs.Preview)
             return;
         if (ui.MenuItem(ui.State.Strings.TabKeepOpen, id: "keep-open"))
             ui.State.Later(tab, static (a, kept) => KeepTabOpen(a, kept));

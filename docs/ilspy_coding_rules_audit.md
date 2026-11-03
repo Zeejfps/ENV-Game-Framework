@@ -6,8 +6,8 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 
 ## Rule 2: coupling
 
-- `AppState` is a god object: referenced from 50 files, 5 mutable public fields. Its constructor does file I/O through functions that take `AppState` back (`AppState.cs:192-197`). `UiState` is referenced from 55 files.
-- Views take the whole `AppState` even when they use one member: `ErrorDialogView` (`.Errors`), `ExportStatusView` (`.Export`), `AssemblyLists*DialogView` (`.Lists`), `BookmarkImportDialogView` (`.Imports`), `AnalyzerPanelView` (`.Analyzer`). In effect a service locator.
+- `AppState`'s constructor does file I/O through functions that take the half-built `AppState` back (`AppState.cs:192-197`). Its size alone is not a gap: its parts are separately typed and views take only the parts they read; split it only once two parts are forced apart.
+- Views that read four or more parts of `AppState` still take all of it: `MainMenuView` (its View and Export menus), `ToolbarView`, `StatusBarView` (`DescribeActivity`), `DisplayOptionsPanelView` (the interface section), and `Shortcuts.Handle`.
 - Core cycles: `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; `LoadedModule` → `AssemblyExport` → `LoadedModule`.
 - `AssemblyList` is the Core hub: search, tooltips, docs, metadata rows and analyzer type systems all route through it.
 - Static mutable caches: `ConditionalWeakTable`s in `NodeText.cs:16`, `DisplayOptionsPanelView.cs:33`, `SearchPanelView.cs:25`; `MetadataGrid.Patterns`; `FlagsSchemaInferer.cache`. Harmless memoization. The exception is the unsynchronized `_headersFor`/`_headers` in `BookmarksPanelView.cs:22`.

@@ -71,7 +71,7 @@ public sealed class ExportsPanelTests : IDisposable
         var tab = app.AppState.Tabs.Active!;
         var shown = Assert.IsType<TabContent.Report>(tab.Content);
         Assert.Equal(path, Assert.Single(shown.Export.Written));
-        Assert.Equal("Export report", DocumentsView.Tab(app.Ui, app.AppState, tab).Title);
+        Assert.Equal("Export report", DocumentsView.Tab(app.Ui, app.AppState.Tabs, tab).Title);
         var text = ExportReportText.Write(Strings.En, [shown.Export]).GetText();
         Assert.Contains("    " + path, text);
         Assert.DoesNotContain("Farewell", text);
@@ -252,7 +252,7 @@ public sealed class ExportsPanelTests : IDisposable
 
         var german = Strings.For(Locale.De);
         var tab = app.AppState.Tabs.Active!;
-        Assert.Equal(german.ExportReportTitle, DocumentsView.Tab(app.Ui, app.AppState, tab).Title);
+        Assert.Equal(german.ExportReportTitle, DocumentsView.Tab(app.Ui, app.AppState.Tabs, tab).Title);
         Assert.Contains(german.ExportWritten, app.Ui.Documents.ViewOf(tab).Code.Document!.GetText());
     }
 

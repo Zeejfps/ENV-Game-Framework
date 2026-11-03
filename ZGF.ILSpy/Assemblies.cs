@@ -114,7 +114,7 @@ public static class Assemblies
             ReportUnreadablePdb(appState, assembly, pdbPath, check);
             return;
         }
-        if (!appState.IsListed(assembly))
+        if (!appState.Assemblies.IsListed(assembly))
             return;
         appState.Assemblies.Pdbs.Pick(assembly.FilePath, pdbPath);
         ReopenAssembly(appState, assembly);
@@ -131,7 +131,7 @@ public static class Assemblies
     /// to show it. Does nothing when that is the framework already in use.</summary>
     public static void SetTargetFramework(AppState appState, LoadedModule assembly, TargetFrameworkId? framework)
     {
-        if (!appState.IsListed(assembly))
+        if (!appState.Assemblies.IsListed(assembly))
             return;
         if (IsInUse(assembly, framework))
             return;
@@ -262,9 +262,9 @@ public static class Assemblies
     }
 
     /// <summary>Whether any file on the list failed to load.</summary>
-    public static bool AnyFailedToLoad(AppState appState)
+    public static bool AnyFailedToLoad(AssemblyList assemblies)
     {
-        return appState.Assemblies.Listed.Any(static a => a is FailedAssembly);
+        return assemblies.Listed.Any(static a => a is FailedAssembly);
     }
 
     /// <summary>Orders the list by name, and assemblies of one name by version.</summary>

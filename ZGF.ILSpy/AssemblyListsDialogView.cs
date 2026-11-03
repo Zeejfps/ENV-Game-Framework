@@ -22,7 +22,7 @@ internal static class AssemblyListsDialogView
     private const string MenuId = "lists-menu";
     private const string PresetMenuId = "presets";
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var t = ui.State.Strings;
         var dialog = ui.State.ListsDialog;
@@ -34,10 +34,10 @@ internal static class AssemblyListsDialogView
         {
             if (!scope.IsOpen)
                 return;
-            Toolbar(ui, appState);
-            Rows(ui, appState);
-            RenameProblem(ui, appState);
-            ContextMenu(ui, appState);
+            Toolbar(ui, lists);
+            Rows(ui, lists);
+            RenameProblem(ui, lists);
+            ContextMenu(ui, lists);
             Footer(ui);
         }
         if (!open)
@@ -45,12 +45,12 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>New list on the left; what can be done to the picked list on the right.</summary>
-    private static void Toolbar(Ui<UiState> ui, AppState appState)
+    private static void Toolbar(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var dialog = ui.State.ListsDialog;
-        var picked = dialog.Picked(appState.Lists);
+        var picked = dialog.Picked(lists);
         var any = picked != null;
         using (ui.Row(new Box { Width = Sizing.Grow(), Gap = theme.GapTight, AlignY = Align.Center }))
         {
@@ -68,11 +68,11 @@ internal static class AssemblyListsDialogView
 
     /// <summary>A row per list. Enter activates the picked one; a double-click renames it, as F2 does,
     /// and Delete asks to delete it. Picking another row keeps the name being typed, if it may be kept.</summary>
-    private static void Rows(Ui<UiState> ui, AppState appState)
+    private static void Rows(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var theme = ui.Theme;
         var dialog = ui.State.ListsDialog;
-        var names = appState.Lists.Names;
+        var names = lists.Names;
         var picked = dialog.Selection.Index;
         var rowHeight = theme.ControlHeight + theme.GapTight;
         var frame = new Box
@@ -91,9 +91,9 @@ internal static class AssemblyListsDialogView
             using var list = ui.SelectableList(listId, names.Count, dialog.Selection, rowHeight);
             var doubleClicked = false;
             for (var i = list.First; i < list.End; i++)
-                doubleClicked |= Row(ui, appState, list, listId, i, names[i]);
+                doubleClicked |= Row(ui, lists, list, listId, i, names[i]);
             if (list.Focused)
-                HandleKeys(ui, appState);
+                HandleKeys(ui, lists);
             if (list.Activated)
                 ActOnRow(ui, names[list.Index], doubleClicked);
             if (list.ContextMenuRequested)
@@ -106,12 +106,12 @@ internal static class AssemblyListsDialogView
     /// <summary>A check mark when the list is the active one, its name, or the box renaming it, how
     /// many assemblies it holds, and its Activate button, disabled on the active list. True when the
     /// row was double-clicked.</summary>
-    private static bool Row(Ui<UiState> ui, AppState appState, ListScope list, int listId, int index, string name)
+    private static bool Row(Ui<UiState> ui, SavedAssemblyLists lists, ListScope list, int listId, int index, string name)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
         var dialog = ui.State.ListsDialog;
-        var active = name == appState.Lists.Active;
+        var active = name == lists.Active;
         using (ui.Id(name))
         using (var row = list.Row(index, ui.GetId("row"), new Box { Gap = theme.Gap, AlignY = Align.Center }))
         {
@@ -120,7 +120,7 @@ internal static class AssemblyListsDialogView
                 NameBox(ui, renaming, listId);
             else
                 NameText(ui, name, row.Selected);
-            var count = appState.Lists.PathsOf(name).Count;
+            var count = lists.PathsOf(name).Count;
             ui.Text(t.ListsCount(count), color: theme.TextMuted, size: theme.FontSizeSmall);
             if (ui.Button(t.ListsActivate, enabled: !active, id: "activate", variant: ButtonVariant.Ghost))
                 ui.State.Later(name, static (a, n) => SwitchAssemblyList(a, n));
@@ -170,12 +170,12 @@ internal static class AssemblyListsDialogView
         ui.State.ListsDialog.StopAsking();
     }
 
-    private static void HandleKeys(Ui<UiState> ui, AppState appState)
+    private static void HandleKeys(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var dialog = ui.State.ListsDialog;
         if (dialog.IsAsking)
             return;
-        var picked = dialog.Picked(appState.Lists);
+        var picked = dialog.Picked(lists);
         if (picked == null)
             return;
         if (ui.Input.TakeKey(KeyboardKey.F2))
@@ -208,7 +208,7 @@ internal static class AssemblyListsDialogView
     }
 
     /// <summary>Under the list, why the name typed for the list being renamed cannot be kept.</summary>
-    private static void RenameProblem(Ui<UiState> ui, AppState appState)
+    private static void RenameProblem(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -216,7 +216,7 @@ internal static class AssemblyListsDialogView
         if (dialog.Mode is not ListsDialogMode.Renaming renaming)
             return;
         var newName = renaming.NewName;
-        if (appState.Lists.CanRename(renaming.List, newName))
+        if (lists.CanRename(renaming.List, newName))
             return;
         ui.Text(DescribeRenameProblem(t, newName), color: theme.Danger, size: theme.FontSizeSmall, wrap: true);
     }
@@ -228,22 +228,22 @@ internal static class AssemblyListsDialogView
         return t.ListsNameTaken;
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState appState)
+    private static void ContextMenu(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;
-        var picked = ui.State.ListsDialog.Picked(appState.Lists);
+        var picked = ui.State.ListsDialog.Picked(lists);
         if (picked == null)
             return;
-        MenuItems(ui, appState, picked);
+        MenuItems(ui, lists, picked);
     }
 
-    private static void MenuItems(Ui<UiState> ui, AppState appState, string picked)
+    private static void MenuItems(Ui<UiState> ui, SavedAssemblyLists lists, string picked)
     {
         var t = ui.State.Strings;
         var dialog = ui.State.ListsDialog;
-        var active = picked == appState.Lists.Active;
+        var active = picked == lists.Active;
         if (ui.MenuItem(t.ListsActivate, enabled: !active, id: "activate"))
             ui.State.Later(picked, static (a, n) => SwitchAssemblyList(a, n));
         if (ui.MenuItem(t.ListsRename, Shortcuts.Rename, id: "rename"))

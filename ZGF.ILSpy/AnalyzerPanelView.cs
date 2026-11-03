@@ -13,13 +13,13 @@ internal static class AnalyzerPanelView
     private const string TreeId = "analyzer";
     private const string MenuId = "analyzer-menu";
 
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, AnalyzerTree analyzer)
     {
         var t = ui.State.Strings;
         var rows = ui.State.Analyzer;
         rows.SetStyle(ui.Theme, ui.State.NodeIconPalette, ui.State.Icons, t);
         using var pane = ui.Column(new Box { Height = Sizing.Grow(), Gap = 0f });
-        Toolbar(ui, appState, rows);
+        Toolbar(ui, analyzer, rows);
         ui.Separator();
         if (rows.Roots.Count == 0)
         {
@@ -27,14 +27,13 @@ internal static class AnalyzerPanelView
             return;
         }
         Tree(ui);
-        ContextMenu(ui, appState);
+        ContextMenu(ui, analyzer);
     }
 
-    private static void Toolbar(Ui<UiState> ui, AppState appState, AnalyzerRows rows)
+    private static void Toolbar(Ui<UiState> ui, AnalyzerTree analyzer, AnalyzerRows rows)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
-        var analyzer = appState.Analyzer;
         var any = analyzer.Roots.Count > 0;
         var root = rows.FindSelectedRoot();
         using (ui.PaneToolbar())
@@ -95,11 +94,10 @@ internal static class AnalyzerPanelView
         Navigate(appState, reference, inNewTab: false);
     }
 
-    private static void ContextMenu(Ui<UiState> ui, AppState appState)
+    private static void ContextMenu(Ui<UiState> ui, AnalyzerTree analyzer)
     {
         var t = ui.State.Strings;
         var rows = ui.State.Analyzer;
-        var analyzer = appState.Analyzer;
         using var menu = ui.ContextMenu(MenuId);
         if (!menu.IsOpen)
             return;

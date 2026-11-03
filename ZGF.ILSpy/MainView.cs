@@ -27,16 +27,16 @@ public static class MainView
             ui.Separator();
             StatusBarView.Render(ui, appState);
         }
-        FrameworkPickerView.Render(ui, appState);
-        ComparisonPickerView.Render(ui, appState);
+        FrameworkPickerView.Render(ui, appState.Assemblies);
+        ComparisonPickerView.Render(ui, appState.Assemblies);
         NuGetPickerView.Render(ui);
-        AssemblyListsDialogView.Render(ui, appState);
-        AssemblyListDeleteDialogView.Render(ui, appState);
-        BookmarkImportDialogView.Render(ui, appState);
-        LayoutResetDialogView.Render(ui, appState);
+        AssemblyListsDialogView.Render(ui, appState.Lists);
+        AssemblyListDeleteDialogView.Render(ui, appState.Lists);
+        BookmarkImportDialogView.Render(ui, appState.Imports);
+        LayoutResetDialogView.Render(ui);
         DisplayOptionsResetDialogView.Render(ui);
-        ExportDialogView.Render(ui, appState);
-        ErrorDialogView.Render(ui, appState);
+        ExportDialogView.Render(ui, appState.DecompilerOptions);
+        ErrorDialogView.Render(ui, appState.Errors);
         AboutDialogView.Render(ui);
     }
 
@@ -104,7 +104,7 @@ public static class MainView
             doubleClicked = dock.TabDoubleClicked;
         }
         TabMenuView.OpenOnRightClick(ui, tabMenu);
-        TabMenuView.Render(ui, appState);
+        TabMenuView.Render(ui, appState.Tabs);
         TabMenuView.KeepOpenOnDoubleClick(ui, doubleClicked);
     }
 
@@ -115,7 +115,7 @@ public static class MainView
             return DockPanels.Tab(t, screen.Icons, view.Value);
         var tab = screen.Documents.FindTab(panel);
         if (tab != null)
-            return DocumentsView.Tab(screen, appState, tab);
+            return DocumentsView.Tab(screen, appState.Tabs, tab);
         return new DockTab(t.DocumentNewTab);
     }
 
@@ -135,25 +135,25 @@ public static class MainView
         switch (view)
         {
             case DockView.Assemblies:
-                TreePaneView.Render(ui, appState);
+                TreePaneView.Render(ui, appState.Tabs, appState.Assemblies, appState.Language);
                 break;
             case DockView.Search:
-                SearchPanelView.Render(ui, appState);
+                SearchPanelView.Render(ui);
                 break;
             case DockView.Bookmarks:
-                BookmarksPanelView.Render(ui, appState);
+                BookmarksPanelView.Render(ui, appState.Bookmarks, appState.Assemblies);
                 break;
             case DockView.Analyzer:
-                AnalyzerPanelView.Render(ui, appState);
+                AnalyzerPanelView.Render(ui, appState.Analyzer);
                 break;
             case DockView.DecompilerOptions:
-                DecompilerOptionsPanelView.Render(ui, appState);
+                DecompilerOptionsPanelView.Render(ui, appState.DecompilerOptions);
                 break;
             case DockView.DisplayOptions:
                 DisplayOptionsPanelView.Render(ui, appState);
                 break;
             case DockView.Exports:
-                ExportsPanelView.Render(ui, appState);
+                ExportsPanelView.Render(ui, appState.Export, appState.FinishedExports);
                 break;
             default:
                 throw new UnreachableException();
@@ -165,7 +165,7 @@ public static class MainView
         var tab = ui.State.Documents.FindTab(panel);
         if (tab == null)
             return;
-        DocumentsView.Render(ui, appState, tab);
+        DocumentsView.Render(ui, appState.Bookmarks, appState.Tooltips, tab);
     }
 
     private static void RemoveReleasedImages(Ui<UiState> ui)

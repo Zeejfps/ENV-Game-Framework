@@ -13,19 +13,19 @@ internal static class ExportStatusView
     private const float BarWidth = 72f;
 
     /// <summary>Draws the running export; returns whether one runs.</summary>
-    public static bool Render(Ui<UiState> ui, AppState appState)
+    public static bool Render(Ui<UiState> ui, ExportQueue export)
     {
-        var running = appState.Export.Running;
+        var running = export.Running;
         if (running == null)
             return false;
-        Running(ui, appState, running);
+        Running(ui, running, export.WaitingCount);
         return true;
     }
 
-    private static void Running(Ui<UiState> ui, AppState appState, RunningExport running)
+    private static void Running(Ui<UiState> ui, RunningExport running, int waiting)
     {
         var t = ui.State.Strings;
-        if (Glance(ui, appState, running))
+        if (Glance(ui, running, waiting))
             OpenExports(ui.State);
         if (!running.IsCancelling && IconButton(ui, "cancel-export", ui.State.Icons.ExportCancel, t.StatusCancelExport))
             ui.State.Later(static a => a.Export.Cancel());
@@ -33,7 +33,7 @@ internal static class ExportStatusView
 
     /// <summary>What the export writes, its bar and how many wait, as one button; returns whether it
     /// was clicked.</summary>
-    private static bool Glance(Ui<UiState> ui, AppState appState, RunningExport running)
+    private static bool Glance(Ui<UiState> ui, RunningExport running, int waiting)
     {
         var progress = running.Progress;
         var t = ui.State.Strings;
@@ -48,7 +48,7 @@ internal static class ExportStatusView
             var fraction = progress.Fraction;
             if (fraction != null)
                 ui.ProgressBar(fraction.Value, Sizing.Fixed(BarWidth));
-            Queued(ui, appState);
+            Queued(ui, waiting);
         }
         ui.Tooltip(i.Id, t.StatusShowExports);
         return i.Clicked;
@@ -63,9 +63,8 @@ internal static class ExportStatusView
         return t.StatusExportingName(name);
     }
 
-    private static void Queued(Ui<UiState> ui, AppState appState)
+    private static void Queued(Ui<UiState> ui, int waiting)
     {
-        var waiting = appState.Export.WaitingCount;
         if (waiting == 0)
             return;
         var t = ui.State.Strings;

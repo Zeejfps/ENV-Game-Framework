@@ -24,7 +24,7 @@ internal static class OmnibarView
     private const int MenuRows = 12;
     private const float CrumbMinWidth = 24f;
 
-    public static void Render(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    public static void Render(Ui<UiState> ui, DocumentTab tab)
     {
         if (!ui.State.Display.ShowOmnibar)
             return;
@@ -32,7 +32,7 @@ internal static class OmnibarView
         if (ContinueSearch(ui, panel))
             SearchBar(ui);
         else
-            PathBar(ui, appState, tab, panel);
+            PathBar(ui, tab, panel);
         ui.Separator();
     }
 
@@ -55,7 +55,7 @@ internal static class OmnibarView
         return false;
     }
 
-    private static void PathBar(Ui<UiState> ui, AppState appState, DocumentTab tab, string panel)
+    private static void PathBar(Ui<UiState> ui, DocumentTab tab, string panel)
     {
         var view = ui.State.Documents.ViewOf(tab);
         view.Breadcrumb.Follow(tab.Node, ui.State.Tree);
@@ -73,7 +73,7 @@ internal static class OmnibarView
                         menuOwner = owner;
                 }
             }
-            ContentTools(ui, appState, tab);
+            ContentTools(ui, tab);
             SearchArea(ui, panel);
             SearchButton(ui, panel);
         }
@@ -81,7 +81,7 @@ internal static class OmnibarView
     }
 
     /// <summary>The tools of what the tab shows that no node stands for: a diagram's or a comparison's.</summary>
-    private static void ContentTools(Ui<UiState> ui, AppState appState, DocumentTab tab)
+    private static void ContentTools(Ui<UiState> ui, DocumentTab tab)
     {
         switch (tab.Content)
         {

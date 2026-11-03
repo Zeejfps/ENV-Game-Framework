@@ -18,7 +18,7 @@ public static class Exports
 
     /// <summary>Whether <paramref name="node"/> can be saved: it shows code, or it is a resource,
     /// whose bytes are saved.</summary>
-    public static bool CanSaveCode(AppState appState, [NotNullWhen(true)] BrowseNode? node)
+    public static bool CanSaveCode([NotNullWhen(true)] BrowseNode? node)
     {
         if (node == null)
             return false;
@@ -184,9 +184,9 @@ public static class Exports
     }
 
     /// <summary>The assembly of the node the active tab shows, or null when it shows none that was read.</summary>
-    public static LoadedModule? FindActiveAssembly(AppState appState)
+    public static LoadedModule? FindActiveAssembly(DocumentTabs tabs)
     {
-        if (appState.Tabs.Active?.Node?.Assembly is not LoadedModule assembly)
+        if (tabs.Active?.Node?.Assembly is not LoadedModule assembly)
             return null;
         return assembly;
     }
@@ -314,48 +314,48 @@ public static class Exports
 
     /// <summary>The runs of every export in the order the exports panel lists them: the running one,
     /// the waiting ones next first, then the finished ones newest first.</summary>
-    public static List<ExportRun> ListExports(AppState appState)
+    public static List<ExportRun> ListExports(ExportQueue queue, List<ExportReport> finished)
     {
         var runs = new List<ExportRun>();
-        var running = appState.Export.Running;
+        var running = queue.Running;
         if (running != null)
             runs.Add(running.Export.Run);
-        foreach (var waiting in appState.Export.Waiting)
+        foreach (var waiting in queue.Waiting)
             runs.Add(waiting.Run);
-        for (var i = appState.FinishedExports.Count - 1; i >= 0; i--)
-            runs.Add(appState.FinishedExports[i].Run);
+        for (var i = finished.Count - 1; i >= 0; i--)
+            runs.Add(finished[i].Run);
         return runs;
     }
 
     /// <summary>The finished export <paramref name="run"/>, or null when it has not finished or is gone.</summary>
-    public static ExportReport? FindFinishedExport(AppState appState, ExportRun run) => appState.FinishedExports.Find(r => r.Run == run);
+    public static ExportReport? FindFinishedExport(List<ExportReport> finished, ExportRun run) => finished.Find(r => r.Run == run);
 
     /// <summary>The folder the export <paramref name="run"/> writes into, wherever it is in the
     /// queue, or null when it is gone.</summary>
-    public static string? FindExportFolder(AppState appState, ExportRun run)
+    public static string? FindExportFolder(ExportQueue queue, List<ExportReport> finished, ExportRun run)
     {
-        var finished = FindFinishedExport(appState, run);
-        if (finished != null)
-            return finished.Folder;
-        var queued = FindQueuedExport(appState, run);
+        var report = FindFinishedExport(finished, run);
+        if (report != null)
+            return report.Folder;
+        var queued = FindQueuedExport(queue, run);
         if (queued == null)
             return null;
         return queued.Job.Folder;
     }
 
-    private static QueuedExport? FindQueuedExport(AppState appState, ExportRun run)
+    private static QueuedExport? FindQueuedExport(ExportQueue queue, ExportRun run)
     {
-        var running = appState.Export.Running;
+        var running = queue.Running;
         if (running != null && running.Export.Run == run)
             return running.Export;
-        return appState.Export.Waiting.FirstOrDefault(q => q.Run == run);
+        return queue.Waiting.FirstOrDefault(q => q.Run == run);
     }
 
     /// <summary>Does what activating the export <paramref name="run"/> means: shows the report of a
     /// finished one; nothing for one still running or waiting.</summary>
     public static void ActivateExport(AppState appState, ExportRun run)
     {
-        var finished = FindFinishedExport(appState, run);
+        var finished = FindFinishedExport(appState.FinishedExports, run);
         if (finished == null)
             return;
         ShowExportReport(appState, finished);
@@ -365,7 +365,7 @@ public static class Exports
     /// off the history when it finished. A running one stays; only cancelling stops it.</summary>
     public static void RemoveExport(AppState appState, ExportRun run)
     {
-        var finished = FindFinishedExport(appState, run);
+        var finished = FindFinishedExport(appState.FinishedExports, run);
         if (finished != null)
         {
             RemoveFinishedExport(appState, finished);

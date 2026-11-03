@@ -8,7 +8,7 @@ namespace ZGF.ILSpy;
 /// which list opens in its place when it is the active one.</summary>
 internal static class AssemblyListDeleteDialogView
 {
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, SavedAssemblyLists lists)
     {
         var t = ui.State.Strings;
         var theme = ui.Theme;
@@ -22,8 +22,8 @@ internal static class AssemblyListDeleteDialogView
             if (scope.IsOpen)
             {
                 ui.Text(t.ListsDeleteQuestion(name), wrap: true);
-                if (name == appState.Lists.Active)
-                    ui.Text(t.ListsDeleteReplacedBy(appState.Lists.ReplacementFor(name)), color: theme.TextMuted, wrap: true);
+                if (name == lists.Active)
+                    ui.Text(t.ListsDeleteReplacedBy(lists.ReplacementFor(name)), color: theme.TextMuted, wrap: true);
                 using (ui.DialogActions())
                 {
                     if (ui.Button(t.ListsCancel, id: "delete-cancel", variant: ButtonVariant.Ghost))

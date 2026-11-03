@@ -10,12 +10,12 @@ namespace ZGF.ILSpy;
 
 internal static class FrameworkPickerView
 {
-    public static void Render(Ui<UiState> ui, AppState appState)
+    public static void Render(Ui<UiState> ui, AssemblyList assemblies)
     {
         var t = ui.State.Strings;
         var picker = ui.State.Picker;
         if (picker.IsOpen)
-            picker.Update(appState.Assemblies);
+            picker.Update(assemblies);
 
         var theme = ui.Theme;
         var open = false;

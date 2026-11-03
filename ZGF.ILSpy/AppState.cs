@@ -216,28 +216,6 @@ public sealed class AppState
     /// <summary>Queues <paramref name="command"/> for the view to run before it draws next.</summary>
     public void EnqueueCommand(ViewCommand command) => ViewCommands.Enqueue(command);
 
-    /// <summary>True when the assembly at <paramref name="node"/>'s root, or the package it was read out
-    /// of, is open in the active list, loaded or failed.</summary>
-    public bool IsListed(BrowseNode node) => IsListed(node.Root.Assembly);
-
-    /// <summary>Whether the list holds <paramref name="assembly"/>, or the package it was read out of.</summary>
-    internal bool IsListed(LoadedAssembly assembly) => Assemblies.Listed.Contains(assembly.ListedItem);
-
-    /// <summary>True when the assembly or package at <paramref name="filePath"/> is open in the active
-    /// list and loaded.</summary>
-    internal bool IsListed(AssemblyPath filePath)
-    {
-        var listed = Assemblies.Listed;
-        for (var i = 0; i < listed.Count; i++)
-        {
-            if (listed[i] is FailedAssembly)
-                continue;
-            if (listed[i].FilePath.Equals(filePath))
-                return true;
-        }
-        return false;
-    }
-
     internal DocumentTab AddTab()
     {
         var tab = new DocumentTab();
