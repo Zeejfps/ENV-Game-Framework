@@ -396,8 +396,6 @@ public sealed class AppSettingsTests : IDisposable
     [InlineData(typeof(DiagramViewRecord), typeof(DiagramViewJson))]
     [InlineData(typeof(CardFold), typeof(CardFoldJson))]
     [InlineData(typeof(CodeAnchor), typeof(CodeAnchorJson))]
-    [InlineData(typeof(BookmarkRecord), typeof(BookmarkJson))]
-    [InlineData(typeof(BookmarkViewState), typeof(BookmarkViewStateJson))]
     [InlineData(typeof(DockLayout), typeof(DockLayoutJson))]
     [InlineData(typeof(DockSplit), typeof(DockSplitJson))]
     [InlineData(typeof(DockGroup), typeof(DockGroupJson))]

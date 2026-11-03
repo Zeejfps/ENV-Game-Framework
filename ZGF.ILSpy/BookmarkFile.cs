@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using ZGF.ILSpy.Core;
 
 namespace ZGF.ILSpy;
@@ -40,13 +39,12 @@ public sealed record BookmarkViewState(
     List<string>? SelectedTreeNodePath = null);
 
 /// <summary>
-/// A bookmark as the real ILSpy writes it to ILSpy.Bookmarks.json, field for field, so files go
-/// both ways. <see cref="LineNumber"/> counts from 1. <see cref="Location"/> and <see cref="Language"/>
-/// are this app's own — where in its tree the node the bookmark was made in is, and that document's
-/// language — which ILSpy skips; a record without a location finds one through
-/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>. The file keeps the location as
-/// <see cref="Path"/>; a bookmark saved by a build before versioned paths and not gone to since keeps the
-/// <see cref="Place"/> it was read with.
+/// A bookmark as the real ILSpy keeps it in ILSpy.Bookmarks.json, so files go both ways.
+/// <see cref="LineNumber"/> counts from 1. <see cref="Location"/> and <see cref="Language"/> are this
+/// app's own — where in its tree the node the bookmark was made in is, and that document's language —
+/// which ILSpy skips; a record without a location finds one through
+/// <see cref="BookmarkViewState.SelectedTreeNodePath"/>. A bookmark saved by a build before versioned paths
+/// and not gone to since keeps the <see cref="Place"/> it was read with.
 /// </summary>
 public sealed record BookmarkRecord(
     string Name,
@@ -61,15 +59,12 @@ public sealed record BookmarkRecord(
     string MemberName,
     string? LocationNodeName,
     BookmarkViewState? ViewState,
-    [property: JsonIgnore] NodePath? Location = null,
+    NodePath? Location = null,
     List<LegacyPlaceStep>? Place = null,
-    DecompilationLanguage? Language = null)
-{
-    public SavedPath? Path => Location == null ? null : SavedPlaces.PathOf(Location);
-}
+    DecompilationLanguage? Language = null);
 
 /// <summary>The bookmarks file the real ILSpy reads and writes.</summary>
-public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
+public static class BookmarkFile
 {
     public const int CurrentVersion = 1;
 
@@ -83,7 +78,7 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
         var temporary = path + ".tmp";
         try
         {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(new BookmarkFile(CurrentVersion, bookmarks), AppSettingsJson.Default.BookmarkFile));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(FileOf(bookmarks), AppSettingsJson.Default.BookmarkFileJson));
             File.Move(temporary, path, overwrite: true);
             return null;
         }
@@ -91,6 +86,13 @@ public sealed record BookmarkFile(int Version, List<BookmarkRecord> Bookmarks)
         {
             return $"{path}{Environment.NewLine}{e.Message}";
         }
+    }
+
+    private static BookmarkFileJson FileOf(List<BookmarkRecord> bookmarks)
+    {
+        var json = AppSettingsJson.Default.BookmarkJson;
+        var written = bookmarks.ConvertAll(b => JsonSerializer.SerializeToElement(BookmarkJson.From(b), json));
+        return new BookmarkFileJson(CurrentVersion, written);
     }
 
     /// <summary>The bookmarks in the file at <paramref name="path"/> that name an assembly file, as

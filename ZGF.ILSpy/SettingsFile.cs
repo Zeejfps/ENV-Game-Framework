@@ -28,7 +28,7 @@ internal sealed record SettingsFile(
     ApiVisibility ApiVisibility,
     SearchKinds SearchKinds,
     DockLayoutJson? Layout,
-    List<BookmarkRecord> Bookmarks,
+    List<BookmarkJson> Bookmarks,
     List<float>? BookmarkColumns,
     List<float>? SearchColumns,
     List<float>? ExportColumns,
@@ -60,7 +60,7 @@ internal sealed record SettingsFile(
         settings.ApiVisibility,
         settings.SearchKinds,
         settings.Layout == null ? null : DockLayoutJson.From(settings.Layout),
-        settings.Bookmarks,
+        settings.Bookmarks.ConvertAll(BookmarkJson.From),
         settings.BookmarkColumns,
         settings.SearchColumns,
         settings.ExportColumns,
@@ -252,12 +252,18 @@ internal sealed record ComparisonDocumentJson(
 
 /// <summary>A step down the tree as builds before versioned paths wrote it, as a settings or bookmarks file
 /// can hold it. Without a kind or a label it is none.</summary>
-internal sealed record LegacyPlaceStepJson(string? Kind, string? Text);
+internal sealed record LegacyPlaceStepJson(string? Kind, string? Text)
+{
+    public static LegacyPlaceStepJson From(LegacyPlaceStep step) => new(step.Kind, step.Text);
+}
 
 /// <summary>A place as a settings or bookmarks file can hold it. Of another version, or with a step that
 /// cannot be read, it is none.</summary>
 internal sealed record SavedPathJson(int Version, List<SavedPathStepJson?>? Steps)
 {
+    public static SavedPathJson From(SavedPath path) =>
+        new(path.Version, path.Steps.Select(static SavedPathStepJson? (s) => new SavedPathStepJson(s.Step, s.Label)).ToList());
+
     /// <summary>The path down from the root of the file at <paramref name="filePath"/>; null when it
     /// cannot be read.</summary>
     public NodePath.Semantic? Parse(AssemblyPath filePath)
@@ -357,9 +363,26 @@ internal sealed record BookmarkJson(
     string? LocationNodeName,
     BookmarkViewStateJson? ViewState,
     List<LegacyPlaceStepJson?>? Place,
-    SavedPathJson? Path,
-    DecompilationLanguage? Language)
+    DecompilationLanguage? Language,
+    SavedPathJson? Path)
 {
+    public static BookmarkJson From(BookmarkRecord bookmark) => new(
+        bookmark.Name,
+        bookmark.Enabled,
+        bookmark.FileName.Text,
+        bookmark.AssemblyFullName,
+        bookmark.ModuleName,
+        bookmark.Token,
+        bookmark.Kind,
+        bookmark.ILOffset,
+        bookmark.LineNumber,
+        bookmark.MemberName,
+        bookmark.LocationNodeName,
+        bookmark.ViewState == null ? null : BookmarkViewStateJson.From(bookmark.ViewState),
+        SettingsJson.LegacyPlaceJsonOf(bookmark.Place),
+        bookmark.Language,
+        SettingsJson.PathJsonOf(bookmark.Location));
+
     /// <summary>The bookmark, with what the file lacks filled in; null without the absolute path of an
     /// assembly file. A place that cannot be read is no place, and <paramref name="leaveOutPlace"/> is told.</summary>
     public BookmarkRecord? Parse(Action leaveOutPlace)
@@ -383,16 +406,26 @@ internal sealed record BookmarkViewStateJson(
     double VerticalOffset,
     double HorizontalOffset,
     int? FoldingChecksum,
-    List<BookmarkFoldingRange?>? ExpandedFoldings,
-    BookmarkRenderedLayoutSettings? RenderedLayoutSettings,
+    List<BookmarkFoldingRangeJson?>? ExpandedFoldings,
+    BookmarkRenderedLayoutSettingsJson? RenderedLayoutSettings,
     List<string?>? SelectedTreeNodePath)
 {
+    public static BookmarkViewStateJson From(BookmarkViewState view) => new(
+        view.Version,
+        view.CaretOffset,
+        view.VerticalOffset,
+        view.HorizontalOffset,
+        view.FoldingChecksum,
+        view.ExpandedFoldings?.Select(static BookmarkFoldingRangeJson? (f) => BookmarkFoldingRangeJson.From(f)).ToList(),
+        view.RenderedLayoutSettings == null ? null : BookmarkRenderedLayoutSettingsJson.From(view.RenderedLayoutSettings),
+        view.SelectedTreeNodePath == null ? null : new List<string?>(view.SelectedTreeNodePath));
+
     /// <summary>The view state, without missing foldings; a tree path missing a step is no path.</summary>
     public BookmarkViewState Parse()
     {
-        var foldings = ExpandedFoldings?.OfType<BookmarkFoldingRange>().ToList();
+        var foldings = ExpandedFoldings?.Select(static f => f?.Parse()).OfType<BookmarkFoldingRange>().ToList();
         return new BookmarkViewState(Version, CaretOffset, VerticalOffset, HorizontalOffset, FoldingChecksum, foldings,
-            RenderedLayoutSettings, TreePathOf(SelectedTreeNodePath));
+            RenderedLayoutSettings?.Parse(), TreePathOf(SelectedTreeNodePath));
     }
 
     private static List<string>? TreePathOf(List<string?>? path)
@@ -404,6 +437,46 @@ internal sealed record BookmarkViewStateJson(
             return null;
         return steps;
     }
+}
+
+/// <summary>A folded region left open, as a settings or bookmarks file can hold it.</summary>
+internal sealed record BookmarkFoldingRangeJson(int Start, int End)
+{
+    public static BookmarkFoldingRangeJson From(BookmarkFoldingRange range) => new(range.Start, range.End);
+
+    public BookmarkFoldingRange Parse() => new(Start, End);
+}
+
+/// <summary>ILSpy's display settings a bookmark was made in, as a settings or bookmarks file can hold them.</summary>
+internal sealed record BookmarkRenderedLayoutSettingsJson(
+    bool FoldBraces,
+    bool ExpandXmlDocumentationComments,
+    bool ExpandMemberDefinitions,
+    bool ExpandUsingDeclarations,
+    bool ShowDebugInfo,
+    bool IndentationUseTabs,
+    int IndentationSize,
+    int IndentationTabSize)
+{
+    public static BookmarkRenderedLayoutSettingsJson From(BookmarkRenderedLayoutSettings settings) => new(
+        settings.FoldBraces,
+        settings.ExpandXmlDocumentationComments,
+        settings.ExpandMemberDefinitions,
+        settings.ExpandUsingDeclarations,
+        settings.ShowDebugInfo,
+        settings.IndentationUseTabs,
+        settings.IndentationSize,
+        settings.IndentationTabSize);
+
+    public BookmarkRenderedLayoutSettings Parse() => new(
+        FoldBraces,
+        ExpandXmlDocumentationComments,
+        ExpandMemberDefinitions,
+        ExpandUsingDeclarations,
+        ShowDebugInfo,
+        IndentationUseTabs,
+        IndentationSize,
+        IndentationTabSize);
 }
 
 /// <summary>How the app is drawn, as a settings file can hold it. What it lacks, or holds as null, is
@@ -531,9 +604,24 @@ internal sealed record SavedFilterStateJson(Dictionary<string, uint[]?>? Groups,
 /// <summary>The real ILSpy's bookmarks file as it can hold them, each bookmark read on its own.</summary>
 internal sealed record BookmarkFileJson(int Version, List<JsonElement>? Bookmarks);
 
-/// <summary>What the read shapes share.</summary>
+/// <summary>What the shapes share.</summary>
 internal static class SettingsJson
 {
+    /// <summary><paramref name="location"/> as the file keeps it; null for none, or for a place read from a
+    /// build before versioned paths, which keeps only its <see cref="LegacyPlaceStep"/>s.</summary>
+    public static SavedPathJson? PathJsonOf(NodePath? location)
+    {
+        if (location == null)
+            return null;
+        var path = SavedPlaces.PathOf(location);
+        if (path == null)
+            return null;
+        return SavedPathJson.From(path);
+    }
+
+    public static List<LegacyPlaceStepJson?>? LegacyPlaceJsonOf(List<LegacyPlaceStep>? place) =>
+        place?.Select(static LegacyPlaceStepJson? (s) => LegacyPlaceStepJson.From(s)).ToList();
+
     /// <summary>The absolute paths among <paramref name="paths"/>; none when there are none.</summary>
     public static List<AssemblyPath> PathsOf(List<string?>? paths)
     {
@@ -600,7 +688,6 @@ internal static class SettingsJson
     typeof(EnumByName<TokenFormat>), typeof(EnumByName<TriState>), typeof(AssemblyPathJson),
 ])]
 [JsonSerializable(typeof(SettingsFile))]
-[JsonSerializable(typeof(BookmarkFile))]
 [JsonSerializable(typeof(BookmarkFileJson))]
 [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
 [JsonSerializable(typeof(List<JsonElement>))]
