@@ -232,10 +232,10 @@ public sealed class AppSettings
             SearchColumns = file.Read(nameof(SettingsFile.SearchColumns), json.ListSingle),
             ExportColumns = file.Read(nameof(SettingsFile.ExportColumns), json.ListSingle),
             FlagsFilters = ReadFlagsFilters(file),
-            Window = Sanitize(file.Read(nameof(SettingsFile.Window), json.NullableWindowBounds)),
-            ExportWindow = SanitizeDialog(file.Read(nameof(SettingsFile.ExportWindow), json.NullableWindowBounds)),
+            Window = Sanitize(file.Read(nameof(SettingsFile.Window), json.WindowBoundsJson)?.Parse()),
+            ExportWindow = SanitizeDialog(file.Read(nameof(SettingsFile.ExportWindow), json.WindowBoundsJson)?.Parse()),
             NuGet = file.Read(nameof(SettingsFile.NuGet), json.NuGetSearchJson)?.Parse(),
-            NuGetWindow = SanitizeDialog(file.Read(nameof(SettingsFile.NuGetWindow), json.NullableWindowBounds)),
+            NuGetWindow = SanitizeDialog(file.Read(nameof(SettingsFile.NuGetWindow), json.WindowBoundsJson)?.Parse()),
         };
     }
 

@@ -31,11 +31,11 @@ internal sealed record SettingsFile(
     List<float>? BookmarkColumns,
     List<float>? SearchColumns,
     List<float>? ExportColumns,
-    Dictionary<string, SavedFilterState>? FlagsFilters,
-    WindowBounds? Window,
-    WindowBounds? ExportWindow,
-    SavedNuGetSearch? NuGet,
-    WindowBounds? NuGetWindow)
+    Dictionary<string, SavedFilterStateJson?>? FlagsFilters,
+    WindowBoundsJson? Window,
+    WindowBoundsJson? ExportWindow,
+    NuGetSearchJson? NuGet,
+    WindowBoundsJson? NuGetWindow)
 {
     /// <summary>The one list that settings files kept before lists had names.</summary>
     public const string OldAssemblies = "Assemblies";
@@ -63,11 +63,28 @@ internal sealed record SettingsFile(
         settings.BookmarkColumns,
         settings.SearchColumns,
         settings.ExportColumns,
-        settings.FlagsFilters,
-        settings.Window,
-        settings.ExportWindow,
-        settings.NuGet,
-        settings.NuGetWindow);
+        FiltersOf(settings.FlagsFilters),
+        WindowOf(settings.Window),
+        WindowOf(settings.ExportWindow),
+        settings.NuGet == null ? null : NuGetSearchJson.From(settings.NuGet),
+        WindowOf(settings.NuGetWindow));
+
+    private static Dictionary<string, SavedFilterStateJson?>? FiltersOf(Dictionary<string, SavedFilterState>? filters)
+    {
+        if (filters == null)
+            return null;
+        var written = new Dictionary<string, SavedFilterStateJson?>();
+        foreach (var (key, filter) in filters)
+            written.Add(key, SavedFilterStateJson.From(filter));
+        return written;
+    }
+
+    private static WindowBoundsJson? WindowOf(WindowBounds? bounds)
+    {
+        if (bounds == null)
+            return null;
+        return WindowBoundsJson.From(bounds.Value);
+    }
 }
 
 /// <summary>An assembly list as a settings file can hold it. Without a name it is no list.</summary>
@@ -314,6 +331,8 @@ internal sealed record CardFoldJson(TypeAnchorJson? Card, MemberSection? Section
 /// <summary>The feed last searched, as a settings file can hold it. Without a feed it is none.</summary>
 internal sealed record NuGetSearchJson(string? FeedUrl, bool IncludePrerelease)
 {
+    public static NuGetSearchJson From(SavedNuGetSearch search) => new(search.FeedUrl, search.IncludePrerelease);
+
     public SavedNuGetSearch? Parse()
     {
         if (FeedUrl == null)
@@ -454,9 +473,23 @@ internal sealed record CodeFontJson(string? Family, string? Path, int FaceIndex)
     }
 }
 
+/// <summary>Where a window sat and how big it was, as a settings file can hold it.</summary>
+internal sealed record WindowBoundsJson(int X, int Y, int Width, int Height, bool Maximized)
+{
+    public static WindowBoundsJson From(WindowBounds bounds) => new(bounds.X, bounds.Y, bounds.Width, bounds.Height, bounds.Maximized);
+
+    public WindowBounds Parse() => new(X, Y, Width, Height, Maximized);
+}
+
 /// <summary>A flags filter, as a settings file can hold it. A group without values is left as it starts.</summary>
 internal sealed record SavedFilterStateJson(Dictionary<string, uint[]?>? Groups, Dictionary<string, TriState>? Flags, MatchMode Mode)
 {
+    public static SavedFilterStateJson From(SavedFilterState filter)
+    {
+        var groups = filter.Groups?.ToDictionary(static g => g.Key, static uint[]? (g) => g.Value);
+        return new SavedFilterStateJson(groups, filter.Flags, filter.Mode);
+    }
+
     public SavedFilterState Parse()
     {
         return new SavedFilterState(GroupsOf(Groups), Flags, Mode);
@@ -558,7 +591,7 @@ internal static class SettingsJson
 [JsonSerializable(typeof(ApiVisibility?))]
 [JsonSerializable(typeof(SearchKinds?))]
 [JsonSerializable(typeof(Locale?))]
-[JsonSerializable(typeof(WindowBounds?))]
+[JsonSerializable(typeof(WindowBoundsJson))]
 [JsonSerializable(typeof(DecompilerOptions))]
 [JsonSerializable(typeof(DisplayOptionsJson))]
 [JsonSerializable(typeof(DockLayoutJson))]
