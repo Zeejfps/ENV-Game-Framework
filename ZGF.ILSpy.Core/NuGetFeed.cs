@@ -67,12 +67,12 @@ public sealed class NuGetFeed
     public async Task<FeedPage> SearchAsync(string query, bool includePrerelease, int page = 0, CancellationToken cancellationToken = default)
     {
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
-        var url = SearchUrl(index.Search, query, includePrerelease, page);
+        var url = Derived(SearchUrl(index.Search, query, includePrerelease, page));
         using var document = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
         return FeedJson.ReadPage(document.RootElement);
     }
 
-    private static string SearchUrl(string search, string query, bool includePrerelease, int page)
+    private static string SearchUrl(WebUrl search, string query, bool includePrerelease, int page)
     {
         var q = Uri.EscapeDataString(query.Trim());
         var prerelease = includePrerelease ? "true" : "false";
@@ -94,14 +94,14 @@ public sealed class NuGetFeed
         return await ReadCatalogEntryAsync(entry, listedAt, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<string> FindDetailsUrlAsync(PackageId id, FeedVersion version, CancellationToken cancellationToken)
+    private async Task<WebUrl> FindDetailsUrlAsync(PackageId id, FeedVersion version, CancellationToken cancellationToken)
     {
-        if (version.DetailsUrl.Length > 0)
+        if (version.DetailsUrl != null)
             return version.DetailsUrl;
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
         if (index.Registrations == null)
             throw new InvalidDataException($"The service index of {Source.Url} names no {RegistrationsType}.");
-        return $"{index.Registrations.TrimEnd('/')}/{id.Lower}/{version.Version.Filed}.json";
+        return Derived($"{index.Registrations.Text.TrimEnd('/')}/{id.Lower}/{version.Version.Filed}.json");
     }
 
     /// <summary>The details in a catalog entry, which a registration leaf gives inline or as the URL to read it from.</summary>
@@ -109,9 +109,10 @@ public sealed class NuGetFeed
     {
         if (entry.ValueKind == JsonValueKind.Object)
             return FeedJson.ReadDetails(entry, listedAt);
-        if (entry.ValueKind != JsonValueKind.String)
-            throw new InvalidDataException("A catalog entry is neither inline nor a URL.");
-        using var catalog = await ReadJsonAsync(entry.GetString()!, cancellationToken).ConfigureAwait(false);
+        var url = entry.ValueKind == JsonValueKind.String ? WebUrl.Parse(entry.GetString()) : null;
+        if (url == null)
+            throw new InvalidDataException("A catalog entry is neither inline nor a web URL.");
+        using var catalog = await ReadJsonAsync(url, cancellationToken).ConfigureAwait(false);
         return FeedJson.ReadDetails(catalog.RootElement, listedAt);
     }
 
@@ -123,19 +124,23 @@ public sealed class NuGetFeed
     {
         var index = await ReadIndexAsync(cancellationToken).ConfigureAwait(false);
         var url = PackageUrl(index.PackageFolder, id, version);
-        using var response = await _client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await _client.GetAsync(url.Uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         await WriteWholeFileAsync(response, path, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Where the feed serves a package file: <c>{folder}/{id}/{version}/{id}.{version}.nupkg</c>,
     /// in lower case, the version without its build metadata.</summary>
-    private static string PackageUrl(string folder, PackageId id, PackageVersion version)
+    private static WebUrl PackageUrl(WebUrl folder, PackageId id, PackageVersion version)
     {
         var lowerId = id.Lower;
         var lowerVersion = version.Filed;
-        return $"{folder.TrimEnd('/')}/{lowerId}/{lowerVersion}/{lowerId}.{lowerVersion}.nupkg";
+        return Derived($"{folder.Text.TrimEnd('/')}/{lowerId}/{lowerVersion}/{lowerId}.{lowerVersion}.nupkg");
     }
+
+    /// <summary>The URL <paramref name="text"/>, made from one the feed gave.</summary>
+    /// <exception cref="InvalidDataException">What the feed gave makes no web URL.</exception>
+    private static WebUrl Derived(string text) => WebUrl.Parse(text) ?? throw new InvalidDataException($"{text} is no web URL.");
 
     private static async Task WriteWholeFileAsync(HttpResponseMessage response, string path, CancellationToken cancellationToken)
     {
@@ -179,7 +184,7 @@ public sealed class NuGetFeed
     }
 
     /// <summary>The URL of the first resource whose type is <paramref name="type"/>, or a version of it.</summary>
-    private string FindResource(JsonElement resources, string type)
+    private WebUrl FindResource(JsonElement resources, string type)
     {
         var url = FindOptionalResource(resources, type);
         if (url == null)
@@ -187,12 +192,14 @@ public sealed class NuGetFeed
         return url;
     }
 
-    private static string? FindOptionalResource(JsonElement resources, string type)
+    /// <summary>The web URL of the first resource whose type is <paramref name="type"/>; null when there is
+    /// none, or its URL is none.</summary>
+    private static WebUrl? FindOptionalResource(JsonElement resources, string type)
     {
         foreach (var resource in resources.EnumerateArray())
         {
             if (IsOfType(resource, type))
-                return FeedJson.ReadString(resource, "@id");
+                return FeedJson.ReadUrl(resource, "@id");
         }
         return null;
     }
@@ -205,9 +212,9 @@ public sealed class NuGetFeed
         return found.StartsWith(type + "/", StringComparison.Ordinal);
     }
 
-    private async Task<JsonDocument> ReadJsonAsync(string url, CancellationToken cancellationToken)
+    private async Task<JsonDocument> ReadJsonAsync(WebUrl url, CancellationToken cancellationToken)
     {
-        using var response = await _client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+        using var response = await _client.GetAsync(url.Uri, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -221,5 +228,5 @@ public sealed class NuGetFeed
     }
 
     /// <summary>The resources of the feed's service index this reads; a feed may describe no versions.</summary>
-    private sealed record ServiceIndex(string Search, string PackageFolder, string? Registrations);
+    private sealed record ServiceIndex(WebUrl Search, WebUrl PackageFolder, WebUrl? Registrations);
 }

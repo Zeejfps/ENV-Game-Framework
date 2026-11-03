@@ -4,7 +4,8 @@ using System.Text.Json;
 namespace ZGF.ILSpy.Core;
 
 /// <summary>Reads what a NuGet feed answers in JSON: a page of its search, and a version's catalog
-/// entry. What a feed leaves out reads as empty, 0 or null; only a missing list of results fails.</summary>
+/// entry. What a feed leaves out, or gives in another shape, reads as empty, 0 or null; only a missing
+/// list of results fails.</summary>
 internal static class FeedJson
 {
     /// <summary>The year a feed dates a version it unlisted.</summary>
@@ -50,15 +51,15 @@ internal static class FeedJson
             version,
             ReadString(package, "description"),
             ReadNames(package, "authors"),
-            ReadString(package, "iconUrl"),
+            ReadUrl(package, "iconUrl"),
             ReadVersions(package, version))
         {
             TotalDownloads = ReadLong(package, "totalDownloads"),
             Verified = ReadBool(package, "verified"),
             Owners = ReadNames(package, "owners"),
             Tags = ReadWords(package, "tags"),
-            ProjectUrl = ReadString(package, "projectUrl"),
-            LicenseUrl = ReadString(package, "licenseUrl"),
+            ProjectUrl = ReadUrl(package, "projectUrl"),
+            LicenseUrl = ReadUrl(package, "licenseUrl"),
             Vulnerabilities = CountItems(package, "vulnerabilities"),
         };
     }
@@ -76,7 +77,7 @@ internal static class FeedJson
         }
         versions.Reverse();
         if (versions.Count == 0)
-            versions.Add(new FeedVersion(latest, 0, ""));
+            versions.Add(new FeedVersion(latest, 0, null));
         return versions;
     }
 
@@ -86,7 +87,7 @@ internal static class FeedJson
         if (version == null)
             return null;
         var downloads = ReadLong(entry, "downloads");
-        var detailsUrl = ReadString(entry, "@id");
+        var detailsUrl = ReadUrl(entry, "@id");
         return new FeedVersion(version, downloads, detailsUrl);
     }
 
@@ -100,8 +101,8 @@ internal static class FeedJson
         return new PackageVersionDetails(
             published,
             ReadString(entry, "licenseExpression"),
-            ReadString(entry, "licenseUrl"),
-            ReadString(entry, "projectUrl"),
+            ReadUrl(entry, "licenseUrl"),
+            ReadUrl(entry, "projectUrl"),
             ReadLong(entry, "packageSize"),
             ReadDependencyGroups(entry),
             ReadDeprecation(entry),
@@ -148,17 +149,20 @@ internal static class FeedJson
     private static List<PackageVulnerability> ReadVulnerabilities(JsonElement entry)
     {
         return ReadOptionalArray(entry, "vulnerabilities")
-            .Select(v => new PackageVulnerability(ReadSeverity(v), ReadString(v, "advisoryUrl")))
+            .Select(v => new PackageVulnerability(ReadSeverity(v), ReadUrl(v, "advisoryUrl")))
             .ToList();
     }
 
-    /// <summary>A vulnerability's severity, which a feed may give as a number or as its digits.</summary>
+    /// <summary>A vulnerability's severity, which a feed may give as a number or as its digits; 0 for
+    /// anything else, a fraction or a number past an int among them.</summary>
     private static int ReadSeverity(JsonElement vulnerability)
     {
+        if (vulnerability.ValueKind != JsonValueKind.Object)
+            return 0;
         if (!vulnerability.TryGetProperty("severity", out var severity))
             return 0;
         if (severity.ValueKind == JsonValueKind.Number)
-            return severity.GetInt32();
+            return severity.TryGetInt32(out var number) ? number : 0;
         int.TryParse(ReadText(severity), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed);
         return parsed;
     }
@@ -232,6 +236,9 @@ internal static class FeedJson
         return ReadText(value);
     }
 
+    /// <summary>The web URL <paramref name="name"/> holds; null when there is none, or it is no HTTP or HTTPS URL.</summary>
+    public static WebUrl? ReadUrl(JsonElement element, string name) => WebUrl.Parse(ReadString(element, name));
+
     private static string ReadText(JsonElement value)
     {
         if (value.ValueKind != JsonValueKind.String)
@@ -254,6 +261,8 @@ internal static class FeedJson
 
     private static bool ReadBool(JsonElement element, string name)
     {
+        if (element.ValueKind != JsonValueKind.Object)
+            return false;
         if (!element.TryGetProperty(name, out var value))
             return false;
         return value.ValueKind == JsonValueKind.True;

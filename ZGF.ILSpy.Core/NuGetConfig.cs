@@ -1,30 +1,47 @@
+using System.Diagnostics;
 using System.Xml;
 using System.Xml.Linq;
 
 namespace ZGF.ILSpy.Core;
 
 /// <summary>A NuGet package source: the name the user gave it and the URL of its service index.</summary>
-public sealed record NuGetSource(string Name, string Url)
+public sealed record NuGetSource
 {
-    public static readonly NuGetSource NuGetOrg = new("nuget.org", "https://api.nuget.org/v3/index.json");
+    private const string ServiceIndexName = "index.json";
+
+    public static readonly NuGetSource NuGetOrg =
+        new("nuget.org", WebUrl.Parse("https://api.nuget.org/v3/index.json") ?? throw new UnreachableException());
+
+    private NuGetSource(string name, WebUrl url)
+    {
+        Name = name;
+        Url = url;
+    }
+
+    public string Name { get; }
+
+    public WebUrl Url { get; }
 
     /// <summary>The source a typed <paramref name="url"/> names, called after its host; null unless it
     /// is an absolute HTTP or HTTPS URL.</summary>
     public static NuGetSource? FromUrl(string url)
     {
-        var trimmed = url.Trim();
-        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        var web = WebUrl.Parse(url);
+        if (web == null)
             return null;
-        if (!IsWebScheme(uri))
-            return null;
-        return new NuGetSource(uri.Host, trimmed);
+        return new NuGetSource(web.Uri.Host, web);
     }
 
-    internal static bool IsWebScheme(Uri uri)
+    /// <summary>The source a config adds as <paramref name="name"/>; null unless <paramref name="url"/>
+    /// is the service index of a feed served over HTTP, which a v2 feed or a folder of packages is not.</summary>
+    public static NuGetSource? FromConfig(string name, string url)
     {
-        if (uri.Scheme == Uri.UriSchemeHttps)
-            return true;
-        return uri.Scheme == Uri.UriSchemeHttp;
+        var web = WebUrl.Parse(url);
+        if (web == null)
+            return null;
+        if (!web.Uri.AbsolutePath.EndsWith(ServiceIndexName, StringComparison.OrdinalIgnoreCase))
+            return null;
+        return new NuGetSource(name, web);
     }
 }
 
@@ -36,7 +53,6 @@ public sealed record NuGetSource(string Name, string Url)
 public sealed record NuGetConfig(IReadOnlyList<NuGetSource> Sources, string GlobalPackagesFolder)
 {
     private const string PackagesFolderVariable = "NUGET_PACKAGES";
-    private const string ServiceIndexName = "index.json";
 
     /// <summary>The config of the user running the app.</summary>
     public static NuGetConfig ReadUser() => Read(UserConfigPath());
@@ -120,25 +136,14 @@ public sealed record NuGetConfig(IReadOnlyList<NuGetSource> Sources, string Glob
         if (entry.Name.LocalName != "add")
             return;
         var name = KeyOf(entry);
-        var url = (string?)entry.Attribute("value") ?? "";
         if (disabled.Contains(name))
             return;
-        if (!IsV3Feed(url))
+        var source = NuGetSource.FromConfig(name, (string?)entry.Attribute("value") ?? "");
+        if (source == null)
             return;
         if (sources.Any(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase)))
             return;
-        sources.Add(new NuGetSource(name, url));
-    }
-
-    /// <summary>Whether <paramref name="url"/> is the service index of a feed served over HTTP; a
-    /// v2 feed or a folder of packages is not.</summary>
-    private static bool IsV3Feed(string url)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return false;
-        if (!NuGetSource.IsWebScheme(uri))
-            return false;
-        return uri.AbsolutePath.EndsWith(ServiceIndexName, StringComparison.OrdinalIgnoreCase);
+        sources.Add(source);
     }
 
     /// <summary>The folder restores put packages in: the one the environment names, else the config's,

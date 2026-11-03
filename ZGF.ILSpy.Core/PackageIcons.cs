@@ -26,7 +26,7 @@ public sealed class PackageIcons
     /// pixels across.</summary>
     /// <exception cref="HttpRequestException">The picture could not be fetched.</exception>
     /// <exception cref="InvalidDataException">It is no picture, or too large a file.</exception>
-    public async Task<ResourceImage> FetchAsync(string url, int side, CancellationToken cancellationToken = default)
+    public async Task<ResourceImage> FetchAsync(WebUrl url, int side, CancellationToken cancellationToken = default)
     {
         await _fetches.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -40,9 +40,9 @@ public sealed class PackageIcons
         }
     }
 
-    private async Task<byte[]> ReadBytesAsync(string url, CancellationToken cancellationToken)
+    private async Task<byte[]> ReadBytesAsync(WebUrl url, CancellationToken cancellationToken)
     {
-        using var response = await _client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await _client.GetAsync(url.Uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength > MaxBytes)
             throw new InvalidDataException($"The icon at {url} is larger than {MaxBytes} bytes.");

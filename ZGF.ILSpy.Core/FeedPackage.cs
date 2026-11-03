@@ -2,10 +2,10 @@ namespace ZGF.ILSpy.Core;
 
 /// <summary>
 /// A package a feed's search found: its latest version, what it says of itself, where its icon is,
-/// and, newest first, every version listed with it. Text a feed leaves out is empty, and counts it
-/// leaves out are 0.
+/// and, newest first, every version listed with it. Text a feed leaves out is empty, counts it
+/// leaves out are 0, and URLs it leaves out, or gives as no web URL, are null.
 /// </summary>
-public sealed record FeedPackage(PackageId Id, PackageVersion Version, string Description, string Authors, string IconUrl, IReadOnlyList<FeedVersion> Versions)
+public sealed record FeedPackage(PackageId Id, PackageVersion Version, string Description, string Authors, WebUrl? IconUrl, IReadOnlyList<FeedVersion> Versions)
 {
     /// <summary>How many times every version was downloaded.</summary>
     public long TotalDownloads { get; init; }
@@ -18,17 +18,17 @@ public sealed record FeedPackage(PackageId Id, PackageVersion Version, string De
 
     public IReadOnlyList<string> Tags { get; init; } = [];
 
-    public string ProjectUrl { get; init; } = "";
+    public WebUrl? ProjectUrl { get; init; }
 
-    public string LicenseUrl { get; init; } = "";
+    public WebUrl? LicenseUrl { get; init; }
 
     /// <summary>How many vulnerabilities the feed knows of in the latest version.</summary>
     public int Vulnerabilities { get; init; }
 }
 
 /// <summary>A version a feed lists for a package, how many times it was downloaded, and where the feed
-/// describes it in full; empty when the search does not say.</summary>
-public sealed record FeedVersion(PackageVersion Version, long Downloads, string DetailsUrl);
+/// describes it in full; null when the search does not say.</summary>
+public sealed record FeedVersion(PackageVersion Version, long Downloads, WebUrl? DetailsUrl);
 
 /// <summary>A page of a feed's search: the packages on it, the closest first, and how many match in all.</summary>
 public sealed record FeedPage(IReadOnlyList<FeedPackage> Packages, int TotalHits);
@@ -42,8 +42,8 @@ public sealed record FeedPage(IReadOnlyList<FeedPackage> Packages, int TotalHits
 public sealed record PackageVersionDetails(
     DateTimeOffset? Published,
     string License,
-    string LicenseUrl,
-    string ProjectUrl,
+    WebUrl? LicenseUrl,
+    WebUrl? ProjectUrl,
     long PackageSize,
     IReadOnlyList<DependencyGroup> DependencyGroups,
     PackageDeprecation? Deprecation,
@@ -60,4 +60,4 @@ public sealed record PackageDependency(string Id, string Range);
 public sealed record PackageDeprecation(IReadOnlyList<string> Reasons, string Message, string AlternatePackage);
 
 /// <summary>A vulnerability known in a version: how severe, from 0 (low) to 3 (critical), and where it is described.</summary>
-public sealed record PackageVulnerability(int Severity, string AdvisoryUrl);
+public sealed record PackageVulnerability(int Severity, WebUrl? AdvisoryUrl);

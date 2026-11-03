@@ -22,7 +22,7 @@ public sealed class NuGetPicker
 
     private readonly Func<Strings> _strings;
     private readonly Action<AppProblem> _reportError;
-    private readonly Dictionary<string, PackageIcon> _icons = new();
+    private readonly Dictionary<WebUrl, PackageIcon> _icons = new();
     private readonly Dictionary<DetailsKey, VersionDetails> _details = new();
     private CancellationTokenSource _fetches = new();
     private int _iconCount;
@@ -263,14 +263,14 @@ public sealed class NuGetPicker
             return;
         if (setup.Sources.Count == 0)
             return;
-        FeedUrl = setup.Sources[0].Url;
+        FeedUrl = setup.Sources[0].Url.Text;
     }
 
     /// <summary>Searches <paramref name="source"/> at once.</summary>
     public void PickFeed(NuGetSource source)
     {
-        FeedUrl = source.Url;
-        _typedUrl = source.Url;
+        FeedUrl = source.Url.Text;
+        _typedUrl = source.Url.Text;
         _typedAt = double.NegativeInfinity;
     }
 
@@ -505,7 +505,7 @@ public sealed class NuGetPicker
     /// <summary>Has the settings keep the feed searched and whether prereleases count, once either changed.</summary>
     private void KeepSearched(FeedSearch searched)
     {
-        var kept = new SavedNuGetSearch(searched.Feed.Source.Url, searched.IncludePrerelease);
+        var kept = new SavedNuGetSearch(searched.Feed.Source.Url.Text, searched.IncludePrerelease);
         if (kept == _kept)
             return;
         _kept = kept;
@@ -548,23 +548,24 @@ public sealed class NuGetPicker
     /// asked for; null when the package gives none.</summary>
     public PackageIcon? IconOf(FeedPackage package)
     {
-        if (package.IconUrl.Length == 0)
+        var url = package.IconUrl;
+        if (url == null)
             return null;
         var setup = ReadySetup();
         if (setup == null)
             return null;
-        if (_icons.TryGetValue(package.IconUrl, out var icon))
+        if (_icons.TryGetValue(url, out var icon))
             return icon;
         _iconCount++;
         icon = new PackageIcon(IconImagePrefix + _iconCount);
-        _icons.Add(package.IconUrl, icon);
-        FetchIcon(setup, package.IconUrl, icon);
+        _icons.Add(url, icon);
+        FetchIcon(setup, url, icon);
         return icon;
     }
 
     /// <summary>Gives <paramref name="icon"/> its pixels once they are in; one that cannot be fetched
     /// keeps none, so its row keeps the stand-in.</summary>
-    private async void FetchIcon(NuGetSetup setup, string url, PackageIcon icon)
+    private async void FetchIcon(NuGetSetup setup, WebUrl url, PackageIcon icon)
     {
         var token = _fetches.Token;
         var fetched = await Background.Wait(setup.Icons.FetchAsync(url, IconPixels, token));
@@ -757,7 +758,7 @@ public sealed class NuGetPicker
     }
 
     /// <summary>Which version of which package of which feed details are of.</summary>
-    private readonly record struct DetailsKey(string Feed, PackageId Id, PackageVersion Version);
+    private readonly record struct DetailsKey(WebUrl Feed, PackageId Id, PackageVersion Version);
 }
 
 /// <summary>A package's icon: the image the screen draws it as, and its pixels, null until they are

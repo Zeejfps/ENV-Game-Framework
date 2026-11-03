@@ -68,9 +68,47 @@ public sealed class NuGetFeedTests
         Assert.True(package.Verified);
         Assert.Equal("serilog", package.Owners);
         Assert.Equal(["logging", "structured"], package.Tags);
-        Assert.Equal("https://serilog.net/", package.ProjectUrl);
+        Assert.Equal("https://serilog.net/", package.ProjectUrl?.Text);
         Assert.Equal(1, package.Vulnerabilities);
-        Assert.Equal(new FeedVersion(PackageVersion.Parse("4.4.0")!, 5, "https://feed.test/reg/serilog/4.4.0.json"), package.Versions[0]);
+        Assert.Equal(new FeedVersion(PackageVersion.Parse("4.4.0")!, 5, WebUrl.Parse("https://feed.test/reg/serilog/4.4.0.json")), package.Versions[0]);
+    }
+
+    [Fact]
+    public async Task A_search_keeps_no_url_that_is_not_http_or_https()
+    {
+        var fake = new FakeFeed();
+        fake.AnswerSearches("""
+            { "totalHits": 1, "data": [
+                { "id": "Tiny", "version": "1.0.0", "iconUrl": "javascript:alert(1)",
+                  "projectUrl": "file:///C:/Windows/System32/cmd.exe", "licenseUrl": "C:\\Windows\\System32\\calc.exe",
+                  "versions": [ { "version": "1.0.0", "@id": "ms-settings:" } ] } ] }
+            """);
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var package = (await feed.SearchAsync("tiny", includePrerelease: false)).Packages[0];
+
+        Assert.Null(package.IconUrl);
+        Assert.Null(package.ProjectUrl);
+        Assert.Null(package.LicenseUrl);
+        Assert.Null(package.Versions[0].DetailsUrl);
+    }
+
+    [Theory]
+    [InlineData("2.5")]
+    [InlineData("99999999999")]
+    [InlineData("\"high\"")]
+    [InlineData("null")]
+    public async Task A_severity_that_is_no_whole_number_reads_as_0(string severity)
+    {
+        var fake = new FakeFeed();
+        fake.Answer("https://feed.test/reg/tiny/1.0.0.json", $$"""
+            { "catalogEntry": { "vulnerabilities": [ { "advisoryUrl": "https://advisory.test", "severity": {{severity}} } ] } }
+            """);
+        var feed = new NuGetFeed(fake.Source, fake);
+
+        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0")!, 0, WebUrl.Parse("https://feed.test/reg/tiny/1.0.0.json")));
+
+        Assert.Equal(0, Assert.Single(details.Vulnerabilities).Severity);
     }
 
     [Fact]
@@ -89,7 +127,7 @@ public sealed class NuGetFeedTests
             """);
         var feed = new NuGetFeed(fake.Source, fake);
 
-        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0")!, 0, "https://feed.test/reg/tiny/1.0.0.json"));
+        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0")!, 0, WebUrl.Parse("https://feed.test/reg/tiny/1.0.0.json")));
 
         Assert.Equal(new DateTimeOffset(2024, 5, 1, 10, 0, 0, TimeSpan.Zero), details.Published);
         Assert.Equal("MIT", details.License);
@@ -113,9 +151,9 @@ public sealed class NuGetFeedTests
         fake.Answer("https://feed.test/reg/tiny/1.0.0-beta.json", """{ "catalogEntry": { "licenseUrl": "https://license.test" } }""");
         var feed = new NuGetFeed(fake.Source, fake);
 
-        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0-Beta")!, 0, ""));
+        var details = await feed.ReadDetailsAsync(PackageId.Parse("Tiny")!, new FeedVersion(PackageVersion.Parse("1.0.0-Beta")!, 0, null));
 
-        Assert.Equal("https://license.test", details.LicenseUrl);
+        Assert.Equal("https://license.test", details.LicenseUrl?.Text);
         Assert.Null(details.Published);
     }
 
@@ -330,6 +368,8 @@ public sealed class PackageIconsTests
 {
     private const string IconUrl = "https://feed.test/icon";
 
+    private static WebUrl Icon => WebUrl.Parse(IconUrl)!;
+
     [Fact]
     public async Task An_icon_is_fetched_and_drawn_to_fit_the_side_asked_for()
     {
@@ -337,7 +377,7 @@ public sealed class PackageIconsTests
         fake.Answer(IconUrl, """<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128"><rect width="256" height="128" fill="red"/></svg>""");
         var icons = new PackageIcons(fake);
 
-        var icon = await icons.FetchAsync(IconUrl, 64);
+        var icon = await icons.FetchAsync(Icon, 64);
 
         Assert.Equal(64, icon.Width);
         Assert.Equal(32, icon.Height);
@@ -350,7 +390,7 @@ public sealed class PackageIconsTests
         fake.Answer(IconUrl, "<html>not found</html>");
         var icons = new PackageIcons(fake);
 
-        await Assert.ThrowsAsync<InvalidDataException>(() => icons.FetchAsync(IconUrl, 64));
+        await Assert.ThrowsAsync<InvalidDataException>(() => icons.FetchAsync(Icon, 64));
     }
 
     [Fact]
@@ -378,7 +418,7 @@ public sealed class NuGetSetupTests
     {
         var source = NuGetSource.FromUrl(" https://pkgs.test/v3/index.json ");
 
-        Assert.Equal(new NuGetSource("pkgs.test", "https://pkgs.test/v3/index.json"), source);
+        Assert.Equal(("pkgs.test", "https://pkgs.test/v3/index.json"), (source?.Name, source?.Url.Text));
     }
 
     [Theory]
@@ -395,7 +435,7 @@ public sealed class NuGetSetupTests
     public void A_feed_is_made_once_per_url_and_named_as_the_config_names_it()
     {
         using var temp = new TempDir();
-        var listed = new NuGetSource("company", "https://pkgs.test/v3/index.json");
+        var listed = NuGetSource.FromConfig("company", "https://pkgs.test/v3/index.json")!;
         var setup = new NuGetSetup([listed], new PackageCache(temp.PathOf("global"), temp.PathOf("downloads")));
 
         var feed = setup.FeedAt(NuGetSource.FromUrl("https://PKGS.test/v3/index.json")!);
@@ -431,7 +471,7 @@ public sealed class NuGetConfigTests
         var config = NuGetConfig.Read(path);
 
         Assert.Equal(["nuget.org", "company"], config.Sources.Select(s => s.Name));
-        Assert.Equal("https://company.test/nuget/v3/index.json", config.Sources[1].Url);
+        Assert.Equal("https://company.test/nuget/v3/index.json", config.Sources[1].Url.Text);
     }
 
     [Fact]

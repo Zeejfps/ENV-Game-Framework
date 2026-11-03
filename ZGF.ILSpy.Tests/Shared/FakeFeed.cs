@@ -38,7 +38,7 @@ internal sealed class FakeFeed : HttpMessageHandler
     /// <summary>How many held requests were cancelled.</summary>
     public int Cancelled => Volatile.Read(ref _cancelled);
 
-    public NuGetSource Source => new("test", IndexUrl);
+    public NuGetSource Source => NuGetSource.FromConfig("test", IndexUrl)!;
 
     public void Answer(string url, string text) => _answers[url] = Encoding.UTF8.GetBytes(text);
 

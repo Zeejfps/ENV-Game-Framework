@@ -233,14 +233,14 @@ internal static class NuGetDetailsView
         {
             if (picker.Version != package.Version)
                 return;
-            LinkFact(ui, "project", t.NugetFactProject, package.ProjectUrl, package.ProjectUrl);
-            LinkFact(ui, "license", t.NugetFactLicense, package.LicenseUrl, package.LicenseUrl);
+            LinkFact(ui, "project", t.NugetFactProject, TextOf(package.ProjectUrl), package.ProjectUrl);
+            LinkFact(ui, "license", t.NugetFactLicense, TextOf(package.LicenseUrl), package.LicenseUrl);
             return;
         }
         if (read.Published != null)
             Fact(ui, t.NugetFactPublished, PublishedText(ui, read.Published.Value));
         LinkFact(ui, "license", t.NugetFactLicense, LicenseText(read), read.LicenseUrl);
-        LinkFact(ui, "project", t.NugetFactProject, read.ProjectUrl, read.ProjectUrl);
+        LinkFact(ui, "project", t.NugetFactProject, TextOf(read.ProjectUrl), read.ProjectUrl);
         if (read.PackageSize > 0)
             Fact(ui, t.NugetFactSize, SizeText(ui, read.PackageSize));
     }
@@ -275,8 +275,10 @@ internal static class NuGetDetailsView
     {
         if (details.License.Length > 0)
             return details.License;
-        return details.LicenseUrl;
+        return TextOf(details.LicenseUrl);
     }
+
+    private static string TextOf(WebUrl? url) => url == null ? "" : url.Text;
 
     private static void Fact(Ui<UiState> ui, string label, string value)
     {
@@ -289,7 +291,7 @@ internal static class NuGetDetailsView
     }
 
     /// <summary>A fact whose value opens <paramref name="url"/> in the browser; nothing when there is no text to show.</summary>
-    private static void LinkFact(Ui<UiState> ui, string id, string label, string text, string url)
+    private static void LinkFact(Ui<UiState> ui, string id, string label, string text, WebUrl? url)
     {
         if (text.Length == 0)
             return;
@@ -303,16 +305,16 @@ internal static class NuGetDetailsView
 
     /// <summary>Text in the accent color that opens <paramref name="url"/> in the browser when clicked;
     /// plain text when there is no URL.</summary>
-    private static void Link(Ui<UiState> ui, string id, string text, string url)
+    private static void Link(Ui<UiState> ui, string id, string text, WebUrl? url)
     {
         var theme = ui.Theme;
-        if (url.Length == 0)
+        if (url == null)
         {
             ui.Text(text, size: theme.FontSizeSmall, wrap: true);
             return;
         }
         var style = ui.StyleText(theme.AccentText, theme.FontSizeSmall);
-        var runs = LinkRunsOf(ui, id, text, url, style);
+        var runs = LinkRunsOf(ui, id, text, url.Text, style);
         var click = ui.RichText(runs, new Box { Width = Sizing.Grow() }, id: ui.GetId(id));
         if (click.Link is string target)
             ui.OpenUrl(target);

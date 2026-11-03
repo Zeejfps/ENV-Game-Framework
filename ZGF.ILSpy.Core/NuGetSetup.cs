@@ -39,17 +39,17 @@ public sealed class NuGetSetup
     /// as the config names it when the config lists it. Call it from one thread only.</summary>
     public NuGetFeed FeedAt(NuGetSource source)
     {
-        if (_feeds.TryGetValue(source.Url, out var feed))
+        if (_feeds.TryGetValue(source.Url.Text, out var feed))
             return feed;
         var named = NameAsListed(source);
         feed = new NuGetFeed(named, _handler);
-        _feeds.Add(source.Url, feed);
+        _feeds.Add(source.Url.Text, feed);
         return feed;
     }
 
     private NuGetSource NameAsListed(NuGetSource source)
     {
-        var listed = Sources.FirstOrDefault(s => string.Equals(s.Url, source.Url, StringComparison.OrdinalIgnoreCase));
+        var listed = Sources.FirstOrDefault(s => string.Equals(s.Url.Text, source.Url.Text, StringComparison.OrdinalIgnoreCase));
         if (listed == null)
             return source;
         return listed;
