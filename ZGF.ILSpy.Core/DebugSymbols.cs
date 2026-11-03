@@ -37,9 +37,13 @@ internal sealed class DebugSymbols : IDebugInfoProvider
     private const string BesideTitle = "Debug Metadata (From portable PDB)";
     private const string EmbeddedDescription = "Embedded in this assembly";
     private const string BesideDescription = "Loaded from portable PDB: ";
-    private const string PdbExtension = ".pdb";
+    internal const string PdbExtension = ".pdb";
     private const string WindowsPdbSignature = "Microsoft C/C++ MSF 7.00";
     private const int BitsPerByte = 8;
+
+    /// <summary>Whether a portable PDB can be generated for <paramref name="file"/>: only when its debug
+    /// directory names a PDB, which the generated one must match.</summary>
+    internal static bool CanGenerateFor(PEFile file) => PortablePdbWriter.HasCodeViewDebugDirectoryEntry(file);
 
     private DebugSymbols(MetadataFile file, string title, string description)
     {

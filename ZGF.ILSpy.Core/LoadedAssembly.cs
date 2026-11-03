@@ -97,7 +97,7 @@ public sealed class LoadedModule : LoadedAssembly
         Resolver = new AssemblyResolver(list, FilePath, TargetFramework, place?.Container.Package);
         _typeSystem = new Lazy<DecompilerTypeSystem>(() => new DecompilerTypeSystem(File, Resolver, Settings.Create()));
         _debugSymbols = new Lazy<DebugSymbols?>(LoadDebugSymbols);
-        _canGeneratePdb = new Lazy<bool>(() => AssemblyExport.CanGeneratePdb(this));
+        _canGeneratePdb = new Lazy<bool>(() => PEFile != null && DebugSymbols.CanGenerateFor(PEFile));
         _referenceUsage = new Lazy<ReferenceUsage>(() => new ReferenceUsage(File.Metadata));
     }
 
@@ -203,7 +203,7 @@ public sealed class LoadedModule : LoadedAssembly
     }
 
     /// <summary>The name a portable PDB of this assembly is written under.</summary>
-    public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, AssemblyExport.PdbExtension);
+    public string PdbFileName => WholeProjectDecompiler.CleanUpFileName(Name, DebugSymbols.PdbExtension);
 
     /// <summary>Whether a PDB can be generated for this assembly: only one whose debug directory
     /// names a PDB, which the generated one must match.</summary>

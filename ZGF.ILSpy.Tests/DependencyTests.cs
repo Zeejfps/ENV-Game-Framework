@@ -47,6 +47,8 @@ public sealed class DependencyTests
         [typeof(LoadedModule), typeof(BrowseSession)],
         [typeof(AssemblyList), typeof(BrowseNode)],
         [typeof(AssemblyList), typeof(BrowseSession)],
+        [typeof(LoadedAssembly), typeof(AssemblyExport)],
+        [typeof(LoadedModule), typeof(AssemblyExport)],
     ];
 
     [Theory]

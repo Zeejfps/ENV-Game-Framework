@@ -67,8 +67,6 @@ public readonly record struct ExportProgress(string Name, int Part, int Parts, f
 public static class AssemblyExport
 {
     internal const string ProjectExtension = ".csproj";
-    internal const string PdbExtension = ".pdb";
-
     /// <summary>Decompiles <paramref name="assembly"/> into a project whose file is
     /// <paramref name="projectPath"/>, with its code and resources in the folder beside it, and
     /// writes what <paramref name="extras"/> asks for besides.</summary>
@@ -213,13 +211,6 @@ public static class AssemblyExport
     {
         var id = project.Id;
         return new ProjectItem(project.ProjectPath, id.PlatformName, id.Guid, id.TypeGuid);
-    }
-
-    internal static bool CanGeneratePdb(LoadedModule assembly)
-    {
-        if (assembly.PEFile == null)
-            return false;
-        return PortablePdbWriter.HasCodeViewDebugDirectoryEntry(assembly.PEFile);
     }
 
     /// <summary>Decompiles <paramref name="assembly"/> and writes a portable PDB at <paramref name="path"/>

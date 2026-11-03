@@ -7,5 +7,5 @@ These are reviewer findings with file and line, not re-checked one by one. Not d
 ## Rule 2: coupling
 
 - Views that read four or more parts of `AppState` still take all of it: `MainMenuView` (its View and Export menus), `ToolbarView`, `StatusBarView` (`DescribeActivity`), `DisplayOptionsPanelView` (the interface section), and `Shortcuts.Handle`.
-- Core cycles: `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`; `LoadedModule` → `AssemblyExport` → `LoadedModule`.
+- Core cycle: `LoadedModule` ↔ `AssemblyList` ↔ `AssemblyResolver`.
 - `AssemblyList` is the Core hub: search, tooltips, docs, metadata rows and analyzer type systems all route through it.
