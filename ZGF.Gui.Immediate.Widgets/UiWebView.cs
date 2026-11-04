@@ -29,6 +29,7 @@ public sealed class WebPage : IDisposable
         _ui = ui;
         ImageId = "webpage:" + Guid.NewGuid().ToString("N");
         View = factory.Create(new FrameSink(this), setup);
+        Background = setup.Background | 0xFF000000;
         View.CursorChanged += cursor => Cursor = CursorOf(cursor);
     }
 
@@ -38,6 +39,10 @@ public sealed class WebPage : IDisposable
     internal string ImageId { get; }
 
     internal bool HasFrame { get; private set; }
+
+    /// <summary>What the page's element shows before its first frame: the view's own background, so it does not
+    /// change color as the view starts painting.</summary>
+    internal uint Background { get; }
 
     /// <summary>The image holding the page's latest frame, to draw as a picture anywhere and at any size,
     /// such as while it moves out of its element; null before the first frame.</summary>
@@ -230,14 +235,14 @@ public static partial class UiWidgets
         if (focused)
             page.Type(input);
         using (ui.Box(i.Id, box))
-            ui.Paint((page, ui.Theme.Surface), static (painter, shown) => Picture(painter, shown.page, shown.Surface));
+            ui.Paint(page, static (painter, shown) => Picture(painter, shown));
     }
 
-    private static void Picture(UiPainter painter, WebPage page, uint placeholder)
+    private static void Picture(UiPainter painter, WebPage page)
     {
         if (page.HasFrame)
             painter.Image(painter.Rect, page.ImageId);
         else
-            painter.FillRect(painter.Rect, placeholder);
+            painter.FillRect(painter.Rect, page.Background);
     }
 }

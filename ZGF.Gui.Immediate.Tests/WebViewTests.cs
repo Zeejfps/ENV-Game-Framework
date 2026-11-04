@@ -9,13 +9,14 @@ public sealed class WebViewTests
     private readonly UiFrames _frames;
     private WebPage? _page;
     private bool _showPage = true;
+    private WebViewSetup _setup = new();
 
     public WebViewTests() => _frames = new UiFrames(new DefaultUiState(), width: 400f, height: 300f, body: Body);
 
     private void Body(Ui ui)
     {
         using var screen = ui.Screen();
-        _page ??= WebPage.Open(ui, _web, "https://example.com/");
+        _page ??= WebPage.Open(ui, _web, "https://example.com/", _setup);
         if (_showPage)
             ui.WebView("page", _page, new Box { Width = Sizing.Fixed(200f), Height = Sizing.Fixed(100f) });
         ui.Button("Elsewhere", id: "elsewhere");
@@ -55,6 +56,42 @@ public sealed class WebViewTests
 
         var image = Assert.Single(_frames.Canvas.Images);
         Assert.Equal(Page.Width, image.Inputs.Position.Width);
+    }
+
+    private uint PlaceholderColor()
+    {
+        var page = Page;
+        return _frames.Canvas.Rects
+            .Single(r => r.Inputs.Position.Width == page.Width && r.Inputs.Position.Height == page.Height && r.Inputs.Style.BackgroundColor != 0u)
+            .Inputs.Style.BackgroundColor;
+    }
+
+    [Fact]
+    public void Before_its_first_frame_a_page_shows_the_background_its_view_was_set_up_with()
+    {
+        _setup = new WebViewSetup { Background = 0xFF0A0A0A };
+
+        _frames.Frame(2);
+
+        Assert.Equal(0xFF0A0A0Au, PlaceholderColor());
+    }
+
+    [Fact]
+    public void A_views_background_is_opaque_whatever_alpha_it_was_given()
+    {
+        _setup = new WebViewSetup { Background = 0x000A0A0A };
+
+        _frames.Frame(2);
+
+        Assert.Equal(0xFF0A0A0Au, PlaceholderColor());
+    }
+
+    [Fact]
+    public void A_view_set_up_with_no_background_starts_white_as_a_browser_does()
+    {
+        _frames.Frame(2);
+
+        Assert.Equal(0xFFFFFFFFu, PlaceholderColor());
     }
 
     [Fact]
