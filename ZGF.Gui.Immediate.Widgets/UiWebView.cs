@@ -24,6 +24,10 @@ public sealed class WebPage : IDisposable
     private bool _middleDown;
     private bool _disposed;
 
+    /// <summary>The size of the latest frame, in pixels, width in the high half and height in the low; 0 while it is
+    /// not known. Written as frames arrive, read as the page is drawn.</summary>
+    private long _frameSizePx;
+
     private WebPage(Ui ui, IWebViewFactory factory, WebViewSetup setup)
     {
         _ui = ui;
@@ -165,12 +169,32 @@ public sealed class WebPage : IDisposable
         _heldKeys.Clear();
     }
 
-    private void Show(bool shown)
+    private void Show(bool shown, int widthPx, int heightPx)
     {
         if (!shown)
             return;
+        Volatile.Write(ref _frameSizePx, widthPx > 0 && heightPx > 0 ? ((long)widthPx << 32) | (uint)heightPx : 0L);
         HasFrame = true;
         _ui.RequestFrame();
+    }
+
+    /// <summary>
+    /// Where the latest frame is drawn in <paramref name="rect"/>, the element it shows in: all of it, unless the frame
+    /// is one the browser painted before it was last resized, smaller than the element now is, which is drawn at its
+    /// own size from the element's top left, the rest of it showing <see cref="Background"/>, as the page itself lays
+    /// out from there, rather than stretched to the new size until a frame of it arrives. A frame larger than the
+    /// element, or of a size not known, fills it.
+    /// </summary>
+    internal UiRect FrameRect(UiRect rect)
+    {
+        var size = Volatile.Read(ref _frameSizePx);
+        if (size == 0L || _pixelScale <= 0f)
+            return rect;
+        var widthPx = (int)(size >> 32);
+        var heightPx = (int)(size & 0xFFFFFFFF);
+        if ((widthPx == _widthPx && heightPx == _heightPx) || widthPx > _widthPx || heightPx > _heightPx)
+            return rect;
+        return new UiRect(rect.X, rect.Y, widthPx / _pixelScale, heightPx / _pixelScale);
     }
 
     private static WebInputModifiers ModifiersOf(UiInput input)
@@ -202,12 +226,12 @@ public sealed class WebPage : IDisposable
         public bool AcceptsSharedTextures(SharedTextureKind kind) => page._ui.SupportsSharedTextures(kind);
 
         public void OnPixels(int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) =>
-            page.Show(page._ui.SetImage(page.ImageId, widthPx, heightPx, rgbaTopDown));
+            page.Show(page._ui.SetImage(page.ImageId, widthPx, heightPx, rgbaTopDown), widthPx, heightPx);
 
         public bool OnSharedTexture(in SharedTexture texture)
         {
             var shown = page._ui.SetSharedTextureImage(page.ImageId, texture);
-            page.Show(shown);
+            page.Show(shown, texture.WidthPx, texture.HeightPx);
             return shown;
         }
     }
@@ -240,9 +264,14 @@ public static partial class UiWidgets
 
     private static void Picture(UiPainter painter, WebPage page)
     {
-        if (page.HasFrame)
-            painter.Image(painter.Rect, page.ImageId);
-        else
+        if (!page.HasFrame)
+        {
             painter.FillRect(painter.Rect, page.Background);
+            return;
+        }
+        var frame = page.FrameRect(painter.Rect);
+        if (frame != painter.Rect)
+            painter.FillRect(painter.Rect, page.Background);
+        painter.Image(frame, page.ImageId);
     }
 }

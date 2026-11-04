@@ -10,5 +10,6 @@ public enum SharedTextureKind
 }
 
 /// <summary>A GPU texture another API or process hands the canvas, valid only for the call it is passed
-/// to: the canvas copies it into a texture of its own before returning.</summary>
-public readonly record struct SharedTexture(SharedTextureKind Kind, nint Handle);
+/// to: the canvas copies it into a texture of its own before returning. <paramref name="WidthPx"/> and
+/// <paramref name="HeightPx"/> are the size of what it shows, in pixels, when the sender knows it; 0 when not.</summary>
+public readonly record struct SharedTexture(SharedTextureKind Kind, nint Handle, int WidthPx = 0, int HeightPx = 0);

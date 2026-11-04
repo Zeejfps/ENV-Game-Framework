@@ -247,7 +247,7 @@ internal sealed class CefWebView : IWebView
         var started = Stopwatch.GetTimestamp();
         if (_stats.Total == 0)
             CefLog.Write($"OnAcceleratedPaint format={info.Format} coded={info.CodedSize.Width}x{info.CodedSize.Height} visible={info.VisibleRect.Width}x{info.VisibleRect.Height}");
-        var imported = _frames.OnSharedTexture(new SharedTexture(accelerated.Kind, info.SharedTextureHandle));
+        var imported = _frames.OnSharedTexture(new SharedTexture(accelerated.Kind, info.SharedTextureHandle, info.VisibleRect.Width, info.VisibleRect.Height));
         if (!imported && !_reportedImportFailure)
         {
             _reportedImportFailure = true;
