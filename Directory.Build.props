@@ -1,10 +1,11 @@
 <Project>
 
-    <!-- PngSharp is a submodule with its own package identity and release cadence.
+    <!-- PngSharp and JpegSharp are submodules with their own package identity and release cadence.
          MSBuild walks up into this file from there, so everything below is scoped out of it. -->
     <PropertyGroup>
         <IsSubmoduleProject>false</IsSubmoduleProject>
         <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)PngSharp'))">true</IsSubmoduleProject>
+        <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)JpegSharp'))">true</IsSubmoduleProject>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(IsSubmoduleProject)' != 'true'">

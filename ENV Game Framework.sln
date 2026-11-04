@@ -52,11 +52,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.OpenGL", "ZGF.Gui.O
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL.NET.Abstractions", "OpenGL.NET.Abstractions\OpenGL.NET.Abstractions.csproj", "{104B149E-552C-4166-86E8-A379C8EF54D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp", "JpegSharp\JpegSharp.csproj", "{8ECB26B8-FFEE-4FC7-B6A3-3A2B7212E000}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp", "JpegSharp\JpegSharp\JpegSharp.csproj", "{8ECB26B8-FFEE-4FC7-B6A3-3A2B7212E000}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp.Tests", "JpegSharp.Tests\JpegSharp.Tests.csproj", "{EEFFC27B-0DE7-4EC3-815F-6D5BFCA8D05B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp.Tests", "JpegSharp\JpegSharp.Tests\JpegSharp.Tests.csproj", "{EEFFC27B-0DE7-4EC3-815F-6D5BFCA8D05B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp.Benchmarks", "JpegSharp.Benchmarks\JpegSharp.Benchmarks.csproj", "{A797427B-E526-4690-8BA7-2A259DC27EA4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JpegSharp.Benchmarks", "JpegSharp\JpegSharp.Benchmarks\JpegSharp.Benchmarks.csproj", "{A797427B-E526-4690-8BA7-2A259DC27EA4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.Gui.Immediate", "ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj", "{0503319A-7B9A-4F66-AEE9-0D56C80BA63C}"
 EndProject
@@ -87,6 +87,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xilium.CefGlue", "CefGlue\Xilium.CefGlue\Xilium.CefGlue.csproj", "{0F7B27EE-8B8D-4B8D-97EA-9824E1974025}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZGF.WebView.Immediate.Demo", "ZGF.WebView.Immediate.Demo\ZGF.WebView.Immediate.Demo.csproj", "{4147D1BC-A233-477D-BD3D-11CC9247C079}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JpegSharp.Submodule", "JpegSharp.Submodule", "{F7285328-C24D-4FDA-A6A4-F6E5D5B6F75A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -607,6 +609,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{EEFFC27B-0DE7-4EC3-815F-6D5BFCA8D05B} = {F7285328-C24D-4FDA-A6A4-F6E5D5B6F75A}
+		{A797427B-E526-4690-8BA7-2A259DC27EA4} = {F7285328-C24D-4FDA-A6A4-F6E5D5B6F75A}
 		{92A0352E-3B51-4039-8F15-ECB535528ED1} = {F374D525-6A8F-C86E-EC2B-1044A6F46595}
 		{0F7B27EE-8B8D-4B8D-97EA-9824E1974025} = {0B675D39-0223-2DEF-4A3F-72F8A9FD866C}
 	EndGlobalSection

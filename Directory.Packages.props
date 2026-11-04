@@ -3,6 +3,7 @@
     <PropertyGroup>
         <IsSubmoduleProject>false</IsSubmoduleProject>
         <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)PngSharp'))">true</IsSubmoduleProject>
+        <IsSubmoduleProject Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)JpegSharp'))">true</IsSubmoduleProject>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <ManagePackageVersionsCentrally Condition="'$(IsSubmoduleProject)' == 'true'">false</ManagePackageVersionsCentrally>
     </PropertyGroup>

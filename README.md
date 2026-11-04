@@ -12,7 +12,7 @@ framework, consumed by downstream applications as a git submodule.
 git clone --recurse-submodules https://github.com/Zeejfps/ENV-Game-Framework.git
 ```
 
-`PngSharp` is a nested submodule, so `--recurse-submodules` is not optional.
+`PngSharp` and `JpegSharp` are nested submodules, so `--recurse-submodules` is not optional.
 
 ## Hello, window
 
@@ -87,6 +87,7 @@ through a single `ICanvas` contract so neither backend leaks into application co
 | `ZGF.AppUtils` | Embedded assets and path helpers |
 | `ZGF.KeyboardModule` | Backend-agnostic key enum, with a GLFW adapter |
 | `PngSharp` | PNG encode/decode (nested submodule) |
+| `JpegSharp` | JPEG encode/decode (nested submodule) |
 
 Also `ZGF.Gui.Prototype` (runnable demo), `ZGF.Gui.Benchmarks`,
 `ZGF.Gui.MemoryDiagnostics`, and `ZGF.Gui.iOS.SmokeTest`.

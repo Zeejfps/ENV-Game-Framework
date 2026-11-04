@@ -1,3 +1,6 @@
 [submodule "PngSharp"]
 	path = PngSharp
 	url = https://github.com/Zeejfps/PngSharp.git
+[submodule "JpegSharp"]
+	path = JpegSharp
+	url = https://github.com/Zeejfps/JpegSharp.git
