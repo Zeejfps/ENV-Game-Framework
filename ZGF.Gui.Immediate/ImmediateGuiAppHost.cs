@@ -59,7 +59,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private readonly IGuiRenderBackend _render;
     private readonly IWindow _window;
-    private readonly Action<Ui<TUiState>> _updateUi;
+    private readonly ImmediateGuiApp<TUiState> _app;
     private readonly Ui<TUiState> _ui;
     private readonly PlatformClipboard _clipboard;
     private readonly IFilePicker _filePicker;
@@ -91,20 +91,17 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private volatile bool _disposed;
     private (int X, int Y, int Width, int Height) _normalBounds;
 
-    internal ImmediateGuiAppHost(
-        StartupConfig config,
-        RenderBackendKind backend,
-        TUiState uiState,
-        Action<Ui<TUiState>> updateUi)
+    /// <summary>Opens the window of <paramref name="app"/>, which <see cref="Run"/> then runs in it.</summary>
+    public ImmediateGuiAppHost(ImmediateGuiApp<TUiState> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
     {
+        _app = app;
         _render = CreateRenderBackend(config, backend);
         _fontRegistry = new FontRegistry(_render.Fonts, _render.MainCanvas, LoadFont);
         RegisterDefaultBold();
         _window = _render.App.MainWindow;
         _pool = new PopupPool(_render, PopupPoolSize);
-        _updateUi = updateUi;
         _clipboard = PlatformClipboard.Create(_render.App);
-        _ui = new Ui<TUiState>(uiState, _render.MainCanvas, _clipboard, this);
+        _ui = new Ui<TUiState>(app.UiState, _render.MainCanvas, _clipboard, this);
         _ui.Wake = Invalidate;
         if (OperatingSystem.IsMacOS())
             _ui.SystemMenus = new SystemMenus(new MacMenuBar(), Invalidate);
@@ -156,7 +153,23 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         (argb & 0xFF) / 255f,
         ((argb >> 24) & 0xFF) / 255f);
 
-    internal void RunUntilClosed()
+    /// <summary>Runs the app in its window until the window closes.</summary>
+    public void Run()
+    {
+        try
+        {
+            using var context = InstallSynchronizationContext();
+            _app.Startup(this);
+            RunUntilClosed();
+            _app.Shutdown(this);
+        }
+        finally
+        {
+            Close();
+        }
+    }
+
+    private void RunUntilClosed()
     {
         TrackBounds();
         _render.RenderWindowNow(_window);
@@ -183,12 +196,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// <summary>Whether the window, opened hidden, is to be maximized as it is first shown.</summary>
     private bool _maximizeOnShow;
 
-    /// <summary>What decides whether the window closes when the user asks it to.</summary>
-    internal Func<bool>? CloseAsked { get; set; }
-
     private void HandleCloseAsked()
     {
-        if (CloseAsked?.Invoke() == false)
+        if (!_app.CloseRequested(this))
             _window.CancelClose();
     }
 
@@ -237,7 +247,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     /// <summary>Makes <c>await</c> on this thread continue on the UI thread before the next frame,
     /// until the returned scope is disposed.</summary>
-    internal UiSynchronizationContext.Scope InstallSynchronizationContext()
+    private UiSynchronizationContext.Scope InstallSynchronizationContext()
     {
         var context = new UiSynchronizationContext(_ui.Post);
         return context.Install();
@@ -360,7 +370,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         ShowCaptionButtonsToUi();
         _drawing = true;
         _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
-        _updateUi(_ui);
+        _app.Update(_ui);
         _ui.EndFrame();
         _drawing = false;
         if (_ui.WindowBackground != _clearColor)
@@ -1236,7 +1246,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             (int)MathF.Max(1f, MathF.Round(Math.Max(1, _window.FramebufferHeight) / scale)));
     }
 
-    internal void Close()
+    private void Close()
     {
         _disposed = true;
         _ui.Wake = null;

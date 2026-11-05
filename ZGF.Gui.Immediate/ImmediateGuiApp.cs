@@ -1,7 +1,7 @@
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// An immediate-mode application, run by an <see cref="ImmediateGuiHost"/>, which owns its window.
+/// An immediate-mode application, run by an <see cref="ImmediateGuiAppHost{TUiState}"/>, which owns its window.
 /// <see cref="OnUpdate"/> describes the entire UI from the app's own state every frame;
 /// widgets report interactions as return values and the app mutates its state in response.
 /// There is no retained tree. <typeparamref name="TUiState"/> travels on the

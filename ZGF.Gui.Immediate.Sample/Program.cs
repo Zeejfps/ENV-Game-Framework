@@ -8,7 +8,8 @@ state.Add("Render through the canvas");
 state.Add("Decide if this beats the retained tree");
 
 var app = new TodoApp(state);
-var host = new ImmediateGuiHost(
+var host = new ImmediateGuiAppHost<DefaultUiState>(
+    app,
     new StartupConfig
     {
         WindowWidth = 520,
@@ -16,4 +17,4 @@ var host = new ImmediateGuiHost(
         WindowTitle = "Immediate Mode Prototype",
     },
     args.Contains("--gl") ? RenderBackendKind.OpenGl : RenderBackendKind.Auto);
-host.Run(app);
+host.Run();

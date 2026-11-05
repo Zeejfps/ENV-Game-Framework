@@ -6,14 +6,14 @@ using ZGF.WebView.Cef;
 
 // dotnet run --project ZGF.WebView.Immediate.Demo -- [url] [--overlay] [--stats] [--seconds N] [--screenshot out.png] [--shot-at N]
 var options = DemoOptions.Parse(args);
-var host = new ImmediateGuiHost(new StartupConfig
+var host = new ImmediateGuiAppHost<DefaultUiState>(new BrowserApp(options), new StartupConfig
 {
     WindowWidth = 1280,
     WindowHeight = 860,
     WindowTitle = "ZGF Web View (immediate mode)",
     StartUnfocused = options.Seconds != null,
 });
-host.Run(new BrowserApp(options));
+host.Run();
 
 internal sealed record DemoOptions(string Url, bool Overlay, bool Stats, double? Seconds, string? ScreenshotPath, double ShotAt)
 {
