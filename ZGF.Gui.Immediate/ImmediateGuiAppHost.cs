@@ -113,6 +113,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _clearColor = _ui.WindowBackground;
         WireMainFrame();
         _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
+        _maximizeOnShow = config.StartHidden && config.StartMaximized;
 
         Subscribe(_window);
         _window.OnResize += HandleResize;
@@ -179,6 +180,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     public WindowBounds WindowBounds => new(_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height, _window.IsMaximized);
 
+    /// <summary>Whether the window, opened hidden, is to be maximized as it is first shown.</summary>
+    private bool _maximizeOnShow;
+
     /// <summary>What decides whether the window closes when the user asks it to.</summary>
     internal Func<bool>? CloseAsked { get; set; }
 
@@ -197,6 +201,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     public void ShowWindow()
     {
         _window.Show();
+        if (_maximizeOnShow)
+            _window.Maximize();
+        _maximizeOnShow = false;
         Invalidate();
     }
 

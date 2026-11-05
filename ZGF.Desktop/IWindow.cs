@@ -27,6 +27,8 @@ public interface IWindow : IDisposable
     /// framebuffer follows the window's pixel size at every scaling level, so the two disagree.
     float ContentScale { get; }
     bool IsVisible { get; }
+    // Whether it is drawn though it is not visible, until it is first shown. A window hidden after that is not drawn.
+    bool DrawsWhileHidden { get; set; }
     bool IsFocused { get; }
     bool IsPointerOver { get; }
     bool IsMaximized { get; }
