@@ -1,9 +1,7 @@
-using ZGF.Desktop;
-
 namespace ZGF.Gui.Immediate;
 
 /// <summary>
-/// An immediate-mode application, started with <see cref="Run"/>.
+/// An immediate-mode application, run by an <see cref="ImmediateGuiHost"/>, which owns its window.
 /// <see cref="OnUpdate"/> describes the entire UI from the app's own state every frame;
 /// widgets report interactions as return values and the app mutates its state in response.
 /// There is no retained tree. <typeparamref name="TUiState"/> travels on the
@@ -19,27 +17,24 @@ public abstract class ImmediateGuiApp<TUiState>
 
     public TUiState UiState { get; }
 
-    /// <summary>Opens the window and runs the app in it until the window closes.</summary>
-    public void Run(StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
+    internal void Startup(ImmediateGuiAppHost<TUiState> host)
     {
-        var host = new ImmediateGuiAppHost<TUiState>(config, backend, UiState, Update);
-        try
-        {
-            using var context = host.InstallSynchronizationContext();
-            host.CloseAsked = () => OnCloseRequested(host);
-            OnStartup(host);
-            host.RunUntilClosed();
-            OnShutdown(host);
-        }
-        finally
-        {
-            host.Close();
-        }
+        OnStartup(host);
     }
 
     internal void Update(Ui<TUiState> ui)
     {
         OnUpdate(ui);
+    }
+
+    internal bool CloseRequested(ImmediateGuiAppHost<TUiState> host)
+    {
+        return OnCloseRequested(host);
+    }
+
+    internal void Shutdown(ImmediateGuiAppHost<TUiState> host)
+    {
+        OnShutdown(host);
     }
 
     /// <summary>Runs on the UI thread before the first frame, which waits for it to return. What it
