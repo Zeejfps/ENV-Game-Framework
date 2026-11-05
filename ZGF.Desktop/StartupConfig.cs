@@ -12,6 +12,10 @@ public readonly struct StartupConfig
     // it would let the user's real keystrokes land in whatever field the script just focused.
     public bool StartUnfocused { get; init; }
 
+    // Opens the main window off the screen, drawing as usual, until the app shows it, as when it has something to get
+    // ready first. StartMaximized then applies as it is shown.
+    public bool StartHidden { get; init; }
+
     // Saved top-left screen position to restore the main window to. Null (the default) centers it
     // on the primary monitor. Clamped back on-screen at show time — see WindowPlacement.
     public int? WindowX { get; init; }

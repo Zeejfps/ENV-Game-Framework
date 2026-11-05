@@ -147,9 +147,16 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         var (px, py) = WindowPlacement.Compute(
             Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
         Main.SetPosition(px, py);
-        Main.Show();
-        if (_startupConfig.StartMaximized)
-            Glfw.MaximizeWindow(Main.GlfwWindow);
+        if (_startupConfig.StartHidden)
+        {
+            Main.DrawsWhileHidden = true;
+        }
+        else
+        {
+            Main.Show();
+            if (_startupConfig.StartMaximized)
+                Glfw.MaximizeWindow(Main.GlfwWindow);
+        }
 
         while (!Glfw.WindowShouldClose(Main.GlfwWindow))
         {
@@ -163,7 +170,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
                 for (var i = 0; i < _windows.Count; i++)
                 {
                     var w = _windows[i];
-                    if (!w.IsVisible) continue;
+                    if (!w.IsVisible && !w.DrawsWhileHidden) continue;
                     if (!w.NeedsRedraw) continue;
                     w.MakeContextCurrent();
                     w.RenderNow();

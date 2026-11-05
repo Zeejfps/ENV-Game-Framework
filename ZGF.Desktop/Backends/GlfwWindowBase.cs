@@ -101,6 +101,8 @@ public abstract class GlfwWindowBase : IWindow
     public float DpiScale => DpiScaleValue;
     public float ContentScale => ContentScaleValue;
     public bool IsVisible => _isVisible;
+
+    public bool DrawsWhileHidden { get; set; }
     public bool IsFocused => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.Focused);
     public bool IsPointerOver => GLFW.Glfw.GetWindowAttribute(GlfwWindow, WindowAttribute.MouseHover);
     public bool NeedsRedraw { get; private set; } = true;
@@ -151,6 +153,7 @@ public abstract class GlfwWindowBase : IWindow
     {
         GLFW.Glfw.ShowWindow(GlfwWindow);
         _isVisible = true;
+        DrawsWhileHidden = false;
         NeedsRedraw = true;
     }
 
