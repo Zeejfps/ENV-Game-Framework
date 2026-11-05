@@ -330,6 +330,8 @@ public abstract class GlfwWindowBase : IWindow
 
     public void CancelClose() => GLFW.Glfw.SetWindowShouldClose(GlfwWindow, false);
 
+    public void RequestClose() => GLFW.Glfw.SetWindowShouldClose(GlfwWindow, true);
+
     private void HandleKey(Window window, Keys key, int scanCode, InputState state, ModifierKeys mods) =>
         OnKey?.Invoke(key.Adapt(), (InputAction)state, (KeyModifiers)mods);
 

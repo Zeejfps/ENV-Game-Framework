@@ -26,6 +26,7 @@ public abstract class ImmediateGuiApp<TUiState>
         try
         {
             using var context = host.InstallSynchronizationContext();
+            host.CloseAsked = () => OnCloseRequested(host);
             OnStartup(host);
             host.RunUntilClosed();
             OnShutdown(host);
@@ -46,6 +47,11 @@ public abstract class ImmediateGuiApp<TUiState>
     protected virtual void OnStartup(ImmediateGuiAppHost<TUiState> host) { }
 
     protected abstract void OnUpdate(Ui<TUiState> ui);
+
+    /// <summary>Runs on the UI thread as the user asks the window to close, between frames; false keeps it open, as to
+    /// <see cref="ImmediateGuiAppHost{TUiState}.HideWindow"/> it instead. Not asked of
+    /// <see cref="ImmediateGuiAppHost{TUiState}.RequestClose"/>.</summary>
+    protected virtual bool OnCloseRequested(ImmediateGuiAppHost<TUiState> host) => true;
 
     /// <summary>Runs on the UI thread once the window has closed and no more frames are drawn;
     /// <see cref="ImmediateGuiAppHost{TUiState}.WindowBounds"/> still tells where it was left.</summary>

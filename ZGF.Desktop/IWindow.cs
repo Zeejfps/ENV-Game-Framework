@@ -49,6 +49,9 @@ public interface IWindow : IDisposable
     // window, the run loop — alive. The platform marks a window as closing before it raises the
     // request, so a handler that wants to ask the user something first has to unmark it here.
     void CancelClose();
+    // Marks the window as closing, as its close button does, without raising OnClose: for the main
+    // window, the run loop ends the next time it comes around.
+    void RequestClose();
 
     event Action<KeyboardKey, InputAction, KeyModifiers> OnKey;
     // A character committed by the OS text-input pipeline, as a Unicode code point — already

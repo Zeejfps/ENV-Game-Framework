@@ -125,6 +125,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _render.App.OnForegroundChanged += HandleForegroundChanged;
         _render.App.OnTick += Tick;
         _window.OnNonClientPress += HandleNonClientPress;
+        _window.OnClose += HandleCloseAsked;
         HotReload.Applied += Invalidate;
 
         SyncScale();
@@ -177,6 +178,46 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     }
 
     public WindowBounds WindowBounds => new(_normalBounds.X, _normalBounds.Y, _normalBounds.Width, _normalBounds.Height, _window.IsMaximized);
+
+    /// <summary>What decides whether the window closes when the user asks it to.</summary>
+    internal Func<bool>? CloseAsked { get; set; }
+
+    private void HandleCloseAsked()
+    {
+        if (CloseAsked?.Invoke() == false)
+            _window.CancelClose();
+    }
+
+    /// <summary>Takes the window off the screen. The app keeps running, but no frame is drawn until
+    /// <see cref="ShowWindow"/>, so nothing that waits for a frame runs, an <c>await</c> on the UI thread included;
+    /// <see cref="Dispatcher"/> still does. Call it on the UI thread.</summary>
+    public void HideWindow() => _window.Hide();
+
+    /// <summary>Puts a hidden window back and draws it. Call it on the UI thread.</summary>
+    public void ShowWindow()
+    {
+        _window.Show();
+        Invalidate();
+    }
+
+    /// <summary>Brings the window to the front, restoring it if minimized, where the platform allows; on Windows that
+    /// is for the app the user is working with, which can lend the right with <see cref="ForegroundRights.LendTo"/>.
+    /// Call it on the UI thread.</summary>
+    public void FocusWindow()
+    {
+        if (_window.IsMinimized)
+            _window.Restore();
+        _window.Focus();
+    }
+
+    /// <summary>Closes the window as its close button does, without asking
+    /// <see cref="ImmediateGuiApp{TUiState}.OnCloseRequested"/>, so the app shuts down the usual way. Works while hidden.
+    /// Call it on the UI thread.</summary>
+    public void RequestClose()
+    {
+        _window.RequestClose();
+        _render.App.Wake();
+    }
 
     /// <summary>Schedules an update after the app's state changed outside a frame. Safe from any thread,
     /// and does nothing once the window has closed.</summary>
@@ -1194,6 +1235,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _ui.Wake = null;
         HotReload.Applied -= Invalidate;
         _window.OnNonClientPress -= HandleNonClientPress;
+        _window.OnClose -= HandleCloseAsked;
         _render.App.OnTick -= Tick;
         _render.App.OnForegroundChanged -= HandleForegroundChanged;
         Unsubscribe(_window);
