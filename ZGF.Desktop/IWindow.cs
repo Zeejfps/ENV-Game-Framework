@@ -51,7 +51,7 @@ public interface IWindow : IDisposable
     void CancelClose();
     // Marks the window as closing, as its close button does, without raising OnClose: for the main
     // window, the run loop ends the next time it comes around.
-    void RequestClose();
+    void CloseImmediately();
 
     event Action<KeyboardKey, InputAction, KeyModifiers> OnKey;
     // A character committed by the OS text-input pipeline, as a Unicode code point — already

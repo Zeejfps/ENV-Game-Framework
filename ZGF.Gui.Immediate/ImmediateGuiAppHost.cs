@@ -213,9 +213,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// <summary>Closes the window as its close button does, without asking
     /// <see cref="ImmediateGuiApp{TUiState}.OnCloseRequested"/>, so the app shuts down the usual way. Works while hidden.
     /// Call it on the UI thread.</summary>
-    public void RequestClose()
+    public void CloseImmediately()
     {
-        _window.RequestClose();
+        _window.CloseImmediately();
         _render.App.Wake();
     }
 

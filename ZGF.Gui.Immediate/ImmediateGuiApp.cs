@@ -50,7 +50,7 @@ public abstract class ImmediateGuiApp<TUiState>
 
     /// <summary>Runs on the UI thread as the user asks the window to close, between frames; false keeps it open, as to
     /// <see cref="ImmediateGuiAppHost{TUiState}.HideWindow"/> it instead. Not asked of
-    /// <see cref="ImmediateGuiAppHost{TUiState}.RequestClose"/>.</summary>
+    /// <see cref="ImmediateGuiAppHost{TUiState}.CloseImmediately"/>.</summary>
     protected virtual bool OnCloseRequested(ImmediateGuiAppHost<TUiState> host) => true;
 
     /// <summary>Runs on the UI thread once the window has closed and no more frames are drawn;
