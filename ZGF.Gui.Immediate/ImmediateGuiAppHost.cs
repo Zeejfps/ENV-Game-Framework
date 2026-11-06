@@ -1081,13 +1081,19 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
     }
 
+    /// <summary>Hides <paramref name="popup"/>, passing the focus it had to the window it was shown over.
+    /// That is the open dialog window if there is one: focusing the main window instead would raise it
+    /// over the dialog on macOS, where a window has no owner to keep the dialog above it.</summary>
     private void Release(Popup popup)
     {
         var window = popup.Surface.Window;
         var hadFocus = window.IsFocused;
         Unsubscribe(window);
         _pool.Release(popup.Surface);
-        if (hadFocus)
+        if (!hadFocus) return;
+        if (_windows.Count > 0)
+            _windows[^1].Window.Focus();
+        else
             _window.Focus();
     }
 
