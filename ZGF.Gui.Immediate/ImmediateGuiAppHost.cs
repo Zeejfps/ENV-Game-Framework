@@ -929,7 +929,6 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         window.OnFramebufferResize += HandleWindowResize;
         window.SetCursor(_cursor);
         window.SetTextInputFocus(_textInputFocus);
-        window.SetOwner(_window);
         _window.SetInputEnabled(false);
         _windows.Add(dialog);
         return dialog;
@@ -1011,6 +1010,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _render.RenderWindowNow(dialog.Window);
             if (!dialog.Shown)
             {
+                dialog.Window.SetOwner(_window);
                 dialog.Window.Show();
                 dialog.Window.Focus();
                 dialog.Shown = true;

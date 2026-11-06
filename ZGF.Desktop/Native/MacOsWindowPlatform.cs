@@ -18,6 +18,19 @@ internal sealed class MacOsWindowPlatform : WindowPlatform
     private const ulong NSWindowCollectionBehaviorIgnoresCycle = 1UL << 6;
     private const ulong NSWindowCollectionBehaviorCanJoinAllSpaces = 1UL << 0;
 
+    private const long NSWindowAbove = 1;
+
+    // NSWindowStyleMask flags (NSUInteger).
+    private const ulong NSWindowStyleMaskResizable = 1UL << 3;
+    private const ulong NSWindowStyleMaskFullScreen = 1UL << 14;
+
+    // NSWindowButton values, for the title bar's close, minimize and zoom buttons.
+    private static readonly IntPtr[] TitleBarButtons = [0, 1, 2];
+
+    // The windows whose resizing SetInputEnabled turned off, to turn back on: only these, as a window
+    // made fixed-size by its app has to stay so.
+    private readonly HashSet<IntPtr> _resizingOff = new();
+
     public override void DecoratePopup(IntPtr nsWindow)
     {
         if (nsWindow == IntPtr.Zero) return;
@@ -31,6 +44,49 @@ internal sealed class MacOsWindowPlatform : WindowPlatform
             NSWindowCollectionBehaviorTransient
             | NSWindowCollectionBehaviorIgnoresCycle
             | NSWindowCollectionBehaviorCanJoinAllSpaces);
+    }
+
+    // AppKit has no EnableWindow. This turns off what the window itself lets the user do: moving,
+    // resizing and its title bar buttons. Its content goes on getting clicks, which the app has to
+    // ignore, and a click still makes it key.
+    public override void SetInputEnabled(IntPtr nsWindow, bool enabled)
+    {
+        if (nsWindow == IntPtr.Zero) return;
+
+        msg_Void_Bool(nsWindow, Sel("setMovable:"), enabled);
+        SetResizable(nsWindow, enabled);
+        foreach (var button in TitleBarButtons)
+        {
+            // A window with no such button answers nil, and a message to nil does nothing.
+            var view = msg_IntPtr(nsWindow, Sel("standardWindowButton:"), button);
+            msg_Void_Bool(view, Sel("setEnabled:"), enabled);
+        }
+    }
+
+    private void SetResizable(IntPtr nsWindow, bool resizable)
+    {
+        var mask = GetStyleMask(nsWindow, Sel("styleMask"));
+        if (resizable)
+        {
+            if (_resizingOff.Remove(nsWindow))
+                msg_Void_ULong(nsWindow, Sel("setStyleMask:"), mask | NSWindowStyleMaskResizable);
+            return;
+        }
+
+        var canTurnOff = (mask & NSWindowStyleMaskResizable) != 0 && (mask & NSWindowStyleMaskFullScreen) == 0;
+        if (!canTurnOff) return;
+        _resizingOff.Add(nsWindow);
+        msg_Void_ULong(nsWindow, Sel("setStyleMask:"), mask & ~NSWindowStyleMaskResizable);
+    }
+
+    // Keeps the window above its owner, as an owned window on Windows is, and also moves it along
+    // with its owner, which SetInputEnabled keeps the user from dragging meanwhile. AppKit shows a
+    // hidden window the moment it is added, so call this once the window has something to show.
+    // Hiding or closing the window detaches it again.
+    public override void SetOwner(IntPtr nsWindow, IntPtr owner)
+    {
+        if (nsWindow == IntPtr.Zero || owner == IntPtr.Zero) return;
+        AddChildWindow(owner, Sel("addChildWindow:ordered:"), nsWindow, NSWindowAbove);
     }
 
     public override void SetTitleBarTheme(IntPtr nsWindow, bool dark)
@@ -60,6 +116,12 @@ internal sealed class MacOsWindowPlatform : WindowPlatform
 
     [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
     private static extern void SetLevel(IntPtr receiver, IntPtr selector, long level);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern ulong GetStyleMask(IntPtr receiver, IntPtr selector);
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern void AddChildWindow(IntPtr receiver, IntPtr selector, IntPtr child, long order);
 
     private static void SetLevel(IntPtr nsWindow, long level)
     {

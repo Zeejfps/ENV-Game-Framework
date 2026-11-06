@@ -108,7 +108,8 @@ public interface IWindow : IDisposable
     void CapturePointer(Action<PointI> onOutsideClick);
     void ReleasePointerCapture();
     // Native modality: whether the OS lets the user interact with this window at all, and which
-    // window it stays in front of. Windows only.
+    // window it stays in front of. Windows and macOS. On macOS a disabled window's content still
+    // gets clicks, and setting an owner shows a hidden window, so set it just before showing.
     void SetInputEnabled(bool enabled);
     void SetOwner(IWindow owner);
     void SetIcon(IReadOnlyList<WindowIconImage> icons);
