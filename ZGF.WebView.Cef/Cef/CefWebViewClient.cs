@@ -49,9 +49,11 @@ internal sealed class CefWebViewClient : CefClient
     // recover (bounded per navigation in CefWebView) instead of leaving a dead surface.
     private sealed class RequestHandler(CefWebView owner) : CefRequestHandler
     {
+        private readonly RequestGate? _gate = owner.AllowRequest == null ? null : new RequestGate(owner.AllowRequest);
+
         protected override CefResourceRequestHandler? GetResourceRequestHandler(
             CefBrowser browser, CefFrame frame, CefRequest request, bool isNavigation,
-            bool isDownload, string requestInitiator, ref bool disableDefaultHandling) => null;
+            bool isDownload, string requestInitiator, ref bool disableDefaultHandling) => _gate;
 
         // CEF 150: the callback gained errorCode + errorString (they name the fatal reason directly).
         protected override void OnRenderProcessTerminated(
@@ -61,6 +63,15 @@ internal sealed class CefWebViewClient : CefClient
                 CefLog.Error($"renderer termination detail: code={errorCode} '{errorString}'");
             owner.OnRenderProcessGone(status);
         }
+    }
+
+    // Runs on CEF's IO thread, not the UI thread, and sees the requests of every frame, cross-origin ones too.
+    private sealed class RequestGate(Func<string, string, bool> allow) : CefResourceRequestHandler
+    {
+        protected override CefCookieAccessFilter? GetCookieAccessFilter(CefBrowser browser, CefFrame frame, CefRequest request) => null;
+
+        protected override CefReturnValue OnBeforeResourceLoad(CefBrowser browser, CefFrame frame, CefRequest request, CefCallback callback) =>
+            allow(request.Method, request.Url) ? CefReturnValue.Continue : CefReturnValue.Cancel;
     }
 
     private sealed class LoadHandler : CefLoadHandler
