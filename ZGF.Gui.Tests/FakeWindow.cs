@@ -39,6 +39,8 @@ internal sealed class FakeWindow : IWindow
 
     public float ContentScale { get; private set; }
     public bool IsVisible { get; private set; } = true;
+    public bool DrawsWhileHidden { get; set; }
+    public bool ClosedImmediately { get; private set; }
     public bool IsFocused { get; set; } = true;
     public bool IsPointerOver { get; set; } = true;
     public bool IsMaximized { get; set; }
@@ -98,6 +100,7 @@ internal sealed class FakeWindow : IWindow
 
     public void CancelClose() => CloseCancelled = true;
     public void RaiseClose() { CloseCancelled = false; OnClose?.Invoke(); }
+    public void CloseImmediately() => ClosedImmediately = true;
     public void RaiseKey() => OnKey?.Invoke(KeyboardKey.A, InputAction.Press, KeyModifiers.None);
     public void RaiseText() => OnText?.Invoke('a');
     public void RaisePreedit() => OnPreedit?.Invoke(new PreeditText("a", 1, [], -1));
