@@ -30,6 +30,9 @@ public enum FieldLook
 
 public static partial class UiWidgets
 {
+    /// <summary>The id of the cross that empties the clearable field <paramref name="fieldId"/>.</summary>
+    internal static int ClearButtonId(int fieldId) => HashCode.Combine(fieldId, "clear");
+
     private const double CaretBlinkSeconds = 0.53;
     private const int MaxUndo = 100;
 
@@ -97,16 +100,17 @@ public static partial class UiWidgets
     /// <paramref name="hint"/> is muted text at the end — a shortcut —
     /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
     /// how it looks while not being edited. When not <paramref name="enabled"/> it shows
-    /// <paramref name="text"/> greyed out and ignores input.</summary>
+    /// <paramref name="text"/> greyed out and ignores input. A <paramref name="clearable"/> field shows a
+    /// cross at its end while it holds text, which empties it and leaves the field focused.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, IconGlyph? leadingIcon = null,
-        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true)
+        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true, bool clearable = false)
     {
         if (!enabled)
         {
             DisabledField(ui, text, placeholder, width, leadingIcon);
             return false;
         }
-        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look);
+        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look, clearable);
     }
 
     /// <summary>A boxed field's look, its text in <see cref="UiTheme.TextDisabled"/>, taking no input.</summary>
@@ -159,7 +163,7 @@ public static partial class UiWidgets
     }
 
     private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon, string? hint,
-        bool inline, FieldLook look)
+        bool inline, FieldLook look, bool clearable = false)
     {
         var theme = ui.Theme;
         var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
@@ -175,7 +179,9 @@ public static partial class UiWidgets
         var lead = leadingIcon != null ? theme.IconSize + theme.GapTight : 0f;
         var hintWidth = hint != null ? ui.MeasureText(hint, theme.FontSizeSmall) + theme.GapTight : 0f;
         var showHint = hint != null && (!hasRect || rect.Width - padding * 2 - lead - hintWidth >= MinFieldWidth);
-        var trail = showHint ? hintWidth : 0f;
+        var clear = clearable && text.Length > 0;
+        var clearWidth = clear ? theme.TabCloseSize + theme.GapTight : 0f;
+        var trail = (showHint ? hintWidth : 0f) + clearWidth;
         var textLeft = rect.X + padding + lead;
         var innerWidth = hasRect ? rect.Width - padding * 2 - lead - trail : float.PositiveInfinity;
         var preedit = focused ? ui.Input.Composition : PreeditText.Empty;
@@ -271,6 +277,12 @@ public static partial class UiWidgets
 
             if (showHint)
                 ui.Text(hint!, color: theme.TextMuted, size: theme.FontSizeSmall);
+            // Drawn after the field's own row takes the pointer, so a click on it is the cross's alone.
+            if (clear && ui.CloseButton(ClearButtonId(i.Id), tabStop: false))
+            {
+                text = "";
+                ui.Focus(i.Id);
+            }
         }
         return submitted;
     }

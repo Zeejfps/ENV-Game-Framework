@@ -24,6 +24,26 @@ public sealed class TextFieldTests
     }
 
     [Fact]
+    public void A_clearable_fields_cross_empties_it_and_leaves_it_focused_and_shows_only_while_it_holds_text()
+    {
+        var text = "abc";
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("search", ref text, width: 160f, clearable: true);
+        }).Frame();
+        bool DrewCross() => frames.Canvas.Lines.Count == 2;
+
+        Assert.True(DrewCross());
+        frames.ClickOn(ui => UiWidgets.ClearButtonId(ui.GetId("search"))).Frame();
+        Assert.Equal("", text);
+        Assert.False(DrewCross());
+
+        frames.Type("x").Frame();
+        Assert.Equal("x", text);
+    }
+
+    [Fact]
     public void Typing_inserts_at_the_caret_and_replaces_a_selection()
     {
         var field = new Field();
