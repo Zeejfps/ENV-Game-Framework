@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Desktop.Input;
+namespace ZGF.Desktop.Input;
 
 /// <summary>
 /// Where a scroll event sits in a continuous scrolling gesture. Mirrors Cocoa's <c>NSEventPhase</c>,

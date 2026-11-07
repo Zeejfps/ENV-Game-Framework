@@ -245,6 +245,14 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>A scroll on a trackpad: the fingers' <paramref name="gesture"/> phase, or the system's coast after
+    /// them when <paramref name="momentum"/> is not <see cref="ScrollPhase.None"/>, as macOS reports them.</summary>
+    public UiFrames<TState> Swipe(double x, double y, ScrollPhase gesture, ScrollPhase momentum = ScrollPhase.None)
+    {
+        _pending.Scroll(x, y, gesture, momentum);
+        return this;
+    }
+
     /// <summary>Files dragged from the OS file manager are dropped where the pointer is.</summary>
     public UiFrames<TState> DropFiles(params string[] paths)
     {
