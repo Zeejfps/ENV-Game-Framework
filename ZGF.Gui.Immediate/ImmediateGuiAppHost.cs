@@ -1144,7 +1144,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private void HandleScroll(double x, double y)
     {
-        _pending.Scroll(x, y);
+        // Read while still inside the platform's callback: the event behind it is the current one only until it returns.
+        var (gesture, momentum) = MacScrollPhase.Read();
+        _pending.Scroll(x, y, gesture, momentum);
         _window.RequestRedraw();
     }
 

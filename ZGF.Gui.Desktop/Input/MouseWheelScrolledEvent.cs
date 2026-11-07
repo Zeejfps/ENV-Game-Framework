@@ -1,3 +1,5 @@
+using ZGF.Desktop.Input;
+
 namespace ZGF.Gui.Desktop.Input;
 
 public struct MouseWheelScrolledEvent : IEvent

@@ -1,6 +1,6 @@
 using ZGF.Rendering.Metal;
 
-namespace ZGF.Gui.Desktop.Input;
+namespace ZGF.Desktop.Input;
 
 /// <summary>
 /// Reads the scroll phases of the NSEvent currently being dispatched.
@@ -14,7 +14,7 @@ namespace ZGF.Gui.Desktop.Input;
 /// P/Invokes. Every entry point degrades to <see cref="ScrollPhase.None"/> off macOS, or if AppKit isn't
 /// loaded, or when there's no current event — so a caller never has to platform-check.</para>
 /// </summary>
-internal static class MacScrollPhase
+public static class MacScrollPhase
 {
     // NSEventPhase is a bitmask (NSEventPhaseNone is 0, the rest are single bits).
     private const nuint PhaseNone = 0;

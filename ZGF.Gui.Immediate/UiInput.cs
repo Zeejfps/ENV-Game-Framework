@@ -61,6 +61,22 @@ public sealed class UiInput
     public bool PointerLocked { get; private set; }
     public float ScrollX { get; private set; }
     public float ScrollY { get; private set; }
+
+    /// <summary>Whether a swipe on a trackpad began this frame: the fingers scrolled for the first time since they
+    /// touched down, or since the system's coast after the swipe before, so what they scroll now is a new swipe, not
+    /// the last one going on. Only macOS says; elsewhere, and for a wheel, it is never true, and a new swipe can only
+    /// be told by the scroll pausing.</summary>
+    public bool ScrollBegan { get; private set; }
+
+    /// <summary>Whether this frame's scroll came only from the coast the system adds after the fingers leave a
+    /// trackpad, which nothing the user does now drives. Only macOS says; elsewhere it is never true.</summary>
+    public bool ScrollCoasting { get; private set; }
+
+    /// <summary>Whether the last scroll, in whichever frame, was the system's coast, which a swipe of the fingers
+    /// after it begins anew.</summary>
+    private bool _lastScrollCoasted;
+
+    private bool _scrolled;
     public KeyModifiers Modifiers { get; private set; }
     public string Text { get; private set; } = "";
     public KeyStrokes Keys => new(_keys);
@@ -204,10 +220,19 @@ public sealed class UiInput
         HasEvents = true;
     }
 
-    internal void Scroll(double x, double y)
+    /// <param name="gesture">Where the fingers on a trackpad are in their swipe, as the platform said.</param>
+    /// <param name="momentum">Where the system's coast after the swipe is; not <see cref="ScrollPhase.None"/>
+    /// for a scroll it sent rather than the fingers.</param>
+    internal void Scroll(double x, double y, ScrollPhase gesture = ScrollPhase.None, ScrollPhase momentum = ScrollPhase.None)
     {
         ScrollX += (float)x;
         ScrollY += (float)y;
+        var coast = momentum != ScrollPhase.None;
+        if (!coast && (gesture == ScrollPhase.Began || (gesture != ScrollPhase.None && _lastScrollCoasted)))
+            ScrollBegan = true;
+        ScrollCoasting = coast && (!_scrolled || ScrollCoasting);
+        _scrolled = true;
+        _lastScrollCoasted = coast;
         HasEvents = true;
     }
 
@@ -260,6 +285,8 @@ public sealed class UiInput
         Pointer = source.Pointer;
         ScrollX = source.ScrollX;
         ScrollY = source.ScrollY;
+        ScrollBegan = source.ScrollBegan;
+        ScrollCoasting = source.ScrollCoasting;
         Modifiers = source.Modifiers;
         IsForeground = source.IsForeground;
         IsMinimized = source.IsMinimized;
@@ -277,6 +304,8 @@ public sealed class UiInput
         Pointer = Offscreen;
         ScrollX = 0;
         ScrollY = 0;
+        ScrollBegan = false;
+        ScrollCoasting = false;
         Modifiers = KeyModifiers.None;
     }
 
@@ -298,6 +327,10 @@ public sealed class UiInput
         IsMinimized = previous.IsMinimized;
         ScrollX = 0;
         ScrollY = 0;
+        ScrollBegan = false;
+        ScrollCoasting = false;
+        _scrolled = false;
+        _lastScrollCoasted = previous._lastScrollCoasted;
         PopupsDismissed = false;
         HasEvents = false;
     }
