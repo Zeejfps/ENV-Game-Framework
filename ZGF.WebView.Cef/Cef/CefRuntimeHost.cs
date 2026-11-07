@@ -109,7 +109,7 @@ internal sealed class CefRuntimeHost : IDisposable
         Console.Error.WriteLine($"[zgf-cef] Chromium log: {logFile}");
         CefLog.Write($"initializing: libcef={CefPaths.LibCefDir}, helper={CefPaths.HelperExe}, resources={CefPaths.ResourcesDir}, locales={CefPaths.LocalesDir}");
         var mainArgs = new CefMainArgs(GetProcessArgs());
-        CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this, _options.AutoplayWithoutGesture), IntPtr.Zero);
+        CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this, _options.AutoplayWithoutGesture, _options.KeepOutOfKeychain), IntPtr.Zero);
         _initialized = true;
         CefLog.Write($"initialized (chrome {CefRuntime.ChromeVersion}); creating {_pending.Count} pending browser(s)");
 
@@ -270,11 +270,13 @@ internal sealed class ZgfBrowserCefApp : CefApp
 {
     private readonly BrowserProcessHandler _handler;
     private readonly bool _autoplayWithoutGesture;
+    private readonly bool _keepOutOfKeychain;
 
-    public ZgfBrowserCefApp(CefRuntimeHost host, bool autoplayWithoutGesture)
+    public ZgfBrowserCefApp(CefRuntimeHost host, bool autoplayWithoutGesture, bool keepOutOfKeychain)
     {
         _handler = new BrowserProcessHandler(host);
         _autoplayWithoutGesture = autoplayWithoutGesture;
+        _keepOutOfKeychain = keepOutOfKeychain;
     }
 
     protected override CefBrowserProcessHandler GetBrowserProcessHandler() => _handler;
@@ -283,6 +285,9 @@ internal sealed class ZgfBrowserCefApp : CefApp
     {
         if (_autoplayWithoutGesture)
             commandLine.AppendSwitch("autoplay-policy", "no-user-gesture-required");
+
+        if (_keepOutOfKeychain)
+            commandLine.AppendSwitch("use-mock-keychain");
 
         // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
         // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
