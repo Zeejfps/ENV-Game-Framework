@@ -25,4 +25,9 @@ public sealed record CefWebViewOptions
     /// <summary>Whether pages may play sound and video before the user has pressed anything in them, as an
     /// app hosting games wants; a browser's default is that they may not.</summary>
     public bool AutoplayWithoutGesture { get; init; }
+
+    /// <summary>Whether Chromium leaves the macOS keychain alone, encrypting cookies under its fixed built-in key
+    /// rather than one it keeps there, so the user is never asked to let the app read Chromium's keychain item.
+    /// Changes nothing elsewhere.</summary>
+    public bool KeepOutOfKeychain { get; init; }
 }

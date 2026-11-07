@@ -18,6 +18,8 @@ internal sealed class CefWebView : IWebView
     private readonly IWebViewFrameSink _frames;
     private readonly CefWebViewOptions _options;
     private readonly WebViewSetup _setup;
+
+    internal Func<string, string, bool>? AllowRequest { get; }
     private readonly CefWebViewClient _client;
     private readonly List<Action> _deferred = new();
 
@@ -40,6 +42,7 @@ internal sealed class CefWebView : IWebView
     public CefWebView(CefRuntimeHost host, IWebViewFrameSink frames, CefWebViewOptions options, WebViewSetup setup)
     {
         _setup = setup;
+        AllowRequest = setup.AllowRequest;
         _host = host;
         _frames = frames;
         _options = options;

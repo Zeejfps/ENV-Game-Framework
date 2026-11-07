@@ -74,6 +74,11 @@ public sealed record WebViewSetup
     /// White, as a browser starts, unless set: a page with a dark background set it to that, or the view flashes white
     /// as it loads.</summary>
     public uint Background { get; init; } = 0xFFFFFFFF;
+
+    /// <summary>Asked of every request of every frame before it leaves, with its method and URL: whether it may. Null lets
+    /// all through. Called off the UI thread, on the engine's own, which it holds up, so it must be quick and must not throw.
+    /// </summary>
+    public Func<string, string, bool>? AllowRequest { get; init; }
 }
 
 /// <summary>Receives a web view's painted frames on the UI thread. Each frame is valid only for the
