@@ -35,6 +35,62 @@ public readonly struct TableFrame<TKey> where TKey : notnull
     /// to be removed — act on that once the rows are recorded.
     /// </summary>
     public TableRows<TKey> FitBody(IReadOnlyList<TKey> order) => UiWidgets.TableFitBody(_ui, _state, _selection, order);
+
+    /// <summary>
+    /// The scroll of the rows of <paramref name="order"/>, one per key, each the theme's row height
+    /// tall, of which only those in view are recorded, each with <see cref="TableScrollRows{TKey}.Row"/>.
+    /// Keys gone from <paramref name="order"/> leave the selection. While the table holds focus it
+    /// takes the keys it acts on, so nothing after it sees them: Up, Down, PageUp, PageDown, Home and
+    /// End move the current row, picking it out alone or with Shift the range from the anchor;
+    /// Ctrl+A picks out every row; and Enter activates the picked-out rows, as a double-click on one
+    /// does. The current row scrolls into view whenever a key moves it.
+    /// </summary>
+    public TableScrollRows<TKey> Body(IReadOnlyList<TKey> order) => UiWidgets.TableScrollBody(_ui, _state, _selection, order);
+}
+
+/// <summary>The rows of a <see cref="TableFrame{TKey}.Body"/> to record this frame, from
+/// <see cref="First"/> up to but not including <see cref="End"/>, each with <see cref="Row"/>, and what
+/// the user asked of them. Read what was asked after recording the rows, which take the pointer.</summary>
+public readonly struct TableScrollRows<TKey> : IDisposable where TKey : notnull
+{
+    private readonly Ui _ui;
+    private readonly UiWidgets.TableState _state;
+    private readonly MultiSelection<TKey> _selection;
+    private readonly IReadOnlyList<TKey> _order;
+    private readonly Ui.VirtualList _rows;
+    private readonly int _current;
+
+    internal TableScrollRows(Ui ui, UiWidgets.TableState state, MultiSelection<TKey> selection, IReadOnlyList<TKey> order, Ui.VirtualList rows,
+        int current)
+    {
+        _ui = ui;
+        _state = state;
+        _selection = selection;
+        _order = order;
+        _rows = rows;
+        _current = current;
+    }
+
+    public int First => _rows.First;
+    public int End => _rows.End;
+
+    /// <summary>Whether the table held keyboard focus when it was opened.</summary>
+    public bool Focused => _state.Focused;
+
+    /// <summary>Enter, or a double-click on a row, asked to act on the picked-out rows.</summary>
+    public bool Activated => _state.Activated && _selection.Count > 0;
+
+    /// <summary>
+    /// Opens row <paramref name="index"/> of the order, its ids and state following its key, as tall
+    /// as the table's rows, its background showing whether it is picked out, the table focused and the
+    /// row under the pointer, and ringed while it is the current row of a focused table. A press on it
+    /// focuses the table and picks it out alone, toggles it with Ctrl, or picks out the range from the
+    /// anchor with Shift; a double-click activates the picked-out rows. Record its cells with
+    /// <see cref="TableRow.Cell"/> or <see cref="TableRow.TextCell"/>, in column order.
+    /// </summary>
+    public TableRow Row(int index) => UiWidgets.TableScrollRow(_ui, _state, _selection, _order, index, index == _current);
+
+    public void Dispose() => _rows.Dispose();
 }
 
 /// <summary>The rows of a <see cref="TableFrame{TKey}.FitBody"/>, each recorded with <see cref="Row"/>,
@@ -93,6 +149,67 @@ public static partial class UiWidgets
         state.Begin(id, columns, state.Rows, null, null, ui.Theme.RowHeight);
         state.Focused = ui.ListArea(id);
         return new TableFrame<TKey>(ui, state, rows);
+    }
+
+    internal static TableScrollRows<TKey> TableScrollBody<TKey>(Ui ui, TableState state, MultiSelection<TKey> selection, IReadOnlyList<TKey> order)
+        where TKey : notnull
+    {
+        selection.Reconcile(order);
+        state.Count = order.Count;
+        if (state.Focused)
+            TakeScrollTableKeys(ui, state, selection, order, ui.MeasureListPage(state.Id, state.RowHeight));
+        var current = selection.IndexOfCurrent(order);
+        if (selection.TakeReveal())
+            ui.ScrollRowIntoView(state.Id, current);
+        var rows = ScrollTableRows(ui, state, order.Count, null);
+        return new TableScrollRows<TKey>(ui, state, selection, order, rows, current);
+    }
+
+    /// <summary>Takes the keys a scrolling table of picked-out rows acts on.</summary>
+    private static void TakeScrollTableKeys<TKey>(Ui ui, TableState state, MultiSelection<TKey> selection, IReadOnlyList<TKey> order, int page)
+        where TKey : notnull
+    {
+        var keys = ui.Input.Keys;
+        var i = 0;
+        while (i < keys.Count)
+        {
+            if (ApplyScrollTableKey(state, keys[i], selection, order, page))
+                ui.Input.TakeKeyAt(i);
+            else
+                i++;
+        }
+    }
+
+    private static bool ApplyScrollTableKey<TKey>(TableState state, KeyStroke stroke, MultiSelection<TKey> selection, IReadOnlyList<TKey> order,
+        int page) where TKey : notnull
+    {
+        if (ApplyListKey(stroke, selection, order, page)) return true;
+        if (IsSelectAll(stroke))
+        {
+            selection.SelectAll(order);
+            return true;
+        }
+        if (!IsActivateKey(stroke)) return false;
+        state.Activate(false);
+        return true;
+    }
+
+    internal static TableRow TableScrollRow<TKey>(Ui ui, TableState state, MultiSelection<TKey> selection, IReadOnlyList<TKey> order, int index,
+        bool current) where TKey : notnull
+    {
+        var key = order[index];
+        var rowKey = EqualityComparer<TKey>.Default.GetHashCode(key);
+        var row = ui.Interact(HashCode.Combine(state.Id, TableRowSalt, rowKey));
+        if (row.Pressed)
+            PickFitRow(ui, state, selection, order, key);
+        if (row.DoubleClicked)
+            state.Activate(false);
+        var selected = selection.Contains(key);
+        var ids = ui.Id(rowKey);
+        var content = ui.Row(row.Id, TableRowBox(ui, state, null, selected, row.Hovered));
+        if (current && state.Focused && ui.FocusVisible)
+            ui.FocusRing(0f);
+        return new TableRow(ui, state, ids, content, rowKey, row, selected);
     }
 
     internal static TableRows<TKey> TableFitBody<TKey>(Ui ui, TableState state, MultiSelection<TKey> selection, IReadOnlyList<TKey> order)
