@@ -210,7 +210,9 @@ public sealed class UiInput
     internal void Character(uint codePoint)
     {
         if (!Rune.IsValid(codePoint)) return;
-        _text.Append(new Rune(codePoint).ToString());
+        Span<char> units = stackalloc char[2];
+        var count = new Rune(codePoint).EncodeToUtf16(units);
+        _text.Append(units[..count]);
         HasEvents = true;
     }
 
