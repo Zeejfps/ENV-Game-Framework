@@ -289,6 +289,15 @@ internal sealed class ZgfBrowserCefApp : CefApp
         if (_keepOutOfKeychain)
             commandLine.AppendSwitch("use-mock-keychain");
 
+        // On Linux Chromium starts the GPU process, and later renderers, by forking a zygote: a helper process
+        // that loaded Chromium once and then forks a child for each new process. Our helper is a .NET program,
+        // and a forked copy of a running .NET process has only the thread that forked, so the GPU child died
+        // before it could start, Chromium reported "GPU process launch failed: error_code=1002" and quit. With no
+        // zygote, Chromium executes the helper afresh for every process instead. Chromium allows this only
+        // unsandboxed, which CEF always runs here (NoSandbox).
+        if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(processType))
+            commandLine.AppendSwitch("no-zygote");
+
         // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
         // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
         // (a CHECK/NOTREACHED, a GPU error) is visible when a page crashes it.
