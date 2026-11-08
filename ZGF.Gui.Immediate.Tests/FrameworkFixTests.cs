@@ -272,6 +272,89 @@ public sealed class MeasurementInvalidationTests
 
         Assert.Equal(50f, frames.Run(0f, ui => ui.MeasureText("hello")));
     }
+
+    [Fact]
+    public void Registering_a_font_forgets_caret_offsets_measured_before()
+    {
+        var measurer = new Measurer();
+        var frames = new UiFrames(new DefaultUiState(), measurer);
+        Assert.Equal(24f, frames.Run(0f, ui => ui.MeasureText("hello", 3)));
+
+        measurer.CharWidth = 10f;
+        Assert.Equal(24f, frames.Run(0f, ui =>
+        {
+            var width = ui.MeasureText("hello", 3);
+            ui.InvalidateMeasurements();
+            return width;
+        }));
+
+        Assert.Equal(30f, frames.Run(0f, ui => ui.MeasureText("hello", 3)));
+    }
+}
+
+public sealed class CaretOffsetTests
+{
+    private sealed class CountingMeasurer : ITextMeasurer
+    {
+        public int Prefixes;
+
+        public float MeasureTextWidth(ReadOnlySpan<char> text, TextStyle style) => text.Length * 8f;
+
+        public float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style)
+        {
+            Prefixes++;
+            return Math.Clamp(prefixLength, 0, text.Length) * 8f;
+        }
+
+        public float MeasureTextLineHeight(TextStyle style) => 16f;
+    }
+
+    [Fact]
+    public void A_length_past_either_end_measures_to_that_end()
+    {
+        var frames = new UiFrames(new DefaultUiState());
+
+        Assert.Equal(0f, frames.Run(0f, ui => ui.MeasureText("abc", -1)));
+        Assert.Equal(0f, frames.Run(0f, ui => ui.MeasureText("abc", 0)));
+        Assert.Equal(24f, frames.Run(0f, ui => ui.MeasureText("abc", 3)));
+        Assert.Equal(24f, frames.Run(0f, ui => ui.MeasureText("abc", 4)));
+        Assert.Equal(0f, frames.Run(0f, ui => ui.MeasureText("", 1)));
+    }
+
+    [Fact]
+    public void A_text_measured_every_frame_has_its_caret_offsets_measured_once()
+    {
+        var measurer = new CountingMeasurer();
+        var frames = new UiFrames(new DefaultUiState(), measurer);
+        void Measure(Ui ui)
+        {
+            ui.MeasureText("hello world", 3);
+            ui.MeasureText("hello world", 7);
+            ui.CaretAt("hello world", 30f);
+        }
+        frames.Run(0f, Measure);
+        var first = measurer.Prefixes;
+
+        for (var i = 0; i < 5; i++)
+            frames.Run(0f, Measure);
+
+        Assert.Equal("hello world".Length + 1, first);
+        Assert.Equal(first, measurer.Prefixes);
+    }
+
+    [Fact]
+    public void Caret_offsets_no_longer_asked_for_are_measured_again_when_asked()
+    {
+        var measurer = new CountingMeasurer();
+        var frames = new UiFrames(new DefaultUiState(), measurer);
+        frames.Run(0f, ui => ui.MeasureText("abc", 2));
+        frames.Run(0f, _ => { });
+        frames.Run(0f, _ => { });
+        var before = measurer.Prefixes;
+
+        Assert.Equal(16f, frames.Run(0f, ui => ui.MeasureText("abc", 2)));
+        Assert.Equal(before + 4, measurer.Prefixes);
+    }
 }
 
 public sealed class PostTests

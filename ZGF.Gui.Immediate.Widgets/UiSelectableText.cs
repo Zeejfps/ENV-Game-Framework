@@ -144,12 +144,13 @@ public static partial class UiWidgets
     /// grapheme-cluster boundary.</summary>
     public static int CaretAt(this Ui ui, string text, float x, float? size = null, string? family = null)
     {
+        var offsets = ui.MeasureCaretOffsets(text, size, family: family);
         var low = 0;
         var high = text.Length;
         while (low < high)
         {
             var middle = (low + high + 1) / 2;
-            if (ui.MeasureText(text, middle, size, family: family) <= x)
+            if (offsets[middle] <= x)
                 low = middle;
             else
                 high = middle - 1;
@@ -158,8 +159,8 @@ public static partial class UiWidgets
         if (low >= text.Length)
             return low;
         var next = TextBoundaries.Next(text, low);
-        var pastLow = x - ui.MeasureText(text, low, size, family: family);
-        var beforeNext = ui.MeasureText(text, next, size, family: family) - x;
+        var pastLow = x - offsets[low];
+        var beforeNext = offsets[next] - x;
         return beforeNext < pastLow ? next : low;
     }
 

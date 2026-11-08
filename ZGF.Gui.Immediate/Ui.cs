@@ -44,6 +44,7 @@ public abstract partial class Ui
     private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
     private readonly FrameCache<StyledText, float> _widths = new();
+    private readonly FrameCache<StyledText, float[]> _caretOffsets = new();
     private float _measuredScale;
     private readonly List<int> _expiredStates = new();
     private List<HitRegion> _hits = new();
@@ -681,8 +682,19 @@ public abstract partial class Ui
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
-    public float MeasureText(string text, int length, float? size = null, bool bold = false, string? family = null) =>
-        length <= 0 ? 0f : _canvas.MeasureTextPrefix(text, length, TextStyleFor(size, Theme.Text, bold, Align.Start, family));
+    public float MeasureText(string text, int length, float? size = null, bool bold = false, string? family = null)
+    {
+        if (length <= 0)
+            return 0f;
+        var offsets = GetCaretOffsets(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family));
+        return offsets[Math.Min(length, text.Length)];
+    }
+
+    /// <summary>Where a caret goes in <paramref name="text"/>: at k, the width of its first k characters
+    /// as <see cref="MeasureText(string, int, float?, bool, string?)"/> gives it, for k up to and including
+    /// its length. Measured once while the text is measured each frame, so searching it costs nothing more.</summary>
+    public ReadOnlySpan<float> MeasureCaretOffsets(string text, float? size = null, bool bold = false, string? family = null) =>
+        GetCaretOffsets(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family));
 
     public float LineHeight(float? size = null, string? family = null) =>
         MeasureLineHeight(TextStyleFor(size, Theme.Text, false, Align.Start, family));
@@ -704,6 +716,16 @@ public abstract partial class Ui
         if (_widths.TryGet(key, out var width))
             return width;
         return _widths.Keep(key, MathF.Ceiling(_canvas.MeasureTextWidth(text, style)));
+    }
+
+    private float[] GetCaretOffsets(string text, TextStyle style)
+    {
+        var key = new StyledText(text, style);
+        if (_caretOffsets.TryGet(key, out var offsets))
+            return offsets;
+        offsets = new float[text.Length + 1];
+        _canvas.MeasureTextPrefixes(text, style, offsets);
+        return _caretOffsets.Keep(key, offsets);
     }
 
     internal float MeasureLineHeight(TextStyle style)
@@ -728,6 +750,7 @@ public abstract partial class Ui
         }
         BeginLines(invalidate);
         _widths.BeginFrame(invalidate);
+        _caretOffsets.BeginFrame(invalidate);
     }
 
     internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family)

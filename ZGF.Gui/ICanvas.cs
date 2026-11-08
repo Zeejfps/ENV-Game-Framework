@@ -94,6 +94,21 @@ public interface ICanvas
     /// </summary>
     float MeasureTextPrefix(ReadOnlySpan<char> text, int prefixLength, TextStyle style);
 
+    /// <summary>
+    /// <see cref="MeasureTextPrefix"/> of every prefix of <paramref name="text"/> at once:
+    /// <paramref name="offsets"/>, which has <c>text.Length + 1</c> slots, gets the width of the first
+    /// k UTF-16 units at k, where a caret before unit k goes. This default measures each prefix in
+    /// turn, which is fine for a canvas that measures without shaping; one that shapes text answers in
+    /// one pass over the line.
+    /// </summary>
+    void MeasureTextPrefixes(ReadOnlySpan<char> text, TextStyle style, Span<float> offsets)
+    {
+        if (offsets.Length != text.Length + 1)
+            throw new ArgumentException($"Needs {text.Length + 1} offsets for {text.Length} characters, not {offsets.Length}.", nameof(offsets));
+        for (var k = 0; k < offsets.Length; k++)
+            offsets[k] = MeasureTextPrefix(text, k, style);
+    }
+
     float MeasureTextLineHeight(TextStyle style);
 
     /// <summary>

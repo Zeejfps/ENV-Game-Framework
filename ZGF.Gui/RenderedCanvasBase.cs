@@ -800,12 +800,8 @@ public abstract class RenderedCanvasBase : ICanvas
         if (line.Length == 0)
             return;
 
-        const int StackCap = 256;
-        Span<ShapedGlyph> shaped = line.Length <= StackCap
-            ? stackalloc ShapedGlyph[StackCap]
-            : new ShapedGlyph[line.Length * 2];
-
-        var n = _fonts.ShapeText(font, line, shaped, features, baseDir);
+        var shaped = _fonts.GetShapedText(font, line, features, baseDir);
+        var n = shaped.Length;
 
         // Glyphs come back in visual L→R order regardless of base direction, so every placement is
         // just a starting pen position; the emit loop below always advances rightward.
@@ -826,7 +822,7 @@ public abstract class RenderedCanvasBase : ICanvas
         // Moved text is already placed exactly, below; scaled text needs glyphs rasterized to match.
         if (sx != 1f || sy != 1f)
         {
-            EmitShapedScaled(shaped[..n], cursorX, baselineY, sx, sy, tx, ty, color, clip, rotation, key);
+            EmitShapedScaled(shaped, cursorX, baselineY, sx, sy, tx, ty, color, clip, rotation, key);
             return;
         }
 
@@ -961,14 +957,9 @@ public abstract class RenderedCanvasBase : ICanvas
         if (line.Length == 0)
             return 0f;
 
-        const int StackCap = 256;
-        Span<ShapedGlyph> shaped = line.Length <= StackCap
-            ? stackalloc ShapedGlyph[StackCap]
-            : new ShapedGlyph[line.Length * 2];
-        var n = _fonts.ShapeText(font, line, shaped, features, baseDir);
         var total = 0f;
-        for (var i = 0; i < n; i++)
-            total += shaped[i].XAdvance;
+        foreach (var glyph in _fonts.GetShapedText(font, line, features, baseDir))
+            total += glyph.XAdvance;
         return total / _dpiScale;
     }
 
@@ -1270,20 +1261,37 @@ public abstract class RenderedCanvasBase : ICanvas
         var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
         var baseDir = style.BaseDirection.IsSet ? style.BaseDirection.Value : DefaultBaseDirection;
 
-        const int StackCap = 256;
-        Span<ShapedGlyph> shaped = text.Length <= StackCap
-            ? stackalloc ShapedGlyph[StackCap]
-            : new ShapedGlyph[text.Length * 2];
-        var n = _fonts.ShapeText(font, text, shaped, features, baseDir);
-
         // Cluster ids are logical, so glyphs whose cluster precedes the caret are exactly the prefix —
         // summed from the full-line shaping, so contextual (cursive) advances and zero-width marks are
         // already baked in. Order-independent, so this holds whether the run is laid out L→R or R→L.
         var sum = 0f;
-        for (var i = 0; i < n; i++)
-            if (shaped[i].Cluster < prefixLength)
-                sum += shaped[i].XAdvance;
+        foreach (var glyph in _fonts.GetShapedText(font, text, features, baseDir))
+            if (glyph.Cluster < prefixLength)
+                sum += glyph.XAdvance;
         return sum / _dpiScale;
+    }
+
+    public void MeasureTextPrefixes(ReadOnlySpan<char> text, TextStyle style, Span<float> offsets)
+    {
+        if (offsets.Length != text.Length + 1)
+            throw new ArgumentException($"Needs {text.Length + 1} offsets for {text.Length} characters, not {offsets.Length}.", nameof(offsets));
+        offsets.Clear();
+        if (text.IsEmpty)
+            return;
+
+        var font = ResolveFont(style);
+        var features = style.FontFeatures.IsSet ? style.FontFeatures.Value : FontFeatureSet.None;
+        var baseDir = style.BaseDirection.IsSet ? style.BaseDirection.Value : DefaultBaseDirection;
+
+        // Each glyph's advance goes in the slot after its logical cluster, so the running sum at k
+        // holds every glyph whose cluster precedes k, as MeasureTextPrefix(text, k) adds them.
+        foreach (var glyph in _fonts.GetShapedText(font, text, features, baseDir))
+            if (glyph.Cluster >= 0 && glyph.Cluster < text.Length)
+                offsets[glyph.Cluster + 1] += glyph.XAdvance;
+        for (var k = 1; k < offsets.Length; k++)
+            offsets[k] += offsets[k - 1];
+        for (var k = 1; k < offsets.Length; k++)
+            offsets[k] /= _dpiScale;
     }
 
     public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight / _dpiScale;

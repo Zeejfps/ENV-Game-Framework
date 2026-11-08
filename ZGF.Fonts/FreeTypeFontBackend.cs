@@ -476,10 +476,20 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
     // BiDi-reordered here — so callers can lay them out by accumulating advances either way.
     public int ShapeText(FontHandle font, ReadOnlySpan<char> text, Span<ShapedGlyph> output,
         in FontFeatureSet features, BidiDirection baseDir)
+        => CopyShaped(GetShapedText(font, text, features, baseDir), output);
+
+    /// <summary>
+    /// The glyphs of <paramref name="text"/>, shaped as <see cref="ShapeText(FontHandle, ReadOnlySpan{char}, Span{ShapedGlyph}, in FontFeatureSet, BidiDirection)"/>
+    /// gives them, but all of them and without a copy: the shape cache's own array. The cache never
+    /// changes an array once made, only drops it, so the span stays good while it is held. Use it on
+    /// the thread that uses this backend, like every other call.
+    /// </summary>
+    public ReadOnlySpan<ShapedGlyph> GetShapedText(FontHandle font, ReadOnlySpan<char> text,
+        in FontFeatureSet features, BidiDirection baseDir)
     {
         ThrowIfDisposed();
         if (text.Length == 0)
-            return 0;
+            return ReadOnlySpan<ShapedGlyph>.Empty;
 
         var entry = GetEntry(font);
         // Fold the base direction into the cache bucket: the same text can shape to a different
@@ -491,11 +501,11 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         // distinct feature set gets its own cache bucket so e.g. tnum and non-tnum runs of the
         // same text never collide; sig 0 (the empty set) is the original, untouched bucket.
         if (TryGetCachedShape(entry, sig, text, out var cached))
-            return CopyShaped(cached, output);
+            return cached;
 
         var shaped = ShapeWithFallback(font, entry, text, baseDir, features);
         PutShape(entry, sig, text.ToString(), shaped);
-        return CopyShaped(shaped, output);
+        return shaped;
     }
 
     // Splits the text into runs by font coverage (primary, then each fallback in order) and
@@ -720,10 +730,10 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
         return hb;
     }
 
-    private static int CopyShaped(ShapedGlyph[] shaped, Span<ShapedGlyph> output)
+    private static int CopyShaped(ReadOnlySpan<ShapedGlyph> shaped, Span<ShapedGlyph> output)
     {
         var n = Math.Min(shaped.Length, output.Length);
-        shaped.AsSpan(0, n).CopyTo(output);
+        shaped[..n].CopyTo(output);
         return n;
     }
 
