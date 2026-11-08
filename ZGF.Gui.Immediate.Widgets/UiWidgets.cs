@@ -149,7 +149,20 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
         Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold, compact)) return false;
+        if (!DrawCheckbox(ui, label, null, 0u, value, textColor, id, enabled, width, bold, compact)) return false;
+        value = !value;
+        return true;
+    }
+
+    /// <summary>A two-state checkbox as <see cref="Checkbox(Ui, string, ref bool, uint?, string?, bool, Sizing?, bool, bool)"/>,
+    /// labelled with <paramref name="label"/>'s runs in their own styles, its marked runs on
+    /// <paramref name="markBackground"/>; their color and weight are the caller's, so a disabled one is
+    /// greyed by them. Pass the same list while the label is the same, as <see cref="Ui.RichText"/> keeps
+    /// its layout by the list.</summary>
+    public static bool Checkbox(this Ui ui, IReadOnlyList<RichTextRun> label, uint markBackground, ref bool value, string id, bool enabled = true,
+        Sizing? width = null, bool compact = false)
+    {
+        if (!DrawCheckbox(ui, id, label, markBackground, value, null, id, enabled, width, false, compact)) return false;
         value = !value;
         return true;
     }
@@ -160,13 +173,13 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, string label, ref bool? value, uint? textColor = null, string? id = null, bool enabled = true,
         Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, value, textColor, id, enabled, width, bold, compact)) return false;
+        if (!DrawCheckbox(ui, label, null, 0u, value, textColor, id, enabled, width, bold, compact)) return false;
         value = value != true;
         return true;
     }
 
-    private static bool DrawCheckbox(Ui ui, string label, bool? value, uint? textColor, string? id, bool enabled, Sizing? width, bool bold,
-        bool compact)
+    private static bool DrawCheckbox(Ui ui, string label, IReadOnlyList<RichTextRun>? runs, uint markBackground, bool? value, uint? textColor,
+        string? id, bool enabled, Sizing? width, bool bold, bool compact)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
@@ -196,8 +209,14 @@ public static partial class UiWidgets
                     ui.Leaf(new Box { Width = size / 2f, Height = size / 2f, Background = accent, Radius = theme.RadiusSmall / 2f });
                 if (ring) FocusRing(ui, theme.RadiusSmall);
             }
-            ui.Text(label, color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
-                overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
+            if (runs != null)
+            {
+                using (ui.Box(new Box { Width = width != null ? Sizing.Grow() : Sizing.Fit(), Height = Sizing.Grow(), AlignY = Align.Center, Clip = true }))
+                    ui.RichText(runs, wrap: false, markBackground: markBackground);
+            }
+            else
+                ui.Text(label, color: !enabled ? theme.TextDisabled : textColor ?? theme.Text, bold: bold,
+                    overflow: width != null ? TextOverflow.Ellipsis : TextOverflow.Clip);
         }
         return i.Clicked || activated;
     }

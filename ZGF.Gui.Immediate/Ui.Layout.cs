@@ -238,14 +238,15 @@ public abstract partial class Ui
     /// <c>wrap</c> wraps one style: lines break between words across runs to fit the element's
     /// width, which grows to fill its parent unless the box sizes it. Without
     /// <paramref name="wrap"/> it keeps its lines, breaking only at '\n'. Code runs are drawn on a
-    /// chip of <paramref name="codeBackground"/> when it is not transparent. Layouts are kept by the
+    /// chip of <paramref name="codeBackground"/> when it is not transparent, and marked runs on one of
+    /// <paramref name="markBackground"/>. Layouts are kept by the
     /// list's identity, so pass the same list while the text is the same. With an
     /// <paramref name="id"/>, runs with a <see cref="RichTextRun.Link"/> are links: the pointer turns
     /// to a hand and underlines the one it is over, and a left or middle click on one returns it.
     /// The characters of the runs' joined text from <paramref name="selected"/>'s start to its end
     /// are drawn over <see cref="UiTheme.TextSelection"/>; see <see cref="RichTextCharAt"/>.</summary>
     public RichTextClick RichText(IReadOnlyList<RichTextRun> runs, Box box = default, uint codeBackground = 0u, bool wrap = true, int id = 0,
-        (int Start, int End) selected = default)
+        (int Start, int End) selected = default, uint markBackground = 0u)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
@@ -260,6 +261,7 @@ public abstract partial class Ui
         e.HoveredRun = hoveredLink;
         e.Wrap = wrap;
         e.CodeBackground = codeBackground;
+        e.MarkBackground = markBackground;
         if (selected.Start < selected.End)
         {
             e.SelectedStart = selected.Start;

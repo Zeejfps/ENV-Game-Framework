@@ -55,6 +55,7 @@ internal struct Element
     /// <summary>The link run under the pointer, underlined; -1 when there is none.</summary>
     public int HoveredRun;
     public uint CodeBackground;
+    public uint MarkBackground;
     /// <summary>The selected characters of the runs' joined text, drawn over
     /// <see cref="SelectionColor"/>; none while the start is not before the end.</summary>
     public int SelectedStart;
@@ -594,8 +595,8 @@ internal sealed class LayoutTree
             MathF.Max(0f, rect.Width - e.Padding.Left - e.Padding.Right),
             MathF.Max(0f, rect.Height - e.Padding.Top - e.Padding.Bottom));
 
-    /// <summary>Paints rich text line by line, each slice in its run's style over its code chip and
-    /// the selection, with its underline or strikethrough.</summary>
+    /// <summary>Paints rich text line by line, each slice in its run's style over its code chip or mark
+    /// and the selection, with its underline or strikethrough.</summary>
     private void PaintRuns(ref Element e, UiRect content, int z)
     {
         var clip = PaintClip;
@@ -608,8 +609,11 @@ internal sealed class LayoutTree
             if (!band.Intersects(clip)) continue;
             foreach (var segment in line.Segments)
             {
-                if (e.Runs![segment.RunIndex].IsCode && e.CodeBackground != 0u)
+                var run = e.Runs![segment.RunIndex];
+                if (run.IsCode && e.CodeBackground != 0u)
                     PaintCodeChip(new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height), e.CodeBackground, z);
+                if (run.IsMarked && e.MarkBackground != 0u)
+                    PaintCodeChip(new UiRect(band.X + segment.X, band.Y, segment.Width, band.Height), e.MarkBackground, z);
             }
             PaintSelectedOnLine(ref e, line, band, z);
             foreach (var segment in line.Segments)

@@ -15,6 +15,7 @@ namespace ZGF.Gui;
 /// <para>A '\n' in <paramref name="Text"/> forces a line break there.</para>
 /// <para>A run with a <paramref name="Link"/> is a link to it: what the caller navigates to when the
 /// run is clicked.</para>
+/// <para><paramref name="IsMarked"/> draws a mark behind its segments, as a search marks what it found.</para>
 /// </summary>
 public sealed record RichTextRun(
     string Text,
@@ -22,4 +23,5 @@ public sealed record RichTextRun(
     bool IsCode = false,
     bool Underline = false,
     bool Strikethrough = false,
-    object? Link = null);
+    object? Link = null,
+    bool IsMarked = false);
