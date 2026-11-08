@@ -230,7 +230,9 @@ public abstract partial class Ui
     }
 
     /// <summary>The style <see cref="Text"/> draws in with these choices, for the runs of
-    /// <see cref="RichText"/>. Styles are kept per choice, so the same choices give the same style.</summary>
+    /// <see cref="RichText"/>. The same choices give the same style while it is asked for each frame;
+    /// one not asked for in a frame is made anew when next asked, an equal style but another object,
+    /// while one kept from before stays good to draw with.</summary>
     public TextStyle StyleText(uint? color = null, float? size = null, bool bold = false, string? family = null) =>
         TextStyleFor(size, color ?? Theme.Text, bold, Align.Start, family);
 

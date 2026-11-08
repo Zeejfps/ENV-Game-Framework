@@ -37,12 +37,12 @@ public abstract partial class Ui
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
-    private readonly Dictionary<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
+    private readonly FrameCache<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
     private readonly Dictionary<int, (object State, long LastFrame, int Owner)> _states = new();
     private readonly Dictionary<int, long> _keptStates = new();
     private readonly Stack<int> _stateOwners = new();
-    private readonly Dictionary<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
-    private readonly Dictionary<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
+    private readonly FrameCache<TextStyle, float> _lineHeights = new(ReferenceEqualityComparer.Instance);
+    private readonly FrameCache<TextStyle, CellMetrics> _cells = new(ReferenceEqualityComparer.Instance);
     private readonly FrameCache<StyledText, float> _widths = new();
     private readonly FrameCache<StyledText, float[]> _caretOffsets = new();
     private float _measuredScale;
@@ -704,10 +704,9 @@ public abstract partial class Ui
     public CellMetrics MeasureCell(float? size = null, bool bold = false, string? family = null)
     {
         var style = TextStyleFor(size, Theme.Text, bold, Align.Start, family);
-        ref var cell = ref CollectionsMarshal.GetValueRefOrAddDefault(_cells, style, out var exists);
-        if (!exists)
-            cell = _canvas.MeasureCellSize(style);
-        return cell;
+        if (_cells.TryGet(style, out var cell))
+            return cell;
+        return _cells.Keep(style, _canvas.MeasureCellSize(style));
     }
 
     internal float MeasureWidth(string text, TextStyle style)
@@ -730,33 +729,32 @@ public abstract partial class Ui
 
     internal float MeasureLineHeight(TextStyle style)
     {
-        ref var height = ref CollectionsMarshal.GetValueRefOrAddDefault(_lineHeights, style, out var exists);
-        if (!exists)
-            height = MathF.Ceiling(_canvas.MeasureTextLineHeight(style));
-        return height;
+        if (_lineHeights.TryGet(style, out var height))
+            return height;
+        return _lineHeights.Keep(style, MathF.Ceiling(_canvas.MeasureTextLineHeight(style)));
     }
 
-    // Widths are kept while their text was measured this frame or the last, so an unchanged
-    // screen is never re-shaped and text that stops being drawn ages out a frame later. A scale
-    // change re-rasterizes every font, so it invalidates everything.
+    // Measurements are kept while they were asked for this frame or the last, so an unchanged
+    // screen is never re-shaped and text that stops being drawn ages out a frame later. A scale or
+    // font change re-rasterizes every font, so it invalidates every measurement. Styles age the
+    // same way but stay through such a change, which alters what they measure, not what they are.
     private void BeginMeasurements()
     {
         var invalidate = _canvas.DpiScale != _measuredScale;
         if (invalidate)
-        {
             _measuredScale = _canvas.DpiScale;
-            _lineHeights.Clear();
-            _cells.Clear();
-        }
         BeginLines(invalidate);
         _widths.BeginFrame(invalidate);
         _caretOffsets.BeginFrame(invalidate);
+        _lineHeights.BeginFrame(invalidate);
+        _cells.BeginFrame(invalidate);
+        _textStyles.BeginFrame(invalidate: false);
     }
 
     internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family)
     {
         var key = (size ?? Theme.FontSize, color, bold, align, family ?? Theme.FontFamily);
-        if (_textStyles.TryGetValue(key, out var style))
+        if (_textStyles.TryGet(key, out var style))
             return style;
 
         style = new TextStyle
@@ -773,8 +771,7 @@ public abstract partial class Ui
             },
             VerticalAlignment = TextAlignment.Center,
         };
-        _textStyles[key] = style;
-        return style;
+        return _textStyles.Keep(key, style);
     }
 
     private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z)

@@ -4,8 +4,20 @@ namespace ZGF.Gui.Immediate;
 /// recomputes them and one no longer asked for ages out a frame later.</summary>
 internal sealed class FrameCache<TKey, TValue> where TKey : notnull
 {
-    private Dictionary<TKey, TValue> _current = new();
-    private Dictionary<TKey, TValue> _previous = new();
+    private Dictionary<TKey, TValue> _current;
+    private Dictionary<TKey, TValue> _previous;
+
+    public FrameCache() : this(EqualityComparer<TKey>.Default)
+    {
+    }
+
+    /// <param name="comparer">How keys compare: <see cref="ReferenceEqualityComparer"/> for keys that are
+    /// the same only when they are the same object.</param>
+    public FrameCache(IEqualityComparer<TKey> comparer)
+    {
+        _current = new Dictionary<TKey, TValue>(comparer);
+        _previous = new Dictionary<TKey, TValue>(comparer);
+    }
 
     /// <summary>The value kept for <paramref name="key"/>, which stays kept another frame.</summary>
     public bool TryGet(TKey key, out TValue value)
