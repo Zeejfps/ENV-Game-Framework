@@ -425,7 +425,9 @@ def make_proxy_g_body(cls):
     # private fields
     if isImpl:
       result.append(privateOrProtected + ' %s* _self;' % iname)
-      result.append(privateOrProtected + ' int _disposed = 0;')
+      # Only a ref-counted class disposes; a scoped one gets no dispose code, so it would never read the flag.
+      if isRefCountedImpl:
+        result.append(privateOrProtected + ' int _disposed = 0;')
       result.append('')
 
     isRefCounted = cls.get_parent_capi_name() == "cef_base_ref_counted_t"

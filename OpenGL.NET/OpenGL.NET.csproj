@@ -3,7 +3,8 @@
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <PublishAot>true</PublishAot>
+        <!-- A library is AOT-compatible; only the app it goes into publishes with AOT. -->
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

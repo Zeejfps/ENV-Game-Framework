@@ -27,7 +27,7 @@
         /// Return the handler for accessibility notifications. If no handler is
         /// provided the default implementation will be used.
         /// </summary>
-        protected abstract CefAccessibilityHandler GetAccessibilityHandler();
+        protected abstract CefAccessibilityHandler? GetAccessibilityHandler();
 
 
         private int get_root_screen_rect(cef_render_handler_t* self, cef_browser_t* browser, cef_rect_t* rect)

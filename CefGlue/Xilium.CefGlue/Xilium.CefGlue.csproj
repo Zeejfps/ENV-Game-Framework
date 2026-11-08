@@ -10,10 +10,15 @@
     <AssemblyName>Xilium.CefGlue</AssemblyName>
     <RootNamespace>Xilium.CefGlue</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Nullable>disable</Nullable>
+    <!-- The hand-written proxies and handlers mark what may be null with '?', which only means something with
+         annotations on. Not 'enable': the generated interop is not annotated, and flow warnings across it would be
+         noise. -->
+    <Nullable>annotations</Nullable>
     <LangVersion>latest</LangVersion>
-    <!-- CS1591: missing XML doc on generated interop; NU-style irrelevant here. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CS1591: missing XML doc on generated interop; NU-style irrelevant here.
+         CS8981: the interop class is named libcef, after the C library it binds, across generated and hand-written
+         files alike; renaming it for a name C# may one day reserve is churn in code the generator owns. -->
+    <NoWarn>$(NoWarn);CS1591;CS8981</NoWarn>
   </PropertyGroup>
 
   <!-- Wrapper/** (the CEF C++ wrapper) is not vendored; nothing else to remove.

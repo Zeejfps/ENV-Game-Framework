@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <PublishAot>true</PublishAot>
+        <!-- A library is AOT-compatible; only the app it goes into publishes with AOT. -->
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <!-- The bundled natives are patched GLFW (IME/preedit support), not stock — the composition

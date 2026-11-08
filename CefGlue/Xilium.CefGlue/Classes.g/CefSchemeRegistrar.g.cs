@@ -25,7 +25,6 @@ namespace Xilium.CefGlue
         }
         
         private cef_scheme_registrar_t* _self;
-        private int _disposed = 0;
         
         private CefSchemeRegistrar(cef_scheme_registrar_t* ptr)
         {

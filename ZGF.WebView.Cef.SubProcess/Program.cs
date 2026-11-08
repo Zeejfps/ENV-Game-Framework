@@ -16,7 +16,8 @@ CefRuntime.Load(LibCefDir(argv));
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && argv.Length > 0)
     argv = argv[1..];
 
-return CefRuntime.ExecuteProcess(new CefMainArgs(argv), new ZgfCefRenderApp());
+// No sandbox info: the helper runs CEF unsandboxed (--no-sandbox), and it is read only on Windows anyway.
+return CefRuntime.ExecuteProcess(new CefMainArgs(argv), new ZgfCefRenderApp(), IntPtr.Zero);
 
 static string LibCefDir(string[] argv)
 {

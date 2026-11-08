@@ -73,8 +73,13 @@ public sealed class ZgfCefRenderApp : CefApp
                 var context = CefV8Context.GetCurrentContext();
                 var frame = context.GetFrame();
                 using var message = CefProcessMessage.Create(QueryMessage);
-                message.Arguments.SetString(0, arguments[0].GetStringValue());
-                frame.SendProcessMessage(CefProcessId.Browser, message);
+                // A message made by Create holds an argument list; only one made over shared memory has none.
+                var list = message.Arguments;
+                if (list != null)
+                {
+                    list.SetString(0, arguments[0].GetStringValue());
+                    frame.SendProcessMessage(CefProcessId.Browser, message);
+                }
             }
 
             return true;

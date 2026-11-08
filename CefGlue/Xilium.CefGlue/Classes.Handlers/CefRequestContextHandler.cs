@@ -65,6 +65,6 @@
         /// CefRequestHandler::GetResourceRequestHandler for the same request
         /// (identified by CefRequest::GetIdentifier).
         /// </summary>
-        protected abstract CefResourceRequestHandler GetResourceRequestHandler(CefBrowser browser, CefFrame frame, CefRequest request, bool isNavigation, bool isDownload, string requestInitiator, ref bool disableDefaultHandling);
+        protected abstract CefResourceRequestHandler? GetResourceRequestHandler(CefBrowser browser, CefFrame frame, CefRequest request, bool isNavigation, bool isDownload, string requestInitiator, ref bool disableDefaultHandling);
     }
 }

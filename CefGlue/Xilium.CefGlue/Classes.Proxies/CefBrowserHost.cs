@@ -24,7 +24,7 @@
         /// the created browser that will be passed to
         /// CefRenderProcessHandler::OnBrowserCreated() in the render process.
         /// </summary>
-        public static void CreateBrowser(CefWindowInfo windowInfo, CefClient client, CefBrowserSettings settings, string url, CefDictionaryValue extraInfo = null, CefRequestContext requestContext = null)
+        public static void CreateBrowser(CefWindowInfo windowInfo, CefClient client, CefBrowserSettings settings, string url, CefDictionaryValue? extraInfo = null, CefRequestContext? requestContext = null)
         {
             if (windowInfo == null) throw new ArgumentNullException("windowInfo");
             if (client == null) throw new ArgumentNullException("client");
@@ -55,7 +55,7 @@
         /// passed to CefRenderProcessHandler::OnBrowserCreated() in the render
         /// process.
         /// </summary>
-        public static CefBrowser CreateBrowserSync(CefWindowInfo windowInfo, CefClient client, CefBrowserSettings settings, string url, CefDictionaryValue extraInfo = null, CefRequestContext requestContext = null)
+        public static CefBrowser CreateBrowserSync(CefWindowInfo windowInfo, CefClient client, CefBrowserSettings settings, string url, CefDictionaryValue? extraInfo = null, CefRequestContext? requestContext = null)
         {
             if (windowInfo == null) throw new ArgumentNullException("windowInfo");
             if (client == null) throw new ArgumentNullException("client");

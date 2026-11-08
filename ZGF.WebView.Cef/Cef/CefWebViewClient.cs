@@ -91,11 +91,13 @@ internal sealed class CefWebViewClient : CefClient
     protected override bool OnProcessMessageReceived(
         CefBrowser browser, CefFrame frame, CefProcessId sourceProcess, CefProcessMessage message)
     {
-        if (message.Name == ZgfCefRenderApp.QueryMessage && message.Arguments.Count >= 1)
+        // Null for a message that carries shared memory, which the render process never sends.
+        var arguments = message.Arguments;
+        if (message.Name == ZgfCefRenderApp.QueryMessage && arguments != null && arguments.Count >= 1)
         {
             if (!frame.IsMain)
                 return true;
-            _owner.RaiseMessage(message.Arguments.GetString(0));
+            _owner.RaiseMessage(arguments.GetString(0));
             return true;
         }
         return false;
