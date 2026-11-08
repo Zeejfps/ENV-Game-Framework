@@ -59,6 +59,13 @@ public static partial class UiWidgets
         /// negative until the first of them.</summary>
         public float GoalX = -1f;
 
+        /// <summary>The text with the composition in it at the caret, as <see cref="GetShownText"/>
+        /// last made it, and what it was made from.</summary>
+        public string Shown = "";
+        public string ShownFrom = "";
+        public PreeditText ShownPreedit = PreeditText.Empty;
+        public int ShownCaret;
+
         public int Caret => Selection.Caret;
         public int Anchor => Selection.Anchor;
         public bool HasSelection => Selection.HasSelection;
@@ -219,7 +226,7 @@ public static partial class UiWidgets
         if (!focused)
             preedit = PreeditText.Empty;
 
-        var shown = preedit.IsEmpty ? text : text.Insert(state.Caret, preedit.Text);
+        var shown = GetShownText(state, text, preedit);
         var caretX = 0f;
         var anchorX = 0f;
         var lineHeight = ui.LineHeight();
@@ -285,6 +292,22 @@ public static partial class UiWidgets
             }
         }
         return submitted;
+    }
+
+    /// <summary>What the field shows: <paramref name="text"/> with <paramref name="preedit"/> in it at
+    /// the caret, made again only when one of them or the caret changed, so a composition held still
+    /// allocates nothing.</summary>
+    private static string GetShownText(TextFieldState state, string text, PreeditText preedit)
+    {
+        if (preedit.IsEmpty)
+            return text;
+        if (ReferenceEquals(preedit, state.ShownPreedit) && state.Caret == state.ShownCaret && text == state.ShownFrom)
+            return state.Shown;
+        state.Shown = text.Insert(state.Caret, preedit.Text);
+        state.ShownFrom = text;
+        state.ShownPreedit = preedit;
+        state.ShownCaret = state.Caret;
+        return state.Shown;
     }
 
     /// <summary>Takes up <paramref name="text"/> when the caller changed it since the field last

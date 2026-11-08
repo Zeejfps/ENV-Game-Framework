@@ -87,7 +87,7 @@ public static partial class UiWidgets
         if (!focused)
             preedit = PreeditText.Empty;
 
-        var shown = preedit.IsEmpty ? text : text.Insert(state.Caret, preedit.Text);
+        var shown = GetShownText(state, text, preedit);
         var shownCaret = state.Caret + preedit.Caret;
         if (focused)
         {

@@ -265,6 +265,24 @@ public sealed class TextFieldTests
     }
 
     [Fact]
+    public void A_composition_held_still_shows_the_same_text_each_frame_and_a_changed_one_shows_anew()
+    {
+        var field = new Field("ab");
+        field.Click(1);
+        field.Compose("xy");
+        string Shown() => field.Frames.TextRects().Single(t => t.Text.StartsWith('a')).Text;
+        var first = Shown();
+
+        field.Frame();
+
+        Assert.Same(first, Shown());
+
+        field.Compose("xyz");
+
+        Assert.Equal("axyzb", Shown());
+    }
+
+    [Fact]
     public void A_composition_replaces_the_selection()
     {
         var field = new Field("hello world");
