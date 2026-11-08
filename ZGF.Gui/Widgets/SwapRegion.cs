@@ -18,7 +18,7 @@ namespace ZGF.Gui.Widgets;
 /// <see cref="SetAuthorVisible"/> and combined with that, rather than the two writing over each
 /// other.</para>
 /// </summary>
-internal sealed class SwapRegion<T> : IViewBehavior
+internal sealed class SwapRegion<T> : IViewBehavior where T : notnull
 {
     private readonly Context _ctx;
     private readonly ContainerView _host;

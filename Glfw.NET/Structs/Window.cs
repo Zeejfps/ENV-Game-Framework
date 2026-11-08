@@ -68,7 +68,7 @@ namespace GLFW
         /// <returns>
         ///     <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is Window window)
                 return Equals(window);

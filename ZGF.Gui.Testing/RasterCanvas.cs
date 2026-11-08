@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using PngSharp.Api;
 using ZGF.Fonts;
@@ -58,6 +59,7 @@ public sealed class RasterCanvas : RenderedCanvasBase
         AllocBuffer();
     }
 
+    [MemberNotNull(nameof(_rgba))]
     private void AllocBuffer()
     {
         _fbW = DeviceWidth;

@@ -14,7 +14,7 @@ namespace ZGF.Gui.Widgets;
 /// reloads on every switch). Keep-alive caches one view per distinct value, so use it for small,
 /// bounded value domains (enums), not open-ended keys.</para>
 /// </summary>
-public sealed record Switch<T> : Widget
+public sealed record Switch<T> : Widget where T : notnull
 {
     public required IReadable<T> Value { get; init; }
     public required Func<T, IWidget> Case { get; init; }

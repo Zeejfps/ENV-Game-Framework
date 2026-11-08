@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.Versioning;
 using PngSharp.Api;
 using PngSharp.Spec.Chunks.IHDR;
 using ZGF.Gui.OpenGL.Windows;
@@ -13,6 +14,7 @@ public sealed unsafe class GlImageManager : IDisposable
     private readonly Dictionary<string, Size> _sizeByImageId = new();
     private readonly List<uint> _ownedTextures = new();
     private readonly List<uint> _ownedFrameBuffers = new();
+    [SupportedOSPlatform("windows")]
     private readonly Dictionary<string, D3D11GlTexture> _sharedByImageId = new();
     private readonly GetProcAddressDelegate? _getProcAddress;
     private SharedTextureBridge _bridge = new SharedTextureBridge.NotCreated();
@@ -107,7 +109,7 @@ public sealed unsafe class GlImageManager : IDisposable
 
     /// <summary>Shared textures are stored top row first, so they are drawn with flipped UVs.</summary>
     public Vector4 GetSrcUv(string imageId) =>
-        _sharedByImageId.ContainsKey(imageId) ? new Vector4(0f, 1f, 1f, -1f) : new Vector4(0f, 0f, 1f, 1f);
+        OperatingSystem.IsWindows() && _sharedByImageId.ContainsKey(imageId) ? new Vector4(0f, 1f, 1f, -1f) : new Vector4(0f, 0f, 1f, 1f);
 
     public bool SupportsSharedTextures(SharedTextureKind kind) => kind switch
     {
@@ -125,7 +127,7 @@ public sealed unsafe class GlImageManager : IDisposable
         switch (texture.Kind)
         {
             case SharedTextureKind.D3D11NtHandle:
-                return CopyD3D11Texture(imageId, texture.Handle);
+                return OperatingSystem.IsWindows() && CopyD3D11Texture(imageId, texture.Handle);
             case SharedTextureKind.IOSurface:
                 return false;
             default:
@@ -133,6 +135,7 @@ public sealed unsafe class GlImageManager : IDisposable
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private bool CopyD3D11Texture(string imageId, nint ntHandle)
     {
         if (GetBridge() is not SharedTextureBridge.Created created)
@@ -179,6 +182,7 @@ public sealed unsafe class GlImageManager : IDisposable
         return _bridge;
     }
 
+    [SupportedOSPlatform("windows")]
     private void ForgetSharedImage(string imageId)
     {
         _sharedByImageId.Remove(imageId);
@@ -199,7 +203,8 @@ public sealed unsafe class GlImageManager : IDisposable
     /// </summary>
     public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
     {
-        RemoveSharedImage(imageId);
+        if (OperatingSystem.IsWindows())
+            RemoveSharedImage(imageId);
         var flipped = FlipRows(rgbaTopDown, width, height);
 
         if (_textureIdByImageId.TryGetValue(imageId, out var textureId))
@@ -231,13 +236,14 @@ public sealed unsafe class GlImageManager : IDisposable
 
     public void RemoveImage(string imageId)
     {
-        if (RemoveSharedImage(imageId))
+        if (OperatingSystem.IsWindows() && RemoveSharedImage(imageId))
             return;
         if (!_textureIdByImageId.Remove(imageId, out var textureId))
             return;
         DeleteOwnedTexture(imageId, textureId);
     }
 
+    [SupportedOSPlatform("windows")]
     private bool RemoveSharedImage(string imageId)
     {
         if (!_sharedByImageId.TryGetValue(imageId, out var shared))
@@ -334,13 +340,20 @@ public sealed unsafe class GlImageManager : IDisposable
         return output;
     }
 
-    public void Dispose()
+    [SupportedOSPlatform("windows")]
+    private void DisposeShared()
     {
         foreach (var shared in _sharedByImageId.Values)
             shared.Dispose();
         _sharedByImageId.Clear();
         if (_bridge is SharedTextureBridge.Created created)
             created.Bridge.Dispose();
+    }
+
+    public void Dispose()
+    {
+        if (OperatingSystem.IsWindows())
+            DisposeShared();
         _bridge = new SharedTextureBridge.Unavailable("disposed");
 
         foreach (var fb in _ownedFrameBuffers)
@@ -365,6 +378,6 @@ internal abstract record SharedTextureBridge
 {
     public sealed record NotCreated : SharedTextureBridge;
     public sealed record Unavailable(string Reason) : SharedTextureBridge;
-    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows")]
     public sealed record Created(D3D11GlBridge Bridge) : SharedTextureBridge;
 }

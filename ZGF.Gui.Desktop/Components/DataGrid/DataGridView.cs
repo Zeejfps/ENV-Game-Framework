@@ -83,18 +83,18 @@ public sealed class DataGridView<TItem> : View
         Columns.Changed += OnColumnsResized;
 
         AddChildToSelf(_list);
+    }
 
-        void BindRowAt(DataGridPreviewRow<TItem> row, int index)
-        {
-            _source.EnsureWindow(index, index);
-            if (!_source.TryGetItem(index, out var item)) return;
-            row.Bind(item, new DataGridRowState(
-                Selected: _selected.Contains(KeyOf(index, item)),
-                Hovered: _list.HoveredIndex == index || _list.ContextHighlightIndex == index,
-                Stripe: (index & 1) == 1,
-                Focused: _editing && index == _focusRow,
-                Flash: index == _flashIndex));
-        }
+    private void BindRowAt(DataGridPreviewRow<TItem> row, int index)
+    {
+        _source.EnsureWindow(index, index);
+        if (!_source.TryGetItem(index, out var item)) return;
+        row.Bind(item, new DataGridRowState(
+            Selected: _selected.Contains(KeyOf(index, item)),
+            Hovered: _list.HoveredIndex == index || _list.ContextHighlightIndex == index,
+            Stripe: (index & 1) == 1,
+            Focused: _editing && index == _focusRow,
+            Flash: index == _flashIndex));
     }
 
     public DataGridStyle Style { get; }

@@ -245,10 +245,6 @@ public static class OpenGlUtils
             GL46.glGetShaderInfoLog(shader, bufSize, &length, source);
             return PtrToStringUtf8(buffer, length);
         }
-        catch (Exception)
-        {
-            return null;
-        }
         finally
         {
             Marshal.FreeHGlobal(buffer);

@@ -4,7 +4,7 @@ namespace ZGF.Gui.Desktop.Components.ContextMenu;
 
 public sealed class ContextMenuItemData
 {
-    public string Text { get; set; }
+    public required string Text { get; set; }
 }
 
 public sealed class ContextMenuItem : View

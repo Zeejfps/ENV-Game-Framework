@@ -106,7 +106,7 @@ namespace GLFW
                 for (var i = 0; i < count; i++, offset += IntPtr.Size)
                 {
                     var p = Marshal.ReadIntPtr(ptr, offset);
-                    extensions[i] = Marshal.PtrToStringAnsi(p);
+                    extensions[i] = Marshal.PtrToStringAnsi(p) ?? string.Empty;
                 }
             }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
@@ -17,7 +18,7 @@ namespace GLFW
         /// </summary>
         /// <param name="window">A <see cref="NativeWindow" /> instance to compare for equality.</param>
         /// <returns><c>true</c> if objects represent the same window, otherwise <c>false</c>.</returns>
-        public bool Equals(NativeWindow window)
+        public bool Equals(NativeWindow? window)
         {
             if (ReferenceEquals(null, window)) return false;
             return ReferenceEquals(this, window) || Window.Equals(window.Window);
@@ -35,7 +36,7 @@ namespace GLFW
         /// <summary>
         ///     Occurs when the content scale has been changed.
         /// </summary>
-        public event EventHandler<ContentScaleEventArgs> ContentScaleChanged;
+        public event EventHandler<ContentScaleEventArgs>? ContentScaleChanged;
 
         /// <summary>
         ///     Raises the <see cref="ContentScaleChanged" /> event.
@@ -48,7 +49,7 @@ namespace GLFW
         }
 
         /// <inheritdoc cref="Object.Equals(object)" />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return ReferenceEquals(this, obj) || obj is NativeWindow other && Equals(other);
         }
@@ -467,7 +468,7 @@ namespace GLFW
             get => title;
             set
             {
-                title = value;
+                title = value ?? string.Empty;
                 Glfw.SetWindowTitle(Window, value ?? string.Empty);
             }
         }
@@ -781,6 +782,7 @@ namespace GLFW
             }
         }
 
+        [MemberNotNull(nameof(windowPositionCallback), nameof(windowSizeCallback), nameof(windowFocusCallback), nameof(closeCallback), nameof(dropCallback), nameof(cursorPositionCallback), nameof(cursorEnterCallback), nameof(mouseButtonCallback), nameof(scrollCallback), nameof(charModsCallback), nameof(framebufferSizeCallback), nameof(windowRefreshCallback), nameof(keyCallback), nameof(windowMaximizeCallback), nameof(windowContentScaleCallback))]
         private void BindCallbacks()
         {
             windowPositionCallback = (_, x, y) => OnPositionChanged(x, y);
@@ -836,102 +838,102 @@ namespace GLFW
         /// <summary>
         ///     Occurs when the window is maximized or restored.
         /// </summary>
-        public event EventHandler<MaximizeEventArgs> MaximizeChanged;
+        public event EventHandler<MaximizeEventArgs>? MaximizeChanged;
 
         /// <summary>
         ///     Occurs when the window receives character input.
         /// </summary>
-        public event EventHandler<CharEventArgs> CharacterInput;
+        public event EventHandler<CharEventArgs>? CharacterInput;
 
         /// <summary>
         ///     Occurs when the window is closed.
         /// </summary>
-        public event EventHandler Closed;
+        public event EventHandler? Closed;
 
         /// <summary>
         ///     Occurs when the form is closing, and provides subscribers means of canceling the action..
         /// </summary>
-        public event CancelEventHandler Closing;
+        public event CancelEventHandler? Closing;
 
         /// <summary>
         ///     Occurs when the window is disposed.
         /// </summary>
-        public event EventHandler Disposed;
+        public event EventHandler? Disposed;
 
         /// <summary>
         ///     Occurs when files are dropped onto the window client area with a drag-drop event.
         /// </summary>
-        public event EventHandler<FileDropEventArgs> FileDrop;
+        public event EventHandler<FileDropEventArgs>? FileDrop;
 
         /// <summary>
         ///     Occurs when the window gains or loses focus.
         /// </summary>
-        public event EventHandler FocusChanged;
+        public event EventHandler? FocusChanged;
 
         /// <summary>
         ///     Occurs when the size of the internal framebuffer is changed.
         /// </summary>
-        public event EventHandler<SizeChangeEventArgs> FramebufferSizeChanged;
+        public event EventHandler<SizeChangeEventArgs>? FramebufferSizeChanged;
 
         /// <summary>
         ///     Occurs when a key is pressed, released, or repeated.
         /// </summary>
-        public event EventHandler<KeyEventArgs> KeyAction;
+        public event EventHandler<KeyEventArgs>? KeyAction;
 
         /// <summary>
         ///     Occurs when a key is pressed.
         /// </summary>
-        public event EventHandler<KeyEventArgs> KeyPress;
+        public event EventHandler<KeyEventArgs>? KeyPress;
 
         /// <summary>
         ///     Occurs when a key is released.
         /// </summary>
-        public event EventHandler<KeyEventArgs> KeyRelease;
+        public event EventHandler<KeyEventArgs>? KeyRelease;
 
         /// <summary>
         ///     Occurs when a key is held long enough to raise a repeat event.
         /// </summary>
-        public event EventHandler<KeyEventArgs> KeyRepeat;
+        public event EventHandler<KeyEventArgs>? KeyRepeat;
 
         /// <summary>
         ///     Occurs when a mouse button is pressed or released.
         /// </summary>
-        public event EventHandler<MouseButtonEventArgs> MouseButton;
+        public event EventHandler<MouseButtonEventArgs>? MouseButton;
 
         /// <summary>
         ///     Occurs when the mouse cursor enters the client area of the window.
         /// </summary>
-        public event EventHandler MouseEnter;
+        public event EventHandler? MouseEnter;
 
         /// <summary>
         ///     Occurs when the mouse cursor leaves the client area of the window.
         /// </summary>
-        public event EventHandler MouseLeave;
+        public event EventHandler? MouseLeave;
 
         /// <summary>
         ///     Occurs when mouse cursor is moved.
         /// </summary>
-        public event EventHandler<MouseMoveEventArgs> MouseMoved;
+        public event EventHandler<MouseMoveEventArgs>? MouseMoved;
 
         /// <summary>
         ///     Occurs when mouse is scrolled.
         /// </summary>
-        public event EventHandler<MouseMoveEventArgs> MouseScroll;
+        public event EventHandler<MouseMoveEventArgs>? MouseScroll;
 
         /// <summary>
         ///     Occurs when position of the <see cref="NativeWindow" /> is changed.
         /// </summary>
-        public event EventHandler PositionChanged;
+        public event EventHandler? PositionChanged;
 
         /// <summary>
         ///     Occurs when window is refreshed.
         /// </summary>
-        public event EventHandler Refreshed;
+        public event EventHandler? Refreshed;
 
         /// <summary>
         ///     Occurs when size of the <see cref="NativeWindow" /> is changed.
         /// </summary>
-        public event EventHandler<SizeChangeEventArgs> SizeChanged;
+        public event EventHandler<SizeChangeEventArgs>? SizeChanged;
 
         /// <summary>
         ///     Raises the <see cref="CharacterInput" /> event.

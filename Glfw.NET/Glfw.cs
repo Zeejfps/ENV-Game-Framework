@@ -76,7 +76,7 @@ namespace GLFW
         /// </summary>
         /// <param name="description">The description string, or <c>null</c> if there is no error.</param>
         /// <returns>The error code.</returns>
-        public static ErrorCode GetError(out string description)
+        public static ErrorCode GetError(out string? description)
         {
             var code = GetErrorPrivate(out var ptr);
             description = code == ErrorCode.None ? null : Util.PtrToStringUTF8(ptr);
@@ -308,7 +308,7 @@ namespace GLFW
         /// </summary>
         /// <param name="joystickId">The joystick to query.</param>
         /// <returns>The GUID of the joystick, or <c>null</c> if the joystick is not present or an error occurred.</returns>
-        public static string GetJoystickGuid(Joystick joystickId)
+        public static string? GetJoystickGuid(Joystick joystickId)
         {
             var ptr = GetJoystickGuidPrivate((int)joystickId);
             return ptr == IntPtr.Zero ? null : Util.PtrToStringUTF8(ptr);
@@ -367,7 +367,7 @@ namespace GLFW
         ///     The name of the gamepad, or <c>null</c> if the joystick is not present, does not have a mapping or an error
         ///     occurred.
         /// </returns>
-        public static string GetGamepadName(Joystick gamepadId)
+        public static string? GetGamepadName(Joystick gamepadId)
         {
             var ptr = GetGamepadNamePrivate((int)gamepadId);
             return ptr == IntPtr.Zero ? null : Util.PtrToStringUTF8(ptr);
