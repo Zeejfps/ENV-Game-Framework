@@ -178,6 +178,17 @@ public static partial class UiWidgets
         return true;
     }
 
+    /// <summary>A checkbox for a group of choices as <see cref="Checkbox(Ui, string, ref bool?, uint?, string?, bool, Sizing?, bool, bool)"/>,
+    /// labelled with <paramref name="label"/>'s runs as the two-state
+    /// <see cref="Checkbox(Ui, IReadOnlyList{RichTextRun}, uint, ref bool, string, bool, Sizing?, bool)"/> is.</summary>
+    public static bool Checkbox(this Ui ui, IReadOnlyList<RichTextRun> label, uint markBackground, ref bool? value, string id, bool enabled = true,
+        Sizing? width = null, bool compact = false)
+    {
+        if (!DrawCheckbox(ui, id, label, markBackground, value, null, id, enabled, width, false, compact)) return false;
+        value = value != true;
+        return true;
+    }
+
     private static bool DrawCheckbox(Ui ui, string label, IReadOnlyList<RichTextRun>? runs, uint markBackground, bool? value, uint? textColor,
         string? id, bool enabled, Sizing? width, bool bold, bool compact)
     {
