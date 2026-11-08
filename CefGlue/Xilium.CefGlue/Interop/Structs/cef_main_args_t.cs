@@ -17,7 +17,7 @@
 
         static cef_main_args_t_windows()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_main_args_t_windows));
+            _sizeof = Marshal.SizeOf<cef_main_args_t_windows>();
         }
 
         public static cef_main_args_t_windows* Alloc()
@@ -45,7 +45,7 @@
 
         static cef_main_args_t_posix()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_main_args_t_posix));
+            _sizeof = Marshal.SizeOf<cef_main_args_t_posix>();
         }
 
         public static cef_main_args_t_posix* Alloc()

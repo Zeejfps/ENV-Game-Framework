@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_run_file_dialog_callback_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_run_file_dialog_callback_t));
+            _sizeof = sizeof(cef_run_file_dialog_callback_t);
         }
         
         internal static cef_run_file_dialog_callback_t* Alloc()

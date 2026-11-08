@@ -874,15 +874,6 @@
         }
 
         /// <summary>
-        /// Returns the extension hosted in this browser or NULL if no extension is
-        /// hosted. See CefRequestContext::LoadExtension for details.
-        /// </summary>
-        public CefExtension GetExtension()
-        {
-            throw new NotSupportedException("Removed in CEF 150.");
-        }
-
-        /// <summary>
         /// Returns true if this browser is hosting an extension background script.
         /// Background hosts do not have a window and are not displayable. See
         /// CefRequestContext::LoadExtension for details.

@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_media_sink_device_info_callback_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_media_sink_device_info_callback_t));
+            _sizeof = sizeof(cef_media_sink_device_info_callback_t);
         }
         
         internal static cef_media_sink_device_info_callback_t* Alloc()

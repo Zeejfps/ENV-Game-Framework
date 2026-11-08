@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_download_image_callback_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_download_image_callback_t));
+            _sizeof = sizeof(cef_download_image_callback_t);
         }
         
         internal static cef_download_image_callback_t* Alloc()

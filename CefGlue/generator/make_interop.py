@@ -225,7 +225,8 @@ def make_struct_members(cls):
     for func in static_funcs:
         append_dllimport(result, func)
 
-    for func in funcs:
+    # Only a handler needs delegate types, which CEF calls back through; a proxy calls through function pointers.
+    for func in (funcs if schema.is_handler(cls) else []):
         postfixs = schema.get_platform_retval_postfixs(func['csn_retval'])
         for px in postfixs:
             func['px'] = px
@@ -241,25 +242,19 @@ def make_struct_members(cls):
             postfixs = schema.get_platform_retval_postfixs(func['csn_retval'])
             for px in postfixs:
                 func['px'] = px
+                # A call through an unmanaged function pointer, in CEF's calling convention (CEF_CALLBACK, the
+                # platform default), which needs no delegate and no marshalling stub made at run time, so it is
+                # safe under native AOT, where GetDelegateForFunctionPointer is not.
+                fptr = 'delegate* unmanaged<%s>' % ', '.join([a['type'] for a in func['csn_args']] + [func['csn_retval'] + px])
+                args = ', '.join(map(lambda x: x['name'], func['csn_args']))
                 result.append('// %(name)s' % func)
-                result.append('private static IntPtr _p%(slot)s%(px)s;' % func)
-                result.append('private static %(delegate_type)s%(px)s _d%(slot)s%(px)s;' % func)
-                result.append('')
                 result.append('public static %(csn_retval)s%(px)s %(csn_name)s%(px)s(%(csn_args_proto)s)' % func)
                 result.append('{')
-                result.append('    %(delegate_type)s%(px)s d;' % func)
-                result.append('    var p = self->%(field_name)s;' % func)
-                result.append('    if (p == _p%(slot)s%(px)s) { d = _d%(slot)s%(px)s; }' % func)
-                result.append('    else')
-                result.append('    {')
-                result.append('        d = (%(delegate_type)s%(px)s)Marshal.GetDelegateForFunctionPointer(p, typeof(%(delegate_type)s%(px)s));' % func)
-                result.append('        if (_p%(slot)s%(px)s == IntPtr.Zero) { _d%(slot)s%(px)s = d; _p%(slot)s%(px)s = p; }' % func)
-                result.append('    }')
-                args = ', '.join(map(lambda x: x['name'], func['csn_args']))
+                call = '((%s)self->%s)(%s);' % (fptr, func['field_name'], args)
                 if func['csn_retval'] == 'void':
-                    result.append('    d(%s);' % args)
+                    result.append('    ' + call)
                 else:
-                    result.append('    return d(%s);' % args)
+                    result.append('    return ' + call)
                 result.append('}')
                 result.append('')
 
@@ -269,7 +264,7 @@ def make_struct_members(cls):
         result.append('')
         result.append('static %s()' % iname)
         result.append('{')
-        result.append(indent + '_sizeof = Marshal.SizeOf(typeof(%s));' % iname)
+        result.append(indent + '_sizeof = sizeof(%s);' % iname)
         result.append('}')
         result.append('')
 

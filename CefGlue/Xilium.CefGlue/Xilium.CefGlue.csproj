@@ -15,6 +15,9 @@
          noise. -->
     <Nullable>annotations</Nullable>
     <LangVersion>latest</LangVersion>
+    <!-- Apps publish with native AOT, the CEF helper too, so every build checks this one is safe there: the
+         generated interop calls CEF through unmanaged function pointers, never GetDelegateForFunctionPointer. -->
+    <IsAotCompatible>true</IsAotCompatible>
     <!-- CS1591: missing XML doc on generated interop; NU-style irrelevant here.
          CS8981: the interop class is named libcef, after the C library it binds, across generated and hand-written
          files alike; renaming it for a name C# may one day reserve is churn in code the generator owns. -->

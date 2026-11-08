@@ -77,7 +77,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_urlrequest_client_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_urlrequest_client_t));
+            _sizeof = sizeof(cef_urlrequest_client_t);
         }
         
         internal static cef_urlrequest_client_t* Alloc()

@@ -26,7 +26,7 @@ namespace Xilium.CefGlue.Interop
 
         static cef_touch_event_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_touch_event_t));
+            _sizeof = Marshal.SizeOf<cef_touch_event_t>();
         }
 
         public static cef_touch_event_t* Alloc()

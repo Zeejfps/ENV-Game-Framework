@@ -56,7 +56,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_accessibility_handler_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_accessibility_handler_t));
+            _sizeof = sizeof(cef_accessibility_handler_t);
         }
         
         internal static cef_accessibility_handler_t* Alloc()

@@ -15,50 +15,16 @@ namespace Xilium.CefGlue.Interop
         internal cef_base_scoped_t _base;
         internal IntPtr _add_preference;
         
-        [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
-        #if !DEBUG
-        [SuppressUnmanagedCodeSecurity]
-        #endif
-        private delegate void del_delegate(cef_preference_registrar_t* self);
-        
-        [UnmanagedFunctionPointer(libcef.CEF_CALLBACK)]
-        #if !DEBUG
-        [SuppressUnmanagedCodeSecurity]
-        #endif
-        private delegate int add_preference_delegate(cef_preference_registrar_t* self, cef_string_t* name, cef_value_t* default_value);
-        
         // Del
-        private static IntPtr _p0;
-        private static del_delegate _d0;
-        
         public static void del(cef_preference_registrar_t* self)
         {
-            del_delegate d;
-            var p = self->_base._del;
-            if (p == _p0) { d = _d0; }
-            else
-            {
-                d = (del_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(del_delegate));
-                if (_p0 == IntPtr.Zero) { _d0 = d; _p0 = p; }
-            }
-            d(self);
+            ((delegate* unmanaged<cef_preference_registrar_t*, void>)self->_base._del)(self);
         }
         
         // AddPreference
-        private static IntPtr _p1;
-        private static add_preference_delegate _d1;
-        
         public static int add_preference(cef_preference_registrar_t* self, cef_string_t* name, cef_value_t* default_value)
         {
-            add_preference_delegate d;
-            var p = self->_add_preference;
-            if (p == _p1) { d = _d1; }
-            else
-            {
-                d = (add_preference_delegate)Marshal.GetDelegateForFunctionPointer(p, typeof(add_preference_delegate));
-                if (_p1 == IntPtr.Zero) { _d1 = d; _p1 = p; }
-            }
-            return d(self, name, default_value);
+            return ((delegate* unmanaged<cef_preference_registrar_t*, cef_string_t*, cef_value_t*, int>)self->_add_preference)(self, name, default_value);
         }
         
     }

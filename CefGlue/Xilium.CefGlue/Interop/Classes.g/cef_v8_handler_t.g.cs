@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_v8_handler_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_v8_handler_t));
+            _sizeof = sizeof(cef_v8_handler_t);
         }
         
         internal static cef_v8_handler_t* Alloc()

@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_set_cookie_callback_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_set_cookie_callback_t));
+            _sizeof = sizeof(cef_set_cookie_callback_t);
         }
         
         internal static cef_set_cookie_callback_t* Alloc()

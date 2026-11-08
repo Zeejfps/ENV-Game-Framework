@@ -77,7 +77,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_dev_tools_message_observer_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_dev_tools_message_observer_t));
+            _sizeof = sizeof(cef_dev_tools_message_observer_t);
         }
         
         internal static cef_dev_tools_message_observer_t* Alloc()

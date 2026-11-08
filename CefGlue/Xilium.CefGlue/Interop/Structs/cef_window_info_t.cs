@@ -34,7 +34,7 @@ namespace Xilium.CefGlue.Interop
 
         static cef_window_info_t_windows()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_window_info_t_windows));
+            _sizeof = Marshal.SizeOf<cef_window_info_t_windows>();
         }
 
         public static cef_window_info_t_windows* Alloc()
@@ -71,7 +71,7 @@ namespace Xilium.CefGlue.Interop
 
         static cef_window_info_t_linux()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_window_info_t_linux));
+            _sizeof = Marshal.SizeOf<cef_window_info_t_linux>();
         }
 
         public static cef_window_info_t_linux* Alloc()
@@ -111,7 +111,7 @@ namespace Xilium.CefGlue.Interop
 
         static cef_window_info_t_mac()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_window_info_t_mac));
+            _sizeof = Marshal.SizeOf<cef_window_info_t_mac>();
         }
 
         public static cef_window_info_t_mac* Alloc()

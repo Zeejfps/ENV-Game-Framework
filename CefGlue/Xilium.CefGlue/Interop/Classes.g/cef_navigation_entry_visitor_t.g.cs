@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_navigation_entry_visitor_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_navigation_entry_visitor_t));
+            _sizeof = sizeof(cef_navigation_entry_visitor_t);
         }
         
         internal static cef_navigation_entry_visitor_t* Alloc()

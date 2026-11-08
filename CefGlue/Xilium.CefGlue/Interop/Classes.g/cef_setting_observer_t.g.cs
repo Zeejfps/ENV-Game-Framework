@@ -49,7 +49,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_setting_observer_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_setting_observer_t));
+            _sizeof = sizeof(cef_setting_observer_t);
         }
         
         internal static cef_setting_observer_t* Alloc()

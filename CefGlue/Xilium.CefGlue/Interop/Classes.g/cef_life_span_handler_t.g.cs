@@ -84,7 +84,7 @@ namespace Xilium.CefGlue.Interop
         
         static cef_life_span_handler_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_life_span_handler_t));
+            _sizeof = sizeof(cef_life_span_handler_t);
         }
         
         internal static cef_life_span_handler_t* Alloc()

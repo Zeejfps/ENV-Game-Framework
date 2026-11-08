@@ -40,7 +40,7 @@ namespace Xilium.CefGlue.Interop
 
         static cef_pdf_print_settings_t()
         {
-            _sizeof = Marshal.SizeOf(typeof(cef_pdf_print_settings_t));
+            _sizeof = Marshal.SizeOf<cef_pdf_print_settings_t>();
         }
 
         public static cef_pdf_print_settings_t* Alloc()

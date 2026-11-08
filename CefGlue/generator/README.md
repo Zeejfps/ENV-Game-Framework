@@ -8,7 +8,7 @@ against **CEF 150** instead of the frozen-at-120 upstream.
 Upstream CefGlue is pinned at `CEF_VERSION_MAJOR = 120`. CEF introduced its
 **API-versioning** system after 120 (≈127), which the 120-era generator predates.
 The changes here are a clean upstream-PR candidate. [`cef150-generator.patch`](cef150-generator.patch)
-captures fixes 1–3; **fix 4 (`get_capi_name`) is in the generator source but not yet in the
+captures fixes 1–3; **fixes 4 and 5 are in the generator source but not yet in the
 patch — regenerate the patch against upstream before opening a PR.** The changes are:
 
 1. **`cef_parser.py` — API-version resolution.** A minimal C-preprocessor pass
@@ -51,6 +51,18 @@ patch — regenerate the patch against upstream before opening a PR.** The chang
    future rule change, regenerate, delete stale old-name `*.g.cs`, and re-run the sed
    over hand-written type/method references (also affects internal names like
    `base64encode`→`base64_encode`, `get_v8context`→`get_v8_context`).
+
+5. **`make_interop.py` — proxies call CEF through function pointers.** A proxy's method
+   called CEF's vtable slot through a delegate made by
+   `Marshal.GetDelegateForFunctionPointer(p, typeof(…))`, which needs marshalling code made
+   at run time and is unsafe under native AOT (IL3050). It now casts the slot to
+   `delegate* unmanaged<…>` (no calling convention named: the platform default, which is
+   `CEF_CALLBACK`) and calls it, and proxies declare no delegate types. Every type passed by
+   value is a primitive, an enum or a blittable struct, so nothing is marshalled. A handler's
+   struct size is `sizeof(…)` rather than `Marshal.SizeOf(typeof(…))`. Handlers still hand CEF
+   `Marshal.GetFunctionPointerForDelegate` of their delegates, which is AOT-safe.
+   `Xilium.CefGlue` sets `IsAotCompatible`, so a change that brings the old pattern back
+   warns on every build.
 
 ## Run
 
