@@ -8,6 +8,9 @@
         <!-- V8 rewrites return addresses, which CET shadow stacks kill the renderer for (fastfail 0x39).
              Chromium's sandbox turns CET off for renderers; without the sandbox the helper must opt out. -->
         <CetCompat>false</CetCompat>
+        <!-- Published with the app's RID by ZGF.WebView.Cef.targets, so it runs where no .NET is installed. Set
+             here rather than passed in, which would reach the projects it references too. -->
+        <PublishAot>true</PublishAot>
     </PropertyGroup>
 
     <ItemGroup>

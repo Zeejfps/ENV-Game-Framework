@@ -15,6 +15,7 @@
 
     <PropertyGroup>
         <_ZgfCefHelperOutDir>$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\bin\$(Configuration)\net10.0\</_ZgfCefHelperOutDir>
+        <_ZgfCefHelperDir>$(MSBuildThisFileDirectory)..\..\ZGF.WebView.Cef.SubProcess\</_ZgfCefHelperDir>
         <_ZgfCefRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_ZgfCefRid>
         <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX')) And '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</_ZgfCefRid>
         <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX'))">osx-x64</_ZgfCefRid>
@@ -27,6 +28,25 @@
         <_ZgfCefFetchScript Condition="'$(_ZgfCefFetchScript)' == ''">CefGlue/fetch-cef.ps1</_ZgfCefFetchScript>
         <_ZgfCefIsMac>$(_ZgfCefRid.StartsWith('osx'))</_ZgfCefIsMac>
     </PropertyGroup>
+
+    <!-- A publish ships the helper compiled with native AOT for its RID, as the app is, so it runs where no .NET
+         is installed; a build stages the framework-dependent one the reference above builds. The RID is the
+         payload's, as a library like this one is built with none, and puts the helper's build in obj/ and bin/
+         folders of its own. -->
+    <PropertyGroup Condition="'$(_IsPublishing)' == 'true'">
+        <_ZgfCefHelperOutDir>$(_ZgfCefHelperDir)bin\$(Configuration)\net10.0\$(_ZgfCefRid)\publish\</_ZgfCefHelperOutDir>
+        <!-- Its own PublishDir, as the app's, from publish -o, is a global property and would reach it. -->
+        <_ZgfCefHelperAotProperties>Configuration=$(Configuration);RuntimeIdentifier=$(_ZgfCefRid);PublishDir=$(_ZgfCefHelperOutDir)</_ZgfCefHelperAotProperties>
+    </PropertyGroup>
+
+    <Target Name="PublishZgfCefHelperAot" Condition="'$(_IsPublishing)' == 'true'">
+        <!-- Restore apart from the publish, under one more property, so the publish evaluates the project again
+             and reads the assets the restore wrote. -->
+        <MSBuild Projects="$(_ZgfCefHelperDir)ZGF.WebView.Cef.SubProcess.csproj" Targets="Restore"
+                 Properties="$(_ZgfCefHelperAotProperties);_ZgfCefHelperRestore=true" />
+        <MSBuild Projects="$(_ZgfCefHelperDir)ZGF.WebView.Cef.SubProcess.csproj" Targets="Publish"
+                 Properties="$(_ZgfCefHelperAotProperties)" />
+    </Target>
 
     <!-- On macOS the helper is an app bundle, since Chromium finds the framework's Libraries (ANGLE,
          SwiftShader) only from a bundled process, and a bundled browser launches renderer, GPU and
@@ -41,9 +61,12 @@
 
     <Target Name="StageZgfCefHelper"
             BeforeTargets="AssignTargetPaths"
-            DependsOnTargets="ResolveProjectReferences">
+            DependsOnTargets="ResolveProjectReferences;PublishZgfCefHelperAot">
         <ItemGroup>
+            <!-- The glob takes the executable with no extension too. The AOT helper's symbols do not ship. -->
             <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)zgf-cef-helper.*" />
+            <_ZgfCefHelperFile Remove="$(_ZgfCefHelperOutDir)zgf-cef-helper.dbg;$(_ZgfCefHelperOutDir)zgf-cef-helper.pdb"
+                               Condition="'$(_IsPublishing)' == 'true'" />
             <_ZgfCefHelperFile Include="$(_ZgfCefHelperOutDir)*CefGlue*.dll" />
         </ItemGroup>
         <ItemGroup Condition="'$(_ZgfCefIsMac)' != 'true'">
