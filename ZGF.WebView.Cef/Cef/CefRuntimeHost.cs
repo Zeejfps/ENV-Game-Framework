@@ -24,7 +24,7 @@ internal sealed class CefRuntimeHost : IDisposable
     private readonly List<CefWebView> _pending = new();
     private readonly Lock _gate = new();
     private Timer? _pumpTimer;
-    private bool _initialized;
+    private CefState _state = CefState.NotStarted;
     private bool _disposed;
     private int _openBrowsers;
 
@@ -50,13 +50,13 @@ internal sealed class CefRuntimeHost : IDisposable
         _options = options;
     }
 
-    public bool IsInitialized => _initialized;
+    public bool IsInitialized => _state != CefState.NotStarted;
 
     /// <summary>Initialises CEF on the UI thread. Called once by the hosted service after the app is
     /// built.</summary>
     public void Initialize()
     {
-        if (_initialized || _disposed)
+        if (_state != CefState.NotStarted || _disposed)
             return;
 
         CefRuntime.Load(CefPaths.LibCefDir);
@@ -110,17 +110,10 @@ internal sealed class CefRuntimeHost : IDisposable
         CefLog.Write($"initializing: libcef={CefPaths.LibCefDir}, helper={CefPaths.HelperExe}, resources={CefPaths.ResourcesDir}, locales={CefPaths.LocalesDir}");
         var mainArgs = new CefMainArgs(GetProcessArgs());
         CefRuntime.Initialize(mainArgs, settings, new ZgfBrowserCefApp(this, _options.AutoplayWithoutGesture, _options.KeepOutOfKeychain), IntPtr.Zero);
-        _initialized = true;
-        CefLog.Write($"initialized (chrome {CefRuntime.ChromeVersion}); creating {_pending.Count} pending browser(s)");
-
-        CefWebView[] pending;
-        lock (_gate)
-        {
-            pending = _pending.ToArray();
-            _pending.Clear();
-        }
-        foreach (var wv in pending)
-            wv.CreateBrowser();
+        // A context made inside Initialize, as it may be, has already set Ready.
+        if (_state == CefState.NotStarted)
+            _state = CefState.Starting;
+        CefLog.Write($"initialized (chrome {CefRuntime.ChromeVersion}); browsers wait for the context");
 
         _pumpTimer = new Timer(_ => TimerFired(), null, Timeout.Infinite, Timeout.Infinite);
         Pump();
@@ -140,17 +133,39 @@ internal sealed class CefRuntimeHost : IDisposable
 
     internal void BrowserClosed() => _openBrowsers--;
 
-    /// <summary>Registers a web view for browser creation. Before CEF is initialised the creation is
-    /// deferred until <see cref="Initialize"/>; afterwards it is posted so the owning widget can finish
+    /// <summary>Registers a web view for browser creation. Until CEF's context is ready the creation is
+    /// deferred to <see cref="ContextInitialized"/>; afterwards it is posted so the owning widget can finish
     /// configuring (initial URL) in the same tick before the browser is created.</summary>
     public void RegisterWebView(CefWebView webView)
     {
         if (_disposed)
             return;
-        if (_initialized)
+        if (_state == CefState.Ready)
             _dispatcher.Post(webView.CreateBrowser);
         else
             lock (_gate) _pending.Add(webView);
+    }
+
+    /// <summary>CEF's context is ready, the first moment it can make a browser, which it refuses before
+    /// ("Failed to create browser with error code (0)"): Initialize returns first, and with the external pump
+    /// the context is finished during a later pump, sooner or later by machine, so a browser made as Initialize
+    /// returned was made in time on most and refused on some, which quit the app. Called on the UI thread, by
+    /// CEF from inside a pump or from Initialize, and creates the browsers registered meanwhile, as cefsimple
+    /// creates its first.</summary>
+    internal void ContextInitialized()
+    {
+        if (_disposed)
+            return;
+        _state = CefState.Ready;
+        CefWebView[] pending;
+        lock (_gate)
+        {
+            pending = _pending.ToArray();
+            _pending.Clear();
+        }
+        CefLog.Write($"context initialized; creating {pending.Length} pending browser(s)");
+        foreach (var wv in pending)
+            wv.CreateBrowser();
     }
 
     // Called by the browser-process handler (possibly off the UI thread) when CEF wants the next pump.
@@ -200,7 +215,7 @@ internal sealed class CefRuntimeHost : IDisposable
     private void Pump()
     {
         Interlocked.Exchange(ref _pumpPosted, 0);
-        if (!_initialized || _disposed)
+        if (_state == CefState.NotStarted || _disposed)
             return;
         // A pump now does the work a timer was armed for, as cefclient's DoWork does; CEF arms it again,
         // inside the pump, for work it wants later.
@@ -232,11 +247,11 @@ internal sealed class CefRuntimeHost : IDisposable
             _pumpTimer?.Dispose();
             _pumpTimer = null;
         }
-        if (_initialized)
+        if (_state != CefState.NotStarted)
         {
             PumpUntilBrowsersClose();
             CefRuntime.Shutdown();
-            _initialized = false;
+            _state = CefState.NotStarted;
         }
     }
 
@@ -266,6 +281,15 @@ internal sealed class CefRuntimeHost : IDisposable
 
 /// <summary>The browser-process <see cref="CefApp"/>: its only job is to route CEF's external
 /// message-pump schedule requests back to <see cref="CefRuntimeHost"/>.</summary>
+/// <summary>How far CEF has come: not started (or shut down), started and pumping but with no context yet, or with its
+/// context ready, the first moment it makes browsers.</summary>
+internal enum CefState
+{
+    NotStarted,
+    Starting,
+    Ready,
+}
+
 internal sealed class ZgfBrowserCefApp : CefApp
 {
     private readonly BrowserProcessHandler _handler;
@@ -298,13 +322,6 @@ internal sealed class ZgfBrowserCefApp : CefApp
         if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(processType))
             commandLine.AppendSwitch("no-zygote");
 
-        // Chromium binds to Wayland whenever the session offers it, as GLFW does, but CEF supports only X11 on
-        // Linux, offscreen too: under Wayland it made no browser ("Failed to create browser with error code (0)")
-        // and the app quit. Pinned to X11, as Glfw.InitializeLibrary pins GLFW, it runs through XWayland. Its
-        // children take the platform from the browser process, and a platform named on the command line wins.
-        if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(processType) && !commandLine.HasSwitch("ozone-platform"))
-            commandLine.AppendSwitch("ozone-platform", "x11");
-
         // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
         // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
         // (a CHECK/NOTREACHED, a GPU error) is visible when a page crashes it.
@@ -330,5 +347,7 @@ internal sealed class ZgfBrowserCefApp : CefApp
     {
         protected override void OnScheduleMessagePumpWork(long delayMs) =>
             host.ScheduleMessagePump(delayMs);
+
+        protected override void OnContextInitialized() => host.ContextInitialized();
     }
 }
