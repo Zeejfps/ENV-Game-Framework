@@ -78,6 +78,8 @@
                     LoadLibraryWindows(path);
                 else if (Platform == CefRuntimePlatform.MacOS)
                     LoadLibraryMacOS(path);
+                else if (Platform == CefRuntimePlatform.Linux)
+                    LoadLibraryLinux(path);
                 else
                     throw new PlatformNotSupportedException("CEF Runtime can't be initialized on altered path on this platform. Use CefRuntime.Load() instead.");
             }
@@ -102,6 +104,15 @@
         {
             var binary = System.IO.Path.Combine(path, MacFrameworkName + ".framework", MacFrameworkName);
             var handle = NativeLibrary.Load(binary);
+            NativeLibrary.SetDllImportResolver(typeof(CefRuntime).Assembly,
+                (name, _, _) => name == libcef.DllName ? handle : IntPtr.Zero);
+        }
+
+        /// <summary>On Linux libcef is <c>libcef.so</c> in <paramref name="path"/>, loaded by its full path so
+        /// no <c>LD_LIBRARY_PATH</c> is needed, and this assembly's imports resolve to it directly.</summary>
+        private static void LoadLibraryLinux(string path)
+        {
+            var handle = NativeLibrary.Load(System.IO.Path.Combine(path, libcef.DllName + ".so"));
             NativeLibrary.SetDllImportResolver(typeof(CefRuntime).Assembly,
                 (name, _, _) => name == libcef.DllName ? handle : IntPtr.Zero);
         }
