@@ -298,6 +298,13 @@ internal sealed class ZgfBrowserCefApp : CefApp
         if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(processType))
             commandLine.AppendSwitch("no-zygote");
 
+        // Chromium binds to Wayland whenever the session offers it, as GLFW does, but CEF supports only X11 on
+        // Linux, offscreen too: under Wayland it made no browser ("Failed to create browser with error code (0)")
+        // and the app quit. Pinned to X11, as Glfw.InitializeLibrary pins GLFW, it runs through XWayland. Its
+        // children take the platform from the browser process, and a platform named on the command line wins.
+        if (OperatingSystem.IsLinux() && string.IsNullOrEmpty(processType) && !commandLine.HasSwitch("ozone-platform"))
+            commandLine.AppendSwitch("ozone-platform", "x11");
+
         // Diagnostics (no rendering change): with ZGF_CEF_DEBUG set, make every Chromium process —
         // including the render subprocess — log verbosely to stderr, so a renderer's own fatal line
         // (a CHECK/NOTREACHED, a GPU error) is visible when a page crashes it.
