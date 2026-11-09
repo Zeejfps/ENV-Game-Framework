@@ -150,9 +150,6 @@ internal sealed class CefRuntimeHost : IDisposable
     /// cefsimple creates its first. When the context is finished differs by platform: on Linux it is inside
     /// Initialize, elsewhere it may be during a later pump. Called on the UI thread, by CEF from inside a pump
     /// or from Initialize, and creates the browsers registered meanwhile.</summary>
-    /// <remarks>"Failed to create browser with error code (0)" on Linux was not this timing, though it was
-    /// once taken for it: CefGlue's Linux <c>cef_window_info_t</c> lacked the leading <c>size</c> field,
-    /// so CEF refused every browser whenever it was made.</remarks>
     internal void ContextInitialized()
     {
         if (_disposed)
