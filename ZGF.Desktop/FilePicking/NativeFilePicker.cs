@@ -7,7 +7,8 @@ public static class NativeFilePicker
 {
     /// <summary>
     /// The file/folder picker for the current OS: the Windows COM dialog, the macOS
-    /// <c>osascript</c> chooser, or the Linux <c>zenity</c>/<c>kdialog</c> chooser, else a
+    /// <c>osascript</c> chooser, or on Linux the desktop's own dialog through the XDG desktop portal
+    /// (falling back to <c>zenity</c>, <c>kdialog</c> or <c>yad</c>), else a
     /// <see cref="NoopFilePicker"/>. The macOS and Linux pickers wait on a worker thread and hand
     /// their result to <paramref name="postToUiThread"/>, which must run it on the UI thread.
     /// </summary>
