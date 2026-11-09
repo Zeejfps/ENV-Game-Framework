@@ -258,7 +258,7 @@ public sealed class SemanticSnapshot
         return previous[b.Length];
     }
 
-    /// <summary>One node per line, indented by depth: role, #path, "label", [x,y wxh], value and states.
+    /// <summary>One node per line, indented by depth: role, path="…", "label", [x,y wxh], value and states.
     /// A node scrolled out or hidden is shown in parentheses without what is inside it. The header says
     /// how coordinates read and lists the surfaces.</summary>
     public string ToText() => SemanticText.Write(this);
@@ -313,7 +313,7 @@ internal static class SemanticText
             text.Append('(');
         text.Append(RoleName(node.Role));
         if (node.Path != null)
-            text.Append(" #").Append(node.Path);
+            text.Append(' ').Append(PathText(node.Path));
         if (!string.IsNullOrEmpty(node.Label))
             text.Append(" \"").Append(Escape(node.Label)).Append('"');
         text.Append(' ');
@@ -426,5 +426,31 @@ internal static class SemanticText
 
     private static int R(float v) => (int)MathF.Round(v);
 
-    private static string Escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n");
+    /// <summary>A path as snapshot lines and selector messages show it: path="…", quoted as a C# string
+    /// literal, so the text between the quotes pasted into <see cref="Selector.AtPath"/> finds it.</summary>
+    public static string PathText(TestPath path) => "path=\"" + Escape(path.ToString()) + '"';
+
+    /// <summary>The text as the inside of a C# string literal: quote and backslash escaped, line feed and carriage
+    /// return named, and every other control character and line or paragraph separator written as \uXXXX.</summary>
+    private static string Escape(string s)
+    {
+        var text = new StringBuilder(s.Length);
+        foreach (var c in s)
+        {
+            switch (c)
+            {
+                case '\\': text.Append(@"\\"); break;
+                case '"': text.Append("\\\""); break;
+                case '\n': text.Append(@"\n"); break;
+                case '\r': text.Append(@"\r"); break;
+                default:
+                    if (char.IsControl(c) || c is '\u2028' or '\u2029')
+                        text.Append(@"\u").Append(((int)c).ToString("X4"));
+                    else
+                        text.Append(c);
+                    break;
+            }
+        }
+        return text.ToString();
+    }
 }

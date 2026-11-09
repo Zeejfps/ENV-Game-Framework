@@ -24,6 +24,27 @@ public sealed class SemanticSnapshotTests
     }
 
     [Fact]
+    public void A_snapshot_line_shows_a_path_as_the_literal_a_selector_takes()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using (ui.KeyedId("1"))
+                ui.Button("row");
+            using (ui.Id("a/b"))
+                ui.Button("Go");
+        });
+
+        var snapshot = frames.Snapshot();
+        var text = snapshot.ToText();
+
+        Assert.Contains("button path=\"#1/row\" \"row\"", text);
+        Assert.Contains("button path=\"a\\\\/b/Go\" \"Go\"", text);
+        var found = Assert.IsType<TargetResult.Found>(snapshot.Resolve(Selector.AtPath("a\\/b/Go")));
+        Assert.Equal("Go", found.Node.Label);
+        Assert.Equal("path=\"#1/row\"", Selector.AtPath("#1/row").ToString());
+    }
+
+    [Fact]
     public void A_name_with_a_slash_is_one_segment_and_never_reads_as_two()
     {
         var frames = new UiFrames(new DefaultUiState(), body: ui =>
@@ -431,6 +452,32 @@ public sealed class SemanticSnapshotTests
     }
 
     [Fact]
+    public void Every_shown_path_is_a_one_line_string_literal_that_decodes_to_the_path()
+    {
+        string[] names = ["a", "\"", "\\", "/", "#", "\n", "\r", "\t", "\0", "\u0085", "\u2028", "\u2029", "\u001b", "\u007f", " ", "é"];
+        var random = new Random(7);
+        for (var round = 0; round < 500; round++)
+        {
+            var segments = new List<TestSegment>();
+            var count = random.Next(1, 4);
+            for (var i = 0; i < count; i++)
+            {
+                var name = names[random.Next(names.Length)] + names[random.Next(names.Length)];
+                segments.Add(random.Next(2) == 0 ? new TestSegment.Named(name) : new TestSegment.Keyed(name));
+            }
+            var path = new TestPath(segments);
+
+            var shown = Selector.AtPath(path.ToString()).ToString();
+
+            Assert.StartsWith("path=\"", shown);
+            Assert.EndsWith("\"", shown);
+            var literal = shown["path=\"".Length..^1];
+            Assert.DoesNotContain(literal, c => char.IsControl(c) || c is '\u2028' or '\u2029');
+            Assert.Equal(path, TestPath.Parse(System.Text.RegularExpressions.Regex.Unescape(literal)));
+        }
+    }
+
+    [Fact]
     public void Menu_items_are_found_by_the_labels_that_lead_to_them()
     {
         var picked = "";
@@ -501,9 +548,9 @@ public sealed class SemanticSnapshotTests
             # surface main [0,0 300x200] @1x
             window [0,0 300x200]
               text "Settings" [8,8 64x16]
-              checkbox #Sync "Sync" [8,32 56x32] checked
-              textfield #name "Name" [8,72 284x32] value="Ada"
-              button #Save "Save" [8,112 56x32] disabled
+              checkbox path="Sync" "Sync" [8,32 56x32] checked
+              textfield path="name" "Name" [8,72 284x32] value="Ada"
+              button path="Save" "Save" [8,112 56x32] disabled
 
             """.ReplaceLineEndings("\n"), text);
     }

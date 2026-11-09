@@ -78,7 +78,7 @@ public sealed class GpuFramesTests(GpuDeviceFixture fixture, ITestOutputHelper o
         var files = frames.Look("gpuframes-look");
 
         var text = File.ReadAllText(files.Text);
-        Assert.Contains("button #toggle \"Toggle\"", text);
+        Assert.Contains("button path=\"toggle\" \"Toggle\"", text);
         var png = Png.DecodeFromFile(files.Png);
         var image = frames.Read();
         Assert.Equal((240u, 160u), (png.Ihdr.Width, png.Ihdr.Height));
@@ -171,7 +171,7 @@ public sealed class GpuFramesTests(GpuDeviceFixture fixture, ITestOutputHelper o
         Assert.Equal(((uint)width, (uint)height), (png.Ihdr.Width, png.Ihdr.Height));
         var big = Png.DecodeFromFile(magnified.Png);
         Assert.Equal(((uint)width * 3, (uint)height * 3), (big.Ihdr.Width, big.Ihdr.Height));
-        Assert.StartsWith("# path toggle", File.ReadAllText(files.Text));
+        Assert.StartsWith("# path=\"toggle\"", File.ReadAllText(files.Text));
     }
 
     [GpuFact]

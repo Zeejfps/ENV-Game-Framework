@@ -13,7 +13,7 @@ public abstract record Selector
     /// <summary>The node recorded under exactly <see cref="Path"/>.</summary>
     public sealed record ByPath(TestPath Path) : Selector
     {
-        public override string ToString() => $"path {Path}";
+        public override string ToString() => SemanticText.PathText(Path);
     }
 
     /// <summary>The node of <see cref="Role"/> labelled exactly <see cref="Label"/>.</summary>
