@@ -23,8 +23,8 @@ internal sealed class GpuPopupHost(ICanvasSession session) : IPopupHost
     /// <summary>Runs on the render thread after a surface no popup or window showed is disposed.</summary>
     public Action? SurfaceReleased { get; set; }
 
-    /// <summary>Windows, then popups, in the order shown this frame: the order they are stacked in.</summary>
-    public IEnumerable<ShownSurface> Shown => _shown.Where(s => s.Kind == SurfaceKind.Window).Concat(_shown.Where(s => s.Kind == SurfaceKind.Popup));
+    /// <summary>The popups and windows shown this frame; the snapshot says how they stack.</summary>
+    public IReadOnlyList<ShownSurface> Shown => _shown;
 
     private float DpiScale => session.Size.DpiScale;
 
@@ -60,6 +60,17 @@ internal sealed class GpuPopupHost(ICanvasSession session) : IPopupHost
             SurfaceReleased?.Invoke();
         }
     }
+
+    /// <summary>Keeps the monitor and the windows placed where they are on the screen as the main canvas's scale
+    /// changes: their UI points times <paramref name="factor"/>, the old scale over the new.</summary>
+    public void Rescale(float factor)
+    {
+        Area = Scaled(Area, factor);
+        foreach (var id in _windowPlacements.Keys.ToList())
+            _windowPlacements[id] = Scaled(_windowPlacements[id], factor);
+    }
+
+    private static UiRect Scaled(UiRect rect, float factor) => new(rect.X * factor, rect.Y * factor, rect.Width * factor, rect.Height * factor);
 
     /// <summary>Has every surface draw with the main canvas's fonts, after they changed.</summary>
     public void FollowFonts()

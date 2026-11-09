@@ -40,7 +40,9 @@ public sealed class SemanticSnapshot
     /// <summary>The main window's content.</summary>
     public SemanticNode Root { get; }
 
-    /// <summary>The main window, index 0, then every popup and window shown in a window of its own.</summary>
+    /// <summary>The main window, index 0, then every popup and window shown in a window of its own, bottom to top as
+    /// the screen stacks them and a capture of the whole draws them: windows, then popups, each kind as input picks
+    /// the topmost, by Z, then the one declared later above.</summary>
     public IReadOnlyList<SemanticSurface> Surfaces { get; }
 
     public IEnumerable<SemanticNode> Nodes => Root.SelfAndDescendants();

@@ -579,4 +579,110 @@ public sealed class GpuFramesTests(GpuDeviceFixture fixture, ITestOutputHelper o
         Assert.Equal([true], released);
         Assert.Throws<ArgumentException>(() => frames.Read(surface));
     }
+
+    [GpuFact]
+    public void App_zoom_multiplies_the_monitor_scale_and_keeps_the_windows_pixels_from_the_frame_after()
+    {
+        var zoom = 1.25f;
+        using var frames = Running(ui =>
+        {
+            ui.Scale = zoom;
+            ui.WindowBackground = Blue;
+            using (ui.Popup(ui.GetId("p"), new UiRect(20f, 20f, 10f, 10f), new Box { Background = Green }))
+                ui.Text("pop", new Box { Width = 40f, Height = 20f });
+        }, width: 240, height: 160, dpiScale: 2f);
+
+        var snapshot = frames.Snapshot();
+        var image = frames.Read();
+        Assert.Equal(2.5f, frames.DpiScale);
+        Assert.Equal((192, 128), (frames.Width, frames.Height));
+        Assert.Equal((480, 320), (image.Width, image.Height));
+        Assert.Equal(new UiRect(0f, 0f, 192f, 128f), snapshot.Surfaces[0].Rect);
+        var popup = Assert.Single(snapshot.Surfaces, s => s.Kind == SurfaceKind.Popup);
+        Assert.Equal(2.5f, popup.DpiScale);
+        Assert.Equal((100, 50), (frames.Read(popup).Width, frames.Read(popup).Height));
+
+        zoom = 1f;
+        frames.Frame();
+        Assert.Equal(2.5f, frames.DpiScale);
+        frames.WaitUntilReady(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(2f, frames.DpiScale);
+        Assert.Equal((240, 160), (frames.Width, frames.Height));
+        Assert.Equal((480, 320), (frames.Read().Width, frames.Read().Height));
+    }
+
+    [GpuFact]
+    public void A_window_placed_on_the_screen_stays_there_when_the_app_zooms()
+    {
+        var zoom = 1f;
+        var open = true;
+        WindowBounds? bounds = new WindowBounds(40, 20, 100, 60, false);
+        using var frames = Running(ui =>
+        {
+            ui.Scale = zoom;
+            using (ui.Window(ui.GetId("w"), "W", ref open, 100f, 60f, ref bounds, out _))
+                ui.Text("inside");
+        });
+        Assert.Equal(new UiRect(40f, 20f, 100f, 60f), frames.Find(Selector.WithText("inside")).Surface.Rect);
+
+        zoom = 2f;
+        frames.WaitUntilReady(TimeSpan.FromSeconds(10));
+
+        var surface = frames.Find(Selector.WithText("inside")).Surface;
+        Assert.Equal(new UiRect(20f, 10f, 50f, 30f), surface.Rect);
+        Assert.Equal((100, 60), (frames.Read(surface).Width, frames.Read(surface).Height));
+    }
+
+    [GpuFact]
+    public void A_popup_declared_before_a_window_it_overlaps_is_drawn_over_it() => PopupOverWindow(windowFirst: false);
+
+    [GpuFact]
+    public void A_popup_declared_after_a_window_it_overlaps_is_drawn_over_it() => PopupOverWindow(windowFirst: true);
+
+    private void PopupOverWindow(bool windowFirst)
+    {
+        using var frames = GpuFrames.Running(Device, new StackingApp(windowFirst), 400, 300, fallbackFonts: NoFallbacks, output: output.WriteLine);
+
+        var snapshot = frames.Snapshot();
+        var (x, y) = StackingApp.OverlapPixel(snapshot);
+
+        Assert.Equal([SurfaceKind.Main, SurfaceKind.Window, SurfaceKind.Popup], snapshot.Surfaces.Select(s => s.Kind));
+        Assert.Equal(OpaqueGreen, frames.Read()[x, y]);
+        var look = Png.DecodeFromFile(frames.Look($"gpuframes-stacking-{windowFirst}").Png);
+        Assert.Equal((0, 255, 0, 255), StackingApp.PixelAt(look, x, y));
+    }
+
+    [GpuFact]
+    public void Of_two_popups_the_one_declared_later_is_drawn_on_top()
+    {
+        using var frames = Running(ui =>
+        {
+            using (ui.Popup(ui.GetId("under"), new UiRect(20f, 20f, 10f, 10f), new Box { Background = Red }))
+                ui.Leaf(new Box { Width = 80f, Height = 60f });
+            using (ui.Popup(ui.GetId("over"), new UiRect(40f, 40f, 10f, 10f), new Box { Background = Green }))
+                ui.Leaf(new Box { Width = 80f, Height = 60f });
+        });
+
+        Assert.Equal(OpaqueGreen, frames.Read()[70, 70]);
+    }
+
+    [GpuFact]
+    public void A_look_takes_only_a_plain_file_name_and_a_crop_it_can_draw()
+    {
+        var on = false;
+        using var frames = Running(ui => Toggle(ui, ref on));
+        var toggle = Selector.AtPath("toggle");
+
+        Assert.Throws<ArgumentException>(() => frames.Look("../escape"));
+        Assert.Throws<ArgumentException>(() => frames.Look("sub/look", toggle));
+        Assert.Throws<ArgumentException>(() => frames.LookAtScale(@"C:\look", 2f));
+        Assert.Throws<ArgumentException>(() => frames.Look("..", frames.Snapshot().Surfaces[0]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => frames.Look("crop", toggle, margin: -1f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => frames.Look("crop", toggle, margin: float.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => frames.Look("crop", toggle, margin: float.PositiveInfinity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => frames.Look("crop", toggle, magnify: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => frames.Look("crop", toggle, magnify: LookArguments.MaxMagnify + 1));
+        frames.Look("gpuframes-crop-x16", toggle, margin: 0f, magnify: LookArguments.MaxMagnify);
+    }
 }

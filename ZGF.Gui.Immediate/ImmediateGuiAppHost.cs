@@ -1377,9 +1377,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
     /// <summary>Draws at the scale the frame asked for from the next frame on, when it changed.</summary>
     private void TakeScale()
     {
-        if (_ui.Scale <= 0f)
-            return;
-        if (_ui.Scale == _scale)
+        if (!AppZoom.Changes(_ui.Scale, _scale))
             return;
         _scale = _ui.Scale;
         SyncScale();
@@ -1389,13 +1387,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
     /// <summary>Sizes the main canvas to the window at the monitor's scale times the app's own.</summary>
     private void SyncScale()
     {
-        var monitor = _window.ContentScale > 0f ? _window.ContentScale : 1f;
-        var scale = monitor * _scale;
+        var zoomed = AppZoom.Canvas(_window.FramebufferWidth, _window.FramebufferHeight, _window.ContentScale, _scale);
         var canvas = _render.MainCanvas;
-        canvas.UpdateDpiScale(scale);
-        canvas.Resize(
-            (int)MathF.Max(1f, MathF.Round(Math.Max(1, _window.FramebufferWidth) / scale)),
-            (int)MathF.Max(1f, MathF.Round(Math.Max(1, _window.FramebufferHeight) / scale)));
+        canvas.UpdateDpiScale(zoomed.DpiScale);
+        canvas.Resize(zoomed.Width, zoomed.Height);
     }
 
     private void Close()

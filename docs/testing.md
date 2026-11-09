@@ -46,11 +46,15 @@ dotnet test ZGF.Gui.Immediate.Scratch --filter AddTodo
 paths. Read the `.txt` first; open the `.png` only when the question is visual.
 
 - `GpuFrames` renders with the real OpenGL or Metal canvas, with real fonts, and no window: popups and
-  dialogs each get their own offscreen surface, and the PNG composites them over the main window.
+  dialogs each get their own offscreen surface, and the PNG composites them over the main window in
+  the order the snapshot lists its surfaces: windows, then popups, each by Z, then the one declared later
+  on top. `dpiScale` is the monitor's; an app's `ui.Scale` multiplies it as the real host does, keeping
+  the window's pixels and changing its size in points from the next frame.
 - `Running` returns once the app is ready (posted work done, fonts loaded) without advancing time.
   `Settle()` runs animations out; the `.txt` header says when something is still animating.
 - `Look(name, selector, margin, magnify)` crops one element at the frame's own scale;
-  `LookAtScale(name, dpi)` renders again at another scale.
+  `LookAtScale(name, dpi)` renders again at another scale. Every harness takes a plain file name, a
+  finite margin of 0 or more and a magnify from 1 to 16 (`LookArguments`).
 - A failed lookup, an occluded or blocked target, or a timeout writes a `Look` of that moment and puts
   its paths in the exception.
 

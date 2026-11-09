@@ -20,9 +20,9 @@ public static class GpuFrames
     public static readonly TimeSpan DefaultReadyTimeout = TimeSpan.FromSeconds(30);
 
     /// <summary>Frames of <paramref name="app"/>'s <c>OnUpdate</c> drawn by the shipping canvas on
-    /// <paramref name="device"/>, a window <paramref name="width"/> by <paramref name="height"/> points at
-    /// <paramref name="dpiScale"/>, returned once ready, as <see cref="GpuFrames{TState}.WaitUntilReady"/> says, without
-    /// advancing time: <paramref name="background"/>'s work and the fallback fonts <paramref name="fallbackFonts"/> finds
+    /// <paramref name="device"/>, a window <paramref name="width"/> by <paramref name="height"/> points on a monitor
+    /// of <paramref name="dpiScale"/>, which the app's <see cref="Ui.Scale"/> multiplies, returned once ready, as
+    /// <see cref="GpuFrames{TState}.WaitUntilReady"/> says, without advancing time: <paramref name="background"/>'s work and the fallback fonts <paramref name="fallbackFonts"/> finds
     /// (the system's by default) loaded, posted work run, and a frame drawn after. Animations still running are left
     /// to <see cref="GpuFrames{TState}.Settle"/>; <see cref="GpuFrames{TState}.Animating"/> and every <c>Look</c> say so.</summary>
     /// <param name="output">Where <c>Look</c> reports the files it writes, besides the console, such as an xUnit
@@ -73,6 +73,11 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     private readonly FrameDriver<TState> _driver;
     private readonly BackgroundWork _background;
     private readonly Action<string>? _output;
+    private readonly float _monitorScale;
+    private int _framebufferWidth;
+    private int _framebufferHeight;
+    private float _zoom = 1f;
+    private bool _zoomChanged;
     private bool _disposed;
 
     internal GpuFrames(GpuDevice device, TState state, Action<Ui<TState>> body, int width, int height, float dpiScale,
@@ -81,7 +86,9 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
         _device = device;
         _background = background;
         _output = output;
+        _monitorScale = dpiScale;
         _session = device.CreateSession(width, height, dpiScale);
+        (_framebufferWidth, _framebufferHeight) = (_session.Size.PixelWidth, _session.Size.PixelHeight);
         try
         {
             (_main, _popups, _registry, _driver) = device.Run(() =>
@@ -107,12 +114,15 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     /// <summary>What every frame's <see cref="Ui{T}"/> carries; change it between frames.</summary>
     public TState State => _driver.State;
 
-    /// <summary>The main window's size in points.</summary>
+    /// <summary>The main window's size in UI points: its pixels over <see cref="DpiScale"/>.</summary>
     public int Width => _session.Size.Width;
 
     public int Height => _session.Size.Height;
 
-    /// <summary>Device pixels per UI point of the main window and every popup.</summary>
+    /// <summary>Device pixels per UI point of the main window and every popup and window: the monitor's scale the
+    /// frames were made with times the app's zoom, <see cref="Ui.Scale"/>. As the host does, a frame that changes the
+    /// zoom is drawn at the old one, and the main window keeps its pixels and changes its size in points from the next
+    /// frame, which it asks for.</summary>
     public float DpiScale => _session.Size.DpiScale;
 
     /// <summary>How many frames have been drawn.</summary>
@@ -294,14 +304,28 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     /// <summary>What still animates after the last frame, which readiness does not wait for and <see cref="Settle"/> runs out.</summary>
     public FramePending Animating => _driver.Animating;
 
-    /// <summary>Sizes the main window, and the fake monitor with it, from the next frame.</summary>
+    /// <summary>Sizes the main window to <paramref name="width"/> by <paramref name="height"/> points at the monitor's
+    /// scale, and the fake monitor with it, from the next frame.</summary>
     public GpuFrames<TState> Resize(int width, int height) => Do(() =>
     {
-        _session.Resize(width, height);
-        _driver.Width = width;
-        _driver.Height = height;
-        _popups.Area = new UiRect(0f, 0f, width, height);
+        var size = TargetSize.Of(width, height, _monitorScale);
+        (_framebufferWidth, _framebufferHeight) = (size.PixelWidth, size.PixelHeight);
+        FitToFramebuffer();
+        _popups.Area = new UiRect(0f, 0f, Width, Height);
     });
+
+    /// <summary>Sizes the main canvas over the framebuffer at the monitor's scale times the zoom, keeping the
+    /// monitor and the windows where they are on the screen.</summary>
+    private void FitToFramebuffer()
+    {
+        _zoomChanged = false;
+        var before = DpiScale;
+        var zoomed = AppZoom.Canvas(_framebufferWidth, _framebufferHeight, _monitorScale, _zoom);
+        _session.Resize(zoomed.Width, zoomed.Height, zoomed.DpiScale);
+        _driver.Width = zoomed.Width;
+        _driver.Height = zoomed.Height;
+        _popups.Rescale(before / zoomed.DpiScale);
+    }
 
     /// <summary>Every text the last frame drew, on every surface, where it drew it.</summary>
     public IReadOnlyList<DrawnText> DrawnText() => _device.Run(() => _main.Texts.Concat(_popups.Shown.SelectMany(s => s.Canvas.Texts)).ToList());
@@ -313,8 +337,9 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     }
 
     /// <summary>The last frame as the screen shows it: the main window with every window and popup drawn over
-    /// it where it is, at <see cref="DpiScale"/>. RGBA, rows top-down, premultiplied alpha.</summary>
-    public RgbaImage Read() => _device.Run(Composite);
+    /// it where it is, stacked as its snapshot says, at <see cref="DpiScale"/>. RGBA, rows top-down, premultiplied
+    /// alpha. Builds the snapshot with a frame that does not advance time if the last frame built none.</summary>
+    public RgbaImage Read() => _device.Run(() => Composite(_driver.Snapshot()));
 
     /// <summary>What <paramref name="surface"/>, one of the last snapshot's, drew in the last frame, alone, at its own scale.</summary>
     /// <exception cref="ArgumentException"><paramref name="surface"/> is not one of the last snapshot's.</exception>
@@ -323,18 +348,23 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     /// <summary>Writes the last frame's snapshot, and the text drawn that no node of it shows, to
     /// <c>scratch/&lt;name&gt;.txt</c>, and <see cref="Read()"/> to <c>scratch/&lt;name&gt;.png</c>, and reports
     /// both paths. Builds the snapshot with a frame that does not advance time if the last frame built none.</summary>
-    public LookFiles Look(string name) => _device.Run(() =>
+    public LookFiles Look(string name)
     {
-        var snapshot = _driver.Snapshot();
-        return Write(name, Describe(snapshot), Composite());
-    });
+        LookArguments.RequireFileName(name);
+        return _device.Run(() =>
+        {
+            var snapshot = _driver.Snapshot();
+            return Write(name, Describe(snapshot), Composite(snapshot));
+        });
+    }
 
     /// <summary>As <see cref="Look(string)"/>, of the node <paramref name="selector"/> names: its subtree, and the
     /// pixels its own surface drew around it in the last frame, <paramref name="margin"/> points beyond its bounds and
     /// cut to the surface, at that surface's scale, each pixel <paramref name="magnify"/> times as wide and high.</summary>
     public LookFiles Look(string name, Selector selector, float margin = 8f, int magnify = 1)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(magnify);
+        LookArguments.RequireFileName(name);
+        LookArguments.RequireCrop(margin, magnify);
         var node = Find(selector);
         return _device.Run(() =>
         {
@@ -348,16 +378,26 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     }
 
     /// <summary>As <see cref="Look(string)"/>, of <paramref name="surface"/> alone, one of the last snapshot's.</summary>
-    public LookFiles Look(string name, SemanticSurface surface) => _device.Run(() =>
+    public LookFiles Look(string name, SemanticSurface surface)
     {
-        var snapshot = _driver.Snapshot();
-        return Write(name, Describe(snapshot), SurfaceOf(surface).Read());
-    });
+        LookArguments.RequireFileName(name);
+        return _device.Run(() =>
+        {
+            var snapshot = _driver.Snapshot();
+            return Write(name, Describe(snapshot), SurfaceOf(surface).Read());
+        });
+    }
 
     /// <summary>Draws the app again at <paramref name="dpiScale"/>, without advancing time, and writes it as
     /// <see cref="Look(string)"/> does to <c>&lt;name&gt;@&lt;scale&gt;x-frame&lt;n&gt;</c>, then draws it at its own scale again.
     /// The rerender is not the frame the app showed: glyph baking, snapping and stroke widths follow the scale.</summary>
-    public LookFiles LookAtScale(string name, float dpiScale) => _device.Run(() =>
+    public LookFiles LookAtScale(string name, float dpiScale)
+    {
+        LookArguments.RequireFileName(name);
+        return _device.Run(() => LookAtScaleNow(name, dpiScale));
+    }
+
+    private LookFiles LookAtScaleNow(string name, float dpiScale)
     {
         var own = DpiScale;
         Rescale(dpiScale);
@@ -367,14 +407,14 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
             _driver.Run(0f, _driver.BoundBody);
             var snapshot = _driver.Snapshot();
             var scale = dpiScale.ToString("0.##", CultureInfo.InvariantCulture);
-            return Write($"{name}@{scale}x-frame{FrameCount}", Describe(snapshot), Composite());
+            return Write($"{name}@{scale}x-frame{FrameCount}", Describe(snapshot), Composite(snapshot));
         }
         finally
         {
             Rescale(own);
             _driver.Run(0f, _driver.BoundBody);
         }
-    });
+    }
 
     private void Rescale(float dpiScale)
     {
@@ -415,7 +455,7 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     private string LookAtFailure() => _device.Run(() =>
     {
         var snapshot = _driver.Snapshot();
-        var files = Write($"failure-frame{FrameCount}", Describe(snapshot), Composite());
+        var files = Write($"failure-frame{FrameCount}", Describe(snapshot), Composite(snapshot));
         return $"Look at the moment it failed:\n{files}";
     });
 
@@ -432,12 +472,15 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
         return shown.Surface;
     }
 
-    private RgbaImage Composite()
+    private RgbaImage Composite(SemanticSnapshot snapshot)
     {
         var image = _session.Read();
         var scale = DpiScale;
-        foreach (var shown in _popups.Shown)
-            image = image.Overlaid(shown.Surface.Read(), (int)MathF.Round(shown.Rect.X * scale), (int)MathF.Round(shown.Rect.Y * scale));
+        for (var i = 1; i < snapshot.Surfaces.Count; i++)
+        {
+            var surface = snapshot.Surfaces[i];
+            image = image.Overlaid(SurfaceOf(surface).Read(), (int)MathF.Round(surface.Rect.X * scale), (int)MathF.Round(surface.Rect.Y * scale));
+        }
         return image;
     }
 
@@ -524,6 +567,7 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
 
     private LookFiles Write(string name, string text, RgbaImage image)
     {
+        LookArguments.RequireFileName(name);
         Directory.CreateDirectory(ScratchDirectory);
         var files = new LookFiles(Path.GetFullPath(Path.Combine(ScratchDirectory, name + ".txt")), Path.GetFullPath(Path.Combine(ScratchDirectory, name + ".png")));
         File.WriteAllText(files.Text, text);
@@ -571,6 +615,8 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
     {
         public void BeginFrame()
         {
+            if (frames._zoomChanged)
+                frames.FitToFramebuffer();
             frames._registry.ReleaseUnused();
             frames._session.Fonts.AdvanceFrame();
             frames._session.BeginFrame();
@@ -585,6 +631,11 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
             frames._popups.EndFrame();
             frames._session.EndFrame(background);
             frames.FrameCount++;
+            var asked = frames._driver.Ui.Scale;
+            if (!AppZoom.Changes(asked, frames._zoom)) return;
+            frames._zoom = asked;
+            frames._zoomChanged = true;
+            frames._driver.RequestFrame();
         }
 
         public bool ApplyFontChange(FontChange change)

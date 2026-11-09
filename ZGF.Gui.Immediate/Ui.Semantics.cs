@@ -233,8 +233,7 @@ public abstract partial class Ui
                 Owner = ui,
             });
             _canvases.Add(ui._canvas);
-            for (var i = 0; i < tree.Count; i++)
-                AddSurface(i);
+            AddSurfaces();
 
             var roots = new List<SemanticNode>();
             if (tree.Count > 0)
@@ -247,17 +246,36 @@ public abstract partial class Ui
             return new SemanticSnapshot(ui._frame, root, _surfaces, _canvases, _hits, modals, _byHitId, ui._input.PointerLocked);
         }
 
-        private void AddSurface(int index)
+        /// <summary>Adds every popup and window shown in a window of its own, bottom to top as the platform stacks them:
+        /// popups float above windows, and among each, as input picks the topmost, a higher Z is above, then the one
+        /// declared later.</summary>
+        private void AddSurfaces()
         {
-            var layer = _ui._tree[index].Layer;
-            if (layer == 0 || _surfaceOfLayer.ContainsKey(layer)) return;
-            var (canvas, rect) = _ui._tree.LayerAt(layer);
-            if (canvas == null) return;
-            var kind = _popupElements.Contains(index) ? SurfaceKind.Popup : SurfaceKind.Window;
-            var surface = new SemanticSurface(kind, _surfaces.Count, rect, canvas.DpiScale) { Id = _ui.SurfaceIdOf(canvas), Owner = _ui };
-            _surfaces.Add(surface);
-            _canvases.Add(canvas);
-            _surfaceOfLayer[layer] = surface;
+            var tree = _ui._tree;
+            var shown = new List<(int Element, int Layer, SurfaceKind Kind)>();
+            var layers = new HashSet<int>();
+            for (var i = 0; i < tree.Count; i++)
+            {
+                var layer = tree[i].Layer;
+                if (layer == 0 || !layers.Add(layer)) continue;
+                shown.Add((i, layer, _popupElements.Contains(i) ? SurfaceKind.Popup : SurfaceKind.Window));
+            }
+            shown.Sort((a, b) =>
+            {
+                var byKind = (a.Kind == SurfaceKind.Popup).CompareTo(b.Kind == SurfaceKind.Popup);
+                if (byKind != 0) return byKind;
+                var byZ = tree[a.Element].Z.CompareTo(tree[b.Element].Z);
+                return byZ != 0 ? byZ : a.Element.CompareTo(b.Element);
+            });
+            foreach (var (_, layer, kind) in shown)
+            {
+                var (canvas, rect) = tree.LayerAt(layer);
+                if (canvas == null) continue;
+                var surface = new SemanticSurface(kind, _surfaces.Count, rect, canvas.DpiScale) { Id = _ui.SurfaceIdOf(canvas), Owner = _ui };
+                _surfaces.Add(surface);
+                _canvases.Add(canvas);
+                _surfaceOfLayer[layer] = surface;
+            }
         }
 
         private void Visit(int index, SemanticNode? parent, List<SemanticNode> into, int hitId, bool inScroll)

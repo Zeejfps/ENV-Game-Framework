@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using PngSharp.Api;
 using ZGF.Desktop;
 using ZGF.Gui.Hosting;
 using ZGF.Gui.Immediate.Widgets;
@@ -190,7 +191,7 @@ public sealed class AutomationModeTests
         private readonly Thread _thread;
         private Exception? _runFailure;
 
-        private RunningHost(TestApp app, ManualResetEventSlim? runGate)
+        private RunningHost(ImmediateGuiApp<DefaultUiState> app, ManualResetEventSlim? runGate)
         {
             var started = new TaskCompletionSource<(ImmediateAutomation Automation, uint ThreadId)>(TaskCreationOptions.RunContinuationsAsynchronously);
             _thread = new Thread(() =>
@@ -203,7 +204,8 @@ public sealed class AutomationModeTests
                     var automation = host.Automation;
                     if (automation == null)
                         throw new InvalidOperationException("A host given automation options has no automation.");
-                    app.Automation = automation;
+                    if (app is TestApp test)
+                        test.Automation = automation;
                     started.SetResult((automation, OperatingSystem.IsWindows() ? Win32.GetCurrentThreadId() : 0));
                     runGate?.Wait();
                     host.Run();
@@ -223,7 +225,7 @@ public sealed class AutomationModeTests
         public ImmediateAutomation Automation { get; }
         public uint UiThreadId { get; }
 
-        public static RunningHost Start(TestApp app, ManualResetEventSlim? runGate = null) => new(app, runGate);
+        public static RunningHost Start(ImmediateGuiApp<DefaultUiState> app, ManualResetEventSlim? runGate = null) => new(app, runGate);
 
         public void Dispose()
         {
@@ -748,6 +750,59 @@ public sealed class AutomationModeTests
 
         using var device = GpuDevice.Create();
         Assert.True(device.Run(() => device.IsRenderThread));
+    }
+
+    [AutomatedOpenGlHostFact]
+    public void An_app_zoom_gives_the_same_snapshot_and_capture_size_in_GpuFrames_as_in_the_host()
+    {
+        string hostLayout;
+        float monitorScale;
+        (int Width, int Height) hostPixels;
+        using (var running = RunningHost.Start(new ZoomedApp()))
+        {
+            var automation = running.Automation;
+            automation.WaitUntilReady(Timeout);
+            var snapshot = automation.Snapshot();
+            hostLayout = ZoomedApp.Layout(snapshot);
+            monitorScale = snapshot.Surfaces[0].DpiScale / ZoomedApp.Zoom;
+            var image = Composite(automation);
+            hostPixels = ((int)image.Ihdr.Width, (int)image.Ihdr.Height);
+        }
+
+        var width = (int)MathF.Round(hostPixels.Width / monitorScale);
+        var height = (int)MathF.Round(hostPixels.Height / monitorScale);
+        using var device = GpuDevice.Create();
+        using var frames = GpuFrames.Running(device, new ZoomedApp(), width, height, monitorScale);
+        var read = frames.Read();
+
+        Assert.Equal(hostLayout, ZoomedApp.Layout(frames.Snapshot()));
+        Assert.Equal(hostPixels, (read.Width, read.Height));
+    }
+
+    [AutomatedHostFact]
+    public void A_popup_declared_before_a_window_it_overlaps_is_captured_over_it() => PopupOverWindow(windowFirst: false);
+
+    [AutomatedHostFact]
+    public void A_popup_declared_after_a_window_it_overlaps_is_captured_over_it() => PopupOverWindow(windowFirst: true);
+
+    private static void PopupOverWindow(bool windowFirst)
+    {
+        using var running = RunningHost.Start(new StackingApp(windowFirst));
+        var automation = running.Automation;
+        automation.WaitUntilReady(Timeout);
+        var snapshot = automation.Snapshot();
+        var (x, y) = StackingApp.OverlapPixel(snapshot);
+
+        Assert.Equal([SurfaceKind.Main, SurfaceKind.Window, SurfaceKind.Popup], snapshot.Surfaces.Select(s => s.Kind));
+        Assert.Equal((0, 255, 0, 255), StackingApp.PixelAt(Composite(automation), x, y));
+    }
+
+    private static IRawPng Composite(ImmediateAutomation automation)
+    {
+        var result = AutomationRunner.Driving(automation).Run(new AutomationCommand.Capture(new CaptureTarget.Composite()));
+        var ok = Assert.IsType<AutomationResult.Ok>(result);
+        var image = Assert.IsType<AutomationPayload.Image>(ok.Payload);
+        return Png.DecodeFromByteArray(image.Png);
     }
 
     private static void Click(ImmediateAutomation automation, string path)

@@ -342,13 +342,13 @@ public sealed class RemoteApp : IDisposable
 
     private LookFiles LookAt(string name, CaptureTarget target)
     {
-        RequireFileName(name);
+        LookArguments.RequireFileName(name);
         return Write(name, Capture(target));
     }
 
     private LookFiles Write(string name, AutomationPayload.Image image)
     {
-        RequireFileName(name);
+        LookArguments.RequireFileName(name);
         Directory.CreateDirectory(ScratchDirectory);
         var files = new LookFiles(Path.GetFullPath(Path.Combine(ScratchDirectory, name + ".txt")),
             Path.GetFullPath(Path.Combine(ScratchDirectory, name + ".png")));
@@ -358,15 +358,6 @@ public sealed class RemoteApp : IDisposable
         Console.WriteLine(report);
         _report?.Invoke(report);
         return files;
-    }
-
-    /// <summary>Requires <paramref name="name"/> to name a file in the scratch folder itself: no folder, no root, no
-    /// <c>.</c> or <c>..</c>, on any platform.</summary>
-    private static void RequireFileName(string name)
-    {
-        if (name.Length == 0 || name is "." or ".." || name.IndexOfAny(['/', '\\', ':']) >= 0
-            || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || Path.IsPathRooted(name))
-            throw new ArgumentException($"A Look's name is a plain file name, not \"{name}\".", nameof(name));
     }
 
     private TimeSpan TimeoutFor(AutomationCommand command) => command switch

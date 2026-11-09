@@ -49,10 +49,7 @@ public abstract record CaptureTarget
     {
         public Element(Selector selector, float margin = 8f, int magnify = 1)
         {
-            if (!float.IsFinite(margin) || margin < 0f)
-                throw new ArgumentOutOfRangeException(nameof(margin), margin, "A margin is a finite number of points, 0 or more.");
-            if (magnify is < 1 or > 16)
-                throw new ArgumentOutOfRangeException(nameof(magnify), magnify, "Magnify is from 1 to 16.");
+            LookArguments.RequireCrop(margin, magnify);
             Selector = selector;
             Margin = margin;
             Magnify = magnify;
