@@ -145,5 +145,7 @@ public interface ICanvas
 
     bool HasImage(string imageId) => false;
 
+    /// <summary>Removes the image at once: later draws of the id draw nothing and the id can be given again. A draw of
+    /// it staged before still draws what it had.</summary>
     void RemoveImage(string imageId) { }
 }

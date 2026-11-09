@@ -61,6 +61,11 @@ internal sealed class MetalCanvasSurface : ICanvasSurface
             draw(_canvas);
             _target.Render(clearArgb, _canvas.EndFrame);
         }
+        catch
+        {
+            _canvas.AbortFrame();
+            throw;
+        }
         finally
         {
             _drawing = false;
@@ -86,6 +91,14 @@ internal sealed class MetalCanvasSurface : ICanvasSurface
         _target.Render(clearArgb, _canvas.EndFrame);
     });
 
+    public void Replay(uint clearArgb = 0u) => _device.Run(() =>
+    {
+        ObjectDisposedException.ThrowIf(_released, this);
+        if (_drawing || _frameOpen)
+            throw new InvalidOperationException("A frame begun with BeginFrame has not ended.");
+        _target.Render(clearArgb, _canvas.EndFrame);
+    });
+
     public RgbaImage Read() => _target.Read();
 
     public void Resize(int width, int height) => Resize(width, height, Size.DpiScale);
@@ -98,6 +111,8 @@ internal sealed class MetalCanvasSurface : ICanvasSurface
             ObjectDisposedException.ThrowIf(_released, this);
             if (_drawing)
                 throw new InvalidOperationException("A session cannot be resized while it draws a frame.");
+            if (_frameOpen)
+                _canvas.AbortFrame();
             _frameOpen = false;
             _target.Resize(size);
             _canvas.UpdateDpiScale(dpiScale);

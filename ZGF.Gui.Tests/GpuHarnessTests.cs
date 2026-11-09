@@ -130,6 +130,28 @@ public sealed class GpuHarnessTests(GpuDeviceFixture fixture)
         Assert.Equal(rasters + 1, cache.RasterCount);
     }
 
+    [GpuFact]
+    public void An_icon_the_cache_evicts_later_in_the_frame_that_drew_it_is_still_drawn()
+    {
+        var time = new ManualTime { StepMilliseconds = 600 };
+        var cache = new SvgImageCache(new SvgImageCacheOptions { MaxRasterBytes = 32 * 32 * 4, Time = time });
+        using var h = GuiTestHarness.CreateGpu(fixture.Device,
+            ctx => new Row
+            {
+                Children =
+                [
+                    new SvgImage { Data = Disc, Color = 0xFF00FF00u, Width = 32, Height = 32 },
+                    new SvgImage { Data = Disc, Color = 0xFFFF0000u, Width = 32, Height = 32 },
+                ],
+            }.BuildView(ctx), 64, 32,
+            configure: ctx => ctx.AddService(cache), clearColor: 0xFF000000u);
+
+        var shown = h.Screenshot();
+
+        Assert.Equal(new Rgba8(0, 0xFF, 0, 0xFF), shown[16, 16]);
+        Assert.Equal(new Rgba8(0xFF, 0, 0, 0xFF), shown[48, 16]);
+    }
+
     private sealed class OnDispose(Action disposed) : IDisposable
     {
         public void Dispose() => disposed();
@@ -138,9 +160,10 @@ public sealed class GpuHarnessTests(GpuDeviceFixture fixture)
     private sealed class ManualTime : TimeProvider
     {
         public long Milliseconds;
+        public long StepMilliseconds;
 
         public override long TimestampFrequency => 1000;
 
-        public override long GetTimestamp() => Milliseconds;
+        public override long GetTimestamp() => Milliseconds += StepMilliseconds;
     }
 }

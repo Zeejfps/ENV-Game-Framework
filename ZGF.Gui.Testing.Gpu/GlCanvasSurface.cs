@@ -58,6 +58,11 @@ internal sealed class GlCanvasSurface : ICanvasSurface
             draw(_canvas);
             Flush(clearArgb);
         }
+        catch
+        {
+            _canvas.AbortFrame();
+            throw;
+        }
         finally
         {
             _drawing = false;
@@ -90,6 +95,14 @@ internal sealed class GlCanvasSurface : ICanvasSurface
         _canvas.EndFrame();
     }
 
+    public void Replay(uint clearArgb = 0u) => _device.Run(() =>
+    {
+        ObjectDisposedException.ThrowIf(_released, this);
+        if (_drawing || _frameOpen)
+            throw new InvalidOperationException("A frame begun with BeginFrame has not ended.");
+        Flush(clearArgb);
+    });
+
     public RgbaImage Read() => _target.Read();
 
     public void Resize(int width, int height) => Resize(width, height, Size.DpiScale);
@@ -102,6 +115,8 @@ internal sealed class GlCanvasSurface : ICanvasSurface
             ObjectDisposedException.ThrowIf(_released, this);
             if (_drawing)
                 throw new InvalidOperationException("A session cannot be resized while it draws a frame.");
+            if (_frameOpen)
+                _canvas.AbortFrame();
             _frameOpen = false;
             _target.Resize(size);
             _canvas.UpdateDpiScale(dpiScale);

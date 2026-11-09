@@ -12,6 +12,10 @@ public interface ICanvasSession : ICanvasSurface
     /// the session creates.</summary>
     FreeTypeFontBackend Fonts { get; }
 
+    /// <summary>How many textures of images removed or replaced on this session's canvases are kept because a frame
+    /// begun before then may still draw them.</summary>
+    int RetiredImageCount { get; }
+
     /// <summary>Clears the target to <paramref name="clearArgb"/> (straight alpha; transparent black by
     /// default), then draws one frame of <paramref name="draw"/> on the render thread.</summary>
     /// <exception cref="InvalidOperationException">Called from inside this session's own <see cref="Draw"/>.</exception>

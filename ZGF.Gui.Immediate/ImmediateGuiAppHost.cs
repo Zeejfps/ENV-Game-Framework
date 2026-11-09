@@ -252,6 +252,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
             return;
         }
         _window.Hide();
+        _render.MainCanvas.AbortFrame();
     }
 
     /// <summary>Puts a hidden window back and draws it. Call it on the UI thread.</summary>

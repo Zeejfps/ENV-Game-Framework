@@ -38,6 +38,9 @@ public sealed class MetalCanvasSession : ICanvasSession
 
     public FreeTypeFontBackend Fonts => _fonts;
 
+    /// <inheritdoc/>
+    public int RetiredImageCount => _device.Run(() => _images.RetiredCount);
+
     /// <exception cref="ArgumentOutOfRangeException">The size is invalid or exceeds what the GPU can render to.</exception>
     /// <exception cref="InvalidOperationException">The device is not a Metal device.</exception>
     public static MetalCanvasSession Create(GpuDevice device, int width, int height, float dpiScale = 1f)
@@ -78,6 +81,9 @@ public sealed class MetalCanvasSession : ICanvasSession
 
     /// <inheritdoc/>
     public void EndFrame(uint clearArgb = 0u) => _main.EndFrame(clearArgb);
+
+    /// <inheritdoc/>
+    public void Replay(uint clearArgb = 0u) => _main.Replay(clearArgb);
 
     /// <inheritdoc/>
     public RgbaImage Read() => _main.Read();

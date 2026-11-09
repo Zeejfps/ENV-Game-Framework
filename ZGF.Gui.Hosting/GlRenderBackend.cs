@@ -13,12 +13,13 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
 
     private readonly OpenGlApp _app;
     private readonly OpenGlWindow _mainWindow;
-    private readonly GlImageManager _images = new(GLFW.Glfw.GetProcAddress);
+    private readonly GlImageManager _images;
     private readonly GlSharedResources _shared;
     private readonly OpenGlRenderedCanvas _mainCanvas;
     private readonly PendingScreenshot _screenshot = new();
     private readonly bool _offscreen;
     private readonly Dictionary<IWindow, GlOffscreenFramebuffer> _targets = new();
+    private readonly HostFrames _frames = new();
 
     /// <param name="offscreen">Whether every window draws into a framebuffer object of its own rather than
     /// into the window, read back with <see cref="ReadOffscreen"/>, and <see cref="RenderWindowNow"/> never presents.</param>
@@ -30,10 +31,13 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
         try
         {
             _mainWindow = (OpenGlWindow)_app.MainWindow;
+            _mainWindow.MakeContextCurrent();
+            _images = new GlImageManager(GLFW.Glfw.GetProcAddress);
             Fonts = new FreeTypeFontBackend();
             DefaultFont = GuiFonts.LoadDefault(Fonts, _mainWindow.DpiScale);
             _shared = shared = new GlSharedResources(Fonts, _images);
             _mainCanvas = new OpenGlRenderedCanvas(config.WindowWidth, config.WindowHeight, Fonts, DefaultFont, _shared, _mainWindow.DpiScale);
+            _frames.Add(_mainCanvas);
         }
         catch
         {
@@ -54,6 +58,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
         var canvas = new OpenGlRenderedCanvas(width, height, Fonts, DefaultFont, _shared, window.DpiScale);
         canvas.CopyFontsFrom(_mainCanvas);
         MakeMainContextCurrent();
+        _frames.Add(canvas);
         return canvas;
     }
 
@@ -102,7 +107,8 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
             GlOffscreenFramebuffer.Unbind();
         }
 
-        ((OpenGlWindow)window).RenderFrame = _offscreen ? RenderOffscreen : Render;
+        Action frame = _offscreen ? RenderOffscreen : Render;
+        ((OpenGlWindow)window).RenderFrame = () => _frames.Run(frame);
     }
 
     public void WirePresentLoop(IWindow window, RenderedCanvasBase canvas)
@@ -156,6 +162,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
     public void DisposeWindow(IWindow window, RenderedCanvasBase canvas)
     {
         MakeCurrent(window);
+        _frames.Remove(canvas);
         ((OpenGlRenderedCanvas)canvas).Dispose();
         if (_targets.Remove(window, out var target))
             target.Dispose();
@@ -190,6 +197,7 @@ internal sealed class GlRenderBackend : IGuiRenderBackend
             target.Dispose();
         _mainCanvas.Dispose();
         _shared.Dispose();
+        _images.Dispose();
         _app.Dispose();
     }
 

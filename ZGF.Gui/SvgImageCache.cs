@@ -21,7 +21,9 @@ public sealed class SvgImageCacheOptions
 /// </summary>
 public sealed class SvgImageCache
 {
-    /// <summary>Entries younger than this never evict, so a texture drawn by an in-flight frame stays alive.</summary>
+    /// <summary>Entries used this recently never evict, so icons on screen are not rasterized again every frame
+    /// when the budget is short. An entry evicted mid-frame still draws where that frame drew it, as
+    /// <see cref="ICanvas.RemoveImage"/> keeps staged draws.</summary>
     private const long MinIdleMsBeforeEvict = 500;
 
     private readonly long _maxBytes;

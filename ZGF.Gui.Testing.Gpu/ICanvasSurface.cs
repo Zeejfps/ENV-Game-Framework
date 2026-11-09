@@ -19,6 +19,11 @@ public interface ICanvasSurface : IDisposable
     /// <exception cref="InvalidOperationException">No frame was begun.</exception>
     void EndFrame(uint clearArgb = 0u);
 
+    /// <summary>Clears the target and draws the last frame again without beginning a new one, as a window's
+    /// present-only redraw does.</summary>
+    /// <exception cref="InvalidOperationException">A frame begun with <see cref="BeginFrame"/> has not ended.</exception>
+    void Replay(uint clearArgb = 0u);
+
     /// <summary>The target's pixels: RGBA, rows top-down, premultiplied alpha.</summary>
     RgbaImage Read();
 

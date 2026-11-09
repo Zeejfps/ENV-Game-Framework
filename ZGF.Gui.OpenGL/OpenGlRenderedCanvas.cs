@@ -522,8 +522,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _clipUbo = ubo;
     }
 
+    protected override void HoldTexture(uint textureId) => _shared.ImageManager.HoldTexture(textureId);
+
+    protected override void ReleaseTexture(uint textureId) => _shared.ImageManager.ReleaseTexture(textureId);
+
     public void Dispose()
     {
+        AbortFrame();
         DeleteBuffer(ref _rectInstanceVbo);
         DeleteBuffer(ref _glyphInstanceVbo);
         DeleteBuffer(ref _imageInstanceVbo);

@@ -61,6 +61,7 @@ internal sealed class PopupPool : IDisposable
     public void Release(PopupSurface surface)
     {
         surface.Window.Hide();
+        surface.Canvas.AbortFrame();
         if (_idle.Count < _capacity)
         {
             _idle.Add(surface);

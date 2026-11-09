@@ -17,6 +17,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     private readonly PendingScreenshot _screenshot = new();
     private readonly bool _offscreen;
     private readonly Dictionary<IWindow, MetalOffscreenTexture> _targets = new();
+    private readonly HostFrames _frames = new();
     private MetalSurfaceRenderer? _mainSurface;
 
     /// <param name="offscreen">Whether every window draws into a texture of its own rather than into the window,
@@ -34,6 +35,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
             _images = new MetalImageManager(_app.Device, _app.CommandQueue);
             _shared = shared = new MetalSharedResources(_app.Device, _app.CommandQueue, Fonts, _images);
             _mainCanvas = new MetalRenderedCanvas(config.WindowWidth, config.WindowHeight, Fonts, DefaultFont, _shared, dpiScale);
+            _frames.Add(_mainCanvas);
         }
         catch
         {
@@ -52,6 +54,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
     {
         var canvas = new MetalRenderedCanvas(width, height, Fonts, DefaultFont, _shared, window.DpiScale);
         canvas.CopyFontsFrom(_mainCanvas);
+        _frames.Add(canvas);
         return canvas;
     }
 
@@ -86,7 +89,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
                 _screenshot.Fulfil(capture);
         }
 
-        metalWindow.RenderFrame = Render;
+        Action frame = Render;
+        metalWindow.RenderFrame = () => _frames.Run(frame);
     }
 
     private void WireOffscreenRenderLoop(IWindow window, RenderedCanvasBase canvas, Action drawContent, (float R, float G, float B, float A) clearColor, Action? preDraw)
@@ -116,7 +120,8 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
                 _screenshot.Fulfil(capture);
         }
 
-        ((MetalWindow)window).RenderFrame = Render;
+        Action frame = Render;
+        ((MetalWindow)window).RenderFrame = () => _frames.Run(frame);
     }
 
     public void WirePresentLoop(IWindow window, RenderedCanvasBase canvas)
@@ -148,6 +153,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
 
     public void DisposeWindow(IWindow window, RenderedCanvasBase canvas)
     {
+        _frames.Remove(canvas);
         ((MetalRenderedCanvas)canvas).Dispose();
         if (_targets.Remove(window, out var target))
             target.Dispose();
@@ -171,6 +177,7 @@ internal sealed class MetalRenderBackend : IGuiRenderBackend
         _targets.Clear();
         _mainCanvas.Dispose();
         _shared.Dispose();
+        _images.Dispose();
         _app.Dispose();
     }
 

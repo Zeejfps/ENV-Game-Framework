@@ -400,8 +400,13 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         return NewBufferLength(device, Sel("newBufferWithLength:options:"), (nuint)byteLen, (nuint)MTLResourceOptions.StorageModeShared);
     }
 
+    protected override void HoldTexture(uint textureId) => _shared.ImageManager.HoldTexture(textureId);
+
+    protected override void ReleaseTexture(uint textureId) => _shared.ImageManager.ReleaseTexture(textureId);
+
     public void Dispose()
     {
+        AbortFrame();
         Release(_clipBuffer);
         Release(_globalsBuffer);
         Release(_shapeInstanceBuffer);

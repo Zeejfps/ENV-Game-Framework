@@ -36,6 +36,9 @@ public sealed class GlCanvasSession : ICanvasSession
 
     public FreeTypeFontBackend Fonts => _fonts;
 
+    /// <inheritdoc/>
+    public int RetiredImageCount => _device.Run(() => _images.RetiredCount);
+
     /// <exception cref="ArgumentOutOfRangeException">The size is invalid or exceeds what the context can render to.</exception>
     /// <exception cref="InvalidOperationException">The device is not an OpenGL device.</exception>
     public static GlCanvasSession Create(GpuDevice device, int width, int height, float dpiScale = 1f)
@@ -75,6 +78,9 @@ public sealed class GlCanvasSession : ICanvasSession
 
     /// <inheritdoc/>
     public void EndFrame(uint clearArgb = 0u) => _main.EndFrame(clearArgb);
+
+    /// <inheritdoc/>
+    public void Replay(uint clearArgb = 0u) => _main.Replay(clearArgb);
 
     /// <inheritdoc cref="GlOffscreenTarget.Read"/>
     public RgbaImage Read() => _main.Read();
