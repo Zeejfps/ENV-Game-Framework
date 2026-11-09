@@ -53,7 +53,7 @@ public sealed class FilePickerDispatcherTests
     public void The_dispatcher_only_has_to_be_registered_by_the_time_a_picker_opens()
     {
         var context = new Context();
-        context.AddNativeFilePicker();
+        context.AddNativeFilePicker(null);
         var dispatcher = new Dispatcher();
         context.AddService<IUiDispatcher>(dispatcher);
 

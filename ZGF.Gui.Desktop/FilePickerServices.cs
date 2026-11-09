@@ -14,10 +14,11 @@ public static class FilePickerServices
     {
         /// <summary>
         /// Registers <see cref="NativeFilePicker.Create"/>'s picker for the current OS, posting
-        /// results through the context's <c>IUiDispatcher</c>.
+        /// results through the context's <c>IUiDispatcher</c>. Its dialogs belong to
+        /// <paramref name="owner"/>; null leaves them unowned.
         /// </summary>
-        public void AddNativeFilePicker() =>
-            context.AddService<IFilePicker>(new UiThreadFilePicker(post => NativeFilePicker.Create(post), () => context.Require<IUiDispatcher>()));
+        public void AddNativeFilePicker(IWindow? owner) =>
+            context.AddService<IFilePicker>(new UiThreadFilePicker(post => NativeFilePicker.Create(post, owner), () => context.Require<IUiDispatcher>()));
     }
 }
 

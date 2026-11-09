@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using GLFW;
+using ZGF.Desktop.Backends;
 using ZGF.Desktop.FilePicking;
 
 namespace ZGF.Desktop;
@@ -12,14 +14,35 @@ public static class NativeFilePicker
     /// <see cref="NoopFilePicker"/>. The macOS and Linux pickers wait on a worker thread and hand
     /// their result to <paramref name="postToUiThread"/>, which must run it on the UI thread.
     /// </summary>
-    public static IFilePicker Create(Action<Action> postToUiThread)
+    /// <param name="owner">The window the dialogs belong to: they stay above it, open centred on
+    /// it, and block input to it while open. Null leaves them unowned. Honoured on Windows and on
+    /// Linux through the portal under X11 (XWayland included); the macOS chooser and the Linux
+    /// command-line fallbacks run in another process and cannot be owned.</param>
+    public static IFilePicker Create(Action<Action> postToUiThread, IWindow? owner)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return new WindowsFilePicker();
+            return new WindowsFilePicker(Win32Owner(owner));
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return new MacOsFilePicker(postToUiThread);
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            return new LinuxFilePicker(postToUiThread);
+            return new LinuxFilePicker(postToUiThread, PortalParent(owner));
         return new NoopFilePicker();
+    }
+
+    private static IntPtr Win32Owner(IWindow? owner) =>
+        owner is GlfwWindowBase window ? window.NativeHandle : IntPtr.Zero;
+
+    /// <summary>
+    /// <paramref name="owner"/> as the portal's parent-window string, <c>x11:&lt;hex id&gt;</c>, or
+    /// empty when it has no X11 window. A Wayland window is named to the portal by an xdg-foreign
+    /// export handle, which GLFW does not expose, so one is left unparented.
+    /// </summary>
+    private static string PortalParent(IWindow? owner)
+    {
+        if (owner is not GlfwWindowBase window) return "";
+        if (Glfw.GetPlatform() != Platform.X11) return "";
+
+        var xid = window.NativeHandle;
+        return xid == IntPtr.Zero ? "" : $"x11:{xid:x}";
     }
 }

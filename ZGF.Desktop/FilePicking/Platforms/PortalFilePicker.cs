@@ -50,7 +50,11 @@ internal static unsafe class PortalFilePicker
         public PortalOutcome? Result;
     }
 
+    /// <param name="parentWindow">The window the dialog belongs to, as the portal names one
+    /// (<c>x11:&lt;hex id&gt;</c>), or empty to leave it unparented. A parented dialog stays above
+    /// that window, opens centred on it, and blocks input to it until it closes.</param>
     public static PortalOutcome Pick(
+        string parentWindow,
         LinuxChooser chooser,
         string title,
         string? initialDirectory,
@@ -59,7 +63,7 @@ internal static unsafe class PortalFilePicker
     {
         try
         {
-            return PickOnBus(chooser, title, initialDirectory, suggestedFileName, filters);
+            return PickOnBus(parentWindow, chooser, title, initialDirectory, suggestedFileName, filters);
         }
         catch (DllNotFoundException e)
         {
@@ -72,6 +76,7 @@ internal static unsafe class PortalFilePicker
     }
 
     private static PortalOutcome PickOnBus(
+        string parentWindow,
         LinuxChooser chooser,
         string title,
         string? initialDirectory,
@@ -90,7 +95,7 @@ internal static unsafe class PortalFilePicker
             if (chooser == LinuxChooser.Folder && version < FolderModeVersion)
                 return new PortalOutcome.Unavailable($"the FileChooser portal (v{version}) cannot pick folders");
 
-            return ShowDialog(connection, chooser, title, initialDirectory, suggestedFileName, filters);
+            return ShowDialog(connection, parentWindow, chooser, title, initialDirectory, suggestedFileName, filters);
         }
         finally
         {
@@ -100,6 +105,7 @@ internal static unsafe class PortalFilePicker
 
     private static PortalOutcome ShowDialog(
         IntPtr connection,
+        string parentWindow,
         LinuxChooser chooser,
         string title,
         string? initialDirectory,
@@ -140,7 +146,7 @@ internal static unsafe class PortalFilePicker
                 IntPtr.Zero));
 
             var method = chooser == LinuxChooser.SaveName ? "SaveFile" : "OpenFile";
-            var parameters = BuildParameters(chooser, title, token, initialDirectory, suggestedFileName, filters);
+            var parameters = BuildParameters(parentWindow, chooser, title, token, initialDirectory, suggestedFileName, filters);
             var reply = g_dbus_connection_call_sync(
                 connection,
                 PortalBusName,
@@ -227,6 +233,7 @@ internal static unsafe class PortalFilePicker
 
     /// <summary>The <c>(ssa{sv})</c> arguments of <c>OpenFile</c>/<c>SaveFile</c>.</summary>
     private static IntPtr BuildParameters(
+        string parentWindow,
         LinuxChooser chooser,
         string title,
         string token,
@@ -265,8 +272,7 @@ internal static unsafe class PortalFilePicker
                 options.Add(Entry("filters", filterList));
         }
 
-        // The parent window is left empty: the portal then opens the dialog unparented, on top.
-        return Tuple(g_variant_new_string(""), g_variant_new_string(title), Array([.. options]));
+        return Tuple(g_variant_new_string(parentWindow), g_variant_new_string(title), Array([.. options]));
     }
 
     /// <summary>

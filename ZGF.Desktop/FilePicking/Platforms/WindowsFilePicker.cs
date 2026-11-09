@@ -6,6 +6,15 @@ namespace ZGF.Desktop.FilePicking;
 [SupportedOSPlatform("windows")]
 internal sealed class WindowsFilePicker : IFilePicker
 {
+    // The window the dialog belongs to, or zero for none. An owned dialog stays above it, opens
+    // centred on it, and disables it until the dialog closes.
+    private readonly IntPtr _owner;
+
+    public WindowsFilePicker(IntPtr owner)
+    {
+        _owner = owner;
+    }
+
     private const uint FOS_OVERWRITEPROMPT = 0x00000002;
     private const uint FOS_PICKFOLDERS = 0x00000020;
     private const uint FOS_FORCEFILESYSTEM = 0x00000040;
@@ -31,14 +40,14 @@ internal sealed class WindowsFilePicker : IFilePicker
     // loop, so the app stays responsive, and COM wants the UI thread's STA anyway.
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, DialogKind.OpenFolder, initialDirectory);
+        var path = ShowFileDialog(_owner, title, DialogKind.OpenFolder, initialDirectory);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
     }
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, DialogKind.OpenFile, initialDirectory, null, filters);
+        var path = ShowFileDialog(_owner, title, DialogKind.OpenFile, initialDirectory, null, filters);
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
     }
@@ -50,7 +59,7 @@ internal sealed class WindowsFilePicker : IFilePicker
         IReadOnlyList<FileFilter>? filters,
         Action<string> onPicked)
     {
-        var path = ShowFileDialog(title, DialogKind.SaveFile, initialDirectory, suggestedFileName, filters);
+        var path = ShowFileDialog(_owner, title, DialogKind.SaveFile, initialDirectory, suggestedFileName, filters);
 
         // SetDefaultExtension has already done this; running it anyway keeps the three platforms
         // producing the same path from the same keystrokes.
@@ -71,6 +80,7 @@ internal sealed class WindowsFilePicker : IFilePicker
     // the [ComImport] RCW pattern, which depends on runtime IL generation and is disabled
     // when PublishAot is set.
     private static unsafe string? ShowFileDialog(
+        IntPtr owner,
         string title,
         DialogKind kind,
         string? initialDirectory = null,
@@ -167,7 +177,7 @@ internal sealed class WindowsFilePicker : IFilePicker
                 Marshal.ThrowExceptionForHR(setTitle(pDialog, pTitle));
             }
 
-            var hr = show(pDialog, IntPtr.Zero);
+            var hr = show(pDialog, owner);
             if (hr == ERROR_CANCELLED_HRESULT) return null;
             Marshal.ThrowExceptionForHR(hr);
 

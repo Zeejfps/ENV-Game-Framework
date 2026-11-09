@@ -25,14 +25,18 @@ internal sealed class LinuxFilePicker : IFilePicker
     private sealed record Command(string Tool, string[] Args);
 
     private readonly Action<Action> _post;
+    private readonly string _portalParent;
     private readonly string? _zenity;
     private readonly string? _kdialog;
     private readonly string? _yad;
     private int _pickerOpen;
 
-    public LinuxFilePicker(Action<Action> post)
+    /// <param name="portalParent">The window the portal's dialog belongs to, in the portal's
+    /// parent-window form (<c>x11:&lt;hex id&gt;</c>), or empty for none.</param>
+    public LinuxFilePicker(Action<Action> post, string portalParent)
     {
         _post = post;
+        _portalParent = portalParent;
         _zenity = FindOnPath("zenity");
         _kdialog = FindOnPath("kdialog");
         _yad = FindOnPath("yad");
@@ -92,7 +96,7 @@ internal sealed class LinuxFilePicker : IFilePicker
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters)
     {
-        var outcome = PortalFilePicker.Pick(chooser, title, initialDirectory, suggestedFileName, filters);
+        var outcome = PortalFilePicker.Pick(_portalParent, chooser, title, initialDirectory, suggestedFileName, filters);
         switch (outcome)
         {
             case PortalOutcome.Picked picked:

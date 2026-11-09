@@ -105,7 +105,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _ui.Wake = Invalidate;
         if (OperatingSystem.IsMacOS())
             _ui.SystemMenus = new SystemMenus(new MacMenuBar(), Invalidate);
-        _filePicker = NativeFilePicker.Create(_ui.Post);
+        _filePicker = NativeFilePicker.Create(_ui.Post, _window);
         Dispatcher = new TickDispatcher(this);
         _clearColor = _ui.WindowBackground;
         WireMainFrame();
