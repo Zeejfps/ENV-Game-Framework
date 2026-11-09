@@ -349,7 +349,7 @@ public static partial class UiWidgets
     private static bool CaretVisible(Ui ui, TextFieldState state)
     {
         var phase = (ui.RealTime - state.BlinkFrom) % (CaretBlinkSeconds * 2);
-        ui.RequestUpdateIn(CaretBlinkSeconds - phase % CaretBlinkSeconds);
+        ui.RequestAmbientUpdateIn(CaretBlinkSeconds - phase % CaretBlinkSeconds);
         return phase < CaretBlinkSeconds;
     }
 

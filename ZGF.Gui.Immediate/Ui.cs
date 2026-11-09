@@ -149,6 +149,9 @@ public abstract partial class Ui
     public bool UpdateRequested { get; private set; }
     internal double WakeAt { get; private set; } = double.PositiveInfinity;
 
+    /// <summary>When the earliest <see cref="RequestUpdateIn"/> that is not ambient wants its frame.</summary>
+    internal double NonAmbientWakeAt { get; private set; } = double.PositiveInfinity;
+
     /// <summary>Draws another frame after this one, for animation or state that settles over
     /// several frames.</summary>
     public void RequestUpdate() => UpdateRequested = true;
@@ -160,8 +163,15 @@ public abstract partial class Ui
         if (seconds <= 0)
             RequestUpdate();
         else
+        {
             WakeAt = Math.Min(WakeAt, RealTime + seconds);
+            NonAmbientWakeAt = Math.Min(NonAmbientWakeAt, RealTime + seconds);
+        }
     }
+
+    /// <summary>As <see cref="RequestUpdateIn"/>, for an animation that never ends, such as a spinner:
+    /// the app draws the frame all the same, but a test waiting for the UI to settle does not wait for it.</summary>
+    public void RequestAmbientUpdateIn(double seconds) => WakeAt = Math.Min(WakeAt, RealTime + Math.Max(0, seconds));
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
@@ -177,7 +187,7 @@ public abstract partial class Ui
     public void RequestFrame() => Wake?.Invoke();
 
     /// <summary>Runs <paramref name="action"/> on the UI thread at the start of the next frame, and
-    /// makes sure there is one. Safe from any thread — the way background work hands back results.</summary>
+    /// makes sure there is one; work posted while that frame starts waits for the one after. Safe from any thread — the way background work hands back results.</summary>
     public void Post(Action action)
     {
         _posted.Enqueue(action);
@@ -330,7 +340,7 @@ public abstract partial class Ui
     internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
-        while (_posted.TryDequeue(out var action))
+        for (var count = _posted.Count; count > 0 && _posted.TryDequeue(out var action); count--)
             action();
         Width = width;
         Height = height;
@@ -341,6 +351,7 @@ public abstract partial class Ui
         RealTime = realTime;
         UpdateRequested = false;
         WakeAt = double.PositiveInfinity;
+        NonAmbientWakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;
         PointerLockRequested = false;
         _activeSeen = false;

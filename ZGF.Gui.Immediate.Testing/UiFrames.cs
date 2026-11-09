@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
 using ZGF.Geometry;
@@ -11,33 +12,45 @@ namespace ZGF.Gui.Immediate.Testing;
 /// text metrics (8px per char, 16px per line) unless given others, in a window of
 /// <see cref="Width"/> by <see cref="Height"/>. Input queued between frames arrives in the next one.
 /// Popups draw over the window unless a <see cref="TestPopupHost"/> is given. The helpers that take
-/// no body record <see cref="Body"/>.</summary>
+/// no body record <see cref="Body"/>. Frames run with a <see cref="UiSynchronizationContext"/> installed, so
+/// <c>await</c> continues through <see cref="Ui.Post"/>.</summary>
 public sealed class UiFrames<TState> where TState : class, IUiState
 {
     private readonly RecordingCanvas _canvas;
     private readonly TestPopupHost? _popups;
     private readonly Ui<TState> _ui;
+    private readonly UiSynchronizationContext _context;
+    private readonly BackgroundWork? _background;
+    private readonly object _gate = new();
+    private bool _frameRequested;
+    private long _finishedBeforeFrame;
+    private double _scheduledAt = double.PositiveInfinity;
     private UiInput _frame = new();
     private UiInput _pending = new();
 
     /// <param name="state">What every frame's <see cref="Ui{T}"/> carries.</param>
+    /// <param name="background">The work <see cref="WaitUntilReady"/> waits for, which no other frames may be given.</param>
     public UiFrames(TState state, ITextMeasurer? measurer = null, TestPopupHost? popups = null, float width = 400f, float height = 300f,
-        Action<Ui<TState>>? body = null)
+        Action<Ui<TState>>? body = null, BackgroundWork? background = null)
     {
         _canvas = new RecordingCanvas(measurer ?? new SyntheticTextMeasurer());
         _popups = popups;
         Width = width;
         Height = height;
         _ui = new Ui<TState>(state, _canvas, Clipboard, popups);
+        _ui.Wake = RequestFrame;
+        _context = new UiSynchronizationContext(_ui.Post);
+        _background = background;
+        background?.Attach(RequestFrame);
         Body = body;
     }
 
     /// <summary>Frames of <paramref name="app"/>: each one records what its <c>OnUpdate</c> does, on a
     /// <see cref="Ui{T}"/> carrying its UI state.</summary>
     public static UiFrames<TState> Running(ImmediateGuiApp<TState> app, ITextMeasurer? measurer = null,
-        TestPopupHost? popups = null, float width = 400f, float height = 300f)
+        TestPopupHost? popups = null, float width = 400f, float height = 300f, BackgroundWork? background = null)
     {
-        return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Update);
+        return new UiFrames<TState>(app.UiState, measurer, popups, width, height, app.Update, background);
     }
 
     /// <summary>Has every frame's <c>MenuBar</c> record its menus into <paramref name="bar"/>, as on
@@ -141,6 +154,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
 
     public T Run<T>(float deltaTime, Func<Ui<TState>, T> body)
     {
+        using var context = _context.Install();
         Begin(deltaTime);
         var value = body(_ui);
         End();
@@ -149,6 +163,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
 
     public void Run(float deltaTime, Action<Ui<TState>> body)
     {
+        using var context = _context.Install();
         Begin(deltaTime);
         body(_ui);
         End();
@@ -167,6 +182,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     public T Frame<T>(Func<Ui<TState>, T> read)
     {
         var body = BoundBody;
+        using var context = _context.Install();
         Begin(FrameTime);
         body(_ui);
         var value = read(_ui);
@@ -178,6 +194,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
     public void Frame(Action<Ui<TState>> then)
     {
         var body = BoundBody;
+        using var context = _context.Install();
         Begin(FrameTime);
         body(_ui);
         then(_ui);
@@ -407,13 +424,135 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>The seconds apart <see cref="Settle"/> runs frames.</summary>
+    public const float SettleFrameTime = 1f / 60f;
+
+    /// <summary>Runs frames of <see cref="Body"/> <see cref="SettleFrameTime"/> apart until one ends with nothing
+    /// but ambient updates pending, or <paramref name="maxSeconds"/> of virtual time have passed.</summary>
+    public SettleResult Settle(double maxSeconds)
+    {
+        var body = BoundBody;
+        var start = RealTime;
+        while (true)
+        {
+            Run(SettleFrameTime, body);
+            var pending = Pending() & ~FramePending.BackgroundWork;
+            var seconds = RealTime - start;
+            if (pending == FramePending.None || seconds >= maxSeconds)
+                return new SettleResult(pending, seconds);
+        }
+    }
+
+    /// <summary>Runs a frame of <see cref="Body"/>, then more without advancing time for as long as one asks for
+    /// the next or work is posted, until one ends with neither pending and <paramref name="predicate"/> holds.
+    /// Throws a <see cref="TimeoutException"/> once <paramref name="timeout"/> of real time has passed.</summary>
+    public UiFrames<TState> WaitUntil(Func<bool> predicate, TimeSpan timeout) =>
+        WaitFor(predicate, FramePending.Update | FramePending.FrameRequest, timeout);
+
+    /// <summary>As <see cref="WaitUntil"/>, until the <see cref="BackgroundWork"/> these frames were given has
+    /// finished and a frame has run after it.</summary>
+    public UiFrames<TState> WaitUntilReady(TimeSpan timeout) =>
+        WaitFor(static () => true, FramePending.Update | FramePending.FrameRequest | FramePending.BackgroundWork, timeout);
+
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(10);
+
+    private UiFrames<TState> WaitFor(Func<bool> done, FramePending blocking, TimeSpan timeout)
+    {
+        var body = BoundBody;
+        var clock = Stopwatch.StartNew();
+        Run(0f, body);
+        while (true)
+        {
+            ThrowBackgroundFailures();
+            var pending = Pending() & blocking;
+            var remaining = timeout - clock.Elapsed;
+            if ((pending & (FramePending.Update | FramePending.FrameRequest)) != 0)
+            {
+                if (remaining <= TimeSpan.Zero)
+                    throw NotReady(pending, timeout);
+                Run(0f, body);
+                continue;
+            }
+            if (pending == FramePending.None && done())
+                return this;
+            if (remaining <= TimeSpan.Zero)
+                throw NotReady(pending, timeout);
+            lock (_gate)
+            {
+                if (!_frameRequested)
+                    Monitor.Wait(_gate, remaining < PollInterval ? remaining : PollInterval);
+            }
+        }
+    }
+
+    private FramePending Pending()
+    {
+        var pending = FramePending.None;
+        if (_ui.UpdateRequested)
+            pending |= FramePending.Update;
+        if (double.IsFinite(_scheduledAt))
+            pending |= FramePending.ScheduledUpdate;
+        if (_background != null)
+        {
+            var (outstanding, finished) = _background.Progress();
+            if (outstanding > 0)
+                pending |= FramePending.BackgroundWork;
+            if (finished != _finishedBeforeFrame)
+                pending |= FramePending.FrameRequest;
+        }
+        lock (_gate)
+        {
+            if (_frameRequested)
+                pending |= FramePending.FrameRequest;
+        }
+        return pending;
+    }
+
+    private void RequestFrame()
+    {
+        lock (_gate)
+        {
+            _frameRequested = true;
+            Monitor.PulseAll(_gate);
+        }
+    }
+
+    private void ThrowBackgroundFailures()
+    {
+        if (_background == null) return;
+        var failures = _background.TakeFailures();
+        if (failures.Length == 0) return;
+        var names = string.Join(", ", failures.Select(f => f.Name));
+        throw new AggregateException($"Background work failed: {names}.", failures.Select(f => f.Error));
+    }
+
+    private TimeoutException NotReady(FramePending pending, TimeSpan timeout)
+    {
+        var reasons = new List<string>();
+        if ((pending & FramePending.Update) != 0)
+            reasons.Add("every frame asked for the next, as an animation does while time stands still; Settle it first");
+        if ((pending & FramePending.FrameRequest) != 0)
+            reasons.Add("work kept being posted, or frames requested, after every frame");
+        if ((pending & FramePending.BackgroundWork) != 0 && _background != null)
+            reasons.Add($"background work still running: {string.Join(", ", _background.Outstanding)}");
+        if (reasons.Count == 0)
+            reasons.Add("the condition never held");
+        return new TimeoutException($"Not ready after {timeout.TotalSeconds:0.###}s: {string.Join("; ", reasons)}.");
+    }
+
     private void Begin(float deltaTime)
     {
+        lock (_gate)
+            _frameRequested = false;
+        if (_background != null)
+            _finishedBeforeFrame = _background.Progress().Finished;
         BeforeFrame?.Invoke();
         (_frame, _pending) = (_pending, _frame);
         _frame.Seal();
         _pending.BeginAfter(_frame);
         RealTime += deltaTime;
+        if (RealTime >= _scheduledAt)
+            _scheduledAt = double.PositiveInfinity;
         _canvas.Reset();
         _popups?.BeginFrame();
 
@@ -430,6 +569,7 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         _ui.EndFrame();
         UpdateRequested = _ui.UpdateRequested;
         WakeAt = _ui.WakeAt;
+        _scheduledAt = Math.Min(_scheduledAt, _ui.NonAmbientWakeAt);
         Cursor = _ui.Cursor;
         WantsTextInput = _ui.WantsTextInput;
         ImeCaret = _ui.ImeCaret;
