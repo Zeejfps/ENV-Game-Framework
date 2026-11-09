@@ -12,6 +12,9 @@ internal sealed class WindowsFilePicker : IFilePicker
 
     public WindowsFilePicker(IntPtr owner)
     {
+        if (owner != IntPtr.Zero && Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+            throw new InvalidOperationException(
+                "A file dialog owned by a window needs the UI thread to be a single-threaded apartment: mark the app's Main [STAThread].");
         _owner = owner;
     }
 
@@ -36,8 +39,10 @@ internal sealed class WindowsFilePicker : IFilePicker
     // is vtable-compatible with SetFolder (which only needs an IShellItem).
     private static readonly Guid IidShellItem2 = new("7e9fb0d3-919f-4307-ab2e-9b1860310c93");
 
-    // Runs on the calling (UI) thread: IFileDialog::Show is modal and pumps its own message
-    // loop, so the app stays responsive, and COM wants the UI thread's STA anyway.
+    // Runs on the calling (UI) thread: IFileDialog::Show is modal and pumps its own message loop.
+    // The thread must be an STA, as the constructor checks for an owned dialog: from an MTA, COM
+    // shows the dialog on a thread of its own, which waits on the owner window while the UI thread
+    // waits on the dialog.
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked)
     {
         var path = ShowFileDialog(_owner, title, DialogKind.OpenFolder, initialDirectory);
