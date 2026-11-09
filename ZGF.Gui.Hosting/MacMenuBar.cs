@@ -148,6 +148,8 @@ internal sealed unsafe class MacMenuBar : ISystemMenuBar
         AppMenuSystemAction.Quit => Sel("terminate:"),
         AppMenuSystemAction.Minimize => Sel("performMiniaturize:"),
         AppMenuSystemAction.Zoom => Sel("performZoom:"),
+        AppMenuSystemAction.ToggleFullScreen => Sel("toggleFullScreen:"),
+        AppMenuSystemAction.Close => Sel("performClose:"),
         AppMenuSystemAction.BringAllToFront => Sel("arrangeInFront:"),
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
