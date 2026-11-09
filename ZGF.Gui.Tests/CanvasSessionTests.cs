@@ -7,10 +7,10 @@ using ZGF.Gui.Testing.Gpu;
 
 namespace ZGF.Gui.Tests;
 
-/// <summary>The shipping OpenGL canvas drawing into an offscreen target, read back under the pixel
+/// <summary>The platform's shipping canvas drawing into an offscreen target, read back under the pixel
 /// contract: RGBA, rows top-down, premultiplied alpha.</summary>
 [Collection(GpuCollection.Name)]
-public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHelper output)
+public sealed class CanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHelper output)
 {
     private GpuDevice Device => fixture.Device;
 
@@ -26,7 +26,7 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     public void An_opaque_rect_reads_back_exactly_with_rows_top_down()
     {
         var clock = Stopwatch.StartNew();
-        using var session = GlCanvasSession.Create(Device, 200, 100);
+        using var session = Device.CreateSession(200, 100);
         var created = clock.Elapsed;
         clock.Restart();
         session.Draw(c => Fill(c, new RectF(20, 10, 60, 30), 0xFF3366CCu));
@@ -50,7 +50,7 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void Translucent_draws_read_back_premultiplied_and_save_as_straight_alpha()
     {
-        using var session = GlCanvasSession.Create(Device, 160, 100);
+        using var session = Device.CreateSession(160, 100);
         session.Draw(c =>
         {
             Fill(c, new RectF(0, 0, 80, 50), 0xFF0000FFu);
@@ -99,7 +99,7 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void Text_draws_glyph_pixels_inside_its_rect()
     {
-        using var session = GlCanvasSession.Create(Device, 200, 60);
+        using var session = Device.CreateSession(200, 60);
         session.Draw(c => c.DrawText(new DrawTextInputs
         {
             Position = new RectF(10, 20, 180, 24),
@@ -124,27 +124,35 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void A_fractional_scale_gives_the_rounded_physical_size_and_fills_it()
     {
-        using var session = GlCanvasSession.Create(Device, 301, 157, dpiScale: 1.25f);
+        using var session = Device.CreateSession(301, 157, dpiScale: 1.25f);
         session.Draw(c => Fill(c, new RectF(0, 0, 301, 157), 0xFFFF8000u));
         var image = session.Read();
+
+        Assert.Equal((376, 196), (session.Size.PixelWidth, session.Size.PixelHeight));
+        Assert.Equal((376, 196), (image.Width, image.Height));
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+            Assert.Equal(new Rgba8(0xFF, 0x80, 0x00, 0xFF), image[x, y]);
+    }
+
+    [OpenGlFact]
+    public void The_OpenGL_canvas_framebuffer_has_the_targets_rounded_physical_size()
+    {
+        using var session = GlCanvasSession.Create(Device, 301, 157, dpiScale: 1.25f);
+        session.Draw(c => Fill(c, new RectF(0, 0, 301, 157), 0xFFFF8000u));
         var (canvasWidth, canvasHeight) = Device.Run(() =>
         {
             ((OpenGlRenderedCanvas)session.Canvas).ReadFramebufferRgba(out var w, out var h);
             return (w, h);
         });
 
-        Assert.Equal((376, 196), (session.Size.PixelWidth, session.Size.PixelHeight));
-        Assert.Equal((376, 196), (image.Width, image.Height));
         Assert.Equal((376, 196), (canvasWidth, canvasHeight));
-        for (var y = 0; y < image.Height; y++)
-        for (var x = 0; x < image.Width; x++)
-            Assert.Equal(new Rgba8(0xFF, 0x80, 0x00, 0xFF), image[x, y]);
     }
 
     [GpuFact]
     public void A_resized_session_draws_and_reads_at_the_new_size()
     {
-        using var session = GlCanvasSession.Create(Device, 40, 40);
+        using var session = Device.CreateSession(40, 40);
         session.Resize(120, 70);
         session.Draw(c => Fill(c, new RectF(0, 0, 120, 70), 0xFF00FFFFu));
         var image = session.Read();
@@ -157,8 +165,8 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void Sessions_alive_together_each_draw_with_their_own_clips()
     {
-        using var large = GlCanvasSession.Create(Device, 200, 100);
-        using var small = GlCanvasSession.Create(Device, 40, 40);
+        using var large = Device.CreateSession(200, 100);
+        using var small = Device.CreateSession(40, 40);
         small.Draw(c => Fill(c, new RectF(0, 0, 40, 40), 0xFF00FF00u));
         large.Draw(c => Fill(c, new RectF(0, 0, 200, 100), 0xFFFF0000u));
         var image = large.Read();
@@ -171,14 +179,14 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void A_session_created_and_drawn_inside_another_sessions_draw_leaves_both_frames_where_they_belong()
     {
-        using var outer = GlCanvasSession.Create(Device, 60, 40);
-        GlCanvasSession? inner = null;
+        using var outer = Device.CreateSession(60, 40);
+        ICanvasSession? inner = null;
         try
         {
             outer.Draw(c =>
             {
                 Fill(c, new RectF(0, 0, 60, 40), 0xFFFF0000u);
-                inner = GlCanvasSession.Create(Device, 30, 20);
+                inner = Device.CreateSession(30, 20);
                 inner.Draw(ic => Fill(ic, new RectF(0, 0, 30, 20), 0xFF00FF00u));
             });
 
@@ -196,7 +204,7 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void A_session_refuses_to_draw_resize_or_dispose_inside_its_own_draw()
     {
-        using var session = GlCanvasSession.Create(Device, 20, 20);
+        using var session = Device.CreateSession(20, 20);
         session.Draw(c =>
         {
             Assert.Throws<InvalidOperationException>(() => session.Draw(_ => { }));
@@ -223,10 +231,10 @@ public sealed class GlCanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHe
     [GpuFact]
     public void A_size_beyond_the_contexts_limits_is_refused_and_the_device_stays_usable()
     {
-        var tooWide = Assert.Throws<ArgumentOutOfRangeException>(() => GlCanvasSession.Create(Device, 70_000, 10));
+        var tooWide = Assert.Throws<ArgumentOutOfRangeException>(() => Device.CreateSession(70_000, 10));
         Assert.Contains("limit", tooWide.Message);
 
-        using var session = GlCanvasSession.Create(Device, 10, 10);
+        using var session = Device.CreateSession(10, 10);
         Assert.Throws<ArgumentOutOfRangeException>(() => session.Resize(70_000, 10));
         session.Draw(c => Fill(c, new RectF(0, 0, 10, 10), 0xFFFFFFFFu));
         Assert.Equal(new Rgba8(255, 255, 255, 255), session.Read()[9, 9]);

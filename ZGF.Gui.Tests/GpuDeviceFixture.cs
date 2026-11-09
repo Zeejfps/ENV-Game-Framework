@@ -14,6 +14,33 @@ public sealed class GpuFactAttribute : FactAttribute
     }
 }
 
+/// <summary>A test of what only an OpenGL <see cref="GpuDevice"/> does, skipped where the platform's backend is not OpenGL.</summary>
+public sealed class OpenGlFactAttribute : FactAttribute
+{
+    public OpenGlFactAttribute()
+    {
+        if (GpuDevice.PlatformBackend is not (GpuBackend.Wgl or GpuBackend.Egl))
+            Skip = $"GpuDevice has no OpenGL backend for {RuntimeInformation.OSDescription}.";
+    }
+}
+
+/// <summary>Asks the platform's GL binding, not GL itself, whether this thread has a current context.</summary>
+public static partial class CurrentGlContext
+{
+    public static bool Exists() => GpuDevice.PlatformBackend switch
+    {
+        GpuBackend.Wgl => WglGetCurrentContext() != 0,
+        GpuBackend.Egl => EglGetCurrentContext() != 0,
+        _ => throw new PlatformNotSupportedException($"No OpenGL GpuDevice backend on {RuntimeInformation.OSDescription}."),
+    };
+
+    [LibraryImport("opengl32.dll", EntryPoint = "wglGetCurrentContext")]
+    private static partial nint WglGetCurrentContext();
+
+    [LibraryImport("libEGL.so.1", EntryPoint = "eglGetCurrentContext")]
+    private static partial nint EglGetCurrentContext();
+}
+
 public abstract record GpuAvailability
 {
     public sealed record Available(GpuDevice Device, TimeSpan CreationTime) : GpuAvailability;

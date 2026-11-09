@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using ZGF.Gui.Testing.Gpu;
 
@@ -34,13 +35,13 @@ public sealed partial class GlRequirementsTests
     private static bool IsGlEntryPoint(string name) =>
         typeof(GL46).GetField("s_" + name, BindingFlags.NonPublic | BindingFlags.Static) != null;
 
-    private static string RepositoryRoot()
+    private static string RepositoryRoot([CallerFilePath] string thisFile = "")
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        var directory = new FileInfo(thisFile).Directory;
         while (directory != null && !File.Exists(Path.Combine(directory.FullName, "ENV Game Framework.sln")))
             directory = directory.Parent;
         if (directory == null)
-            throw new InvalidOperationException($"No repository root above {AppContext.BaseDirectory}.");
+            throw new InvalidOperationException($"No repository root above {thisFile}.");
         return directory.FullName;
     }
 

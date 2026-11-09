@@ -11,11 +11,14 @@ internal sealed class RenderThread
     private readonly BlockingCollection<Job> _queue = new();
     private readonly Lock _gate = new();
     private readonly Thread _thread;
+    private readonly Action<Action> _scope;
     private Action? _idle;
     private bool _closed;
 
-    public RenderThread(string name)
+    /// <param name="scope">Runs each queued item, given the item; it must call it exactly once.</param>
+    public RenderThread(string name, Action<Action>? scope = null)
     {
+        _scope = scope ?? (work => work());
         _thread = new Thread(Loop) { Name = name, IsBackground = true };
         _thread.Start();
     }
@@ -121,7 +124,7 @@ internal sealed class RenderThread
         while (!_queue.IsCompleted)
         {
             if (_queue.TryTake(out var job, IdleInterval))
-                job.Execute();
+                job.Execute(_scope);
             _idle?.Invoke();
         }
     }
@@ -131,11 +134,11 @@ internal sealed class RenderThread
         public ManualResetEventSlim Done { get; } = new();
         public ExceptionDispatchInfo? Failure { get; private set; }
 
-        public void Execute()
+        public void Execute(Action<Action> scope)
         {
             try
             {
-                work();
+                scope(work);
             }
             catch (Exception e)
             {

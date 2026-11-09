@@ -4,10 +4,8 @@ using ZGF.Gui.OpenGL;
 
 namespace ZGF.Gui.Testing.Gpu;
 
-/// <summary>The shipping OpenGL canvas drawing into an offscreen target, with its own fonts, images and
-/// shaders. Owned by one test; everything it holds is created and released on the device's render thread,
-/// by the device's shutdown if the session is still open then.</summary>
-public sealed class GlCanvasSession : IDisposable
+/// <summary>The shipping OpenGL canvas drawing into an FBO.</summary>
+public sealed class GlCanvasSession : ICanvasSession
 {
     private const int DefaultPixels = 16;
 
@@ -33,15 +31,16 @@ public sealed class GlCanvasSession : IDisposable
 
     public TargetSize Size => _target.Size;
 
-    /// <summary>The canvas, with Inter as its default font. Use it only on the render thread: inside
-    /// <see cref="Draw"/> or <see cref="GpuDevice.Run(Action)"/>.</summary>
+    /// <inheritdoc/>
     public RenderedCanvasBase Canvas => _canvas;
 
     public FreeTypeFontBackend Fonts => _fonts;
 
     /// <exception cref="ArgumentOutOfRangeException">The size is invalid or exceeds what the context can render to.</exception>
+    /// <exception cref="InvalidOperationException">The device is not an OpenGL device.</exception>
     public static GlCanvasSession Create(GpuDevice device, int width, int height, float dpiScale = 1f)
     {
+        device.RequireOpenGl();
         var size = TargetSize.Of(width, height, dpiScale);
         return device.Run(() =>
         {
@@ -72,9 +71,7 @@ public sealed class GlCanvasSession : IDisposable
         });
     }
 
-    /// <summary>Clears the target to <paramref name="clearArgb"/> (straight alpha; transparent black by
-    /// default), then draws one frame of <paramref name="draw"/> on the render thread.</summary>
-    /// <exception cref="InvalidOperationException">Called from inside this session's own <see cref="Draw"/>.</exception>
+    /// <inheritdoc/>
     public void Draw(Action<RenderedCanvasBase> draw, uint clearArgb = 0u) => _device.Run(() =>
     {
         ObjectDisposedException.ThrowIf(_released, this);
@@ -98,7 +95,7 @@ public sealed class GlCanvasSession : IDisposable
     /// <inheritdoc cref="GlOffscreenTarget.Read"/>
     public RgbaImage Read() => _target.Read();
 
-    /// <summary>Changes the logical size at the session's DPI scale.</summary>
+    /// <inheritdoc/>
     public void Resize(int width, int height)
     {
         var size = TargetSize.Of(width, height, Size.DpiScale);

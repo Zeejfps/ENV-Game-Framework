@@ -17,8 +17,6 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
             ZIndex = 0,
         });
 
-    private static unsafe bool HasCurrentContext() => GL46.glGetString(GL46.GL_VERSION) != null;
-
     [GpuFact]
     public void A_device_is_created_and_disposed_repeatedly()
     {
@@ -27,7 +25,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
             var clock = Stopwatch.StartNew();
             using var device = GpuDevice.Create();
             var created = clock.Elapsed;
-            using (var session = GlCanvasSession.Create(device, 32, 32))
+            using (var session = device.CreateSession(32, 32))
             {
                 session.Draw(c => Fill(c, new RectF(0, 0, 32, 32), 0xFF00FF00u));
                 Assert.Equal(new Rgba8(0, 255, 0, 255), session.Read()[16, 16]);
@@ -36,7 +34,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
         }
     }
 
-    [GpuFact]
+    [OpenGlFact]
     public void A_second_live_OpenGL_device_is_refused_until_the_first_is_disposed()
     {
         var first = GpuDevice.Create();
@@ -67,21 +65,21 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
         Assert.Equal(7, device.Run(() => device.Run(() => 7)));
     }
 
-    [GpuFact]
+    [OpenGlFact]
     public void Disposing_from_the_render_thread_is_refused_and_leaves_the_device_working()
     {
         using var device = GpuDevice.Create();
 
         Assert.Throws<InvalidOperationException>(() => device.Run(device.Dispose));
 
-        Assert.True(device.Run(HasCurrentContext));
+        Assert.True(device.Run(CurrentGlContext.Exists));
         Assert.Throws<InvalidOperationException>(GpuDevice.Create);
-        using var session = GlCanvasSession.Create(device, 8, 8);
+        using var session = device.CreateSession(8, 8);
         session.Draw(c => Fill(c, new RectF(0, 0, 8, 8), 0xFFFF0000u));
         Assert.Equal(new Rgba8(255, 0, 0, 255), session.Read()[4, 4]);
     }
 
-    [GpuFact]
+    [OpenGlFact]
     public void Concurrent_disposes_and_runs_end_with_one_release_and_every_accepted_run_on_a_live_context()
     {
         GpuDevice? stale = null;
@@ -99,7 +97,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
                 {
                     try
                     {
-                        if (!device.Run(HasCurrentContext))
+                        if (!device.Run(CurrentGlContext.Exists))
                             failures.Enqueue("a run executed with no current context");
                         firstAccepted.Set();
                     }
@@ -146,7 +144,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
         {
             stale!.Dispose();
             Assert.Throws<InvalidOperationException>(GpuDevice.Create);
-            Assert.True(replacement.Run(HasCurrentContext));
+            Assert.True(replacement.Run(CurrentGlContext.Exists));
         }
         finally
         {
@@ -155,11 +153,11 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
         GpuDevice.Create().Dispose();
     }
 
-    [GpuFact]
+    [OpenGlFact]
     public void A_disposed_device_refuses_work_and_its_open_sessions_are_already_released()
     {
         var device = GpuDevice.Create();
-        var session = GlCanvasSession.Create(device, 8, 8);
+        var session = device.CreateSession(8, 8);
         var target = GlOffscreenTarget.Create(device, TargetSize.Of(4, 4));
         device.Dispose();
 
@@ -173,7 +171,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
     public void Every_concurrent_disposer_returns_only_after_teardown()
     {
         var device = GpuDevice.Create();
-        var session = GlCanvasSession.Create(device, 8, 8);
+        var session = device.CreateSession(8, 8);
         using var start = new Barrier(4);
         var serial = new Lock();
         var disposers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
@@ -192,7 +190,7 @@ public sealed class GpuDeviceTests(ITestOutputHelper output)
     public void A_device_shutting_down_mid_draw_finishes_the_draw_before_releasing_the_session()
     {
         var device = GpuDevice.Create();
-        var session = GlCanvasSession.Create(device, 200, 40);
+        var session = device.CreateSession(200, 40);
         using var drawing = new ManualResetEventSlim();
         using var disposing = new ManualResetEventSlim();
         var overlapped = false;

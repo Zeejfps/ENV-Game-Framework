@@ -7,7 +7,7 @@ namespace ZGF.Gui.Testing.Gpu.Windows;
 /// <summary>A desktop GL 4.1+ core context on a hidden window that is never shown. Every member runs on
 /// the thread that created it.</summary>
 [SupportedOSPlatform("windows")]
-internal sealed unsafe class WglContext : IDisposable
+internal sealed unsafe class WglContext : IGlContext
 {
     private const int ContextMajorVersion = 0x2091;
     private const int ContextMinorVersion = 0x2092;

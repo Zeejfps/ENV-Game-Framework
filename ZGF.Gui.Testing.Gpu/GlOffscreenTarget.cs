@@ -22,7 +22,14 @@ public sealed unsafe class GlOffscreenTarget : IDisposable
     public TargetSize Size { get; private set; }
 
     /// <exception cref="ArgumentOutOfRangeException">The size exceeds what the context can render to.</exception>
-    public static GlOffscreenTarget Create(GpuDevice device, TargetSize size) => device.Run(() =>
+    /// <exception cref="InvalidOperationException">The device is not an OpenGL device.</exception>
+    public static GlOffscreenTarget Create(GpuDevice device, TargetSize size)
+    {
+        device.RequireOpenGl();
+        return device.Run(() => Allocated(device, size));
+    }
+
+    private static GlOffscreenTarget Allocated(GpuDevice device, TargetSize size)
     {
         ThrowIfBeyondLimits(size);
         var target = new GlOffscreenTarget(device, size);
@@ -37,7 +44,7 @@ public sealed unsafe class GlOffscreenTarget : IDisposable
             target.Dispose();
             throw;
         }
-    });
+    }
 
     /// <summary>Changes the size; the contents are undefined until the next draw.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The size exceeds what the context can render to.</exception>
