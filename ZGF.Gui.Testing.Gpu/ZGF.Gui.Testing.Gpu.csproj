@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.OpenGL\ZGF.Gui.OpenGL.csproj" />
+    <ProjectReference Include="..\OpenGL.NET\OpenGL.NET.csproj" />
+    <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
+    <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />
+    <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+  </ItemGroup>
+
+</Project>

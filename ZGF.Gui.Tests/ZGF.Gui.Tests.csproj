@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,7 @@
     <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
     <ProjectReference Include="..\ZGF.Gui.Desktop\ZGF.Gui.Desktop.csproj" />
     <ProjectReference Include="..\ZGF.Gui.Testing\ZGF.Gui.Testing.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.Testing.Gpu\ZGF.Gui.Testing.Gpu.csproj" />
   </ItemGroup>
 
   <ItemGroup>
