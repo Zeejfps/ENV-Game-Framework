@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Out-of-process acceptance tests: each starts the real Immediate sample app and drives it through RemoteApp,
+       or inspects it running as usual. The sample is referenced so it is built and copied beside the tests. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZGF.Gui.Automation\ZGF.Gui.Automation.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.Immediate.Sample\ZGF.Gui.Immediate.Sample.csproj" />
+  </ItemGroup>
+
+</Project>

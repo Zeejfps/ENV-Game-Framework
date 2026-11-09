@@ -1,6 +1,7 @@
 using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Testing;
+using ZGF.Gui.Testing.Gpu;
 
 namespace ZGF.Gui.Tests;
 
@@ -9,7 +10,8 @@ namespace ZGF.Gui.Tests;
 /// coincide at whole-number scales; at 125% or 150% a whole point sits a fraction into a pixel, so a
 /// point-snapped 1pt border covers one pixel in one place and two in the next.
 /// </summary>
-public sealed class PixelSnapTests : IDisposable
+[Collection(GpuCollection.Name)]
+public sealed class PixelSnapTests(GpuDeviceFixture fixture) : IDisposable
 {
     private const int CanvasWidth = 400;
     private const int CanvasHeight = 120;
@@ -21,12 +23,6 @@ public sealed class PixelSnapTests : IDisposable
     private readonly FreeTypeFontBackend _fonts = new();
 
     public void Dispose() => _fonts.Dispose();
-
-    private RasterCanvas RasterAt(float dpiScale)
-    {
-        var font = _fonts.LoadFontFromFile(FontPath, (int)MathF.Round(16f * dpiScale));
-        return new RasterCanvas(CanvasWidth, CanvasHeight, _fonts, font, dpiScale, 0u);
-    }
 
     private CaptureCanvas CaptureAt(float dpiScale)
     {
@@ -47,37 +43,34 @@ public sealed class PixelSnapTests : IDisposable
             ZIndex = 0,
         });
 
-    private static byte[] Render(RasterCanvas canvas, Action<ICanvas> draw)
+    /// <summary>What the shipping canvas draws, over nothing, at <paramref name="dpiScale"/>.</summary>
+    private RgbaImage Render(float dpiScale, Action<ICanvas> draw)
     {
-        canvas.BeginFrame();
-        draw(canvas);
-        canvas.EndFrame();
-        return canvas.ToRgbaTopDown();
+        using var session = fixture.Device.CreateSession(CanvasWidth, CanvasHeight, dpiScale);
+        session.Draw(draw);
+        return session.Read();
     }
 
+    private static bool IsOpaque(Rgba8 pixel, uint argb) =>
+        pixel == new Rgba8((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, 0xFF);
+
     // Counts the pixels of one colour along a device row, counted from the bottom like the canvas.
-    private static int CountInRow(byte[] rgba, float dpiScale, int deviceRowFromBottom, int fromX, int toX, uint argb)
+    private static int CountInRow(RgbaImage image, int deviceRowFromBottom, int fromX, int toX, uint argb)
     {
-        var width = (int)MathF.Round(CanvasWidth * dpiScale);
-        var height = (int)MathF.Round(CanvasHeight * dpiScale);
-        var row = height - 1 - deviceRowFromBottom;
+        var row = image.Height - 1 - deviceRowFromBottom;
         var count = 0;
         for (var x = fromX; x < toX; x++)
-        {
-            var i = (row * width + x) * 4;
-            if (rgba[i] == (byte)(argb >> 16) && rgba[i + 1] == (byte)(argb >> 8) && rgba[i + 2] == (byte)argb
-                && rgba[i + 3] == 0xFF)
+            if (IsOpaque(image[x, row], argb))
                 count++;
-        }
         return count;
     }
 
-    private static int CountAll(byte[] rgba, uint argb)
+    private static int CountAll(RgbaImage image, uint argb)
     {
         var count = 0;
-        for (var i = 0; i < rgba.Length; i += 4)
-            if (rgba[i] == (byte)(argb >> 16) && rgba[i + 1] == (byte)(argb >> 8) && rgba[i + 2] == (byte)argb
-                && rgba[i + 3] == 0xFF)
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
+            if (IsOpaque(image[x, y], argb))
                 count++;
         return count;
     }
@@ -107,7 +100,7 @@ public sealed class PixelSnapTests : IDisposable
         }
     }
 
-    [Theory]
+    [GpuTheory]
     [InlineData(1f, 1)]
     [InlineData(1.25f, 1)]
     [InlineData(1.5f, 2)]
@@ -115,8 +108,7 @@ public sealed class PixelSnapTests : IDisposable
     [InlineData(2f, 2)]
     public void AOnePointBorderIsTheSameWidthWhereverItSits(float dpiScale, int expectedPixels)
     {
-        var canvas = RasterAt(dpiScale);
-        var rgba = Render(canvas, c =>
+        var image = Render(dpiScale, c =>
         {
             for (var i = 0; i < Offsets.Length; i++)
                 Fill(c, new RectF(10f + i * 40f + Offsets[i], 20f, 20f, 20f), Blue, leftBorder: 1f);
@@ -127,19 +119,18 @@ public sealed class PixelSnapTests : IDisposable
         {
             var from = (int)((10f + i * 40f - 2f) * dpiScale);
             var to = (int)((10f + i * 40f + 30f) * dpiScale);
-            Assert.Equal(expectedPixels, CountInRow(rgba, dpiScale, row, from, to, Red));
+            Assert.Equal(expectedPixels, CountInRow(image, row, from, to, Red));
         }
     }
 
-    [Theory]
+    [GpuTheory]
     [InlineData(1f, 1)]
     [InlineData(1.25f, 1)]
     [InlineData(1.5f, 2)]
     [InlineData(1.75f, 2)]
     public void AOnePointLineIsTheSameWidthWhereverItSits(float dpiScale, int expectedPixels)
     {
-        var canvas = RasterAt(dpiScale);
-        var rgba = Render(canvas, c =>
+        var image = Render(dpiScale, c =>
         {
             for (var i = 0; i < Offsets.Length; i++)
                 Fill(c, new RectF(10f + i * 40f + Offsets[i], 20f, 1f, 20f), Red);
@@ -150,7 +141,7 @@ public sealed class PixelSnapTests : IDisposable
         {
             var from = (int)((10f + i * 40f - 2f) * dpiScale);
             var to = (int)((10f + i * 40f + 30f) * dpiScale);
-            Assert.Equal(expectedPixels, CountInRow(rgba, dpiScale, row, from, to, Red));
+            Assert.Equal(expectedPixels, CountInRow(image, row, from, to, Red));
         }
     }
 
@@ -177,7 +168,7 @@ public sealed class PixelSnapTests : IDisposable
         Assert.Equal(left.Rect.X + left.Rect.Z, right.Rect.X, 0.0001f);
     }
 
-    [Theory]
+    [GpuTheory]
     [InlineData(1f)]
     [InlineData(1.25f)]
     [InlineData(1.5f)]
@@ -185,8 +176,8 @@ public sealed class PixelSnapTests : IDisposable
     {
         var bounds = new RectF(10.3f, 10.6f, 40.4f, 20.3f);
 
-        var unclipped = CountAll(Render(RasterAt(dpiScale), c => Fill(c, bounds, Blue)), Blue);
-        var clipped = CountAll(Render(RasterAt(dpiScale), c =>
+        var unclipped = CountAll(Render(dpiScale, c => Fill(c, bounds, Blue)), Blue);
+        var clipped = CountAll(Render(dpiScale, c =>
         {
             c.PushClip(bounds);
             Fill(c, bounds, Blue);
@@ -197,14 +188,13 @@ public sealed class PixelSnapTests : IDisposable
         Assert.Equal(unclipped, clipped);
     }
 
-    [Theory]
+    [GpuTheory]
     [InlineData(1.25f)]
     [InlineData(1.5f)]
     public void TheCanvasFillsEveryDevicePixel(float dpiScale)
     {
-        var canvas = RasterAt(dpiScale);
-        var rgba = Render(canvas, c => Fill(c, new RectF(0f, 0f, CanvasWidth, CanvasHeight), Blue));
+        var image = Render(dpiScale, c => Fill(c, new RectF(0f, 0f, CanvasWidth, CanvasHeight), Blue));
 
-        Assert.Equal(rgba.Length / 4, CountAll(rgba, Blue));
+        Assert.Equal(image.Width * image.Height, CountAll(image, Blue));
     }
 }

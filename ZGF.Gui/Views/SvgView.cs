@@ -19,7 +19,6 @@ public sealed class SvgView : View
     private readonly SvgDocument _document;
     private readonly Action<float> _tick;
 
-    private string? _imageId;
     private int _rasterW;
     private int _rasterH;
     private uint _rasterColor;
@@ -75,14 +74,14 @@ public sealed class SvgView : View
 
         var color = _currentColor;
         var immediate =
-            _imageId == null ||
+            _rasterW == 0 ||
             color != _rasterColor ||
             targetW > _rasterW * 2 || targetH > _rasterH * 2 ||
             targetW * 2 < _rasterW || targetH * 2 < _rasterH;
 
         if (immediate)
         {
-            RasterizeAt(c, targetW, targetH, color);
+            UseRaster(targetW, targetH, color);
         }
         else if (targetW != _rasterW || targetH != _rasterH)
         {
@@ -93,7 +92,7 @@ public sealed class SvgView : View
                 _settleSeconds = 0f;
             }
             if (_settleSeconds >= SettleDelaySeconds)
-                RasterizeAt(c, targetW, targetH, color);
+                UseRaster(targetW, targetH, color);
             else
                 EnsureTick();
         }
@@ -102,10 +101,11 @@ public sealed class SvgView : View
             StopTick();
         }
 
+        var imageId = _cache.Acquire(c, _document, _rasterW, _rasterH, _rasterColor);
         c.DrawImage(new DrawImageInputs
         {
             Position = Position,
-            ImageId = _imageId!,
+            ImageId = imageId,
             ZIndex = GetDrawZIndex(),
             TintColor = TintColor,
             Rotation = Rotation,
@@ -143,9 +143,10 @@ public sealed class SvgView : View
             Math.Max(1, (int)MathF.Round(fitH * dpi)));
     }
 
-    private void RasterizeAt(ICanvas c, int widthPx, int heightPx, uint color)
+    /// <summary>Draws the rasterization at this size and colour from now on. Each draw acquires it from the cache
+    /// again, which keeps it from evicting while drawn and rasterizes it again if it was evicted meanwhile.</summary>
+    private void UseRaster(int widthPx, int heightPx, uint color)
     {
-        _imageId = _cache.Acquire(c, _document, widthPx, heightPx, color);
         _rasterW = widthPx;
         _rasterH = heightPx;
         _rasterColor = color;

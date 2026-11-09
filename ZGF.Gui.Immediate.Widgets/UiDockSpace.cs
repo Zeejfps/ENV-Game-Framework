@@ -711,7 +711,7 @@ internal sealed class DockWalker
         }
         using (_ui.Float(0f, 0f, 0f, 0f, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }, OverlayZ))
             _ui.Paint(this, static (p, walker) => walker.PaintOverlay(p));
-        _ui.RequestUpdate();
+        _ui.RequestAnimationFrame();
     }
 
     private void PaintOverlay(UiPainter p)

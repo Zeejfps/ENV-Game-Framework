@@ -16,12 +16,12 @@ public sealed class CaretOffsetsTests : IDisposable
 
     public void Dispose() => _fonts.Dispose();
 
-    private RasterCanvas CanvasAt(float dpiScale, bool arabicFallback = false)
+    private CaptureCanvas CanvasAt(float dpiScale, bool arabicFallback = false)
     {
         var font = _fonts.LoadFontFromFile(InterPath, (int)MathF.Round(16f * dpiScale));
         if (arabicFallback)
             _fonts.RegisterFallbackFont(_fonts.LoadFontFromFile(ArabicFontPath()!, (int)MathF.Round(16f * dpiScale)));
-        return new RasterCanvas(400, 200, _fonts, font, dpiScale, 0u);
+        return new CaptureCanvas(_fonts, font, dpiScale);
     }
 
     internal static string? ArabicFontPath()
@@ -80,8 +80,8 @@ public sealed class CaretOffsetsTests : IDisposable
     [Fact]
     public void Measuring_and_drawing_a_long_line_allocate_nothing_once_it_is_shaped()
     {
-        var raster = CanvasAt(1f);
-        ICanvas canvas = raster;
+        var capture = CanvasAt(1f);
+        ICanvas canvas = capture;
         var style = new TextStyle();
         var text = string.Concat(Enumerable.Repeat("The quick brown fox. ", 20));
         var offsets = new float[text.Length + 1];
@@ -90,9 +90,9 @@ public sealed class CaretOffsetsTests : IDisposable
             canvas.MeasureTextWidth(text, style);
             canvas.MeasureTextPrefix(text, 100, style);
             canvas.MeasureTextPrefixes(text, style, offsets);
-            raster.BeginFrame();
+            capture.BeginFrame();
             canvas.DrawText(new DrawTextInputs { Position = new RectF(0, 0, 400, 20), Text = text, Style = style, ZIndex = 0 });
-            raster.EndFrame();
+            capture.EndFrame();
         }
         for (var i = 0; i < 3; i++)
             MeasureAndDraw();

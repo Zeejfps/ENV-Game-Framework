@@ -89,8 +89,17 @@ public static partial class UiWidgets
             painter(ui, state, face);
         else
             ui.PaintButton(state, face);
+        ui.Semantics(state.Id, SemanticRole.Button, label, ButtonStates(state.Availability));
         return state.Activated;
     }
+
+    private static SemanticStates ButtonStates(ButtonAvailability availability) => availability switch
+    {
+        ButtonAvailability.Enabled => SemanticStates.None,
+        ButtonAvailability.Disabled => SemanticStates.Disabled,
+        ButtonAvailability.Busy => SemanticStates.Busy,
+        _ => throw new ArgumentOutOfRangeException(nameof(availability), availability, null),
+    };
 
     /// <summary>What a button does, without drawing it: under the pointer it shows the hand cursor,
     /// it is a Tab stop, and Enter or Space activates it while it holds focus; it takes no input
@@ -149,7 +158,7 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, string label, ref bool value, uint? textColor = null, string? id = null, bool enabled = true,
         Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, null, 0u, value, textColor, id, enabled, width, bold, compact)) return false;
+        if (!DrawCheckbox(ui, label, null, 0u, value, !value, textColor, id, enabled, width, bold, compact)) return false;
         value = !value;
         return true;
     }
@@ -162,7 +171,7 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, IReadOnlyList<RichTextRun> label, uint markBackground, ref bool value, string id, bool enabled = true,
         Sizing? width = null, bool compact = false)
     {
-        if (!DrawCheckbox(ui, id, label, markBackground, value, null, id, enabled, width, false, compact)) return false;
+        if (!DrawCheckbox(ui, id, label, markBackground, value, !value, null, id, enabled, width, false, compact)) return false;
         value = !value;
         return true;
     }
@@ -173,7 +182,7 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, string label, ref bool? value, uint? textColor = null, string? id = null, bool enabled = true,
         Sizing? width = null, bool bold = false, bool compact = false)
     {
-        if (!DrawCheckbox(ui, label, null, 0u, value, textColor, id, enabled, width, bold, compact)) return false;
+        if (!DrawCheckbox(ui, label, null, 0u, value, value != true, textColor, id, enabled, width, bold, compact)) return false;
         value = value != true;
         return true;
     }
@@ -184,19 +193,24 @@ public static partial class UiWidgets
     public static bool Checkbox(this Ui ui, IReadOnlyList<RichTextRun> label, uint markBackground, ref bool? value, string id, bool enabled = true,
         Sizing? width = null, bool compact = false)
     {
-        if (!DrawCheckbox(ui, id, label, markBackground, value, null, id, enabled, width, false, compact)) return false;
+        if (!DrawCheckbox(ui, id, label, markBackground, value, value != true, null, id, enabled, width, false, compact)) return false;
         value = value != true;
         return true;
     }
 
-    private static bool DrawCheckbox(Ui ui, string label, IReadOnlyList<RichTextRun>? runs, uint markBackground, bool? value, uint? textColor,
-        string? id, bool enabled, Sizing? width, bool bold, bool compact)
+    /// <summary>Draws a checkbox showing <paramref name="value"/>, which becomes <paramref name="clicked"/> on the
+    /// frame it returns true.</summary>
+    private static bool DrawCheckbox(Ui ui, string label, IReadOnlyList<RichTextRun>? runs, uint markBackground, bool? value, bool clicked,
+        uint? textColor, string? id, bool enabled, Sizing? width, bool bold, bool compact)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id ?? label, enabled, out var activated, out var ring);
         var on = value == true;
         var mixed = value is null;
         var height = compact ? theme.RowHeight : theme.ControlHeight;
+        if (ui.WantsSemantics)
+            DescribeCheckbox(ui, i.Id, runs != null ? string.Concat(runs.Select(run => run.Text)) : label,
+                i.Clicked || activated ? clicked : value, enabled);
 
         using (ui.Row(i.Id, new Box { Width = width ?? Sizing.Fit(), Height = height, Gap = theme.Gap }))
         {
@@ -243,6 +257,17 @@ public static partial class UiWidgets
         return true;
     }
 
+    private static void DescribeCheckbox(Ui ui, int id, string label, bool? value, bool enabled)
+    {
+        var states = value switch
+        {
+            true => SemanticStates.Checked,
+            false => SemanticStates.None,
+            null => SemanticStates.Mixed,
+        };
+        ui.Semantics(id, SemanticRole.Checkbox, label, states | (enabled ? SemanticStates.None : SemanticStates.Disabled));
+    }
+
     private static bool DrawSwitch(Ui ui, string id, bool on, bool enabled)
     {
         var theme = ui.Theme;
@@ -251,6 +276,9 @@ public static partial class UiWidgets
         var height = knob + SwitchInset * 2;
         var accent = !enabled ? theme.TextDisabled : i.Hovered ? theme.AccentHovered : theme.Accent;
         var off = i.Hovered && enabled ? theme.ControlHovered : theme.Control;
+        var onAfter = i.Clicked || activated ? !on : on;
+        ui.Semantics(i.Id, SemanticRole.Switch, null,
+            (onAfter ? SemanticStates.Checked : SemanticStates.None) | (enabled ? SemanticStates.None : SemanticStates.Disabled));
         using (ui.Row(i.Id, new Box
         {
             Width = MathF.Round(height * SwitchAspect),
@@ -294,6 +322,8 @@ public static partial class UiWidgets
         }
 
         var fraction = max > min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
+        if (ui.WantsSemantics)
+            ui.Semantics(i.Id, SemanticRole.Slider, value: value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
         var ring = focused && ui.FocusVisible;
         var trackHeight = theme.SliderTrackHeight;
         using (ui.Row(i.Id, new Box
@@ -323,7 +353,11 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var height = theme.ProgressHeight;
         using (ui.Box(new Box { Width = width ?? Sizing.Grow(), Height = height, Background = theme.Control, Radius = height / 2 }))
+        {
+            if (ui.WantsSemantics)
+                ui.Semantics(SemanticRole.ProgressBar, value: Math.Clamp(fraction, 0f, 1f).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
             ui.Leaf(new Box { Width = Sizing.Percent(Math.Clamp(fraction, 0f, 1f)), Height = Sizing.Grow(), Background = theme.Accent, Radius = height / 2 });
+        }
     }
 
     /// <summary>Paints <see cref="UiTheme.FocusRing"/> inside the element being recorded, rounded by

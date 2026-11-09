@@ -114,14 +114,14 @@ public static partial class UiWidgets
     {
         if (!enabled)
         {
-            DisabledField(ui, text, placeholder, width, leadingIcon);
+            DisabledField(ui, id, text, placeholder, width, leadingIcon);
             return false;
         }
         return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look, clearable);
     }
 
     /// <summary>A boxed field's look, its text in <see cref="UiTheme.TextDisabled"/>, taking no input.</summary>
-    private static void DisabledField(Ui ui, string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon)
+    private static void DisabledField(Ui ui, string id, string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon)
     {
         var theme = ui.Theme;
         using (ui.Row(new Box
@@ -136,6 +136,7 @@ public static partial class UiWidgets
             Radius = theme.CornerRadius,
         }))
         {
+            ui.Semantics(SemanticRole.TextField, placeholder, SemanticStates.Disabled, text, name: id);
             if (leadingIcon != null)
                 ui.Glyph(leadingIcon.Value, theme.TextDisabled, theme.IconSize, new Box { Width = theme.IconSize });
             using (ui.Row(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Gap = 0f, Clip = true }))
@@ -242,6 +243,7 @@ public static partial class UiWidgets
                 ui.SetImeCaret(new UiRect(textLeft + caretX - state.Shift, rect.Y + (rect.Height - lineHeight) / 2, theme.CaretWidth, lineHeight));
         }
         var shift = focused ? state.Shift : 0f;
+        ui.Semantics(i.Id, SemanticRole.TextField, placeholder, value: text);
 
         using (ui.Row(i.Id, new Box
         {
@@ -349,7 +351,7 @@ public static partial class UiWidgets
     private static bool CaretVisible(Ui ui, TextFieldState state)
     {
         var phase = (ui.RealTime - state.BlinkFrom) % (CaretBlinkSeconds * 2);
-        ui.RequestUpdateIn(CaretBlinkSeconds - phase % CaretBlinkSeconds);
+        ui.RequestAmbientUpdateIn(CaretBlinkSeconds - phase % CaretBlinkSeconds);
         return phase < CaretBlinkSeconds;
     }
 

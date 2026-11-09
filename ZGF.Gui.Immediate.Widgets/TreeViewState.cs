@@ -47,6 +47,12 @@ public interface ITreeModel<TNode>
     bool HasChildren(TNode node);
     TreeChildren<TNode> GetChildren(TNode node);
     TreeRow Row(TNode node);
+
+    /// <summary>What tells <paramref name="node"/> apart from its siblings, as the app knows it, such as its
+    /// name; it need be unique among them only. Tests find its row by the keys of it and of every node above
+    /// it, each a <see cref="TestSegment.Keyed"/>, under the tree's test path, wherever the row moves. Asked
+    /// only while a test wants a snapshot.</summary>
+    string KeyOf(TNode node);
 }
 
 /// <summary>

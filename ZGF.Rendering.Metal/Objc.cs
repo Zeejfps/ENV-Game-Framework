@@ -102,6 +102,22 @@ public static unsafe class Objc
         IntPtr srcTexture, nuint srcSlice, nuint srcLevel, MTLOrigin srcOrigin, MTLSize srcSize,
         IntPtr dstTexture, nuint dstSlice, nuint dstLevel, MTLOrigin dstOrigin);
 
+    // MTLBlitCommandEncoder copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:
+    //                                toBuffer:destinationOffset:destinationBytesPerRow:destinationBytesPerImage:
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_BlitCopyTextureToBuffer(
+        IntPtr receiver, IntPtr selector,
+        IntPtr srcTexture, nuint srcSlice, nuint srcLevel, MTLOrigin srcOrigin, MTLSize srcSize,
+        IntPtr dstBuffer, nuint dstOffset, nuint dstBytesPerRow, nuint dstBytesPerImage);
+
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    public static extern void msg_Void_MTLClearColor(IntPtr receiver, IntPtr selector, MTLClearColor color);
+
+    // MTLDevice supportsFamily: (MTLGPUFamily is an NSInteger).
+    [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static extern bool msg_Bool_Long(IntPtr receiver, IntPtr selector, long arg);
+
     [DllImport(Libobjc, EntryPoint = "objc_msgSend")]
     public static extern IntPtr msg_IntPtr_MTLPrim_UInt_UInt_UInt(IntPtr receiver, IntPtr selector, uint prim, uint vertexStart, uint vertexCount, uint instanceCount);
 

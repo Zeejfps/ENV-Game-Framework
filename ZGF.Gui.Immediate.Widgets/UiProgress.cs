@@ -21,7 +21,7 @@ public static partial class UiWidgets
         var ink = color ?? theme.AccentText;
         using (ui.Box(new Box { Width = Sizing.Fixed(side), Height = Sizing.Fixed(side) }))
             ui.Paint((phase, ink, background), static (p, s) => PaintSpinner(p, s.phase, s.ink, s.background));
-        ui.RequestUpdateIn(AnimationStep);
+        ui.RequestAmbientUpdateIn(AnimationStep);
     }
 
     private static void PaintSpinner(UiPainter p, float phase, uint color, uint background)
@@ -51,7 +51,7 @@ public static partial class UiWidgets
         var phase = (float)(ui.RealTime % SlidePeriod / SlidePeriod);
         using (ui.Box(new Box { Width = width ?? Sizing.Grow(), Height = tall, Background = theme.Control, Radius = tall / 2 }))
             ui.Paint((phase, theme.Accent), static (p, s) => PaintSlide(p, s.phase, s.Accent));
-        ui.RequestUpdateIn(AnimationStep);
+        ui.RequestAmbientUpdateIn(AnimationStep);
     }
 
     private static void PaintSlide(UiPainter p, float phase, uint color)

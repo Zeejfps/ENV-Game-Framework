@@ -17,6 +17,7 @@ public static partial class UiWidgets
             painter(ui, state, face);
         else
             ui.PaintIconButton(state, face);
+        ui.Semantics(state.Id, SemanticRole.Button, tooltip ?? id, ButtonStates(state.Availability));
         if (tooltip != null)
             ui.Tooltip(state.Id, tooltip);
         return state.Activated;
@@ -58,6 +59,7 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var close = ui.Pressable(id, true, out var activated, out var ring, tabStop: tabStop);
         var side = size ?? theme.TabCloseSize;
+        ui.Semantics(close.Id, SemanticRole.Button, "Close");
         using (ui.Box(close.Id, new Box
         {
             Width = side,

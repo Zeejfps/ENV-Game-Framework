@@ -81,6 +81,22 @@ public sealed class BenchCanvas : RenderedCanvasBase
     }
 
     protected override void OnResize(int width, int height) { }
-    protected override Size GetImageSizeImpl(string imageId) => default;
-    protected override uint GetImageTextureId(string imageId) => 0;
+
+    private readonly Dictionary<string, Size> _imageSizes = new();
+
+    public override bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown)
+    {
+        _imageSizes[imageId] = new Size { Width = widthPx, Height = heightPx };
+        return true;
+    }
+
+    public override bool HasImage(string imageId) => _imageSizes.ContainsKey(imageId);
+
+    public override void RemoveImage(string imageId) => _imageSizes.Remove(imageId);
+
+    protected override bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        textureId = 0;
+        return _imageSizes.TryGetValue(imageId, out size);
+    }
 }

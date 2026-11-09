@@ -5,7 +5,7 @@ namespace ZGF.Desktop.Backends.OpenGl;
 
 public sealed class OpenGlWindow : GlfwWindowBase
 {
-    public OpenGlWindow(Window window, bool isMain) : base(window, isMain)
+    public OpenGlWindow(Window window, bool isMain, bool headless) : base(window, isMain, headless)
     {
         NativeHandle = ComputeNativeHandle(window);
         DpiScaleValue = ComputeDpiScale();

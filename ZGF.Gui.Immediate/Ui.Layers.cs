@@ -52,7 +52,7 @@ public abstract partial class Ui
         e.Parent = 0;
         e.Floating = true;
         e.Z = ModalZ + _modalCount++ * ModalZStep;
-        Push(e);
+        NoteModal(Push(e));
         BeginScope(ScopeKind.Element);
         return layer;
     }
@@ -93,11 +93,13 @@ public abstract partial class Ui
         }
         _openLayers.Push(rank);
         _block = BlockAbove(rank);
+        NoteLayerBegun();
     }
 
     private void EndLayer()
     {
         _openLayers.Pop();
+        NoteLayerEnded();
         _block = BlockAbove(_openLayers.Count > 0 ? _openLayers.Peek() : -1);
     }
 

@@ -1,0 +1,79 @@
+using System.Numerics;
+using ZGF.Fonts;
+using ZGF.Geometry;
+
+namespace ZGF.Gui.Testing;
+
+/// <summary>
+/// A concrete <see cref="RenderedCanvasBase"/> whose GPU hooks are no-ops but which keeps the
+/// instances the base staged, so a test can assert what the real canvas would have drawn — same
+/// staging, sorting, transform and font code, no device.
+/// </summary>
+public sealed class CaptureCanvas : RenderedCanvasBase
+{
+    public CaptureCanvas(FreeTypeFontBackend fonts, FontHandle defaultFont, float dpiScale = 1f)
+        : base(800, 600, fonts, defaultFont, dpiScale)
+    {
+    }
+
+    public List<RectInstance> Rects { get; } = new();
+    public List<GlyphInstance> Glyphs { get; } = new();
+    public List<ImageInstance> Images { get; } = new();
+    public List<ShadowInstance> Shadows { get; } = new();
+    public List<ShapeInstance> Shapes { get; } = new();
+
+    /// <summary>The clip rects of the last frame as (left, bottom, right, top), slot 0 the whole canvas.</summary>
+    public List<Vector4> Clips { get; } = new();
+
+    /// <summary>The images the canvas has, by id, and the size each is drawn as if it had; drawing an image not
+    /// named here draws nothing, as on the shipping canvases.</summary>
+    public Dictionary<string, Size> ImageSizes { get; } = new();
+
+    /// <summary>
+    /// Runs one frame and returns with the instance lists holding what would be on screen. The base
+    /// skips re-uploading a kind whose staged content is unchanged, so these keep the last uploaded
+    /// contents rather than emptying — which is what is still drawn.
+    /// </summary>
+    public void Frame(Action<ICanvas> draw)
+    {
+        BeginFrame();
+        draw(this);
+        EndFrame();
+    }
+
+    protected override void UploadRectInstances(RectInstance[] data, int count) => Keep(Rects, data, count);
+    protected override void UploadGlyphInstances(GlyphInstance[] data, int count) => Keep(Glyphs, data, count);
+    protected override void UploadImageInstances(ImageInstance[] data, int count) => Keep(Images, data, count);
+    protected override void UploadShadowInstances(ShadowInstance[] data, int count) => Keep(Shadows, data, count);
+    protected override void UploadShapeInstances(ShapeInstance[] data, int count) => Keep(Shapes, data, count);
+
+    protected override void UploadClips(ReadOnlySpan<Vector4> clips, int count)
+    {
+        Clips.Clear();
+        Clips.AddRange(clips[..count]);
+    }
+
+    private static void Keep<T>(List<T> kept, T[] data, int count)
+    {
+        kept.Clear();
+        for (var i = 0; i < count; i++) kept.Add(data[i]);
+    }
+
+    protected override void UpdateAtlasIfDirty() { }
+    /// <summary>The draw calls of the last frame, in the order the GPU would run them.</summary>
+    public List<DrawCall> DrawCalls { get; } = new();
+
+    protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls)
+    {
+        DrawCalls.Clear();
+        DrawCalls.AddRange(drawCalls);
+    }
+    protected override void OnResize(int width, int height) { }
+    public override bool HasImage(string imageId) => ImageSizes.ContainsKey(imageId);
+
+    protected override bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        textureId = 0;
+        return ImageSizes.TryGetValue(imageId, out size);
+    }
+}

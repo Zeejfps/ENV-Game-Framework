@@ -1,3 +1,4 @@
+using ZGF.Rendering.Metal;
 using GLFW;
 using Monitor = GLFW.Monitor;
 
@@ -21,7 +22,10 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     {
         _startupConfig = startupConfig;
         _clientApi = clientApi;
-        Glfw.Init();
+        if (startupConfig.Headless && OperatingSystem.IsMacOS())
+            ProhibitActivation();
+        Glfw.InitHint(Hint.CocoaMenuBar, !startupConfig.Headless);
+        Glfw.Initialize();
 
         Glfw.DefaultWindowHints();
         ApplyClientApiHints();
@@ -30,7 +34,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         if (startupConfig.IsUndecorated)
             Glfw.WindowHint(Hint.Decorated, false);
 
-        if (startupConfig.StartUnfocused)
+        if (startupConfig.StartUnfocused || startupConfig.Headless)
         {
             Glfw.WindowHint(Hint.FocusOnShow, false);
             Glfw.WindowHint(Hint.Focused, false);
@@ -47,6 +51,18 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     }
 
     protected TWindow Main { get; }
+
+    protected bool Headless => _startupConfig.Headless;
+
+    // NSApplicationActivationPolicyProhibited, set before GLFW initializes Cocoa: no Dock icon or menu bar, and the app
+    // is never made active. AppKit is loaded first, since nothing has loaded it yet.
+    private static void ProhibitActivation()
+    {
+        System.Runtime.InteropServices.NativeLibrary.Load("/System/Library/Frameworks/AppKit.framework/AppKit");
+        var app = Objc.msg_IntPtr(Objc.Class("NSApplication"), Objc.Sel("sharedApplication"));
+        if (app == IntPtr.Zero || !Objc.msg_Bool_Long(app, Objc.Sel("setActivationPolicy:"), 2))
+            throw new InvalidOperationException("macOS would not keep the headless app from activating.");
+    }
 
     public IWindow MainWindow => Main;
     public IReadOnlyList<IWindow> Windows => _windows;
@@ -123,6 +139,9 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     // Runs after every window has been disposed and before GLFW terminates.
     protected virtual void ReleaseDevice() { }
 
+    // Runs once GLFW has terminated, every window and context with it.
+    protected virtual void OnTerminated() { }
+
     private void ApplyClientApiHints()
     {
         Glfw.WindowHint(Hint.ClientApi, _clientApi);
@@ -147,16 +166,8 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         var (px, py) = WindowPlacement.Compute(
             Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
         Main.SetPosition(px, py);
-        if (_startupConfig.StartHidden)
-        {
-            Main.DrawsWhileHidden = true;
-        }
-        else
-        {
-            Main.Show();
-            if (_startupConfig.StartMaximized)
-                Glfw.MaximizeWindow(Main.GlfwWindow);
-        }
+        if (!_startupConfig.Headless)
+            ShowMainWindow();
 
         while (!Glfw.WindowShouldClose(Main.GlfwWindow))
         {
@@ -203,6 +214,20 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         // Dispose(), which the owner calls last.
     }
 
+    private void ShowMainWindow()
+    {
+        if (_startupConfig.StartHidden)
+        {
+            Main.DrawsWhileHidden = true;
+        }
+        else
+        {
+            Main.Show();
+            if (_startupConfig.StartMaximized)
+                Glfw.MaximizeWindow(Main.GlfwWindow);
+        }
+    }
+
     public void Dispose()
     {
         if (_isDisposed) return;
@@ -214,7 +239,9 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         }
         Main.Dispose();
         ReleaseDevice();
+        GlfwStandardCursors.Release();
         Glfw.Terminate();
+        OnTerminated();
         GC.SuppressFinalize(this);
     }
 }

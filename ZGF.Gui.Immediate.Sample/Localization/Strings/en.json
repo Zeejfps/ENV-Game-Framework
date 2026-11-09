@@ -19,5 +19,12 @@
   "menu.file": "File",
   "menu.view": "View",
   "action.toggle_done": "Toggle done",
-  "tooltip.add_many": "Adds a thousand generated tasks"
+  "tooltip.add_many": "Adds a thousand generated tasks",
+  "action.open": "Open…",
+  "action.export": "Export…",
+  "action.done": "Done",
+  "open.title": "Open a task list",
+  "preview.empty": "No file open",
+  "export.title": "Export",
+  "export.body": "Tasks are exported as plain text, one per line."
 }

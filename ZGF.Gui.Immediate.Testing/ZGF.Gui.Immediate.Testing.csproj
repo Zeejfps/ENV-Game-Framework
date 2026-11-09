@@ -5,8 +5,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Immediate.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Testing\ZGF.Gui.Testing.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Testing.Gpu\ZGF.Gui.Testing.Gpu.csproj" />
     </ItemGroup>
 
 </Project>

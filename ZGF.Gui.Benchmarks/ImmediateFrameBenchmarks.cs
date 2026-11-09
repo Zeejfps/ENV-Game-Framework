@@ -190,6 +190,7 @@ public class ImmediateTreeBenchmarks
         public bool HasChildren(Node node) => node.Children.Length > 0;
         public TreeChildren<Node> GetChildren(Node node) => TreeChildren<Node>.Of(node.Children);
         public TreeRow Row(Node node) => new(node.Label, new UiIcon(IconGlyph.FromFont("#"), Color: 0xFF4C8DFF, Background: 0x334C8DFF));
+        public string KeyOf(Node node) => node.Label;
     }
 
     [GlobalSetup]

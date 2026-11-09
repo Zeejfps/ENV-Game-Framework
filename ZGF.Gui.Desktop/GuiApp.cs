@@ -5,6 +5,7 @@ using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Hosting;
+using ZGF.Gui.Mcp;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 
@@ -176,7 +177,15 @@ public sealed class GuiApp : IDisposable
         int? mcpServerPort = null)
     {
         var backend = CreateRenderBackend(config, backendKind);
-        return new GuiApp(backend, context, contentFactory, renderHook, startup, mcpServerPort);
+        try
+        {
+            return new GuiApp(backend, context, contentFactory, renderHook, startup, mcpServerPort);
+        }
+        catch
+        {
+            backend.Dispose();
+            throw;
+        }
     }
 
     private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, GuiRenderBackendKind kind) => kind switch
@@ -348,7 +357,7 @@ public sealed class GuiApp : IDisposable
         GuiMcpServer server;
         try
         {
-            server = new GuiMcpServer(options, CreateDriver());
+            server = new GuiMcpServer(options);
         }
         catch (System.Net.HttpListenerException ex)
         {
@@ -377,7 +386,7 @@ public sealed class GuiApp : IDisposable
         if ((configuredPort ?? ResolveEnvMcpPort()) is not { } port) return;
         try
         {
-            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, IncludeGuiTools = true }, CreateDriver());
+            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, ToolSources = [new RetainedGuiTools(CreateDriver())] });
             Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {_debugMcpServer.Endpoint}  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
         }
         catch (System.Net.HttpListenerException ex)

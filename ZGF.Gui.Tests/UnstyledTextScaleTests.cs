@@ -15,16 +15,16 @@ public sealed class UnstyledTextScaleTests : IDisposable
     private static string FontPath => Path.Combine(AppContext.BaseDirectory, "Assets", "Inter-Regular.ttf");
 
     private readonly FreeTypeFontBackend _fonts = new();
-    private readonly List<RasterCanvas> _canvases = new();
+    private readonly List<CaptureCanvas> _canvases = new();
 
     public void Dispose() => _fonts.Dispose();
 
     // Built the way the app builds one: the default font is loaded at the canvas's own scale, which is
     // what lets the canvas recover the logical size it was authored at.
-    private RasterCanvas CanvasAt(float dpiScale)
+    private CaptureCanvas CanvasAt(float dpiScale)
     {
         var font = _fonts.LoadFontFromFile(FontPath, (int)MathF.Round(LogicalFontSize * dpiScale));
-        var canvas = new RasterCanvas(400, 200, _fonts, font, dpiScale, 0u);
+        var canvas = new CaptureCanvas(_fonts, font, dpiScale);
         _canvases.Add(canvas);
         return canvas;
     }

@@ -114,6 +114,10 @@ public readonly struct ListScope : IDisposable
         if (selected)
             _frame.SelectedRow = id;
         var scope = _ui.Row(id, RowBox(box, selected, row.Hovered || hovered));
+        if (id == 0)
+            _ui.Semantics(SemanticRole.ListItem, states: selected ? SemanticStates.Selected : SemanticStates.None);
+        else if (_ui.WantsSemantics)
+            _frame.Described.Add((id, index));
         var ringed = selected && id != 0 && _frame.Focused && _ui.FocusVisible;
         if (ringed)
             _ui.FocusRing(0f);
@@ -149,7 +153,13 @@ public readonly struct ListScope : IDisposable
     private Box RowBox(Box box, bool selected, bool hovered) =>
         UiWidgets.ListRowBox(_ui.Theme, box, _frame.RowHeight, selected, _frame.Focused, hovered);
 
-    public void Dispose() => _rows.Dispose();
+    public void Dispose()
+    {
+        foreach (var (id, index) in _frame.Described)
+            _ui.Semantics(id, SemanticRole.ListItem, states: index == _frame.Selection.Index ? SemanticStates.Selected : SemanticStates.None);
+        _frame.Described.Clear();
+        _rows.Dispose();
+    }
 }
 
 /// <summary>The rows of a <see cref="UiWidgets.SelectableList{TKey}"/> to record this frame, from
@@ -191,6 +201,8 @@ public readonly struct ListScope<TKey> : IDisposable where TKey : notnull
 
         var selected = _frame.Selection.Contains(_frame.Order[index]);
         var scope = _ui.Row(id, UiWidgets.ListRowBox(_ui.Theme, box, _frame.RowHeight, selected, _frame.Focused, row.Hovered));
+        if (_ui.WantsSemantics)
+            _frame.Described.Add((id, index));
         var ringed = IsCurrent(index) && _frame.Focused && _ui.FocusVisible;
         if (ringed)
             _ui.FocusRing(0f);
@@ -215,7 +227,16 @@ public readonly struct ListScope<TKey> : IDisposable where TKey : notnull
 
     private bool IsCurrent(int index) => index == _frame.CurrentIndex;
 
-    public void Dispose() => _rows.Dispose();
+    public void Dispose()
+    {
+        foreach (var (id, index) in _frame.Described)
+        {
+            var selected = _frame.Selection.Contains(_frame.Order[index]);
+            _ui.Semantics(id, SemanticRole.ListItem, states: selected ? SemanticStates.Selected : SemanticStates.None);
+        }
+        _frame.Described.Clear();
+        _rows.Dispose();
+    }
 }
 
 /// <summary>A row a <see cref="ListScope.Row"/> opened; disposing it closes it.</summary>
@@ -260,6 +281,8 @@ public static partial class UiWidgets
         public PointF MenuAt;
         public int SelectedRow;
         public ListSelection Selection = new();
+        /// <summary>The rows recorded this frame, by id and index, to describe for tests once the list ends.</summary>
+        public readonly List<(int Id, int Index)> Described = new();
 
         public void Begin(int id, int count, float rowHeight, ListSelection selection, bool selectOnClick)
         {
@@ -268,6 +291,7 @@ public static partial class UiWidgets
             RowHeight = rowHeight;
             Selection = selection;
             SelectOnClick = selectOnClick;
+            Described.Clear();
             Activated = false;
             ContextMenu = false;
             MenuAt = default;
@@ -297,6 +321,7 @@ public static partial class UiWidgets
         frame.SelectedRow = 0;
         if (selection.TakeReveal())
             ui.ScrollRowIntoView(id, selection.Index);
+        ui.Semantics(id, SemanticRole.List);
         var rows = ui.VirtualScroll(id, count, height, box);
         return new ListScope(ui, frame, rows);
     }
@@ -310,6 +335,8 @@ public static partial class UiWidgets
         public bool Activated;
         public int CurrentIndex;
         public MultiSelection<TKey> Selection = new();
+        /// <summary>The rows recorded this frame, by id and index, to describe for tests once the list ends.</summary>
+        public readonly List<(int Id, int Index)> Described = new();
 
         public void Begin(int id, IReadOnlyList<TKey> order, float rowHeight, MultiSelection<TKey> selection)
         {
@@ -317,6 +344,7 @@ public static partial class UiWidgets
             Order = order;
             RowHeight = rowHeight;
             Selection = selection;
+            Described.Clear();
             Activated = false;
         }
     }
@@ -342,6 +370,7 @@ public static partial class UiWidgets
         frame.CurrentIndex = selection.IndexOfCurrent(order);
         if (selection.TakeReveal())
             ui.ScrollRowIntoView(id, frame.CurrentIndex);
+        ui.Semantics(id, SemanticRole.List);
         var rows = ui.VirtualScroll(id, order.Count, height, box);
         return new ListScope<TKey>(ui, frame, rows);
     }

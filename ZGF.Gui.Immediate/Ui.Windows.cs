@@ -45,7 +45,7 @@ public abstract partial class Ui
             e.Layer = ++_surfaces;
             _tree.SetLayer(e.Layer, surface.Value.Canvas, rect);
         }
-        Push(e);
+        NoteWindow(Push(e));
         return BeginScope(ScopeKind.Element);
     }
 

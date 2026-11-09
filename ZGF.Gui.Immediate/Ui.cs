@@ -149,9 +149,33 @@ public abstract partial class Ui
     public bool UpdateRequested { get; private set; }
     internal double WakeAt { get; private set; } = double.PositiveInfinity;
 
-    /// <summary>Draws another frame after this one, for animation or state that settles over
-    /// several frames.</summary>
-    public void RequestUpdate() => UpdateRequested = true;
+    /// <summary>When the earliest <see cref="RequestUpdateIn"/> that is not ambient wants its frame.</summary>
+    internal double NonAmbientWakeAt { get; private set; } = double.PositiveInfinity;
+
+    /// <summary>Whether something recorded so far this frame asked for the next with <see cref="RequestUpdate"/>, to
+    /// finish a change of state, rather than with <see cref="RequestAnimationFrame"/>.</summary>
+    internal bool RequiredUpdateRequested { get; private set; }
+
+    /// <summary>Draws another frame after this one, for state that settles over several frames, such as focus
+    /// moving or a scroll offset taking effect; a test waiting for the UI to be ready waits for it. For something
+    /// that moves while time passes, use <see cref="RequestAnimationFrame"/>.</summary>
+    public void RequestUpdate()
+    {
+        UpdateRequested = true;
+        RequiredUpdateRequested = true;
+    }
+
+    /// <summary>Draws another frame after this one, for something moving on its own as time passes, such as an
+    /// animation, a glide or a drag that scrolls each frame: a test waiting for the UI to be ready does not wait
+    /// for it, and one settling the UI runs it out.</summary>
+    public void RequestAnimationFrame()
+    {
+        UpdateRequested = true;
+        AnimationFrameRequested = true;
+    }
+
+    /// <summary>Whether something recorded so far this frame asked for the next with <see cref="RequestAnimationFrame"/>.</summary>
+    internal bool AnimationFrameRequested { get; private set; }
 
     /// <summary>Draws a frame once <paramref name="seconds"/> of <see cref="RealTime"/> have
     /// passed, without drawing the frames in between.</summary>
@@ -160,8 +184,15 @@ public abstract partial class Ui
         if (seconds <= 0)
             RequestUpdate();
         else
+        {
             WakeAt = Math.Min(WakeAt, RealTime + seconds);
+            NonAmbientWakeAt = Math.Min(NonAmbientWakeAt, RealTime + seconds);
+        }
     }
+
+    /// <summary>As <see cref="RequestUpdateIn"/>, for an animation that never ends, such as a spinner:
+    /// the app draws the frame all the same, but a test waiting for the UI to settle does not wait for it.</summary>
+    public void RequestAmbientUpdateIn(double seconds) => WakeAt = Math.Min(WakeAt, RealTime + Math.Max(0, seconds));
 
     public void SetCursor(MouseCursor cursor) => Cursor = cursor;
 
@@ -177,7 +208,7 @@ public abstract partial class Ui
     public void RequestFrame() => Wake?.Invoke();
 
     /// <summary>Runs <paramref name="action"/> on the UI thread at the start of the next frame, and
-    /// makes sure there is one. Safe from any thread — the way background work hands back results.</summary>
+    /// makes sure there is one; work posted while that frame starts waits for the one after. Safe from any thread — the way background work hands back results.</summary>
     public void Post(Action action)
     {
         _posted.Enqueue(action);
@@ -327,11 +358,17 @@ public abstract partial class Ui
 
     internal bool QuitRequested { get; private set; }
 
+    /// <summary>Runs the work <see cref="Post"/> queued so far; what that work posts waits for the next call.</summary>
+    internal void RunPosted()
+    {
+        for (var count = _posted.Count; count > 0 && _posted.TryDequeue(out var action); count--)
+            action();
+    }
+
     internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
-        while (_posted.TryDequeue(out var action))
-            action();
+        RunPosted();
         Width = width;
         Height = height;
         BeginMeasurements();
@@ -340,7 +377,10 @@ public abstract partial class Ui
         Time += deltaTime;
         RealTime = realTime;
         UpdateRequested = false;
+        RequiredUpdateRequested = false;
+        AnimationFrameRequested = false;
         WakeAt = double.PositiveInfinity;
+        NonAmbientWakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;
         PointerLockRequested = false;
         _activeSeen = false;
@@ -372,6 +412,7 @@ public abstract partial class Ui
         _open.Clear();
         _surfaces = 0;
         BeginScrolls();
+        BeginSemantics();
 
         Open(0, new Box
         {
@@ -412,6 +453,7 @@ public abstract partial class Ui
             _focused = 0;
         TraverseFocus();
         EndLayers();
+        EndSemantics();
         EndIme();
         EndIconImages();
         for (var button = 1; button < UiInput.ButtonCount; button++)
@@ -423,20 +465,30 @@ public abstract partial class Ui
             PruneStates();
     }
 
-    public int GetId(string label) => HashCode.Combine(_ids.Peek(), label);
+    public int GetId(string label)
+    {
+        var id = HashCode.Combine(_ids.Peek(), label);
+        RecordName(id, label);
+        return id;
+    }
 
     public int GetId(int value) => HashCode.Combine(_ids.Peek(), value);
 
     /// <summary>Scopes widget ids, so repeated labels (a "Delete" per list row) stay distinct.</summary>
     public Scope Id(string id)
     {
-        _ids.Push(GetId(id));
+        var scope = GetId(id);
+        _ids.Push(scope);
+        PushPathOf(scope);
         return BeginScope(ScopeKind.Id);
     }
 
+    /// <summary>Scopes widget ids under <paramref name="id"/>, which, being a number that may be a hash, adds
+    /// nothing to the <see cref="TestPath"/> of what is inside; see <see cref="KeyedId"/> for an index or key.</summary>
     public Scope Id(int id)
     {
         _ids.Push(GetId(id));
+        PushCurrentPath();
         return BeginScope(ScopeKind.Id);
     }
 
@@ -446,6 +498,7 @@ public abstract partial class Ui
     public Scope UniqueId(int id)
     {
         _ids.Push(id);
+        PushPathOf(id);
         return BeginScope(ScopeKind.Id);
     }
 
@@ -458,6 +511,7 @@ public abstract partial class Ui
     {
         var scope = GetId(id);
         _ids.Push(scope);
+        PushPathOf(scope);
         _stateOwners.Push(scope);
         _keptStates[scope] = _frame;
         return BeginScope(ScopeKind.StateScope);
@@ -774,9 +828,15 @@ public abstract partial class Ui
         return _textStyles.Keep(key, style);
     }
 
-    private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z)
+    private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z) =>
+        TopmostAt(CollectionsMarshal.AsSpan(hits), _input.Pointer, among, out z);
+
+    /// <summary>The id of the topmost of <paramref name="hits"/> at <paramref name="pointer"/>, or 0, as input picks
+    /// what is under the pointer.</summary>
+    internal static int TopmostAt(ReadOnlySpan<HitRegion> hits, PointF pointer, out int z) => TopmostAt(hits, pointer, null, out z);
+
+    private static int TopmostAt(ReadOnlySpan<HitRegion> hits, PointF pointer, HashSet<int>? among, out int z)
     {
-        var pointer = _input.Pointer;
         var best = 0;
         var bestZ = int.MinValue;
         var bestOrder = int.MinValue;

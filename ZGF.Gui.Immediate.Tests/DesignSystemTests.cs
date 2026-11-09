@@ -475,6 +475,7 @@ public sealed class TreeRowSlotTests
         public bool HasChildren(string node) => false;
         public TreeChildren<string> GetChildren(string node) => TreeChildren<string>.Of([]);
         public TreeRow Row(string node) => row;
+        public string KeyOf(string node) => node;
     }
 
     [Fact]

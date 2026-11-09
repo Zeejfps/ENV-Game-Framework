@@ -10,17 +10,10 @@
       <InternalsVisibleTo Include="ZGF.Gui.Tests" />
     </ItemGroup>
 
-    <!-- In-process MCP server (GuiMcpServer) for driving the live window from an LLM/agent.
-         The Streamable HTTP transport is self-hosted over System.Net.HttpListener — no ASP.NET. -->
-    <ItemGroup>
-      <PackageReference Include="McpSdk.Server" />
-      <PackageReference Include="McpSdk.Adapter.System.Text.Json" />
-      <PackageReference Include="McpSdk.Adapter.StreamableHttpServer" />
-    </ItemGroup>
-
     <ItemGroup>
       <ProjectReference Include="..\ZGF.Gui\ZGF.Gui.csproj" />
       <ProjectReference Include="..\ZGF.Gui.Hosting\ZGF.Gui.Hosting.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Mcp\ZGF.Gui.Mcp.csproj" />
       <ProjectReference Include="..\ZGF.Desktop\ZGF.Desktop.csproj" />
       <ProjectReference Include="..\ZGF.Rendering.Metal\ZGF.Rendering.Metal.csproj" />
       <ProjectReference Include="..\ZGF.AppUtils\ZGF.AppUtils.csproj" />

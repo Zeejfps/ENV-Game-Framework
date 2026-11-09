@@ -65,7 +65,7 @@ internal sealed class ScrollGlide
         }
         else
         {
-            ui.RequestUpdate();
+            ui.RequestAnimationFrame();
         }
         _shown = MathF.Max(0f, offset);
         return _shown;

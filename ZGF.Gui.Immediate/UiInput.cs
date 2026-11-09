@@ -264,6 +264,18 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    /// <summary>Lets go of <paramref name="button"/> if it is down, as a cancelled release: drags end, and nothing it was
+    /// pressed on is clicked.</summary>
+    internal void CancelButton(PointerButton button)
+    {
+        var i = (int)button;
+        if (!_down[i]) return;
+        _down[i] = false;
+        _released[i] = true;
+        _cancelled[i] = true;
+        HasEvents = true;
+    }
+
     internal void ReleaseAll()
     {
         for (var i = 0; i < ButtonCount; i++)

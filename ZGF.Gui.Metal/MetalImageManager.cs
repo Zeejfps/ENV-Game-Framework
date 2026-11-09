@@ -21,6 +21,7 @@ public sealed unsafe class MetalImageManager : IDisposable
     private readonly Dictionary<string, Size> _sizeByImageId = new();
     private readonly Dictionary<uint, IntPtr> _textureByTextureId = new();
     private uint _nextTextureId = 1;
+    private readonly HeldTextures<uint> _held;
 
     /// <param name="commandQueue">The queue the canvases draw on, so a shared texture's copy is ordered
     /// after the frames that still sample its previous contents.</param>
@@ -28,6 +29,23 @@ public sealed unsafe class MetalImageManager : IDisposable
     {
         _device = device;
         _commandQueue = commandQueue;
+        _held = new HeldTextures<uint>(ReleaseRetired);
+    }
+
+    /// <summary>How many textures of removed or replaced images a canvas frame still holds.</summary>
+    public int RetiredCount => _held.RetiredCount;
+
+    /// <summary>A canvas staged a draw of <paramref name="textureId"/>, which must stay alive until it releases it.</summary>
+    public void HoldTexture(uint textureId) => _held.Hold(textureId);
+
+    /// <summary>The canvas will not draw <paramref name="textureId"/> again. A command buffer that encoded it keeps it
+    /// alive itself.</summary>
+    public void ReleaseTexture(uint textureId) => _held.Release(textureId);
+
+    private void ReleaseRetired(uint textureId)
+    {
+        if (_textureByTextureId.Remove(textureId, out var texture))
+            Release(texture);
     }
 
     public void LoadImageFromFile(string pathToImageFile)
@@ -48,10 +66,12 @@ public sealed unsafe class MetalImageManager : IDisposable
         _textureByTextureId.Add(textureId, texture);
     }
 
-    public uint GetTextureId(string imageId) => _textureIdByImageId[imageId];
-    public Size GetImageSize(string imageId) => _sizeByImageId[imageId];
-    public int GetImageWidth(string imageId) => (int)_sizeByImageId[imageId].Width;
-    public int GetImageHeight(string imageId) => (int)_sizeByImageId[imageId].Height;
+    /// <summary>The texture and size of the image <paramref name="imageId"/> names, or false when there is none by that id.</summary>
+    public bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        size = default;
+        return _textureIdByImageId.TryGetValue(imageId, out textureId) && _sizeByImageId.TryGetValue(imageId, out size);
+    }
 
     internal IntPtr GetMetalTexture(uint textureId)
         => _textureByTextureId.TryGetValue(textureId, out var t) ? t : IntPtr.Zero;
@@ -152,7 +172,6 @@ public sealed unsafe class MetalImageManager : IDisposable
         if (_sharedByImageId.TryGetValue(imageId, out var current) && current.Matches(width, height, format))
             return current;
 
-        RemoveImage(imageId);
         var desc = TextureDescriptor2D(Class("MTLTextureDescriptor"),
             Sel("texture2DDescriptorWithPixelFormat:width:height:mipmapped:"),
             (nuint)format, (nuint)width, (nuint)height, false);
@@ -162,6 +181,7 @@ public sealed unsafe class MetalImageManager : IDisposable
         if (texture == IntPtr.Zero)
             throw new Exception("Metal: newTextureWithDescriptor returned null.");
 
+        RemoveImage(imageId);
         var textureId = _nextTextureId++;
         var created = new SharedImage(texture, width, height, format);
         _sharedByImageId[imageId] = created;
@@ -180,22 +200,15 @@ public sealed unsafe class MetalImageManager : IDisposable
     /// <summary>
     /// Creates or replaces a dynamic image from straight-alpha RGBA8, top-down rows
     /// (flipped here to the shader's bottom-up UV convention). Updates always allocate
-    /// a fresh texture and remap the id: an in-flight command buffer may still sample
-    /// the old texture, and it retains it, so releasing our reference right away is safe
-    /// while mutating it in place would not be.
+    /// a fresh texture and remap the id, retiring the old one: a draw staged or a command
+    /// buffer in flight may still sample it, so it must be neither rewritten nor freed yet.
     /// </summary>
     public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
     {
-        _sharedByImageId.Remove(imageId);
         var flipped = FlipRows(rgbaTopDown, width, height);
         var texture = UploadRgbaTexture(width, height, flipped);
 
-        if (_textureIdByImageId.TryGetValue(imageId, out var oldTextureId))
-        {
-            if (_textureByTextureId.Remove(oldTextureId, out var oldTexture))
-                Release(oldTexture);
-        }
-
+        RemoveImage(imageId);
         var textureId = _nextTextureId++;
         _textureIdByImageId[imageId] = textureId;
         _sizeByImageId[imageId] = new Size { Width = width, Height = height };
@@ -203,14 +216,14 @@ public sealed unsafe class MetalImageManager : IDisposable
         return true;
     }
 
+    /// <summary>Forgets the image at once; its texture is released once no canvas frame open now can still draw it.</summary>
     public void RemoveImage(string imageId)
     {
         _sharedByImageId.Remove(imageId);
         if (!_textureIdByImageId.Remove(imageId, out var textureId))
             return;
         _sizeByImageId.Remove(imageId);
-        if (_textureByTextureId.Remove(textureId, out var texture))
-            Release(texture);
+        _held.Retire(textureId, textureId);
     }
 
     private byte[] _flipScratch = [];
@@ -324,6 +337,7 @@ public sealed unsafe class MetalImageManager : IDisposable
 
     public void Dispose()
     {
+        _held.FreeAll();
         foreach (var (_, texture) in _textureByTextureId)
             Release(texture);
         _textureByTextureId.Clear();

@@ -1,3 +1,4 @@
+using ZGF.Desktop;
 using ZGF.Gui.Immediate;
 using ZGF.Gui.Immediate.Sample.Localization;
 using ZGF.Gui.Immediate.Widgets;
@@ -21,6 +22,10 @@ public sealed class TodoState
     public bool DarkMode = true;
     public int Priority = 2;
     public int NextId = 1;
+    public float PreviewHeight = 56f;
+    public string? OpenedFile;
+    public string OpenedText = "";
+    public bool ExportOpen;
     public List<TodoItem> Items { get; } = new();
 
     public void Add(string title) => Items.Add(new TodoItem { Id = NextId++, Title = title });
@@ -44,6 +49,7 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
     private readonly List<TodoItem> _shown = new();
     private readonly ListSelection _selection = new();
     private TodoItem? _menuTarget;
+    private WindowBounds? _exportBounds;
 
     protected override void OnUpdate(Ui<DefaultUiState> ui)
     {
@@ -116,6 +122,33 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
 
         ui.Separator();
 
+        TodoItem? removed;
+        using (var split = ui.SplitPane("preview-split", Direction.Vertical, ref s.PreviewHeight, minFirst: 80f, minSecond: 32f,
+                   sized: SplitSide.Second))
+        {
+            using (split.First())
+                removed = TaskList(ui, s, t);
+            using (split.Second())
+                Preview(ui, s, t);
+        }
+
+        if (removed != null)
+            s.Items.Remove(removed);
+
+        using (var export = ui.WindowDialog("export", t.ExportTitle, ref s.ExportOpen, 400f, 180f, ref _exportBounds))
+        {
+            if (export.IsOpen)
+            {
+                ui.Label(t.ExportBody);
+                if (ui.Button(t.ActionDone, id: "export-done", variant: ButtonVariant.Primary))
+                    s.ExportOpen = false;
+            }
+        }
+    }
+
+    private TodoItem? TaskList(Ui ui, TodoState s, Strings t)
+    {
+        var theme = ui.Theme;
         _shown.Clear();
         foreach (var item in s.Items)
         {
@@ -129,7 +162,7 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
             for (var i = list.First; i < list.End; i++)
             {
                 var item = _shown[i];
-                using (ui.Id(item.Id))
+                using (ui.KeyedId(item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)))
                 using (list.Row(i, ui.GetId("row"), new Box { Padding = 0f }))
                 {
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");
@@ -158,10 +191,33 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
                     removed = _menuTarget;
             }
         }
-
-        if (removed != null)
-            s.Items.Remove(removed);
+        return removed;
     }
+
+    private static void Preview(Ui ui, TodoState s, Strings t)
+    {
+        var theme = ui.Theme;
+        using (ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Padding = new Spacing(0f, theme.GapTight), Gap = theme.GapTight }))
+        {
+            if (s.OpenedFile == null)
+            {
+                ui.Label(t.PreviewEmpty, theme.TextMuted);
+                return;
+            }
+            ui.Label(s.OpenedFile, bold: true);
+            ui.Label(s.OpenedText, theme.TextMuted);
+        }
+    }
+
+    private static void Open(Ui ui, TodoState s, Strings t) =>
+        ui.PickFile(t.OpenTitle, null, [new FileFilter("Text", ["*.txt"])], path =>
+        {
+            var lines = File.ReadAllLines(path).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line.Trim()).ToList();
+            foreach (var line in lines)
+                s.Add(line);
+            s.OpenedFile = Path.GetFileName(path);
+            s.OpenedText = string.Join(", ", lines.Take(3));
+        });
 
     private static void MenuBar(Ui ui, TodoState s, Strings t)
     {
@@ -171,6 +227,11 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
             {
                 if (file.IsOpen)
                 {
+                    if (ui.MenuItem(t.ActionOpen, id: "menu-open"))
+                        Open(ui, s, t);
+                    if (ui.MenuItem(t.ActionExport, id: "menu-export"))
+                        s.ExportOpen = true;
+                    ui.MenuSeparator();
                     if (ui.MenuItem(t.ActionAddMany, id: "menu-add-many"))
                         AddMany(s, t);
                     if (ui.MenuItem(t.ActionClearCompleted, id: "menu-clear-completed"))

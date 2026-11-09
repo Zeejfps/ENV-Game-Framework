@@ -14,8 +14,8 @@ public sealed class MetalWindow : GlfwWindowBase, IMetalSurface
     public IntPtr Device { get; }
     public IntPtr CommandQueue { get; }
 
-    public MetalWindow(Window window, IntPtr device, IntPtr commandQueue, bool isMain)
-        : base(window, isMain)
+    public MetalWindow(Window window, IntPtr device, IntPtr commandQueue, bool isMain, bool headless)
+        : base(window, isMain, headless)
     {
         Device = device;
         CommandQueue = commandQueue;

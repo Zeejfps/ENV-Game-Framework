@@ -12,7 +12,7 @@ namespace ZGF.Desktop.Backends;
 // differ — native handle, DPI computation, present step, and drawable-size upkeep.
 public abstract class GlfwWindowBase : IWindow
 {
-    private readonly GlfwImeBridge _ime;
+    private readonly GlfwImeBridge? _ime;
     private readonly SizeCallback _windowSizeCallback;
     private readonly SizeCallback _framebufferSizeCallback;
     private readonly WindowContentsScaleCallback _contentScaleCallback;
@@ -46,7 +46,8 @@ public abstract class GlfwWindowBase : IWindow
     public Action? RenderFrame { get; set; }
     public event Action? OnClosed;
 
-    protected GlfwWindowBase(Window window, bool isMain)
+    // A headless window, never shown and given input by automation, gets no IME bridge, so it never touches the OS input method.
+    protected GlfwWindowBase(Window window, bool isMain, bool headless)
     {
         GlfwWindow = window;
         IsMain = isMain;
@@ -84,6 +85,8 @@ public abstract class GlfwWindowBase : IWindow
         GLFW.Glfw.SetCursorEnterCallback(window, _cursorEnterCallback);
         GLFW.Glfw.SetDropCallback(window, _dropCallback);
 
+        if (headless)
+            return;
         _ime = new GlfwImeBridge(window);
         _ime.OnPreedit += preedit => OnPreedit?.Invoke(preedit);
     }
@@ -142,12 +145,12 @@ public abstract class GlfwWindowBase : IWindow
 
     private void RaiseNonClientPress() => _nonClientPress?.Invoke();
 
-    public void SetTextInputFocus(bool focused) => _ime.SetTextInputFocus(focused);
+    public void SetTextInputFocus(bool focused) => _ime?.SetTextInputFocus(focused);
 
     public void SetPreeditCursorRect(int x, int y, int width, int height) =>
-        _ime.SetCursorRectangle(x, y, width, height);
+        _ime?.SetCursorRectangle(x, y, width, height);
 
-    public void ResetPreedit() => _ime.Reset();
+    public void ResetPreedit() => _ime?.Reset();
 
     public void Show()
     {

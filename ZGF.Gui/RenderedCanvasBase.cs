@@ -233,6 +233,9 @@ public abstract class RenderedCanvasBase : ICanvas
     /// </summary>
     public BidiDirection DefaultBaseDirection { get; set; } = BidiDirection.Auto;
 
+    private readonly HashSet<uint> _heldTextures = new();
+    private bool _staging;
+
     protected RenderedCanvasBase(
         int width, int height,
         FreeTypeFontBackend fonts,
@@ -306,8 +309,13 @@ public abstract class RenderedCanvasBase : ICanvas
         width * _scale.X,
         height * _scale.Y);
 
+    /// <summary>Sizes the canvas. A frame that has ended is dropped as <see cref="AbortFrame"/> drops it when the size
+    /// changes, since drawing it again would draw it at the wrong size; a frame still being staged is kept and drawn at
+    /// the new size, as a host that takes a new scale in the middle of its frame relies on.</summary>
     public void Resize(int width, int height)
     {
+        if (!_staging && (width != _width || height != _height))
+            AbortFrame();
         _width = width;
         _height = height;
         OnResize(width, height);
@@ -327,7 +335,19 @@ public abstract class RenderedCanvasBase : ICanvas
 
     // ---------- ICanvas ----------
 
+    /// <summary>Starts a frame, letting go of the last one: nothing it staged can be drawn again.</summary>
     public void BeginFrame()
+    {
+        ReleaseHeldTextures();
+        BegunFrames++;
+        _staging = true;
+        ClearStaged();
+    }
+
+    /// <summary>How many frames have begun on this canvas, so a host can tell which canvases a frame it ran began.</summary>
+    public long BegunFrames { get; private set; }
+
+    private void ClearStaged()
     {
         _stagedRects.Clear();
         _stagedGlyphs.Clear();
@@ -1048,7 +1068,10 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var pos = inputs.Position;
         var imageId = inputs.ImageId;
-        var size = GetImageSize(imageId);
+        if (!TryGetImage(imageId, out var textureId, out var size))
+            return;
+        if (_heldTextures.Add(textureId))
+            HoldTexture(textureId);
         var rectW = pos.Width;
         var rectH = pos.Height;
 
@@ -1085,7 +1108,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 ClipIndex = (uint)_clipStack.Peek(),
                 Rotation = inputs.Rotation,
                 CornerRadius = Vector4.Max(inputs.CornerRadius, Vector4.Zero) * ((_scale.X + _scale.Y) * 0.5f),
-                TextureId = GetImageTextureId(imageId),
+                TextureId = textureId,
             }
         });
     }
@@ -1296,7 +1319,8 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight / _dpiScale;
 
-    public Size GetImageSize(string imageId) => GetImageSizeImpl(imageId);
+    /// <summary>The image's size, or zero when the canvas has no image by that id.</summary>
+    public Size GetImageSize(string imageId) => TryGetImage(imageId, out _, out var size) ? size : default;
     public int GetImageWidth(string imageId) => (int)GetImageSize(imageId).Width;
     public int GetImageHeight(string imageId) => (int)GetImageSize(imageId).Height;
 
@@ -1315,7 +1339,45 @@ public abstract class RenderedCanvasBase : ICanvas
 
     // ---------- EndFrame: sort, batch, upload, draw ----------
 
+    /// <summary>Draws what the frame staged. The textures it draws stay held until the next <see cref="BeginFrame"/>
+    /// or <see cref="AbortFrame"/>, since a present-only redraw calls this again to draw the frame once more.</summary>
     public void EndFrame()
+    {
+        _staging = false;
+        try
+        {
+            DrawStaged();
+        }
+        catch
+        {
+            AbortFrame();
+            throw;
+        }
+    }
+
+    /// <summary>Drops the last frame, ended or not, so nothing it staged is drawn again and the images it drew can
+    /// be freed: for a frame a resize, an exception or disposal abandons, and a window hidden or pooled.</summary>
+    public void AbortFrame()
+    {
+        _staging = false;
+        ClearStaged();
+        ReleaseHeldTextures();
+    }
+
+    private void ReleaseHeldTextures()
+    {
+        foreach (var textureId in _heldTextures)
+            ReleaseTexture(textureId);
+        _heldTextures.Clear();
+    }
+
+    /// <summary>A draw staged <paramref name="textureId"/>: it must stay alive until <see cref="ReleaseTexture"/>.</summary>
+    protected virtual void HoldTexture(uint textureId) { }
+
+    /// <summary>No frame of this canvas will draw <paramref name="textureId"/> again.</summary>
+    protected virtual void ReleaseTexture(uint textureId) { }
+
+    private void DrawStaged()
     {
         if (FrameUnchanged())
         {
@@ -1744,8 +1806,10 @@ public abstract class RenderedCanvasBase : ICanvas
     protected abstract void UpdateAtlasIfDirty();
     protected abstract void IssueDraws(IReadOnlyList<DrawCall> drawCalls);
     protected abstract void OnResize(int width, int height);
-    protected abstract Size GetImageSizeImpl(string imageId);
-    protected abstract uint GetImageTextureId(string imageId);
+
+    /// <summary>The texture and size of the image <paramref name="imageId"/> names, or false when the canvas has
+    /// none by that id.</summary>
+    protected abstract bool TryGetImage(string imageId, out uint textureId, out Size size);
 
     /// <summary>The texture rectangle (u, v, width, height) that draws the image upright; a texture
     /// stored top row first is drawn with a negative height.</summary>

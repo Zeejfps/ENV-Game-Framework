@@ -47,26 +47,44 @@ public sealed record MultiWindowSnapshot(IReadOnlyList<WindowSnapshot> Windows)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
-        {
-            writer.WriteStartArray();
-            foreach (var w in Windows)
-            {
-                writer.WriteStartObject();
-                writer.WriteString("role", w.Role);
-                writer.WriteStartObject("bounds");
-                writer.WriteNumber("x", w.ScreenBounds.X);
-                writer.WriteNumber("y", w.ScreenBounds.Y);
-                writer.WriteNumber("w", w.ScreenBounds.Width);
-                writer.WriteNumber("h", w.ScreenBounds.Height);
-                writer.WriteEndObject();
-                writer.WriteNumber("scale", w.Scale);
-                writer.WriteBoolean("focused", w.Focused);
-                writer.WritePropertyName("tree");
-                writer.WriteRawValue(w.Content.ToJson(), skipInputValidation: true);
-                writer.WriteEndObject();
-            }
-            writer.WriteEndArray();
-        }
+            WriteJson(writer);
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    public void WriteJson(Utf8JsonWriter writer) =>
+        WriteWindows(writer, (w, content) =>
+        {
+            w.WritePropertyName("tree");
+            w.WriteRawValue(content.ToJson(), skipInputValidation: true);
+        });
+
+    /// <summary>The same windows with <c>nodes</c>, the flat form of <see cref="UiSnapshot.WriteFlatJson"/>,
+    /// in place of <c>tree</c>.</summary>
+    public void WriteFlatJson(Utf8JsonWriter writer) =>
+        WriteWindows(writer, (w, content) =>
+        {
+            w.WritePropertyName("nodes");
+            content.WriteFlatJson(w);
+        });
+
+    private void WriteWindows(Utf8JsonWriter writer, Action<Utf8JsonWriter, UiSnapshot> writeContent)
+    {
+        writer.WriteStartArray();
+        foreach (var w in Windows)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("role", w.Role);
+            writer.WriteStartObject("bounds");
+            writer.WriteNumber("x", w.ScreenBounds.X);
+            writer.WriteNumber("y", w.ScreenBounds.Y);
+            writer.WriteNumber("w", w.ScreenBounds.Width);
+            writer.WriteNumber("h", w.ScreenBounds.Height);
+            writer.WriteEndObject();
+            writer.WriteNumber("scale", w.Scale);
+            writer.WriteBoolean("focused", w.Focused);
+            writeContent(writer, w.Content);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
     }
 }

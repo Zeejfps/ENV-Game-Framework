@@ -18,12 +18,55 @@ public sealed unsafe class GlImageManager : IDisposable
     private readonly Dictionary<string, D3D11GlTexture> _sharedByImageId = new();
     private readonly GetProcAddressDelegate? _getProcAddress;
     private SharedTextureBridge _bridge = new SharedTextureBridge.NotCreated();
+    private readonly HeldTextures<RetiredTexture> _held;
+    [SupportedOSPlatform("windows")]
+    private readonly WglContext _home;
 
+    /// <summary>Make it with a context current that outlives it, such as the main window's, which owns the share
+    /// group: shared textures are imported and released under that context.</summary>
     /// <param name="getProcAddress">Resolves GL and WGL entry points for the shared-texture bridge;
     /// without it the manager imports no shared textures.</param>
     public GlImageManager(GetProcAddressDelegate? getProcAddress = null)
     {
         _getProcAddress = getProcAddress;
+        _held = new HeldTextures<RetiredTexture>(ReleaseRetired);
+        if (OperatingSystem.IsWindows())
+            _home = WglContext.Current;
+    }
+
+    /// <summary>How many textures of removed or replaced images a canvas frame still holds.</summary>
+    public int RetiredCount => _held.RetiredCount;
+
+    /// <summary>A canvas staged a draw of <paramref name="texture"/>, which must stay alive until it releases it.</summary>
+    public void HoldTexture(uint texture) => _held.Hold(texture);
+
+    /// <summary>The canvas will not draw <paramref name="texture"/> again.</summary>
+    public void ReleaseTexture(uint texture) => _held.Release(texture);
+
+    /// <summary>A texture no image names any more, kept while a canvas frame holds it.</summary>
+    private abstract record RetiredTexture
+    {
+        public sealed record Owned(uint Texture) : RetiredTexture;
+
+        [SupportedOSPlatform("windows")]
+        public sealed record Shared(D3D11GlTexture Texture) : RetiredTexture;
+    }
+
+    private void ReleaseRetired(RetiredTexture retired)
+    {
+        switch (retired)
+        {
+            case RetiredTexture.Owned owned:
+                var texture = owned.Texture;
+                _ownedTextures.Remove(texture);
+                glDeleteTextures(1, &texture);
+                break;
+            case RetiredTexture.Shared shared when OperatingSystem.IsWindows():
+                shared.Texture.Dispose();
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown retired texture {retired}.");
+        }
     }
 
     public void LoadImageFromFile(string pathToImageFile)
@@ -100,10 +143,12 @@ public sealed unsafe class GlImageManager : IDisposable
         };
     }
 
-    public uint GetTextureId(string imageId) => _textureIdByImageId[imageId];
-    public Size GetImageSize(string imageId) => _sizeByImageId[imageId];
-    public int GetImageWidth(string imageId) => (int)_sizeByImageId[imageId].Width;
-    public int GetImageHeight(string imageId) => (int)_sizeByImageId[imageId].Height;
+    /// <summary>The texture and size of the image <paramref name="imageId"/> names, or false when there is none by that id.</summary>
+    public bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        size = default;
+        return _textureIdByImageId.TryGetValue(imageId, out textureId) && _sizeByImageId.TryGetValue(imageId, out size);
+    }
 
     public bool HasImage(string imageId) => _textureIdByImageId.ContainsKey(imageId);
 
@@ -142,25 +187,19 @@ public sealed unsafe class GlImageManager : IDisposable
             return false;
 
         _sharedByImageId.TryGetValue(imageId, out var current);
-        var target = current;
-        if (!created.Bridge.TryCopy(ntHandle, ref target, out var failure))
+        if (!created.Bridge.TryCopy(ntHandle, current, out var target, out var failure))
         {
-            if (current != null && target == null)
-                ForgetSharedImage(imageId);
             Console.Error.WriteLine($"[GlImageManager] shared texture for '{imageId}': {failure}");
             return false;
         }
 
         if (!ReferenceEquals(target, current))
         {
-            if (current != null)
-                _textureIdByImageId.Remove(imageId);
-            else if (_textureIdByImageId.Remove(imageId, out var replaced))
-                DeleteOwnedTexture(imageId, replaced);
-            _sharedByImageId[imageId] = target!;
-            _textureIdByImageId[imageId] = target!.GlTexture;
+            RemoveImage(imageId);
+            _sharedByImageId[imageId] = target;
+            _textureIdByImageId[imageId] = target.GlTexture;
         }
-        _sizeByImageId[imageId] = new Size { Width = target!.Width, Height = target.Height };
+        _sizeByImageId[imageId] = new Size { Width = target.Width, Height = target.Height };
         return true;
     }
 
@@ -173,7 +212,12 @@ public sealed unsafe class GlImageManager : IDisposable
             _bridge = new SharedTextureBridge.Unavailable("no WGL loader");
             return _bridge;
         }
-        var bridge = D3D11GlBridge.TryCreate(_getProcAddress, out var failure);
+        if (_home.IsNone)
+        {
+            _bridge = new SharedTextureBridge.Unavailable("no context was current when the image manager was made");
+            return _bridge;
+        }
+        var bridge = D3D11GlBridge.TryCreate(_getProcAddress, _home, out var failure);
         if (bridge == null)
             Console.Error.WriteLine($"[GlImageManager] shared textures unavailable: {failure}");
         _bridge = bridge == null
@@ -182,29 +226,16 @@ public sealed unsafe class GlImageManager : IDisposable
         return _bridge;
     }
 
-    [SupportedOSPlatform("windows")]
-    private void ForgetSharedImage(string imageId)
-    {
-        _sharedByImageId.Remove(imageId);
-        _textureIdByImageId.Remove(imageId);
-        _sizeByImageId.Remove(imageId);
-    }
-
-    private void DeleteOwnedTexture(string imageId, uint textureId)
-    {
-        _sizeByImageId.Remove(imageId);
-        _ownedTextures.Remove(textureId);
-        glDeleteTextures(1, &textureId);
-    }
-
     /// <summary>
     /// Creates or replaces a dynamic image from straight-alpha RGBA8, top-down rows.
     /// The manager flips to the bottom-up convention the canvas_image shader samples with.
+    /// An image of this id already uploaded is rewritten in place, so a draw of it staged this frame and not yet
+    /// issued shows the new pixels: GL runs the upload before the draws issued after it.
     /// </summary>
     public bool CreateOrUpdateRgbaImage(string imageId, int width, int height, ReadOnlySpan<byte> rgbaTopDown)
     {
-        if (OperatingSystem.IsWindows())
-            RemoveSharedImage(imageId);
+        if (OperatingSystem.IsWindows() && _sharedByImageId.ContainsKey(imageId))
+            RemoveImage(imageId);
         var flipped = FlipRows(rgbaTopDown, width, height);
 
         if (_textureIdByImageId.TryGetValue(imageId, out var textureId))
@@ -234,23 +265,18 @@ public sealed unsafe class GlImageManager : IDisposable
         return true;
     }
 
+    /// <summary>Forgets the image at once; its texture is deleted once no canvas frame open now can still draw it.</summary>
     public void RemoveImage(string imageId)
     {
-        if (OperatingSystem.IsWindows() && RemoveSharedImage(imageId))
-            return;
         if (!_textureIdByImageId.Remove(imageId, out var textureId))
             return;
-        DeleteOwnedTexture(imageId, textureId);
-    }
-
-    [SupportedOSPlatform("windows")]
-    private bool RemoveSharedImage(string imageId)
-    {
-        if (!_sharedByImageId.TryGetValue(imageId, out var shared))
-            return false;
-        ForgetSharedImage(imageId);
-        shared.Dispose();
-        return true;
+        _sizeByImageId.Remove(imageId);
+        if (OperatingSystem.IsWindows() && _sharedByImageId.Remove(imageId, out var shared))
+        {
+            _held.Retire(textureId, new RetiredTexture.Shared(shared));
+            return;
+        }
+        _held.Retire(textureId, new RetiredTexture.Owned(textureId));
     }
 
     private byte[] _flipScratch = [];
@@ -352,6 +378,7 @@ public sealed unsafe class GlImageManager : IDisposable
 
     public void Dispose()
     {
+        _held.FreeAll();
         if (OperatingSystem.IsWindows())
             DisposeShared();
         _bridge = new SharedTextureBridge.Unavailable("disposed");

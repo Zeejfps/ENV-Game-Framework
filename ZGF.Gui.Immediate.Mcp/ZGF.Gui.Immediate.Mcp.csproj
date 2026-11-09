@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The gui_* MCP tools over an immediate-mode app: every command in automation mode, inspection alone on an
+         app running as usual. Kept out of ZGF.Gui.Immediate so an app that serves no MCP ships no MCP SDK. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZGF.Gui.Immediate\ZGF.Gui.Immediate.csproj" />
+      <ProjectReference Include="..\ZGF.Gui.Mcp\ZGF.Gui.Mcp.csproj" />
+    </ItemGroup>
+
+</Project>

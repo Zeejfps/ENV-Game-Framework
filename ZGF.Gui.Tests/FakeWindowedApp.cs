@@ -1,6 +1,7 @@
 using ZGF.Desktop;
 using ZGF.Fonts;
 using ZGF.Gui.Hosting;
+using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Tests;
 
@@ -79,6 +80,7 @@ internal sealed class FakeRenderBackend : IGuiRenderBackend
     public void WirePresentLoop(IWindow window, RenderedCanvasBase canvas) { }
     public void OnFramebufferResize(int width, int height) { }
     public void RenderWindowNow(IWindow window) { }
+    public SurfaceImage? ReadOffscreen(IWindow window) => null;
     public void DisposeWindow(IWindow window, RenderedCanvasBase canvas) => window.Dispose();
     public void MakeMainContextCurrent() { }
     public void RequestScreenshot(string path, Action? onComplete = null) { }

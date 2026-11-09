@@ -76,9 +76,24 @@ public static partial class UiWidgets
             }
         }
 
+        if (ui.WantsSemantics)
+            DescribeSegments(ui, groupId, segments, next >= 0 ? next : selected);
         if (next == selected || next < 0) return false;
         value = segments[next].Value;
         return true;
+    }
+
+    /// <summary>Says what the control is for tests, with <paramref name="chosen"/> selected as the app's value is
+    /// once the call returns.</summary>
+    private static void DescribeSegments<T>(Ui ui, int groupId, ReadOnlySpan<Segment<T>> segments, int chosen)
+    {
+        ui.Semantics(groupId, SemanticRole.SegmentedControl, value: chosen >= 0 ? segments[chosen].Label : null);
+        for (var i = 0; i < segments.Length; i++)
+        {
+            var id = SegmentId(ui, groupId, i);
+            ui.RecordTestPath(id, new TestSegment.Named(segments[i].Label), under: groupId);
+            ui.Semantics(id, SemanticRole.Segment, segments[i].Label, i == chosen ? SemanticStates.Selected : SemanticStates.None);
+        }
     }
 
     private static int SegmentKeys(Ui ui, int selected, int count)

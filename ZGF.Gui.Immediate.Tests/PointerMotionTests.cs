@@ -1,3 +1,4 @@
+using ZGF.Gui.Immediate.Testing;
 using ZGF.Gui.Immediate.Widgets;
 using ZGF.Geometry;
 
@@ -40,9 +41,13 @@ public sealed class PointerMotionTests
         var button = frames.RectOf("press");
 
         frames.LockPointer(true).Click(button);
+        var target = frames.Target(Selector.AtPath("press"));
+        var selectorClick = Assert.Throws<UiTargetException>(() => frames.ClickOn(Selector.AtPath("press")));
 
         Assert.Equal(0, clicks);
         Assert.False(frames.Frame(ui => ui.IsHovered(ui.GetId("press"))));
+        Assert.IsType<TargetResult.Unreachable>(target);
+        Assert.IsType<TargetResult.Unreachable>(selectorClick.Result);
     }
 
     [Fact]

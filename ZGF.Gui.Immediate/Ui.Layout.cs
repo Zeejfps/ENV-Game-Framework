@@ -579,6 +579,7 @@ public abstract partial class Ui
         {
             case ScopeKind.Id:
                 _ids.Pop();
+                PopPath();
                 break;
             case ScopeKind.Element:
                 Close();
@@ -592,6 +593,7 @@ public abstract partial class Ui
             case ScopeKind.StateScope:
                 _stateOwners.Pop();
                 _ids.Pop();
+                PopPath();
                 break;
             case ScopeKind.Group:
                 scope.End?.Invoke(scope.State!);
@@ -829,6 +831,7 @@ public abstract partial class Ui
     {
         var index = _tree.Add(element);
         _open.Push(index);
+        NoteElement();
         return index;
     }
 

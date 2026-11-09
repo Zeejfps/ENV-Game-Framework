@@ -119,7 +119,7 @@ public static partial class UiWidgets
         shown.SeenOpenAt = ui.Time;
         var progress = (float)Math.Clamp((ui.Time - shown.OpenedAt) / DialogInSeconds, 0, 1);
         if (progress < 1f)
-            ui.RequestUpdate();
+            ui.RequestAnimationFrame();
         return Ease.OutCubic(progress);
     }
 
@@ -140,7 +140,7 @@ public static partial class UiWidgets
         var gone = (float)Math.Clamp((ui.Time - shown.ClosedAt) / DialogOutSeconds, 0, 1);
         if (gone >= 1f)
             return default;
-        ui.RequestUpdate();
+        ui.RequestAnimationFrame();
         var left = 1f - Ease.OutCubic(gone);
         var theme = ui.Theme;
         var dialog = ui.Overlay(new Box

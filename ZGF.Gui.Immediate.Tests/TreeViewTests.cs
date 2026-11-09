@@ -41,6 +41,8 @@ public sealed class TreeViewTests
             RowCalls++;
             return new TreeRow(node.Name, new UiIcon(IconGlyph.FromFont("#", "Icons"), 0xFF00FF00, IconBackground), Spinning: Spinning);
         }
+
+        public string KeyOf(Node node) => node.Name;
     }
 
     private sealed class Tree
@@ -513,5 +515,6 @@ public sealed class TreeViewTests
         public bool HasChildren(int node) => false;
         public TreeChildren<int> GetChildren(int node) => TreeChildren<int>.Of([]);
         public TreeRow Row(int node) => new("row");
+        public string KeyOf(int node) => node.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

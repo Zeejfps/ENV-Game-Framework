@@ -1,5 +1,3 @@
-using PngSharp.Api;
-using ZGF.Fonts;
 using ZGF.Gui.Desktop.Widgets;
 using ZGF.Gui.Desktop.Inspection;
 using ZGF.Gui.Testing;
@@ -9,7 +7,7 @@ using ZGF.Gui.Widgets;
 namespace ZGF.Gui.Tests;
 
 /// <summary>The LLM-facing debugging surface: snapshot (roles/labels/hover), act-by-label with
-/// rich failures, diff, settle, and a real raster screenshot.</summary>
+/// rich failures, diff and settle.</summary>
 public class HarnessDebugTests
 {
     private static IWidget Screen() =>
@@ -101,25 +99,5 @@ public class HarnessDebugTests
 
         ticker.Remove(tick);
         Assert.Equal(0, ticker.ActiveCount);
-    }
-
-    [Fact]
-    public void SaveScreenshot_WritesDecodablePng()
-    {
-        var fonts = new FreeTypeFontBackend();
-        var font = fonts.LoadFontFromFile(
-            Path.Combine(AppContext.BaseDirectory, "Assets", "Inter-Regular.ttf"), 16);
-
-        using var h = GuiTestHarness.CreateRaster(
-            ctx => new Box { Background = 0xFF202020u, Children = [new Text { Value = "Hello" }] }.BuildView(ctx),
-            fonts, font, 200, 80);
-        h.Settle();
-
-        var path = Path.Combine(Path.GetTempPath(), "zgf-gui-tests", "shot.png");
-        h.SaveScreenshot(path);
-
-        var png = Png.DecodeFromFile(path);
-        Assert.Equal(200, png.GetDimensions().Width);
-        Assert.Equal(80, png.GetDimensions().Height);
     }
 }

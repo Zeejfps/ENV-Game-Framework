@@ -6,6 +6,9 @@ public sealed class SvgImageCacheOptions
 {
     /// <summary>Byte budget for cached rasterizations; least-recently-used entries evict past it.</summary>
     public long MaxRasterBytes { get; init; } = 16 * 1024 * 1024;
+
+    /// <summary>The clock idle entries are aged by.</summary>
+    public TimeProvider Time { get; init; } = TimeProvider.System;
 }
 
 /// <summary>
@@ -18,10 +21,13 @@ public sealed class SvgImageCacheOptions
 /// </summary>
 public sealed class SvgImageCache
 {
-    /// <summary>Entries younger than this never evict, so a texture drawn by an in-flight frame stays alive.</summary>
+    /// <summary>Entries used this recently never evict, so icons on screen are not rasterized again every frame
+    /// when the budget is short. An entry evicted mid-frame still draws where that frame drew it, as
+    /// <see cref="ICanvas.RemoveImage"/> keeps staged draws.</summary>
     private const long MinIdleMsBeforeEvict = 500;
 
     private readonly long _maxBytes;
+    private readonly TimeProvider _time;
     private readonly Dictionary<string, SvgDocument> _documentsByPath = new();
     private readonly Dictionary<ulong, SvgDocument> _documentsByContentHash = new();
     private readonly Dictionary<SvgDocument, int> _documentIds = new(ReferenceEqualityComparer.Instance);
@@ -47,6 +53,7 @@ public sealed class SvgImageCache
     public SvgImageCache(SvgImageCacheOptions options)
     {
         _maxBytes = options.MaxRasterBytes;
+        _time = options.Time;
     }
 
     public SvgDocument GetOrParseFile(string resolvedPath)
@@ -72,7 +79,8 @@ public sealed class SvgImageCache
 
     /// <summary>
     /// Returns the canvas image id for the document rasterized at the given pixel size and
-    /// currentColor, rasterizing and uploading on miss. The entry is cached even when the
+    /// currentColor, rasterizing and uploading on miss. Call it on every draw of the image: the id is only
+    /// usable for the draw it was acquired for, since an entry not acquired for a while may evict. The entry is cached even when the
     /// canvas has no image support (upload returns false), so headless runs still exercise
     /// the same raster policy the GPU backends do.
     /// </summary>
@@ -82,7 +90,7 @@ public sealed class SvgImageCache
         // collapse the key so themed variants share one texture.
         var colorKey = document.UsesCurrentColor ? currentColorArgb : 0xFF000000;
         var key = new RasterKey(GetDocumentId(document), widthPx, heightPx, colorKey);
-        var now = Environment.TickCount64;
+        var now = (long)_time.GetElapsedTime(0).TotalMilliseconds;
 
         if (_rasters.TryGetValue(key, out var entry))
         {

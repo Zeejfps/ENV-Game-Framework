@@ -24,4 +24,8 @@ public readonly struct StartupConfig
     // Opens the main window maximized; WindowX/WindowY/WindowWidth/WindowHeight are then the bounds
     // it restores to.
     public bool StartMaximized { get; init; }
-}
+
+    // Never shows or focuses the main window, and the run loop never draws it: for automation, which draws
+    // every window offscreen when it asks. StartHidden and StartMaximized are then ignored.
+    public bool Headless { get; init; }
+}
