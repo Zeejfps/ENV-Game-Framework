@@ -95,10 +95,6 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
     float2 pixelPos = float2(position_0.x, metrics.w - position_0.y) * (metrics.xy / metrics.zw);
     float2 localPos = pixelPos - _S1.rectOrigin_0;
     float clipCover_0 = clipCoverage(pixelPos, ClipRects_1->u_clipRounds_0[_S1.clipIndex_0], ClipRects_1->u_clipRadii_0[_S1.clipIndex_0].x, max(fwidth(pixelPos.x), 0.0001));
-    if (clipCover_0 <= 0.0)
-    {
-        discard_fragment();
-    }
     float4 clip_0 = ClipRects_1->u_clipRects_0[_S1.clipIndex_0];
     float _S2 = pixelPos.x;
 
@@ -157,14 +153,9 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
 #line 83
     }
 
-#line 82
-    if(inCornerZone_0)
-    {
-
-        discard_fragment();
-
-#line 82
-    }
+    // Discarded only once every derivative below is taken: fwidth reads the 2x2 quad's neighbours, which
+    // must all still run the same code for it to be defined.
+    bool clippedOut_0 = inCornerZone_0 || clipCover_0 <= 0.0;
 
 #line 88
     float rectW_0 = _S1.rectSize_0.x;
@@ -305,6 +296,19 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
     float d_0 = length(mirror_0 - pivot_0);
     float _S8 = max((fwidth((d_0))), 9.99999997475242708e-07);
 
+    // The inner (fill vs border) ellipse of a rounded corner and its derivative, also taken for every
+    // pixel: taken only inside the corner branch, a quad straddling where the corner starts read
+    // undefined neighbours, which left a 1-device-pixel seam down the corner where the fill faded out.
+    float ix_0 = (_S7 - _S5) / max(radius_0 - borderW_0, 9.99999997475242708e-07);
+    float iy_0 = (mirror_0.y - _S6) / max(radius_0 - borderH_0, 9.99999997475242708e-07);
+    float e_0 = ix_0 * ix_0 + iy_0 * iy_0;
+    float aaInner_0 = max(fwidth(e_0), 9.99999997475242708e-07);
+
+    if (clippedOut_0)
+    {
+        discard_fragment();
+    }
+
 
 
     if(inCornerZone_0)
@@ -371,12 +375,7 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
 
 
 
-            float ix_0 = (_S7 - _S5) / max(radius_0 - borderW_0, 9.99999997475242708e-07);
-            float iy_0 = (mirror_0.y - _S6) / max(radius_0 - borderH_0, 9.99999997475242708e-07);
-            float e_0 = ix_0 * ix_0 + iy_0 * iy_0;
-
-#line 126
-            fillFactor_0 = clamp((1.0 - e_0) / max((fwidth((e_0))), 9.99999997475242708e-07) + 0.5, 0.0, 1.0);
+            fillFactor_0 = clamp((1.0 - e_0) / aaInner_0 + 0.5, 0.0, 1.0);
 
 #line 119
         }

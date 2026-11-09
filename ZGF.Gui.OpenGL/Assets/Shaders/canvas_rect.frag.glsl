@@ -56,11 +56,10 @@ void main() {
     // --- Clip test ---
     float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
     vec4 clip = u_clipRects[v_clipIndex];
-    if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
-        v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w) {
-        discard;
-    }
-    if (clipCover <= 0.0) discard;
+    // Discarded only once every derivative below is taken: fwidth reads the 2x2 quad's neighbours,
+    // which must all still run the same code for it to be defined.
+    bool clippedOut = v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
+                      v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w || clipCover <= 0.0;
 
     float rectW = v_rectSize.x;
     float rectH = v_rectSize.y;
@@ -89,6 +88,16 @@ void main() {
     float d = length(mirror - pivot);
     float aa = max(fwidth(d), 1e-6);
 
+    // The inner (fill vs border) ellipse of a rounded corner and its derivative, also taken for every
+    // pixel: taken only inside the corner branch, a quad straddling where the corner starts read
+    // undefined neighbours, which left a 1-device-pixel seam down the corner where the fill faded out.
+    float ix = (mirror.x - pivot.x) / max(radius - borderW, 1e-6);
+    float iy = (mirror.y - pivot.y) / max(radius - borderH, 1e-6);
+    float e = ix * ix + iy * iy;
+    float aaInner = max(fwidth(e), 1e-6);
+
+    if (clippedOut) discard;
+
     // At fractional display scales an outer edge can pass through a pixel center.
     // A zero-width side must still count as fill there, not borrow another side's color.
     bool inBottom = v_borderSize.z > 0.0 && v_localPos.y < v_borderSize.z;
@@ -106,10 +115,6 @@ void main() {
             // Antialiased INNER boundary (fill vs border): the ellipse e == 1, ramped like the outer
             // edge. Keeps a filled corner smooth even with a transparent border — a hard test would
             // leave the fill's own corner aliased (reads as square).
-            float ix = (mirror.x - pivot.x) / max(radius - borderW, 1e-6);
-            float iy = (mirror.y - pivot.y) / max(radius - borderH, 1e-6);
-            float e = ix * ix + iy * iy;
-            float aaInner = max(fwidth(e), 1e-6);
             fillFactor = clamp((1.0 - e) / aaInner + 0.5, 0.0, 1.0);
         } else {
             fillFactor = 0.0; // border thicker than the radius: the whole corner is border
