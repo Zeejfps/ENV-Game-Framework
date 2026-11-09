@@ -29,6 +29,8 @@ public interface ICanvas
     /// </para>
     /// </remarks>
     void DrawGlyphRun(in DrawGlyphRunInputs inputs);
+    /// <summary>Draws the image <see cref="DrawImageInputs.ImageId"/> names, aspect-fit and centred in its rect;
+    /// nothing when the canvas has no image by that id.</summary>
     void DrawImage(in DrawImageInputs inputs);
     void DrawBoxShadow(in DrawBoxShadowInputs inputs);
     void DrawLine(in DrawLineInputs inputs);

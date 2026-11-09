@@ -17,14 +17,14 @@ public sealed class FontRegistryTests : IDisposable
     private static readonly byte[] SemiBold = Load("Inter-SemiBold.ttf");
 
     private readonly FreeTypeFontBackend _fonts = new();
-    private readonly RasterCanvas _canvas;
+    private readonly CaptureCanvas _canvas;
     private readonly FontRegistry _registry;
     private readonly TextStyle _style = new() { FontFamily = Family, FontSize = 16f };
 
     public FontRegistryTests()
     {
         var defaultFont = _fonts.LoadFontFromMemory(Regular, PixelSize);
-        _canvas = new RasterCanvas(200, 50, _fonts, defaultFont);
+        _canvas = new CaptureCanvas(_fonts, defaultFont);
         _registry = new FontRegistry(_fonts, _canvas, LoadAtPixelSize);
     }
 

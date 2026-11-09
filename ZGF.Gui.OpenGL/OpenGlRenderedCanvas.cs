@@ -77,8 +77,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         return flipped;
     }
 
-    protected override Size GetImageSizeImpl(string imageId) => _shared.ImageManager.GetImageSize(imageId);
-    protected override uint GetImageTextureId(string imageId) => _shared.ImageManager.GetTextureId(imageId);
+    protected override bool TryGetImage(string imageId, out uint textureId, out Size size) =>
+        _shared.ImageManager.TryGetImage(imageId, out textureId, out size);
     public override void LoadImageFromFile(string path) => _shared.ImageManager.LoadImageFromFile(path);
     public override bool CreateOrUpdateRgbaImage(string imageId, int widthPx, int heightPx, ReadOnlySpan<byte> rgbaTopDown) => _shared.ImageManager.CreateOrUpdateRgbaImage(imageId, widthPx, heightPx, rgbaTopDown);
     public override bool SupportsSharedTextures(SharedTextureKind kind) => _shared.ImageManager.SupportsSharedTextures(kind);

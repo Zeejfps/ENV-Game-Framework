@@ -100,10 +100,12 @@ public sealed unsafe class GlImageManager : IDisposable
         };
     }
 
-    public uint GetTextureId(string imageId) => _textureIdByImageId[imageId];
-    public Size GetImageSize(string imageId) => _sizeByImageId[imageId];
-    public int GetImageWidth(string imageId) => (int)_sizeByImageId[imageId].Width;
-    public int GetImageHeight(string imageId) => (int)_sizeByImageId[imageId].Height;
+    /// <summary>The texture and size of the image <paramref name="imageId"/> names, or false when there is none by that id.</summary>
+    public bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        size = default;
+        return _textureIdByImageId.TryGetValue(imageId, out textureId) && _sizeByImageId.TryGetValue(imageId, out size);
+    }
 
     public bool HasImage(string imageId) => _textureIdByImageId.ContainsKey(imageId);
 

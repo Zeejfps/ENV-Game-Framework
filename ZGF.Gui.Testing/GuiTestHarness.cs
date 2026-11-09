@@ -1,11 +1,11 @@
 using System.Text;
 using ZGF.Desktop.Input;
-using ZGF.Fonts;
 using ZGF.Geometry;
 using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Desktop.Inspection;
+using ZGF.Gui.Testing.Gpu;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Testing;
@@ -19,8 +19,8 @@ namespace ZGF.Gui.Testing;
 /// focus/hover); act with <see cref="Click(string,bool,MouseButton?)"/> / <see cref="Type"/>; then
 /// <c>before.DiffTo(harness.Snapshot())</c> shows what changed. Lookups that miss throw with
 /// candidates + the snapshot, so a wrong label is self-correcting. <see cref="HarnessAssertions"/>
-/// adds intent checks; <see cref="CreateRaster"/> + <see cref="SaveScreenshot"/> add a real PNG for
-/// genuinely visual bugs.
+/// adds intent checks; <see cref="CreateGpu"/> + <see cref="SaveScreenshot"/> add a PNG drawn by the
+/// shipping canvas for genuinely visual bugs.
 /// </para>
 /// <example><code>
 /// using var h = GuiTestHarness.Create(ctx => new MyScreen().BuildView(ctx));
@@ -32,8 +32,7 @@ namespace ZGF.Gui.Testing;
 /// </code></example></summary>
 public sealed class GuiTestHarness : IDisposable, ITypeSink
 {
-    private readonly RecordingCanvas? _canvas;
-    private readonly RasterCanvas? _raster;
+    private readonly Surface _surface;
     private readonly InputSystem _input;
     private readonly Mouse _mouse;
     private readonly FrameTicker _ticker;
@@ -42,25 +41,37 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     private readonly HeadlessContextMenuHost _menuHost;
     private int _redrawCount;
 
+    /// <summary>What the harness's tree measures and draws with.</summary>
+    private abstract record Surface
+    {
+        public sealed record Recording(RecordingCanvas Canvas) : Surface;
+
+        /// <summary>The shipping canvas of <paramref name="Session"/>, used only on <paramref name="Device"/>'s render thread.</summary>
+        public sealed record Gpu(GpuDevice Device, ICanvasSession Session, uint ClearColor) : Surface;
+    }
+
     public View Root => _root;
 
-    /// <summary>The draw-capture canvas. Available in the default (synthetic) mode; in raster mode
-    /// (<see cref="CreateRaster"/>) there is no capture canvas — use <see cref="SaveScreenshot"/>.</summary>
-    public RecordingCanvas Canvas => _canvas
-        ?? throw new InvalidOperationException(
-            "This harness is in raster mode (CreateRaster); Canvas/Render are only available from Create. Use SaveScreenshot.");
+    /// <summary>The draw-capture canvas of a harness made by <see cref="Create"/>; one made by
+    /// <see cref="CreateGpu"/> has none — use <see cref="Screenshot"/>.</summary>
+    public RecordingCanvas Canvas => _surface switch
+    {
+        Surface.Recording recording => recording.Canvas,
+        Surface.Gpu => throw new InvalidOperationException(
+            "This harness draws on a GPU (CreateGpu); Canvas/Render are only available from Create. Use Screenshot or SaveScreenshot."),
+        _ => throw new InvalidOperationException($"Unhandled surface {_surface}."),
+    };
 
     public InputSystem Input => _input;
     public Context Context => _context;
     public int RedrawCount => _redrawCount;
 
     private GuiTestHarness(
-        Context context, RecordingCanvas? canvas, RasterCanvas? raster,
+        Context context, Surface surface,
         InputSystem input, Mouse mouse, FrameTicker ticker, View root, HeadlessContextMenuHost menuHost)
     {
         _context = context;
-        _canvas = canvas;
-        _raster = raster;
+        _surface = surface;
         _input = input;
         _mouse = mouse;
         _ticker = ticker;
@@ -75,48 +86,42 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         Action<Context>? configure = null,
         ITextMeasurer? measurer = null)
     {
-        var ctx = new Context();
         var canvas = new RecordingCanvas(measurer);
-        ctx.Canvas = canvas;
-        var input = new InputSystem();
-        ctx.AddService(input);
-        var mouse = new Mouse();
-        var ticker = new FrameTicker();
-        ctx.AddService<IFrameTicker>(ticker);
-        ctx.AddService(new SvgImageCache(new SvgImageCacheOptions()));
-        var menuHost = new HeadlessContextMenuHost(ctx);
-        ctx.AddService<IContextMenuHost>(menuHost);
-        configure?.Invoke(ctx);
-
-        var root = content(ctx);
-        root.Width = width;
-        root.Height = height;
-        root.PixelGrid = new PixelGrid(ctx.Canvas.DpiScale);
-
-        var harness = new GuiTestHarness(ctx, canvas, null, input, mouse, ticker, root, menuHost);
-        root.OnRedrawNeeded = () => harness._redrawCount++;
-        root.Mount();
-        root.LayoutUntilSettled();
-        return harness;
+        return Mount(new Surface.Recording(canvas), canvas, content, width, height, configure);
     }
 
-    /// <summary>Like <see cref="Create"/> but backed by a <see cref="RasterCanvas"/>, so layout uses
-    /// real font metrics and <see cref="SaveScreenshot"/> can render a PNG. Provide a
-    /// <see cref="FreeTypeFontBackend"/> with at least the default font loaded (e.g.
-    /// <c>fonts.LoadFontFromFile(interPath, 16)</c>). If the screen uses extra families (icon/mono),
-    /// register them in <paramref name="configure"/> by casting the canvas:
-    /// <c>((RenderedCanvasBase)ctx.Canvas).RegisterFont(family, fonts.LoadFontFromFile(path, size))</c>.</summary>
-    public static GuiTestHarness CreateRaster(
+    /// <summary>Like <see cref="Create"/> but measured and drawn by the shipping canvas of a session on
+    /// <paramref name="device"/>, with its fonts (Inter by default), so layout uses real font metrics and
+    /// <see cref="Screenshot"/> reads back what a window would show. The harness runs everything that touches the
+    /// tree on the device's render thread, <paramref name="content"/> and <paramref name="configure"/> included;
+    /// change views yourself through <see cref="GpuDevice.Run(Action)"/>. Disposing the harness disposes the
+    /// session, not the device.</summary>
+    /// <param name="clearColor">Straight-alpha ARGB under what the tree draws.</param>
+    public static GuiTestHarness CreateGpu(
+        GpuDevice device,
         Func<Context, View> content,
-        FreeTypeFontBackend fonts,
-        FontHandle defaultFont,
         int width = 800,
         int height = 600,
+        float dpiScale = 1f,
         Action<Context>? configure = null,
         uint clearColor = 0xFF1E1E1Eu)
     {
+        var session = device.CreateSession(width, height, dpiScale);
+        try
+        {
+            return device.Run(() => Mount(new Surface.Gpu(device, session, clearColor), session.Canvas, content, width, height, configure));
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    private static GuiTestHarness Mount(
+        Surface surface, ICanvas canvas, Func<Context, View> content, int width, int height, Action<Context>? configure)
+    {
         var ctx = new Context();
-        var canvas = new RasterCanvas(width, height, fonts, defaultFont, dpiScale: 1f, clearColor);
         ctx.Canvas = canvas;
         var input = new InputSystem();
         ctx.AddService(input);
@@ -133,49 +138,61 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         root.Height = height;
         root.PixelGrid = new PixelGrid(ctx.Canvas.DpiScale);
 
-        var harness = new GuiTestHarness(ctx, null, canvas, input, mouse, ticker, root, menuHost);
+        var harness = new GuiTestHarness(ctx, surface, input, mouse, ticker, root, menuHost);
         root.OnRedrawNeeded = () => harness._redrawCount++;
         root.Mount();
         root.LayoutUntilSettled();
         return harness;
     }
 
-    public void Layout() => _root.LayoutUntilSettled();
+    /// <summary>Runs <paramref name="work"/> where the tree's canvas may be used: here, or on the render thread of a
+    /// harness made by <see cref="CreateGpu"/>.</summary>
+    private T On<T>(Func<T> work) => _surface switch
+    {
+        Surface.Recording => work(),
+        Surface.Gpu gpu => gpu.Device.Run(work),
+        _ => throw new InvalidOperationException($"Unhandled surface {_surface}."),
+    };
+
+    private void On(Action work) => On<object?>(() =>
+    {
+        work();
+        return null;
+    });
+
+    public void Layout() => On(_root.LayoutUntilSettled);
 
     /// <summary>Fails if any view is off its window's device-pixel grid, or if another layout pass
     /// would still move something. See <see cref="PixelGridAudit"/>.</summary>
-    public void AssertSettledOnPixelGrid() => PixelGridAudit.AssertSettledOnPixelGrid(_root);
+    public void AssertSettledOnPixelGrid() => On(() => PixelGridAudit.AssertSettledOnPixelGrid(_root));
 
     /// <summary>Reduces the current laid-out tree to a <see cref="UiSnapshot"/> — the textual,
     /// diffable view of what's on screen, with live focus/hover merged in from the input system.
     /// Lay out (or <see cref="Settle"/>) first so bounds and state are current.</summary>
-    public UiSnapshot Snapshot() => SnapshotBuilder.Build(_root, _input);
+    public UiSnapshot Snapshot() => On(() => SnapshotBuilder.Build(_root, _input));
 
     /// <summary>Open context menus, oldest first (last = topmost). Each is its own headless window
     /// with its own input system — context menus opened through the harness's
     /// <see cref="ZGF.Gui.Desktop.Components.ContextMenu.IContextMenuHost"/> land here, not in the
     /// main tree. Empty when no menu is open.</summary>
-    public IReadOnlyList<OpenMenu> Menus => _menuHost.OpenMenus;
+    public IReadOnlyList<OpenMenu> Menus => On(() => _menuHost.OpenMenus);
 
-    public int OpenMenuCount => _menuHost.OpenMenus.Count;
+    public int OpenMenuCount => On(() => _menuHost.OpenMenus.Count);
 
     /// <summary>The topmost open context menu's root, or null when none is open.</summary>
-    public ContextMenu? TopMenu
+    public ContextMenu? TopMenu => On(() =>
     {
-        get
-        {
-            var menus = _menuHost.OpenMenus;
-            return menus.Count > 0 ? menus[^1].Menu : null;
-        }
-    }
+        var menus = _menuHost.OpenMenus;
+        return menus.Count > 0 ? menus[^1].Menu : null;
+    });
 
     /// <summary>Like <see cref="Snapshot"/> but a forest: the main root plus every open context menu,
     /// each under a <c>=== window: ROLE [x,y wxh] ===</c> header — so a context menu (a separate
     /// window in the live app) is visible and diffable alongside the main window, exactly as the live
     /// MCP server renders it. Lay out / <see cref="Settle"/> first so bounds are current.</summary>
-    public MultiWindowSnapshot SnapshotWindows()
+    public MultiWindowSnapshot SnapshotWindows() => On(() =>
     {
-        Layout();
+        _root.LayoutUntilSettled();
         var menus = _menuHost.OpenMenus;
         var windows = new List<WindowSnapshot>(menus.Count + 1);
         var mainBounds = new RectI(0, 0, (int)_root.Position.Width, (int)_root.Position.Height);
@@ -191,45 +208,50 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
                 SnapshotBuilder.Build(menu, menus[i].Input)));
         }
         return new MultiWindowSnapshot(windows);
-    }
+    });
 
-    public void Resize(int width, int height)
+    /// <summary>Sizes the root, and the target a harness made by <see cref="CreateGpu"/> draws into, then lays out.</summary>
+    public void Resize(int width, int height) => On(() =>
     {
+        if (_surface is Surface.Gpu gpu)
+            gpu.Session.Resize(width, height);
         _root.Width = width;
         _root.Height = height;
-        Layout();
-    }
+        _root.LayoutUntilSettled();
+    });
 
-    public RecordingCanvas Render()
+    public RecordingCanvas Render() => On(() =>
     {
         var canvas = Canvas;
         canvas.Reset();
         _root.LayoutUntilSettled();
         _root.DrawSelf(canvas);
         return canvas;
-    }
+    });
 
-    /// <summary>Renders the current tree to a PNG (raster mode only). Lay out / <see cref="Settle"/>
-    /// first so the frame is at rest. The image uses real fonts; fills are 1-sample and box
-    /// shadows/images are omitted (see <see cref="RasterCanvas"/>) — the text snapshot stays the
-    /// precise source of truth, this is for spotting visual bugs.</summary>
-    public void SaveScreenshot(string path)
+    /// <summary>Lays the tree out and draws it with the shipping canvas of a harness made by <see cref="CreateGpu"/>,
+    /// over its clear colour, and reads the pixels back: RGBA, rows top-down, premultiplied alpha. Only the main
+    /// tree is drawn; open context menus are separate windows. <see cref="Settle"/> first for a frame at rest.</summary>
+    /// <exception cref="InvalidOperationException">The harness was made by <see cref="Create"/>.</exception>
+    public RgbaImage Screenshot()
     {
-        var raster = _raster
-            ?? throw new InvalidOperationException(
-                "SaveScreenshot requires raster mode. Create the harness with GuiTestHarness.CreateRaster.");
-        raster.BeginFrame();
-        _root.LayoutUntilSettled();
-        _root.DrawSelf(raster);
-        raster.EndFrame();
-        raster.SavePng(path);
-    }
-
-    public void MoveTo(float x, float y)
-    {
+        if (_surface is not Surface.Gpu gpu)
+            throw new InvalidOperationException("Screenshot needs a GPU harness. Create it with GuiTestHarness.CreateGpu.");
         Layout();
-        DispatchMove(_input, x, y);
+        gpu.Session.Draw(_root.DrawSelf, gpu.ClearColor);
+        return gpu.Session.Read();
     }
+
+    /// <summary>Writes <see cref="Screenshot"/> to <paramref name="path"/> as a straight-alpha PNG, creating the
+    /// directory if needed.</summary>
+    /// <exception cref="InvalidOperationException">The harness was made by <see cref="Create"/>.</exception>
+    public void SaveScreenshot(string path) => Screenshot().SavePng(path);
+
+    public void MoveTo(float x, float y) => On(() =>
+    {
+        _root.LayoutUntilSettled();
+        DispatchMove(_input, x, y);
+    });
 
     public void Press(MouseButton? button = null) =>
         DispatchButton(_input, button ?? MouseButton.Left, InputState.Pressed);
@@ -237,23 +259,23 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     public void Release(MouseButton? button = null) =>
         DispatchButton(_input, button ?? MouseButton.Left, InputState.Released);
 
-    public void Click(float x, float y, MouseButton? button = null)
+    public void Click(float x, float y, MouseButton? button = null) => On(() =>
     {
         MoveTo(x, y);
         Press(button);
         Release(button);
-    }
+    });
 
     // Targeted dispatch — same path as the public Move/Press/Release but against an arbitrary input
     // system, so a click can be routed into an open menu's own input system rather than the main one.
-    private void DispatchMove(InputSystem input, float x, float y)
+    private void DispatchMove(InputSystem input, float x, float y) => On(() =>
     {
         _mouse.Point = new PointF(x, y);
         var e = new MouseMoveEvent { Mouse = _mouse, Phase = EventPhase.Capturing };
         input.SendMouseMovedEvent(ref e);
-    }
+    });
 
-    private void DispatchButton(InputSystem input, MouseButton button, InputState state)
+    private void DispatchButton(InputSystem input, MouseButton button, InputState state) => On(() =>
     {
         if (state == InputState.Pressed) _mouse.Press(button); else _mouse.Release(button);
         var e = new MouseButtonEvent
@@ -265,7 +287,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         input.SendMouseButtonEvent(ref e);
-    }
+    });
 
     private void ClickAt(InputSystem input, float x, float y, MouseButton? button)
     {
@@ -275,53 +297,53 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         DispatchButton(input, b, InputState.Released);
     }
 
-    public void ClickOn(View view, MouseButton? button = null)
+    public void ClickOn(View view, MouseButton? button = null) => On(() =>
     {
         var center = view.Position.Center;
         Click(center.X, center.Y, button);
-    }
+    });
 
-    public void ClickOn(string id, MouseButton? button = null)
+    public void ClickOn(string id, MouseButton? button = null) => On(() =>
     {
         var view = _root.FindById(id)
             ?? throw NotFound("view with Id", id, IdCandidates());
         ClickOn(view, button);
-    }
+    });
 
     /// <summary>Clicks the button-role view whose accessible label matches — the intent-level action
     /// ("click Push"). Case-insensitive; pass <paramref name="exact"/> false for a substring match.
     /// On no match it throws with the nearest labels and the full snapshot, so a failed click is
     /// self-diagnosing rather than a dead end.</summary>
-    public void Click(string label, bool exact = true, MouseButton? button = null)
+    public void Click(string label, bool exact = true, MouseButton? button = null) => On(() =>
     {
         var view = _root.FindClickable(label, exact)
             ?? throw NotFound("clickable view labeled", label, ClickableCandidates());
         ClickOn(view, button);
-    }
+    });
 
     /// <summary>Clicks a context-menu item by its text, in the topmost open menu (searching submenus
     /// first). Routes the click into that menu's own input system, so the item's controller runs
     /// exactly as it would over a real popup — a leaf item dismisses the menu, a disabled item
     /// consumes the press and keeps it open. Throws with the window forest when nothing matches.</summary>
-    public void ClickMenuItem(string text, bool exact = true, MouseButton? button = null)
+    public void ClickMenuItem(string text, bool exact = true, MouseButton? button = null) => On(() =>
     {
         var hit = ResolveMenuItem(text, exact) ?? throw MenuItemNotFound(text);
         var center = hit.View.Position.Center;
         ClickAt(hit.Input, center.X, center.Y, button);
-    }
+    });
 
     /// <summary>Moves the pointer over a context-menu item by its text (topmost menu first) — the
     /// gesture that opens a submenu or selects a row, without clicking.</summary>
-    public void HoverMenuItem(string text, bool exact = true)
+    public void HoverMenuItem(string text, bool exact = true) => On(() =>
     {
         var hit = ResolveMenuItem(text, exact) ?? throw MenuItemNotFound(text);
         var center = hit.View.Position.Center;
         DispatchMove(hit.Input, center.X, center.Y);
-    }
+    });
 
     // Resolve a menu item by text across open menus, topmost-first (a menu is modal and on top).
     // Tries the item's own text, then a clickable/accessible-name match for items with custom labels.
-    private (InputSystem Input, View View)? ResolveMenuItem(string text, bool exact)
+    private (InputSystem Input, View View)? ResolveMenuItem(string text, bool exact) => On<(InputSystem Input, View View)?>(() =>
     {
         var menus = _menuHost.OpenMenus;
         for (var i = menus.Count - 1; i >= 0; i--)
@@ -334,7 +356,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             if (view != null) return (menus[i].Input, view);
         }
         return null;
-    }
+    });
 
     private InvalidOperationException MenuItemNotFound(string text)
     {
@@ -351,12 +373,12 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
 
     /// <summary>Resolves a view by <see cref="View.Id"/> first, then by accessible label (any role).
     /// Throws with candidates + snapshot when nothing matches.</summary>
-    public View Get(string idOrLabel)
+    public View Get(string idOrLabel) => On(() =>
     {
         return _root.FindById(idOrLabel)
             ?? _root.Find(v => string.Equals(v.AccessibleName(), idOrLabel, StringComparison.OrdinalIgnoreCase))
             ?? throw NotFound("view with id or label", idOrLabel, AllCandidates());
-    }
+    });
 
     /// <summary>
     /// A wheel event. <paramref name="gesture"/> is what separates a mouse from a trackpad: a
@@ -368,7 +390,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         float dy,
         InputModifiers mods = InputModifiers.None,
         ScrollPhase gesture = ScrollPhase.None,
-        ScrollPhase momentum = ScrollPhase.None)
+        ScrollPhase momentum = ScrollPhase.None) => On(() =>
     {
         var e = new MouseWheelScrolledEvent
         {
@@ -381,9 +403,9 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             MomentumPhase = momentum,
         };
         _input.SendMouseScrollEvent(ref e);
-    }
+    });
 
-    public void KeyDown(KeyboardKey key, InputModifiers mods = InputModifiers.None)
+    public void KeyDown(KeyboardKey key, InputModifiers mods = InputModifiers.None) => On(() =>
     {
         var e = new KeyboardKeyEvent
         {
@@ -393,9 +415,9 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         _input.SendKeyboardKeyEvent(ref e);
-    }
+    });
 
-    public void KeyUp(KeyboardKey key, InputModifiers mods = InputModifiers.None)
+    public void KeyUp(KeyboardKey key, InputModifiers mods = InputModifiers.None) => On(() =>
     {
         var e = new KeyboardKeyEvent
         {
@@ -405,13 +427,13 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         _input.SendKeyboardKeyEvent(ref e);
-    }
+    });
 
-    public void PressKey(KeyboardKey key, InputModifiers mods = InputModifiers.None)
+    public void PressKey(KeyboardKey key, InputModifiers mods = InputModifiers.None) => On(() =>
     {
         KeyDown(key, mods);
         KeyUp(key, mods);
-    }
+    });
 
     /// <summary>A <see cref="Automation.Typist"/> that types into this headless tree. It paces itself by
     /// advancing the harness clock instead of sleeping, so a script written against a live window
@@ -424,7 +446,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     /// <summary>Dispatches one OS text-input event — the harness stand-in for GLFW's character
     /// callback. This is the only path that inserts text; <see cref="PressKey"/> carries physical
     /// keys, which drive shortcuts and navigation.</summary>
-    public void SendText(Rune rune)
+    public void SendText(Rune rune) => On(() =>
     {
         var e = new TextInputEvent
         {
@@ -432,7 +454,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         _input.SendTextInputEvent(ref e);
-    }
+    });
 
     /// <summary>
     /// Dispatches one IME composition update — the harness stand-in for GLFW's preedit callback.
@@ -444,14 +466,14 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     /// defaults to the end of the composition, and blocks default to one clause spanning it.</para>
     /// </summary>
     public void SendComposition(string text, int? caret = null, IReadOnlyList<PreeditBlock>? blocks = null,
-        int focusedBlock = 0)
+        int focusedBlock = 0) => On(() =>
     {
         var preedit = text.Length == 0
             ? PreeditText.Empty
             : new PreeditText(text, caret ?? text.Length, blocks ?? [new PreeditBlock(0, text.Length)],
                 focusedBlock);
         SendComposition(preedit);
-    }
+    });
 
     /// <summary>Ends the composition. Says nothing about commit versus cancel — on commit the text
     /// follows through <see cref="SendText"/>, on cancel nothing does.</summary>
@@ -459,7 +481,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
 
     /// <summary>Composes <paramref name="composition"/> one character at a time, then commits
     /// <paramref name="committed"/> — the full IME round trip a CJK user actually performs.</summary>
-    public void Compose(string composition, string committed)
+    public void Compose(string composition, string committed) => On(() =>
     {
         for (var i = 1; i <= composition.Length; i++)
             SendComposition(composition[..i]);
@@ -467,9 +489,9 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
         EndComposition();
         foreach (var rune in committed.EnumerateRunes())
             SendText(rune);
-    }
+    });
 
-    private void SendComposition(PreeditText preedit)
+    private void SendComposition(PreeditText preedit) => On(() =>
     {
         var e = new CompositionEvent
         {
@@ -477,7 +499,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             Phase = EventPhase.Capturing,
         };
         _input.SendCompositionEvent(ref e);
-    }
+    });
 
     /// <summary>
     /// Types <paramref name="text"/> the way a real keyboard does: each character dispatches a
@@ -490,7 +512,7 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
     /// 'q' position reports as 'q' but the OS commits 'й'. Control characters (Enter, Tab) are
     /// key-only: the OS never delivers them as text.
     /// </summary>
-    public void Type(string text)
+    public void Type(string text) => On(() =>
     {
         foreach (var rune in text.EnumerateRunes())
         {
@@ -510,15 +532,15 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             SendText(rune);
             if (hasPhysicalKey) KeyUp(mapped.Key, mods);
         }
-    }
+    });
 
-    public void Tick(float seconds)
+    public void Tick(float seconds) => On(() =>
     {
         _ticker.Tick(seconds);
-        Layout();
-    }
+        _root.LayoutUntilSettled();
+    });
 
-    public void Advance(float seconds, float step = 1f / 60f)
+    public void Advance(float seconds, float step = 1f / 60f) => On(() =>
     {
         var remaining = seconds;
         while (remaining > 0f)
@@ -527,14 +549,14 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             _ticker.Tick(dt);
             remaining -= dt;
         }
-        Layout();
-    }
+        _root.LayoutUntilSettled();
+    });
 
     /// <summary>Ticks the clock until no animation is driving the loop (<see cref="FrameTicker.ActiveCount"/>
     /// reaches zero) or <paramref name="maxSeconds"/> elapses, then lays out — so a following
     /// <see cref="Snapshot"/> or <see cref="SaveScreenshot"/> sees a settled, resting frame instead of a
     /// mid-transition one. The cap guards against an animation that never parks (e.g. a spinner).</summary>
-    public void Settle(float maxSeconds = 5f, float step = 1f / 60f)
+    public void Settle(float maxSeconds = 5f, float step = 1f / 60f) => On(() =>
     {
         var elapsed = 0f;
         while (_ticker.ActiveCount > 0 && elapsed < maxSeconds)
@@ -542,14 +564,25 @@ public sealed class GuiTestHarness : IDisposable, ITypeSink
             _ticker.Tick(step);
             elapsed += step;
         }
-        Layout();
-    }
+        _root.LayoutUntilSettled();
+    });
 
     public void Dispose()
     {
-        _menuHost.CloseAllImmediately();
-        _root.Unmount();
-        _context.Dispose();
+        try
+        {
+            On(() =>
+            {
+                _menuHost.CloseAllImmediately();
+                _root.Unmount();
+                _context.Dispose();
+            });
+        }
+        finally
+        {
+            if (_surface is Surface.Gpu gpu)
+                gpu.Session.Dispose();
+        }
     }
 
     // ---------- Failure diagnostics ----------

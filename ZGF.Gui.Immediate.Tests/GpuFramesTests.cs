@@ -46,6 +46,29 @@ public sealed class GpuFramesTests(GpuDeviceFixture fixture, ITestOutputHelper o
         Assert.Equal(OpaqueGreen, frames.Read()[230, 150]);
     }
 
+    /// <summary>A 1x1 blue image.</summary>
+    private static readonly byte[] BluePixel = [0, 0, 255, 255];
+
+    [GpuFact]
+    public void A_frame_paints_its_boxes_and_the_images_it_was_given()
+    {
+        using var frames = Running(static ui =>
+        {
+            using (ui.Row(new Box { Gap = 0f }))
+            {
+                ui.Leaf(new Box { Width = 20f, Height = 20f, Background = Red });
+                if (!ui.HasImage("blue"))
+                    ui.SetImage("blue", 1, 1, BluePixel);
+                ui.Image("blue", 20f, 20f);
+            }
+        }, 40, 40);
+
+        var image = frames.Read();
+
+        Assert.Equal(OpaqueRed, image[10, 10]);
+        Assert.Equal(OpaqueBlue, image[30, 10]);
+    }
+
     [GpuFact]
     public void Look_writes_the_snapshot_and_a_png_of_the_readback()
     {

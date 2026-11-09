@@ -2,14 +2,14 @@ using System.Numerics;
 using ZGF.Fonts;
 using ZGF.Geometry;
 
-namespace ZGF.Gui.Tests;
+namespace ZGF.Gui.Testing;
 
 /// <summary>
 /// A concrete <see cref="RenderedCanvasBase"/> whose GPU hooks are no-ops but which keeps the
 /// instances the base staged, so a test can assert what the real canvas would have drawn — same
 /// staging, sorting, transform and font code, no device.
 /// </summary>
-internal sealed class CaptureCanvas : RenderedCanvasBase
+public sealed class CaptureCanvas : RenderedCanvasBase
 {
     public CaptureCanvas(FreeTypeFontBackend fonts, FontHandle defaultFont, float dpiScale = 1f)
         : base(800, 600, fonts, defaultFont, dpiScale)
@@ -25,8 +25,8 @@ internal sealed class CaptureCanvas : RenderedCanvasBase
     /// <summary>The clip rects of the last frame as (left, bottom, right, top), slot 0 the whole canvas.</summary>
     public List<Vector4> Clips { get; } = new();
 
-    /// <summary>The size an image is drawn as if it had, for <see cref="ICanvas.DrawImage"/>; images not
-    /// named here have none.</summary>
+    /// <summary>The images the canvas has, by id, and the size each is drawn as if it had; drawing an image not
+    /// named here draws nothing, as on the shipping canvases.</summary>
     public Dictionary<string, Size> ImageSizes { get; } = new();
 
     /// <summary>
@@ -69,6 +69,11 @@ internal sealed class CaptureCanvas : RenderedCanvasBase
         DrawCalls.AddRange(drawCalls);
     }
     protected override void OnResize(int width, int height) { }
-    protected override Size GetImageSizeImpl(string imageId) => ImageSizes.TryGetValue(imageId, out var size) ? size : default;
-    protected override uint GetImageTextureId(string imageId) => 0;
+    public override bool HasImage(string imageId) => ImageSizes.ContainsKey(imageId);
+
+    protected override bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        textureId = 0;
+        return ImageSizes.TryGetValue(imageId, out size);
+    }
 }

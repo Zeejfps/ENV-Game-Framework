@@ -81,6 +81,10 @@ public sealed class BenchCanvas : RenderedCanvasBase
     }
 
     protected override void OnResize(int width, int height) { }
-    protected override Size GetImageSizeImpl(string imageId) => default;
-    protected override uint GetImageTextureId(string imageId) => 0;
+    protected override bool TryGetImage(string imageId, out uint textureId, out Size size)
+    {
+        textureId = 0;
+        size = default;
+        return true;
+    }
 }

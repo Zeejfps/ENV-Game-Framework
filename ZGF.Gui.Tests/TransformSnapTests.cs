@@ -1,6 +1,7 @@
 using System.Numerics;
 using ZGF.Fonts;
 using ZGF.Geometry;
+using ZGF.Gui.Testing;
 
 namespace ZGF.Gui.Tests;
 

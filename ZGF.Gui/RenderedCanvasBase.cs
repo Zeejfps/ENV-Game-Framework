@@ -1048,7 +1048,8 @@ public abstract class RenderedCanvasBase : ICanvas
     {
         var pos = inputs.Position;
         var imageId = inputs.ImageId;
-        var size = GetImageSize(imageId);
+        if (!TryGetImage(imageId, out var textureId, out var size))
+            return;
         var rectW = pos.Width;
         var rectH = pos.Height;
 
@@ -1085,7 +1086,7 @@ public abstract class RenderedCanvasBase : ICanvas
                 ClipIndex = (uint)_clipStack.Peek(),
                 Rotation = inputs.Rotation,
                 CornerRadius = Vector4.Max(inputs.CornerRadius, Vector4.Zero) * ((_scale.X + _scale.Y) * 0.5f),
-                TextureId = GetImageTextureId(imageId),
+                TextureId = textureId,
             }
         });
     }
@@ -1296,7 +1297,8 @@ public abstract class RenderedCanvasBase : ICanvas
 
     public float MeasureTextLineHeight(TextStyle style) => _fonts.GetMetrics(ResolveFont(style)).LineHeight / _dpiScale;
 
-    public Size GetImageSize(string imageId) => GetImageSizeImpl(imageId);
+    /// <summary>The image's size, or zero when the canvas has no image by that id.</summary>
+    public Size GetImageSize(string imageId) => TryGetImage(imageId, out _, out var size) ? size : default;
     public int GetImageWidth(string imageId) => (int)GetImageSize(imageId).Width;
     public int GetImageHeight(string imageId) => (int)GetImageSize(imageId).Height;
 
@@ -1744,8 +1746,10 @@ public abstract class RenderedCanvasBase : ICanvas
     protected abstract void UpdateAtlasIfDirty();
     protected abstract void IssueDraws(IReadOnlyList<DrawCall> drawCalls);
     protected abstract void OnResize(int width, int height);
-    protected abstract Size GetImageSizeImpl(string imageId);
-    protected abstract uint GetImageTextureId(string imageId);
+
+    /// <summary>The texture and size of the image <paramref name="imageId"/> names, or false when the canvas has
+    /// none by that id.</summary>
+    protected abstract bool TryGetImage(string imageId, out uint textureId, out Size size);
 
     /// <summary>The texture rectangle (u, v, width, height) that draws the image upright; a texture
     /// stored top row first is drawn with a negative height.</summary>

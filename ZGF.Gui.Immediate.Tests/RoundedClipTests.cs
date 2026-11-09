@@ -1,5 +1,6 @@
 using ZGF.Geometry;
 using ZGF.Gui.Testing;
+using ZGF.Gui.Testing.Gpu;
 
 namespace ZGF.Gui.Immediate.Tests;
 
@@ -7,27 +8,23 @@ namespace ZGF.Gui.Immediate.Tests;
 /// A box that clips and has rounded corners cuts what is drawn inside it to those corners: its children, what
 /// floats inside it keeping its clip, and a scroll's bar. A box with square corners cuts to its rect as before.
 /// </summary>
-public sealed class RoundedClipTests
+[Collection(GpuCollection.Name)]
+public sealed class RoundedClipTests(GpuDeviceFixture fixture)
 {
     private const int Size = 60;
     private const float Radius = 20f;
     private const uint Red = 0xFFFF0000u;
-    private static readonly (int, int, int) Black = (0, 0, 0);
-    private static readonly (int, int, int) RedRgb = (255, 0, 0);
+    private static readonly Rgba8 Black = new(0, 0, 0, 255);
+    private static readonly Rgba8 OpaqueRed = new(255, 0, 0, 255);
 
-    private static byte[] Draw(Action<Ui<DefaultUiState>> body)
+    private RgbaImage Draw(Action<Ui<DefaultUiState>> body)
     {
-        var frames = new RasterFrames<DefaultUiState>(new DefaultUiState(), body, Size, Size);
-        frames.Frame();
-        frames.Frame();
-        frames.Frame();
-        return frames.ToRgbaTopDown();
-    }
-
-    private static (int, int, int) PixelAt(byte[] rgba, int x, int y)
-    {
-        var i = (y * Size + x) * 4;
-        return (rgba[i], rgba[i + 1], rgba[i + 2]);
+        using var frames = GpuFrames.Running(fixture.Device, new DefaultUiState(), ui =>
+        {
+            ui.WindowBackground = 0xFF000000u;
+            body(ui);
+        }, Size, Size, fallbackFonts: static () => []);
+        return frames.Read();
     }
 
     private static void Clipping(Ui<DefaultUiState> ui, float? radius, Action inside)
@@ -36,57 +33,61 @@ public sealed class RoundedClipTests
             inside();
     }
 
-    [Fact]
+    [GpuFact]
     public void A_rounded_box_cuts_a_child_filling_it_to_its_corners()
     {
-        var rgba = Draw(ui => Clipping(ui, Radius, () => ui.Leaf(new Box { Width = Size, Height = Size, Background = Red })));
+        var image = Draw(ui => Clipping(ui, Radius, () => ui.Leaf(new Box { Width = Size, Height = Size, Background = Red })));
 
-        Assert.Equal(Black, PixelAt(rgba, 1, 1));
-        Assert.Equal(Black, PixelAt(rgba, Size - 2, Size - 2));
-        Assert.Equal(RedRgb, PixelAt(rgba, Size / 2, 1));
-        Assert.Equal(RedRgb, PixelAt(rgba, Size / 2, Size / 2));
+        Assert.Equal(Black, image[1, 1]);
+        Assert.Equal(Black, image[Size - 2, Size - 2]);
+        Assert.Equal(OpaqueRed, image[Size / 2, 1]);
+        Assert.Equal(OpaqueRed, image[Size / 2, Size / 2]);
+        // The arc crosses the top row's pixel centres at x = 20 - sqrt(20^2 - 19.5^2) ~ 15.56, so pixel 15 is about half covered.
+        var edge = image[15, 0];
+        Assert.InRange((int)edge.R, 110, 140);
+        Assert.Equal(new Rgba8(edge.R, 0, 0, 255), edge);
     }
 
-    [Fact]
+    [GpuFact]
     public void A_square_box_cuts_a_child_only_to_its_rect()
     {
-        var rgba = Draw(ui => Clipping(ui, 0f, () => ui.Leaf(new Box { Width = Size, Height = Size, Background = Red })));
+        var image = Draw(ui => Clipping(ui, 0f, () => ui.Leaf(new Box { Width = Size, Height = Size, Background = Red })));
 
-        Assert.Equal(RedRgb, PixelAt(rgba, 1, 1));
-        Assert.Equal(RedRgb, PixelAt(rgba, Size - 2, Size - 2));
+        Assert.Equal(OpaqueRed, image[1, 1]);
+        Assert.Equal(OpaqueRed, image[Size - 2, Size - 2]);
     }
 
-    [Fact]
+    [GpuFact]
     public void What_floats_inside_a_rounded_box_keeping_its_clip_is_cut_to_its_corners_too()
     {
-        var rgba = Draw(ui => Clipping(ui, Radius, () =>
+        var image = Draw(ui => Clipping(ui, Radius, () =>
         {
             using (ui.Float(0f, 0f, 0f, 0f, new Box { Width = Size, Height = Size, Background = Red }, clipped: true))
             {
             }
         }));
 
-        Assert.Equal(Black, PixelAt(rgba, 1, 1));
-        Assert.Equal(RedRgb, PixelAt(rgba, Size / 2, Size / 2));
+        Assert.Equal(Black, image[1, 1]);
+        Assert.Equal(OpaqueRed, image[Size / 2, Size / 2]);
     }
 
-    [Fact]
+    [GpuFact]
     public void A_rounded_clip_inside_another_cuts_to_its_own_corners()
     {
-        var rgba = Draw(ui => Clipping(ui, 0f, () =>
+        var image = Draw(ui => Clipping(ui, 0f, () =>
         {
             using (ui.Box(new Box { Width = Size, Height = Size, Radius = Radius, Clip = true }))
                 ui.Leaf(new Box { Width = Size, Height = Size, Background = Red });
         }));
 
-        Assert.Equal(Black, PixelAt(rgba, 1, 1));
-        Assert.Equal(RedRgb, PixelAt(rgba, Size / 2, Size / 2));
+        Assert.Equal(Black, image[1, 1]);
+        Assert.Equal(OpaqueRed, image[Size / 2, Size / 2]);
     }
 
-    [Fact]
+    [GpuFact]
     public void A_scrolls_bar_inside_a_rounded_box_is_cut_where_it_meets_the_corner()
     {
-        var rgba = Draw(ui => Clipping(ui, Radius, () =>
+        var image = Draw(ui => Clipping(ui, Radius, () =>
         {
             using (ui.Scroll("list", ScrollAxes.Vertical, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }))
             {
@@ -95,11 +96,11 @@ public sealed class RoundedClipTests
             }
         }));
         var thumb = UiTheme.Dark.ScrollThumb;
-        var thumbRgb = ((int)(thumb >> 16) & 0xFF, (int)(thumb >> 8) & 0xFF, (int)thumb & 0xFF);
+        var thumbPixel = new Rgba8((byte)(thumb >> 16), (byte)(thumb >> 8), (byte)thumb, 255);
         var barX = Size - (int)UiTheme.Dark.ScrollBarInset - (int)(UiTheme.Dark.ScrollBarWidth / 2f) - 1;
 
-        Assert.Equal(Black, PixelAt(rgba, barX, 0));
-        Assert.Equal(thumbRgb, PixelAt(rgba, barX, (int)Radius));
+        Assert.Equal(Black, image[barX, 0]);
+        Assert.Equal(thumbPixel, image[barX, (int)Radius]);
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 # ZGF.Gui.Testing
 
-Headless harness for driving and inspecting a `ZGF.Gui` view tree without a window or GPU. Built so
+Headless harness for driving and inspecting a `ZGF.Gui` view tree without a window. Built so
 an **LLM can debug a GUI as text**: it reads the screen as a snapshot, acts by intent, and sees what
 changed — no pixels required.
 
@@ -59,15 +59,23 @@ h.AssertState("src/App.cs", AccessibilityStates.Selected);
 ## Screenshots — for genuinely visual bugs
 
 The text snapshot is the workhorse; a real PNG complements it for overlap/colour/clipping bugs.
+`CreateGpu` measures and draws the tree with the shipping canvas on a windowless `GpuDevice`
+(`ZGF.Gui.Testing.Gpu`), so layout uses real font metrics and the pixels are what a window shows.
 
 ```csharp
-using var h = GuiTestHarness.CreateRaster(ctx => new MyScreen().BuildView(ctx));
+using var device = GpuDevice.Create();   // one OpenGL device per process; share it across tests
+using var h = GuiTestHarness.CreateGpu(device, ctx => new MyScreen().BuildView(ctx), 800, 600);
 h.Settle();
-h.SaveScreenshot("scratch/changes.png");   // CPU-rendered, GPU-free, real fonts
+h.SaveScreenshot("scratch/changes.png");   // straight-alpha PNG
+RgbaImage pixels = h.Screenshot();          // premultiplied RGBA, rows top-down, for assertions
 ```
 
-Raster mode uses real font metrics, so its layout matches what ships; the default
-(`Create`) uses fast synthetic metrics for layout unit tests.
+The harness runs everything that touches the tree on the device's render thread; to change a view
+yourself, do it inside `device.Run(...)`. Only the main tree is drawn; open context menus are
+separate windows. `Create` uses fast synthetic metrics for layout unit tests and has no screenshot.
+
+To assert what the production canvas stages without a GPU — instances, clips, fonts, allocations —
+draw onto a `CaptureCanvas`.
 
 ## Making widgets snapshot-friendly
 

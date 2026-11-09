@@ -14,6 +14,16 @@ public sealed class GpuFactAttribute : FactAttribute
     }
 }
 
+/// <summary>A theory that needs a <see cref="GpuDevice"/>, skipped where the platform has no backend for one.</summary>
+public sealed class GpuTheoryAttribute : TheoryAttribute
+{
+    public GpuTheoryAttribute()
+    {
+        if (GpuDevice.PlatformBackend == GpuBackend.None)
+            Skip = $"GpuDevice has no backend for {RuntimeInformation.OSDescription}.";
+    }
+}
+
 /// <summary>A test of what only an OpenGL <see cref="GpuDevice"/> does, skipped where the platform's backend is not OpenGL.</summary>
 public sealed class OpenGlFactAttribute : FactAttribute
 {

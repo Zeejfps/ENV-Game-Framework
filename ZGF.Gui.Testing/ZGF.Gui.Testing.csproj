@@ -10,7 +10,7 @@
     <ProjectReference Include="..\ZGF.KeyboardModule\ZGF.KeyboardModule.csproj" />
     <ProjectReference Include="..\ZGF.Geometry\ZGF.Geometry.csproj" />
     <ProjectReference Include="..\ZGF.Fonts\ZGF.Fonts.csproj" />
-    <ProjectReference Include="..\PngSharp\PngSharp\PngSharp.csproj" />
+    <ProjectReference Include="..\ZGF.Gui.Testing.Gpu\ZGF.Gui.Testing.Gpu.csproj" />
   </ItemGroup>
 
 </Project>

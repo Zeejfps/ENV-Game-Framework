@@ -3,6 +3,7 @@ using ZGF.Fonts;
 using ZGF.Gui.Desktop;
 using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Widgets;
+using ZGF.Gui.Testing;
 using ZGF.Gui.Widgets;
 using ZGF.Observable;
 
