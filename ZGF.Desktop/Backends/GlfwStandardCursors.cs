@@ -4,10 +4,20 @@ namespace ZGF.Desktop.Backends;
 
 // Lazily creates and caches the GLFW standard cursor objects. These are process-global GLFW
 // handles safe to share across windows; created on demand from the main thread, where the
-// render/input loop already drives GLFW.
+// render/input loop already drives GLFW. They live as long as GLFW does: Release runs before it terminates.
 internal static class GlfwStandardCursors
 {
     private static readonly Dictionary<MouseCursor, Cursor> Cache = new();
+
+    public static void Release()
+    {
+        foreach (var cursor in Cache.Values)
+        {
+            if (cursor != Cursor.None)
+                GLFW.Glfw.DestroyCursor(cursor);
+        }
+        Cache.Clear();
+    }
 
     public static Cursor Get(MouseCursor cursor)
     {

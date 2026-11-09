@@ -175,7 +175,15 @@ public sealed class GuiApp : IDisposable
         int? mcpServerPort = null)
     {
         var backend = CreateRenderBackend(config, backendKind);
-        return new GuiApp(backend, context, contentFactory, renderHook, startup, mcpServerPort);
+        try
+        {
+            return new GuiApp(backend, context, contentFactory, renderHook, startup, mcpServerPort);
+        }
+        catch
+        {
+            backend.Dispose();
+            throw;
+        }
     }
 
     private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, GuiRenderBackendKind kind) => kind switch

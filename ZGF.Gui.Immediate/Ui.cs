@@ -358,11 +358,17 @@ public abstract partial class Ui
 
     internal bool QuitRequested { get; private set; }
 
+    /// <summary>Runs the work <see cref="Post"/> queued so far; what that work posts waits for the next call.</summary>
+    internal void RunPosted()
+    {
+        for (var count = _posted.Count; count > 0 && _posted.TryDequeue(out var action); count--)
+            action();
+    }
+
     internal void BeginFrame(UiInput input, float deltaTime, double realTime, float width, float height)
     {
         _frame++;
-        for (var count = _posted.Count; count > 0 && _posted.TryDequeue(out var action); count--)
-            action();
+        RunPosted();
         Width = width;
         Height = height;
         BeginMeasurements();

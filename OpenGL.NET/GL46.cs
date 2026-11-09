@@ -4197,8 +4197,10 @@ public static unsafe class GL46
 	/// this app requires must be gated on this.</summary>
 	public static bool IsLoaded(string name) => !s_missing.Contains(name);
 
-	public static void Import(GetProcAddressDelegate getProcAddress)
+	/// <summary>Fills the entry points from <paramref name="getProcAddress"/>, which only the current <paramref name="owner"/> of them may do.</summary>
+	public static void Import(GlEntryPointOwner owner, GetProcAddressDelegate getProcAddress)
 	{
+		owner.ThrowIfNotHeld();
 		var missing = new System.Collections.Generic.List<string>();
 		s_glActiveShaderProgram = (void*)getProcAddress("glActiveShaderProgram");
 		if (s_glActiveShaderProgram == null) missing.Add("glActiveShaderProgram");

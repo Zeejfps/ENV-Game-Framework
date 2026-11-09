@@ -40,7 +40,6 @@ namespace GLFW
 
         static Glfw()
         {
-            InitializeLibrary();
             SetErrorCallback(errorCallback);
         }
 
@@ -48,20 +47,18 @@ namespace GLFW
         // refuses to position windows, report their position, focus them or give them an icon — all of
         // which the popup and secondary-window system relies on. Pin Linux to X11 (XWayland under a
         // Wayland session), and fall back to GLFW's own choice if X11 is genuinely unavailable.
-        private static void InitializeLibrary()
+        // Init hints set before this call apply to it.
+        public static bool Initialize()
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                Init();
-                return;
-            }
+                return Init();
 
             InitHint(Hint.Platform, (int) Platform.X11);
             if (Init())
-                return;
+                return true;
 
             InitHint(Hint.Platform, (int) Platform.Any);
-            Init();
+            return Init();
         }
 
         #endregion
@@ -1907,4 +1904,4 @@ namespace GLFW
 
         #endregion
     }
-}
+}

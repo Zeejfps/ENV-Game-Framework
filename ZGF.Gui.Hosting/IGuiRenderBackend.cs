@@ -32,6 +32,10 @@ internal interface IGuiRenderBackend : IDisposable
     /// window's context — for off-loop repaints (a live resize, a first paint before Show, a screenshot).</summary>
     void RenderWindowNow(IWindow window);
 
+    /// <summary>What <paramref name="window"/> last drew, on a backend made to draw offscreen; null when it
+    /// draws to the screen or has drawn nothing yet.</summary>
+    SurfaceImage? ReadOffscreen(IWindow window);
+
     /// <summary>Deletes <paramref name="canvas"/>'s GPU objects under its own window's context, then
     /// destroys the window and restores the main window's context.</summary>
     void DisposeWindow(IWindow window, RenderedCanvasBase canvas);
@@ -49,10 +53,10 @@ internal interface IGuiRenderBackend : IDisposable
     /// <summary>Registers the backend's image manager, for frame-buffer-backed images.</summary>
     void RegisterServices(Context context);
 
-    static IGuiRenderBackend CreateForPlatform(StartupConfig config)
+    static IGuiRenderBackend CreateForPlatform(StartupConfig config, bool offscreen = false)
     {
         if (OperatingSystem.IsMacOS())
-            return new MetalRenderBackend(config);
-        return new GlRenderBackend(config);
+            return new MetalRenderBackend(config, offscreen);
+        return new GlRenderBackend(config, offscreen);
     }
 }

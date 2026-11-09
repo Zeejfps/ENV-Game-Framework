@@ -33,11 +33,7 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
     private readonly IFrameTarget _target;
     private readonly Ui<TState> _ui;
     private readonly UiSynchronizationContext _context;
-    private readonly BackgroundWork? _background;
-    private readonly object _gate = new();
-    private bool _frameRequested;
-    private long _finishedBeforeFrame;
-    private double _scheduledAt = double.PositiveInfinity;
+    private readonly FrameReadiness _readiness;
     private UiInput _frame = new();
     private UiInput _pending = new();
 
@@ -50,8 +46,7 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
         _ui = new Ui<TState>(state, canvas, Clipboard, popups);
         _ui.Wake = RequestFrame;
         _context = new UiSynchronizationContext(_ui.Post);
-        _background = background;
-        background?.Attach(RequestFrame);
+        _readiness = new FrameReadiness(background);
         Body = body;
     }
 
@@ -328,26 +323,20 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
     public SettleResult Settle(double maxSeconds, float frameTime)
     {
         var body = BoundBody;
-        var start = RealTime;
-        while (true)
+        return FrameReadiness.Settle(() =>
         {
             Run(frameTime, body);
-            var pending = Pending() & ~FramePending.BackgroundWork;
-            var seconds = RealTime - start;
-            if (pending == FramePending.None || seconds >= maxSeconds)
-                return new SettleResult(pending, seconds);
-        }
+            return _readiness.Pending(_ui);
+        }, () => RealTime, maxSeconds);
     }
 
     public void WaitUntil(Func<bool> predicate, TimeSpan timeout) => WaitFor(predicate, false, timeout);
 
     public void WaitUntilReady(TimeSpan timeout) => WaitFor(static () => true, true, timeout);
 
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(10);
-
     /// <summary>What still moves after the last frame, which readiness does not wait for and settling runs out:
     /// an animation frame asked for, or an update scheduled.</summary>
-    public FramePending Animating => _target.Run(() => Pending() & (FramePending.Animation | FramePending.ScheduledUpdate));
+    public FramePending Animating => _target.Run(() => _readiness.Animating(_ui));
 
     /// <summary>Runs frames without advancing time while work is posted, frames are requested or a frame asks for the
     /// next to finish a change of state, then waits, on the calling thread, until none of that is pending, nor
@@ -356,117 +345,27 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
     private void WaitFor(Func<bool> done, bool untilBackgroundDone, TimeSpan timeout)
     {
         var body = BoundBody;
-        var clock = Stopwatch.StartNew();
-        var state = _target.Run(() =>
+        var deadline = FrameReadiness.Deadline(timeout);
+        _readiness.WaitUntil(runFrame => _target.Run(() =>
         {
-            Run(0f, body);
-            return Check(done);
-        });
-        while (true)
-        {
-            var remaining = timeout - clock.Elapsed;
-            var pending = state.Pending & (FramePending.Update | FramePending.FrameRequest |
-                                           (untilBackgroundDone ? FramePending.BackgroundWork : FramePending.None));
-            var runFrame = (pending & (FramePending.FrameRequest | FramePending.Update)) != 0;
-            if (!runFrame && pending == FramePending.None && state.Done)
-                return;
-            if (remaining <= TimeSpan.Zero)
-                throw NotReady(pending, timeout);
             if (runFrame)
-            {
-                state = _target.Run(() =>
-                {
-                    Run(0f, body);
-                    return Check(done);
-                });
-                continue;
-            }
-            lock (_gate)
-            {
-                if (!_frameRequested)
-                    Monitor.Wait(_gate, remaining < PollInterval ? remaining : PollInterval);
-            }
-            state = _target.Run(() => Check(done));
-        }
-    }
-
-    private (FramePending Pending, bool Done) Check(Func<bool> done)
-    {
-        ThrowBackgroundFailures();
-        return (Pending(), done());
-    }
-
-    private FramePending Pending()
-    {
-        var pending = FramePending.None;
-        if (_ui.RequiredUpdateRequested)
-            pending |= FramePending.Update;
-        if (_ui.AnimationFrameRequested)
-            pending |= FramePending.Animation;
-        if (double.IsFinite(_scheduledAt))
-            pending |= FramePending.ScheduledUpdate;
-        if (_background != null)
-        {
-            var (outstanding, finished) = _background.Progress();
-            if (outstanding > 0)
-                pending |= FramePending.BackgroundWork;
-            if (finished != _finishedBeforeFrame)
-                pending |= FramePending.FrameRequest;
-        }
-        lock (_gate)
-        {
-            if (_frameRequested)
-                pending |= FramePending.FrameRequest;
-        }
-        return pending;
+                Run(0f, body);
+            return _readiness.Check(_ui, done);
+        }), FrameReadiness.Blocking(untilBackgroundDone), timeout, deadline);
     }
 
     /// <summary>Asks for another frame, as posted work does. Safe from any thread.</summary>
-    public void RequestFrame()
-    {
-        lock (_gate)
-        {
-            _frameRequested = true;
-            Monitor.PulseAll(_gate);
-        }
-    }
-
-    private void ThrowBackgroundFailures()
-    {
-        if (_background == null) return;
-        var failures = _background.TakeFailures();
-        if (failures.Length == 0) return;
-        var names = string.Join(", ", failures.Select(f => f.Name));
-        throw new AggregateException($"Background work failed: {names}.", failures.Select(f => f.Error));
-    }
-
-    private TimeoutException NotReady(FramePending pending, TimeSpan timeout)
-    {
-        var reasons = new List<string>();
-        if ((pending & FramePending.Update) != 0)
-            reasons.Add("every frame asked for the next with RequestUpdate, which state that settles stops doing; what moves over time asks with RequestAnimationFrame, which Settle runs out");
-        if ((pending & FramePending.FrameRequest) != 0)
-            reasons.Add("work kept being posted, or frames requested, after every frame");
-        if ((pending & FramePending.BackgroundWork) != 0 && _background != null)
-            reasons.Add($"background work still running: {string.Join(", ", _background.Outstanding)}");
-        if (reasons.Count == 0)
-            reasons.Add("the condition never held");
-        return new TimeoutException($"Not ready after {timeout.TotalSeconds:0.###}s: {string.Join("; ", reasons)}.");
-    }
+    public void RequestFrame() => _readiness.RequestFrame();
 
     private void Begin(float deltaTime)
     {
-        lock (_gate)
-            _frameRequested = false;
-        if (_background != null)
-            _finishedBeforeFrame = _background.Progress().Finished;
+        _readiness.BeginFrame();
         BeforeFrame?.Invoke();
         (_frame, _pending) = (_pending, _frame);
         _frame.Seal();
         _pending.BeginAfter(_frame);
         RealTime += deltaTime;
-        if (RealTime >= _scheduledAt)
-            _scheduledAt = double.PositiveInfinity;
+        _readiness.AdvanceTo(RealTime);
         _target.BeginFrame();
 
         _ui.WindowBounds = WindowBounds;
@@ -483,7 +382,7 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
         _target.EndFrame(_ui.WindowBackground);
         UpdateRequested = _ui.UpdateRequested;
         WakeAt = _ui.WakeAt;
-        _scheduledAt = Math.Min(_scheduledAt, _ui.NonAmbientWakeAt);
+        _readiness.EndFrame(_ui);
         Cursor = _ui.Cursor;
         WantsTextInput = _ui.WantsTextInput;
         ImeCaret = _ui.ImeCaret;

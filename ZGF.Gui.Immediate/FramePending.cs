@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Immediate.Testing;
+namespace ZGF.Gui.Immediate;
 
 /// <summary>What still wants a frame once one has ended.</summary>
 [Flags]
@@ -23,8 +23,8 @@ public enum FramePending
     Animation = 16,
 }
 
-/// <summary>How <see cref="UiFrames{TState}.Settle"/> ended: settled when nothing is
-/// <see cref="Pending"/>, after <see cref="Seconds"/> of virtual time.</summary>
+/// <summary>How settling frames ended: settled when nothing is <see cref="Pending"/>, after
+/// <see cref="Seconds"/> of virtual time.</summary>
 public readonly record struct SettleResult(FramePending Pending, double Seconds)
 {
     public bool Settled => Pending == FramePending.None;

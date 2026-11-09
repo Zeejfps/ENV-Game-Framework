@@ -18,7 +18,7 @@ public sealed class MetalApp : GlfwApp<MetalWindow>
     public IntPtr CommandQueue => Main.CommandQueue;
 
     public MetalApp(StartupConfig startupConfig)
-        : base(RequireMacOs(startupConfig), ClientApi.None, CreateMainWindow)
+        : base(RequireMacOs(startupConfig), ClientApi.None, window => CreateMainWindow(window, startupConfig.Headless))
     {
     }
 
@@ -29,13 +29,13 @@ public sealed class MetalApp : GlfwApp<MetalWindow>
         return startupConfig;
     }
 
-    private static MetalWindow CreateMainWindow(Window window)
+    private static MetalWindow CreateMainWindow(Window window, bool headless)
     {
         var device = MetalApi.MTLCreateSystemDefaultDevice();
         if (device == IntPtr.Zero) throw new System.Exception("MTLCreateSystemDefaultDevice returned null.");
         var commandQueue = msg_IntPtr(device, Sel("newCommandQueue"));
         if (commandQueue == IntPtr.Zero) throw new System.Exception("newCommandQueue returned null.");
-        return new MetalWindow(window, device, commandQueue, isMain: true);
+        return new MetalWindow(window, device, commandQueue, isMain: true, headless);
     }
 
     protected override MetalWindow OpenWindow(int widthPoints, int heightPoints, string title, bool transparent)
@@ -43,7 +43,7 @@ public sealed class MetalApp : GlfwApp<MetalWindow>
         var glfw = Glfw.CreateWindow(widthPoints, heightPoints, title, Monitor.None, Window.None);
         Glfw.DefaultWindowHints();
 
-        var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false);
+        var window = new MetalWindow(glfw, Device, CommandQueue, isMain: false, Headless);
         if (transparent)
             window.MakeTransparent();
         return window;

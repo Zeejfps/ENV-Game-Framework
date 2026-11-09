@@ -13,7 +13,7 @@ namespace ZGF.Gui.Immediate;
 
 /// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{TUiState}"/> runs in. While it runs,
 /// <c>await</c> on the UI thread continues before the next frame.</summary>
-public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : class, IUiState
+public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost where TUiState : class, IUiState
 {
     private const float MaxFrameStep = 0.1f;
     private const int PopupPoolSize = 8;
@@ -61,8 +61,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private readonly IWindow _window;
     private readonly ImmediateGuiApp<TUiState> _app;
     private readonly Ui<TUiState> _ui;
-    private readonly PlatformClipboard _clipboard;
+    private readonly IClipboard _clipboard;
+    private readonly PlatformClipboard? _platformClipboard;
     private readonly IFilePicker _filePicker;
+    private readonly ImmediateAutomation? _automation;
     private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
     private readonly FontRegistry _fontRegistry;
     private readonly List<Popup> _popups = new();
@@ -91,51 +93,84 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private volatile bool _disposed;
     private (int X, int Y, int Width, int Height) _normalBounds;
 
-    /// <summary>Opens the window of <paramref name="app"/>, which <see cref="Run"/> then runs in it.</summary>
-    public ImmediateGuiAppHost(ImmediateGuiApp<TUiState> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto)
+    /// <summary>Opens the window of <paramref name="app"/>, which <see cref="Run"/> then runs in it; with
+    /// <paramref name="automation"/>, in automation mode, driven through <see cref="Automation"/>. Call it on the
+    /// thread that runs it.</summary>
+    public ImmediateGuiAppHost(ImmediateGuiApp<TUiState> app, StartupConfig config, RenderBackendKind backend = RenderBackendKind.Auto,
+        AutomationOptions? automation = null)
     {
         _app = app;
-        _render = CreateRenderBackend(config, backend);
-        _fontRegistry = new FontRegistry(_render.Fonts, _render.MainCanvas, LoadFont);
-        RegisterDefaultBold();
-        _window = _render.App.MainWindow;
-        _pool = new PopupPool(_render, PopupPoolSize);
-        _clipboard = PlatformClipboard.Create(_render.App);
-        _ui = new Ui<TUiState>(app.UiState, _render.MainCanvas, _clipboard, this);
-        _ui.Wake = Invalidate;
-        if (OperatingSystem.IsMacOS())
-            _ui.SystemMenus = new SystemMenus(new MacMenuBar(), Invalidate);
-        _filePicker = NativeFilePicker.Create(_ui.Post, _window);
-        Dispatcher = new TickDispatcher(this);
-        _clearColor = _ui.WindowBackground;
-        WireMainFrame();
-        _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
-        _maximizeOnShow = config.StartHidden && config.StartMaximized;
+        _render = CreateRenderBackend(automation == null ? config : config with { Headless = true }, backend, automation != null);
+        try
+        {
+            _fontRegistry = new FontRegistry(_render.Fonts, _render.MainCanvas, LoadFont);
+            RegisterDefaultBold();
+            _window = _render.App.MainWindow;
+            _pool = new PopupPool(_render, PopupPoolSize);
+            if (automation != null)
+            {
+                _automation = new ImmediateAutomation(automation, this, Environment.CurrentManagedThreadId, _render.App.Wake);
+                _clipboard = _automation.Clipboard;
+            }
+            else
+            {
+                _platformClipboard = PlatformClipboard.Create(_render.App);
+                _clipboard = _platformClipboard;
+            }
+            _ui = new Ui<TUiState>(app.UiState, _render.MainCanvas, _clipboard, this);
+            _ui.Wake = Invalidate;
+            if (OperatingSystem.IsMacOS())
+            {
+                ISystemMenuBar menuBar = _automation == null ? new MacMenuBar() : _automation.MenuBar;
+                _ui.SystemMenus = new SystemMenus(menuBar, Invalidate);
+            }
+            _filePicker = _automation == null ? NativeFilePicker.Create(_ui.Post, _window) : _automation.FilePicker;
+            Dispatcher = new TickDispatcher(this);
+            _clearColor = _ui.WindowBackground;
+            WireMainFrame();
+            _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
+            _maximizeOnShow = config.StartHidden && config.StartMaximized;
 
-        Subscribe(_window);
-        _window.OnResize += HandleResize;
-        _window.OnFramebufferResize += HandleResize;
-        _window.OnContentScaleChanged += HandleContentScaleChanged;
-        _window.OnMove += HandleMove;
-        _window.OnFocusChanged += HandleFocusChanged;
-        _window.OnMinimizedChanged += HandleMinimizedChanged;
-        _pending.SetMinimized(_window.IsMinimized);
-        _render.App.OnForegroundChanged += HandleForegroundChanged;
-        _render.App.OnTick += Tick;
-        _window.OnNonClientPress += HandleNonClientPress;
-        _window.OnClose += HandleCloseAsked;
-        HotReload.Applied += Invalidate;
+            Subscribe(_window);
+            _window.OnResize += HandleResize;
+            _window.OnFramebufferResize += HandleResize;
+            _window.OnContentScaleChanged += HandleContentScaleChanged;
+            _window.OnMove += HandleMove;
+            _window.OnMinimizedChanged += HandleMinimizedChanged;
+            _pending.SetMinimized(_window.IsMinimized);
+            if (_automation == null)
+            {
+                _window.OnFocusChanged += HandleFocusChanged;
+                _render.App.OnForegroundChanged += HandleForegroundChanged;
+                _window.OnNonClientPress += HandleNonClientPress;
+            }
+            _render.App.OnTick += Tick;
+            _window.OnClose += HandleCloseAsked;
+            HotReload.Applied += Invalidate;
 
-        SyncScale();
-        LoadSystemFallbackFonts();
+            SyncScale();
+            var fallbackFonts = LoadSystemFallbackFonts();
+            _automation?.BackgroundWork.Track("system fallback fonts", fallbackFonts);
+        }
+        catch
+        {
+            _disposed = true;
+            HotReload.Applied -= Invalidate;
+            _platformClipboard?.Dispose();
+            _render.Dispose();
+            throw;
+        }
     }
 
-    private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, RenderBackendKind kind) => kind switch
+    private static IGuiRenderBackend CreateRenderBackend(StartupConfig config, RenderBackendKind kind, bool offscreen) => kind switch
     {
-        RenderBackendKind.OpenGl => new GlRenderBackend(config),
-        RenderBackendKind.Metal => new MetalRenderBackend(config),
-        _ => IGuiRenderBackend.CreateForPlatform(config),
+        RenderBackendKind.OpenGl => new GlRenderBackend(config, offscreen),
+        RenderBackendKind.Metal => new MetalRenderBackend(config, offscreen),
+        _ => IGuiRenderBackend.CreateForPlatform(config, offscreen),
     };
+
+    /// <summary>What drives the app in automation mode; null when it runs as usual.</summary>
+    public ImmediateAutomation? Automation => _automation;
 
     /// <summary>Makes the default font's bold text Inter SemiBold rather than synthesized.</summary>
     private void RegisterDefaultBold() =>
@@ -161,6 +196,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             using var context = InstallSynchronizationContext();
             _app.Startup(this);
             RunUntilClosed();
+            _automation?.Shutdown();
             _app.Shutdown(this);
         }
         finally
@@ -172,7 +208,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void RunUntilClosed()
     {
         TrackBounds();
-        _render.RenderWindowNow(_window);
+        if (_automation == null)
+            _render.RenderWindowNow(_window);
         _render.App.Run();
     }
 
@@ -200,16 +237,32 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         if (!_app.CloseRequested(this))
             _window.CancelClose();
+        else
+            _automation?.Shutdown();
     }
 
     /// <summary>Takes the window off the screen. The app keeps running, but no frame is drawn until
     /// <see cref="ShowWindow"/>, so nothing that waits for a frame runs, an <c>await</c> on the UI thread included;
     /// <see cref="Dispatcher"/> still does. Call it on the UI thread.</summary>
-    public void HideWindow() => _window.Hide();
+    public void HideWindow()
+    {
+        if (_automation != null)
+        {
+            _automation.Record(new AutomationEffect.WindowHidden());
+            return;
+        }
+        _window.Hide();
+    }
 
     /// <summary>Puts a hidden window back and draws it. Call it on the UI thread.</summary>
     public void ShowWindow()
     {
+        if (_automation != null)
+        {
+            _automation.Record(new AutomationEffect.WindowShown());
+            Invalidate();
+            return;
+        }
         _window.Show();
         if (_maximizeOnShow)
             _window.Maximize();
@@ -222,6 +275,11 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// Call it on the UI thread.</summary>
     public void FocusWindow()
     {
+        if (_automation != null)
+        {
+            _automation.Record(new AutomationEffect.BroughtToFront());
+            return;
+        }
         if (_window.IsMinimized)
             _window.Restore();
         _window.Focus();
@@ -233,6 +291,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     public void CloseImmediately()
     {
         _window.CloseImmediately();
+        _automation?.Shutdown();
         _render.App.Wake();
     }
 
@@ -241,8 +300,23 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     public void Invalidate()
     {
         if (_disposed) return;
+        if (_automation != null)
+        {
+            _automation.NoteFrameRequested();
+            return;
+        }
         _window.RequestRedraw();
         _render.App.Wake();
+    }
+
+    /// <summary>Draws again: on the loop's next turn, or in automation mode, where hidden windows are never drawn
+    /// by the loop, as a frame the driver sees pending.</summary>
+    private void RequestRedraw()
+    {
+        if (_automation != null)
+            _automation.NoteFrameRequested();
+        else
+            _window.RequestRedraw();
     }
 
     /// <summary>Makes <c>await</c> on this thread continue on the UI thread before the next frame,
@@ -320,7 +394,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         _fontRegistry.Register(font);
     }
 
-    private void LoadSystemFallbackFonts() => Task.Run(() =>
+    private Task LoadSystemFallbackFonts() => Task.Run(() =>
     {
         foreach (var font in SystemFallbackFonts.Find())
         {
@@ -362,14 +436,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
         _fontRegistry.ReleaseUnused();
         _render.Fonts.AdvanceFrame();
-        var now = Stopwatch.GetTimestamp();
-        var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
-        _lastFrameTimestamp = now;
+        var (dt, seconds) = NextFrameTime();
 
         _ui.WindowBounds = WindowBounds;
         ShowCaptionButtonsToUi();
         _drawing = true;
-        _ui.BeginFrame(_frame, MathF.Min(dt, MaxFrameStep), Seconds(now), _render.MainCanvas.Width, _render.MainCanvas.Height);
+        _ui.BeginFrame(_frame, dt, seconds, _render.MainCanvas.Width, _render.MainCanvas.Height);
         _app.Update(_ui);
         _ui.EndFrame();
         _drawing = false;
@@ -392,39 +464,66 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         ApplyRequestedWindowState();
         BringToFrontIfRequested();
         if (_ui.QuitRequested)
+        {
             _render.App.Quit();
+            _automation?.Shutdown();
+        }
 
         ApplyPointerLock();
         if (_ui.Cursor != _cursor)
         {
             _cursor = _ui.Cursor;
-            _window.SetCursor(_cursor);
-            foreach (var popup in _popups)
-                popup.Surface.Window.SetCursor(_cursor);
-            foreach (var dialog in _windows)
-                dialog.Window.SetCursor(_cursor);
+            if (_automation == null)
+                ShowCursor();
         }
         if (_ui.CompositionReset)
         {
-            _window.ResetPreedit();
-            foreach (var dialog in _windows)
-                dialog.Window.ResetPreedit();
+            if (_automation == null)
+            {
+                _window.ResetPreedit();
+                foreach (var dialog in _windows)
+                    dialog.Window.ResetPreedit();
+            }
             _pending.Compose(PreeditText.Empty);
         }
         if (_ui.WantsTextInput != _textInputFocus)
         {
             _textInputFocus = _ui.WantsTextInput;
-            _window.SetTextInputFocus(_textInputFocus);
-            foreach (var dialog in _windows)
-                dialog.Window.SetTextInputFocus(_textInputFocus);
+            if (_automation == null)
+            {
+                _window.SetTextInputFocus(_textInputFocus);
+                foreach (var dialog in _windows)
+                    dialog.Window.SetTextInputFocus(_textInputFocus);
+            }
             _imeCaret = null;
         }
-        if (_textInputFocus && _ui.ImeCaret is { } caret)
+        if (_automation == null && _textInputFocus && _ui.ImeCaret is { } caret)
             PlaceImeCaret(caret);
         _animating = _ui.UpdateRequested;
         _wakeAt = _ui.WakeAt;
-        if (_frame.HasEvents || _ui.UpdateRequested)
+        if (_automation == null && (_frame.HasEvents || _ui.UpdateRequested))
             _window.RequestRedraw();
+    }
+
+    /// <summary>How long since the frame before and the seconds since the app started: by the wall clock, or in
+    /// automation mode by its virtual clock.</summary>
+    private (float DeltaTime, double Seconds) NextFrameTime()
+    {
+        if (_automation != null)
+            return (_automation.FrameStep, _automation.Now);
+        var now = Stopwatch.GetTimestamp();
+        var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
+        _lastFrameTimestamp = now;
+        return (MathF.Min(dt, MaxFrameStep), Seconds(now));
+    }
+
+    private void ShowCursor()
+    {
+        _window.SetCursor(_cursor);
+        foreach (var popup in _popups)
+            popup.Surface.Window.SetCursor(_cursor);
+        foreach (var dialog in _windows)
+            dialog.Window.SetCursor(_cursor);
     }
 
     /// <summary>Tells the frame whether it can draw in the window's title bar, where the caption
@@ -461,7 +560,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         var buttons = _window.CaptionButtons;
         _window.ExtendIntoTitleBar(_titleBar);
         if (_window.CaptionButtons != buttons)
-            _window.RequestRedraw();
+            RequestRedraw();
     }
 
     private void ListDragAreasOnWindow()
@@ -513,6 +612,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
 
     private void ApplyRequestedWindowState()
     {
+        if (_automation != null)
+        {
+            var requested = _ui.RequestedWindowState;
+            if (requested != null)
+                _automation.Record(new AutomationEffect.WindowStateRequested(requested.Value));
+            return;
+        }
         switch (_ui.RequestedWindowState)
         {
             case WindowState.Normal:
@@ -531,6 +637,11 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         if (!_ui.IsFrontRequested)
             return;
+        if (_automation != null)
+        {
+            _automation.Record(new AutomationEffect.BroughtToFront());
+            return;
+        }
         if (_window.IsMinimized)
             _window.Restore();
         _window.Focus();
@@ -564,6 +675,11 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         while (!_disposed && _ticked.TryDequeue(out var work))
             work();
+        if (_automation != null)
+        {
+            _automation.RunCalls();
+            return;
+        }
         if (_backgroundPending)
         {
             _backgroundPending = false;
@@ -571,13 +687,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             {
                 _pending.ReleaseAll();
                 _pending.DismissPopups();
-                _window.RequestRedraw();
+                RequestRedraw();
             }
         }
         if (_ui.HasDialogs && _ui.ShowDialogs(_filePicker))
         {
             _pending.DismissPopups();
-            _window.RequestRedraw();
+            RequestRedraw();
         }
         if (_ui.HasFoldersToOpen)
             OpenFolders();
@@ -594,7 +710,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
         {
             _wakeAt = double.PositiveInfinity;
-            _window.RequestRedraw();
+            RequestRedraw();
         }
         PollPointer();
     }
@@ -641,12 +757,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void ListSystemFonts()
     {
         var listings = _ui.TakeFontListings();
-        Task.Run(() =>
+        var listing = Task.Run(() =>
         {
             var families = ListFamiliesOrNone();
             foreach (var onListed in listings)
                 _ui.Post(() => onListed(families));
         });
+        _automation?.BackgroundWork.Track("system font listing", listing);
     }
 
     private IReadOnlyList<SystemFontFamily> ListFamiliesOrNone()
@@ -665,12 +782,16 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// <summary>Locks the pointer while the frame asked for it and the app is in front, and frees it otherwise.</summary>
     private void ApplyPointerLock()
     {
-        var locked = _ui.PointerLockRequested && _render.App.IsForeground;
+        var foreground = _automation == null ? _render.App.IsForeground : _pending.IsForeground;
+        var locked = _ui.PointerLockRequested && foreground;
         if (locked == _pending.PointerLocked)
             return;
-        _window.SetPointerLocked(locked);
+        if (_automation == null)
+            _window.SetPointerLocked(locked);
+        else
+            _automation.Record(new AutomationEffect.PointerLockChanged(locked));
         _pending.LockPointer(locked);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void PollPointer()
@@ -679,7 +800,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         var point = _pending.PointerLocked || _pending.FollowsPointerOutside || IsPointerOverOwnWindow() ? ToUiSpace(x, y) : UiInput.Offscreen;
         if (point == _pending.Pointer) return;
         _pending.MovePointer(point);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     /// <summary>Whether the topmost window under the cursor is one of this app's, so the pointer is
@@ -816,7 +937,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         }
         _render.WirePresentLoop(surface.Window, surface.Canvas);
         Subscribe(surface.Window);
-        surface.Window.SetCursor(_cursor);
+        if (_automation == null)
+            surface.Window.SetCursor(_cursor);
         var popup = new Popup(surface, passThrough);
         _popups.Add(popup);
         return popup;
@@ -927,9 +1049,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         window.OnMove += HandleWindowMove;
         window.OnResize += HandleWindowResize;
         window.OnFramebufferResize += HandleWindowResize;
-        window.SetCursor(_cursor);
-        window.SetTextInputFocus(_textInputFocus);
-        _window.SetInputEnabled(false);
+        if (_automation == null)
+        {
+            window.SetCursor(_cursor);
+            window.SetTextInputFocus(_textInputFocus);
+            _window.SetInputEnabled(false);
+        }
         _windows.Add(dialog);
         return dialog;
     }
@@ -1010,9 +1135,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _render.RenderWindowNow(dialog.Window);
             if (!dialog.Shown)
             {
-                dialog.Window.SetOwner(_window);
-                dialog.Window.Show();
-                dialog.Window.Focus();
+                if (_automation == null)
+                {
+                    dialog.Window.SetOwner(_window);
+                    dialog.Window.Show();
+                    dialog.Window.Focus();
+                }
                 dialog.Shown = true;
             }
             dialog.Used = false;
@@ -1029,11 +1157,11 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         window.OnMove -= HandleWindowMove;
         window.OnResize -= HandleWindowResize;
         window.OnFramebufferResize -= HandleWindowResize;
-        var last = _windows.Count == 0;
-        if (last)
+        var activateMain = _windows.Count == 0 && _automation == null;
+        if (activateMain)
             _window.SetInputEnabled(true);
         _render.DisposeWindow(window, dialog.Canvas);
-        if (last)
+        if (activateMain)
             _window.Focus();
     }
 
@@ -1074,7 +1202,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _render.RenderWindowNow(popup.Surface.Window);
             if (!popup.Shown)
             {
-                popup.Surface.Window.Show();
+                if (_automation == null)
+                    popup.Surface.Window.Show();
                 popup.Shown = true;
             }
             popup.Used = false;
@@ -1087,7 +1216,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void Release(Popup popup)
     {
         var window = popup.Surface.Window;
-        var hadFocus = window.IsFocused;
+        var hadFocus = _automation == null && window.IsFocused;
         Unsubscribe(window);
         _pool.Release(popup.Surface);
         if (!hadFocus) return;
@@ -1097,8 +1226,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             _window.Focus();
     }
 
+    /// <summary>Takes <paramref name="window"/>'s input from the OS, except in automation mode, where input comes
+    /// only from <see cref="Automation"/>.</summary>
     private void Subscribe(IWindow window)
     {
+        if (_automation != null)
+            return;
         window.OnKey += HandleKey;
         window.OnText += HandleText;
         window.OnPreedit += HandlePreedit;
@@ -1120,26 +1253,26 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void HandleKey(KeyboardKey key, InputAction action, KeyModifiers modifiers)
     {
         _pending.Key(key, action, modifiers);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleText(uint codePoint)
     {
         _pending.Character(codePoint);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandlePreedit(PreeditText preedit)
     {
         _pending.Compose(preedit);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleMouseButton(int button, InputAction action, KeyModifiers modifiers)
     {
         PollPointer();
         _pending.Button(button, action, modifiers);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleScroll(double x, double y)
@@ -1147,39 +1280,39 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
         // Read while still inside the platform's callback: the event behind it is the current one only until it returns.
         var (gesture, momentum) = MacScrollPhase.Read();
         _pending.Scroll(x, y, gesture, momentum);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleFileDrop(IReadOnlyList<string> paths)
     {
         PollPointer();
         _pending.DropFiles(paths);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleForegroundChanged(bool foreground)
     {
         _pending.SetForeground(foreground);
         _backgroundPending = !foreground;
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleMinimizedChanged(bool minimized)
     {
         _pending.SetMinimized(minimized);
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleNonClientPress()
     {
         _pending.DismissPopups();
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void HandleWindowMove(int x, int y)
     {
         _pending.DismissPopups();
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     /// <summary>Draws the frame now, and with it the dialog window at its new size, so a live resize
@@ -1187,9 +1320,9 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     /// another.</summary>
     private void HandleWindowResize(int width, int height)
     {
-        if (_drawing)
+        if (_drawing || _automation != null)
         {
-            _window.RequestRedraw();
+            RequestRedraw();
             return;
         }
         _render.RenderWindowNow(_window);
@@ -1207,7 +1340,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         TrackBounds();
         _pending.DismissPopups();
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     private void TrackBounds()
@@ -1221,13 +1354,14 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     {
         TrackBounds();
         SyncScale();
-        _render.RenderWindowNow(_window);
+        if (_automation == null)
+            _render.RenderWindowNow(_window);
     }
 
     private void HandleContentScaleChanged(float scale)
     {
         SyncScale();
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     /// <summary>Draws at the scale the frame asked for from the next frame on, when it changed.</summary>
@@ -1239,7 +1373,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
             return;
         _scale = _ui.Scale;
         SyncScale();
-        _window.RequestRedraw();
+        RequestRedraw();
     }
 
     /// <summary>Sizes the main canvas to the window at the monitor's scale times the app's own.</summary>
@@ -1257,23 +1391,91 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost where TUiState : 
     private void Close()
     {
         _disposed = true;
+        _automation?.Shutdown();
         _ui.Wake = null;
         HotReload.Applied -= Invalidate;
-        _window.OnNonClientPress -= HandleNonClientPress;
+        if (_automation == null)
+        {
+            _window.OnNonClientPress -= HandleNonClientPress;
+            _render.App.OnForegroundChanged -= HandleForegroundChanged;
+            _window.OnFocusChanged -= HandleFocusChanged;
+        }
         _window.OnClose -= HandleCloseAsked;
         _render.App.OnTick -= Tick;
-        _render.App.OnForegroundChanged -= HandleForegroundChanged;
         Unsubscribe(_window);
         _window.OnResize -= HandleResize;
         _window.OnFramebufferResize -= HandleResize;
         _window.OnContentScaleChanged -= HandleContentScaleChanged;
         _window.OnMove -= HandleMove;
-        _window.OnFocusChanged -= HandleFocusChanged;
         _window.OnMinimizedChanged -= HandleMinimizedChanged;
         ReleasePopups();
         CloseWindows();
         _pool.Dispose();
-        _clipboard.Dispose();
+        _platformClipboard?.Dispose();
         _render.Dispose();
+    }
+
+    UiInput IAutomatedHost.Input => _pending;
+    MouseCursor IAutomatedHost.Cursor => _cursor;
+    Ui IAutomatedHost.Ui => _ui;
+
+    void IAutomatedHost.RunFrame()
+    {
+        _render.RenderWindowNow(_window);
+        AnswerAutomatedServices();
+    }
+
+    void IAutomatedHost.RunPostedWork()
+    {
+        while (_ticked.TryDequeue(out var work))
+            work();
+        _ui.RunPosted();
+    }
+
+    void IAutomatedHost.Close() => CloseImmediately();
+
+    SurfaceImage IAutomatedHost.Capture(SemanticSnapshot snapshot, SemanticSurface surface)
+    {
+        var window = WindowDrawingOn(snapshot.CanvasOf(surface));
+        return _render.ReadOffscreen(window) ?? throw new InvalidOperationException($"{surface} has drawn nothing yet.");
+    }
+
+    private IWindow WindowDrawingOn(ICanvas canvas)
+    {
+        if (ReferenceEquals(canvas, _render.MainCanvas))
+            return _window;
+        foreach (var popup in _popups)
+        {
+            if (ReferenceEquals(popup.Surface.Canvas, canvas))
+                return popup.Surface.Window;
+        }
+        foreach (var dialog in _windows)
+        {
+            if (ReferenceEquals(dialog.Canvas, canvas))
+                return dialog.Window;
+        }
+        throw new InvalidOperationException("The window that surface drew on has closed since.");
+    }
+
+    /// <summary>Answers what the frame just drawn asked of the OS, in automation mode: file pickers from the
+    /// queued answers, opening and revealing recorded, fonts as usual.</summary>
+    private void AnswerAutomatedServices()
+    {
+        if (_automation == null)
+            return;
+        if (_ui.HasDialogs && _ui.ShowDialogs(_automation.FilePicker))
+            _pending.DismissPopups();
+        foreach (var folder in _ui.TakeFoldersToOpen())
+            _automation.Record(new AutomationEffect.FolderOpened(folder));
+        foreach (var file in _ui.TakeFilesToReveal())
+            _automation.Record(new AutomationEffect.FileRevealed(file));
+        foreach (var file in _ui.TakeFilesToOpen())
+            _automation.Record(new AutomationEffect.FileOpened(file));
+        foreach (var url in _ui.TakeUrlsToOpen())
+            _automation.Record(new AutomationEffect.UrlOpened(url));
+        if (_ui.HasFontChanges)
+            ApplyAskedFontChanges();
+        if (_ui.HasFontListings)
+            ListSystemFonts();
     }
 }

@@ -77,7 +77,7 @@ public sealed class GpuDevice : IDisposable
 
     private static GpuDevice CreateOpenGl(GpuBackend backend, Func<RenderThread, IGlContext> createContext)
     {
-        var claim = OpenGlDeviceGuard.Acquire();
+        var entryPoints = GlEntryPointOwner.Claim("an OpenGL GpuDevice");
         RenderThread? thread = null;
         IGlContext? context = null;
         try
@@ -86,10 +86,10 @@ public sealed class GpuDevice : IDisposable
             var (created, description) = thread.Run(() =>
             {
                 context = createContext(thread);
-                GL46.Import(context.GetProcAddress);
+                GL46.Import(entryPoints, context.GetProcAddress);
                 return (context, GlRequirements.Verify());
             });
-            return new GpuDevice(thread, new Native.OpenGl(created, claim), backend, description);
+            return new GpuDevice(thread, new Native.OpenGl(created, entryPoints), backend, description);
         }
         catch (Exception creation)
         {
@@ -100,7 +100,7 @@ public sealed class GpuDevice : IDisposable
             }
             finally
             {
-                OpenGlDeviceGuard.Release(claim);
+                entryPoints.Dispose();
             }
             if (teardown != null)
                 throw new AggregateException("Creating the GpuDevice failed, and so did releasing what it had made.", creation, teardown);
@@ -250,7 +250,7 @@ public sealed class GpuDevice : IDisposable
     private void ReleaseGuard()
     {
         if (_native is Native.OpenGl gl)
-            OpenGlDeviceGuard.Release(gl.Claim);
+            gl.EntryPoints.Dispose();
     }
 
     private void ReleaseEverything()
@@ -284,28 +284,8 @@ public sealed class GpuDevice : IDisposable
 
     private abstract record Native(IDisposable Context)
     {
-        public sealed record OpenGl(IGlContext Gl, OpenGlDeviceGuard.Claim Claim) : Native(Gl);
+        public sealed record OpenGl(IGlContext Gl, GlEntryPointOwner EntryPoints) : Native(Gl);
 
         public sealed record Metal(MetalContext Device) : Native(Device);
     }
-}
-
-internal static class OpenGlDeviceGuard
-{
-    internal sealed class Claim;
-
-    // Process-wide by necessity: GL46's entry points are static fields, so one GL device may be live at a time.
-    private static Claim? s_owner;
-
-    public static Claim Acquire()
-    {
-        var claim = new Claim();
-        if (Interlocked.CompareExchange(ref s_owner, claim, null) != null)
-            throw new InvalidOperationException(
-                "An OpenGL GpuDevice is already live in this process; GL entry points are process-wide, so dispose it before creating another.");
-        return claim;
-    }
-
-    /// <summary>Releases <paramref name="claim"/> if it still holds the guard; a stale claim changes nothing.</summary>
-    public static void Release(Claim claim) => Interlocked.CompareExchange(ref s_owner, null, claim);
 }
