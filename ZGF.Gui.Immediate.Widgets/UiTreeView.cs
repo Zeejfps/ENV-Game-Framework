@@ -66,6 +66,8 @@ public static partial class UiWidgets
         }
 
         var toggle = -1;
+        var described = ui.WantsSemantics ? new List<(int Id, TNode Node, string Label, bool HasChildren)>() : null;
+        ui.Semantics(treeId, SemanticRole.Tree);
         var requested = state.TakeScrollRequest();
         if (requested >= 0)
             ui.ScrollRowIntoView(treeId, requested);
@@ -111,6 +113,11 @@ public static partial class UiWidgets
                 var content = model.Row(flat.Node);
                 var expanded = hasChildren && state.IsExpanded(flat.Node);
                 var selected = i == selection;
+                if (described != null)
+                {
+                    ui.RecordTestPath(rowId, KeyPath(state, model, i), under: treeId);
+                    described.Add((rowId, flat.Node, content.Label, hasChildren));
+                }
                 var background = theme.PickRowBackground(selected, focused, row.Hovered);
 
                 using (ui.Row(rowId, new Box
@@ -158,6 +165,9 @@ public static partial class UiWidgets
                 state.Expand(toggle, model);
             ui.RequestUpdate();
         }
+
+        if (described != null)
+            DescribeRows(ui, state, described);
 
         var picked = selection != before;
         if (picked || selectionMoved)
@@ -245,6 +255,37 @@ public static partial class UiWidgets
         if (icon != null && icon.Value.Color != 0)
             color = icon.Value.Color;
         ui.Spinner(behind, color: color);
+    }
+
+    /// <summary>The keys of the node of row <paramref name="index"/> and of every node above it, from the root
+    /// down, so nodes with the same key under different parents are told apart.</summary>
+    private static TestPath KeyPath<TNode>(TreeViewState<TNode> state, ITreeModel<TNode> model, int index) where TNode : notnull
+    {
+        var keys = new List<TestSegment>();
+        for (var at = index; at >= 0; at = state.ParentIndex(at))
+            keys.Add(new TestSegment.Keyed(model.KeyOf(state.Rows[at].Node)));
+        keys.Reverse();
+        return new TestPath(keys);
+    }
+
+    /// <summary>Says what each row recorded is for tests, selected and expanded as the call leaves the tree.</summary>
+    private static void DescribeRows<TNode>(Ui ui, TreeViewState<TNode> state, List<(int Id, TNode Node, string Label, bool HasChildren)> rows)
+        where TNode : notnull
+    {
+        foreach (var row in rows)
+        {
+            var selected = state.TryGetSelected(out var picked) && state.Comparer.Equals(picked, row.Node);
+            var expanded = row.HasChildren && state.IsExpanded(row.Node);
+            ui.Semantics(row.Id, SemanticRole.TreeItem, row.Label, TreeRowStates(row.HasChildren, expanded, selected));
+        }
+    }
+
+    private static SemanticStates TreeRowStates(bool hasChildren, bool expanded, bool selected)
+    {
+        var states = selected ? SemanticStates.Selected : SemanticStates.None;
+        if (hasChildren)
+            states |= expanded ? SemanticStates.Expanded : SemanticStates.Collapsed;
+        return states;
     }
 
     private static int RowId<TNode>(int treeId, TreeViewState<TNode> state, TNode node) where TNode : notnull =>

@@ -383,6 +383,7 @@ public abstract partial class Ui
         _open.Clear();
         _surfaces = 0;
         BeginScrolls();
+        BeginSemantics();
 
         Open(0, new Box
         {
@@ -423,6 +424,7 @@ public abstract partial class Ui
             _focused = 0;
         TraverseFocus();
         EndLayers();
+        EndSemantics();
         EndIme();
         EndIconImages();
         for (var button = 1; button < UiInput.ButtonCount; button++)
@@ -434,20 +436,30 @@ public abstract partial class Ui
             PruneStates();
     }
 
-    public int GetId(string label) => HashCode.Combine(_ids.Peek(), label);
+    public int GetId(string label)
+    {
+        var id = HashCode.Combine(_ids.Peek(), label);
+        RecordName(id, label);
+        return id;
+    }
 
     public int GetId(int value) => HashCode.Combine(_ids.Peek(), value);
 
     /// <summary>Scopes widget ids, so repeated labels (a "Delete" per list row) stay distinct.</summary>
     public Scope Id(string id)
     {
-        _ids.Push(GetId(id));
+        var scope = GetId(id);
+        _ids.Push(scope);
+        PushPathOf(scope);
         return BeginScope(ScopeKind.Id);
     }
 
+    /// <summary>Scopes widget ids under <paramref name="id"/>, which, being a number that may be a hash, adds
+    /// nothing to the <see cref="TestPath"/> of what is inside; see <see cref="KeyedId"/> for an index or key.</summary>
     public Scope Id(int id)
     {
         _ids.Push(GetId(id));
+        PushCurrentPath();
         return BeginScope(ScopeKind.Id);
     }
 
@@ -457,6 +469,7 @@ public abstract partial class Ui
     public Scope UniqueId(int id)
     {
         _ids.Push(id);
+        PushPathOf(id);
         return BeginScope(ScopeKind.Id);
     }
 
@@ -469,6 +482,7 @@ public abstract partial class Ui
     {
         var scope = GetId(id);
         _ids.Push(scope);
+        PushPathOf(scope);
         _stateOwners.Push(scope);
         _keptStates[scope] = _frame;
         return BeginScope(ScopeKind.StateScope);
@@ -785,9 +799,15 @@ public abstract partial class Ui
         return _textStyles.Keep(key, style);
     }
 
-    private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z)
+    private int Topmost(List<HitRegion> hits, HashSet<int>? among, out int z) =>
+        TopmostAt(CollectionsMarshal.AsSpan(hits), _input.Pointer, among, out z);
+
+    /// <summary>The id of the topmost of <paramref name="hits"/> at <paramref name="pointer"/>, or 0, as input picks
+    /// what is under the pointer.</summary>
+    internal static int TopmostAt(ReadOnlySpan<HitRegion> hits, PointF pointer, out int z) => TopmostAt(hits, pointer, null, out z);
+
+    private static int TopmostAt(ReadOnlySpan<HitRegion> hits, PointF pointer, HashSet<int>? among, out int z)
     {
-        var pointer = _input.Pointer;
         var best = 0;
         var bestZ = int.MinValue;
         var bestOrder = int.MinValue;

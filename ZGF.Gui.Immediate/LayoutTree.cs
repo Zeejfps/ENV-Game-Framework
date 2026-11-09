@@ -122,6 +122,11 @@ internal sealed class PaintCommand<TState> : PaintCommand
 
 internal readonly record struct HitRegion(int Id, UiRect Rect, int Z, int Order);
 
+/// <summary>How an element was emitted: inside <see cref="Clip"/>, in layout space, on popup or window
+/// <see cref="Layer"/> (0 for the main window) at <see cref="Opacity"/>, taking no pointer when
+/// <see cref="PassThrough"/>; default for one never emitted.</summary>
+internal readonly record struct ElementVisit(UiRect Clip, int Layer, float Opacity, bool PassThrough, bool Emitted);
+
 /// <summary>A <see cref="UiTransform"/> as pushed on a canvas: moved by (<see cref="Dx"/>, <see cref="Dy"/>)
 /// and scaled about (<see cref="PivotX"/>, <see cref="PivotY"/>), in canvas coordinates, Y up.</summary>
 internal readonly record struct CanvasTransform(float Dx, float Dy, float Scale, float PivotX, float PivotY);
@@ -159,6 +164,15 @@ internal sealed class LayoutTree
     private Dictionary<int, UiRect> _contentRects = null!;
 
     public ref Element this[int index] => ref CollectionsMarshal.AsSpan(_elements)[index];
+
+    public int Count => _elements.Count;
+
+    /// <summary>Where <see cref="Emit"/> notes how it emitted each element, by index; null to note nothing.</summary>
+    public List<ElementVisit>? Visits { get; set; }
+
+    /// <summary>The canvas popup or window <paramref name="layer"/> was drawn on, null when it was drawn
+    /// with the main tree, and its rect.</summary>
+    public (ICanvas? Canvas, UiRect Rect) LayerAt(int layer) => layer > 0 && layer <= _layers.Count ? _layers[layer - 1] : default;
 
     public void Clear()
     {
@@ -349,6 +363,12 @@ internal sealed class LayoutTree
         _order = 0;
         _opacity = 1f;
         _floating.Clear();
+        if (Visits != null)
+        {
+            Visits.Clear();
+            CollectionsMarshal.SetCount(Visits, _elements.Count);
+            CollectionsMarshal.AsSpan(Visits).Clear();
+        }
 
         UseSurface(0);
         if (_elements.Count > 0)
@@ -482,6 +502,8 @@ internal sealed class LayoutTree
         var faded = e.Opacity < 1f;
         if (faded)
             FadeBy(e.Opacity);
+        if (Visits != null)
+            CollectionsMarshal.AsSpan(Visits)[index] = new ElementVisit(clip, layer, _opacity, passThrough, true);
 
         if (drawn)
             Paint(ref e, rect, z);

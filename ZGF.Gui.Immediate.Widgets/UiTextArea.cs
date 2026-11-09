@@ -110,6 +110,7 @@ public static partial class UiWidgets
         var paint = new AreaPaint(ui, shown, selected ? state.SelectionStart : 0, selected ? state.SelectionEnd : 0, shownCaret,
             focused && !state.HasSelection && CaretVisible(ui, state), preedit, state.Caret);
 
+        ui.Semantics(fieldId, SemanticRole.TextArea, placeholder, value: text);
         // Padded so that one line stands as tall as a TextField.
         var paddingY = MathF.Max(0f, (theme.ControlHeight - lineHeight) / 2);
         using (ui.Column(fieldId, new Box
@@ -142,6 +143,7 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var lineHeight = ui.LineHeight();
         var paddingY = MathF.Max(0f, (theme.ControlHeight - lineHeight) / 2);
+        ui.Semantics(fieldId, SemanticRole.TextArea, placeholder, SemanticStates.Disabled, text);
         using (ui.Column(fieldId, new Box
         {
             Width = width ?? Sizing.Grow(MinFieldWidth),

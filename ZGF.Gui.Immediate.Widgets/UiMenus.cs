@@ -341,6 +341,7 @@ public static partial class UiWidgets
         state.BeginTitles();
 
         var menuBar = ui.Group(state, static bar => ((MenuBarState)bar).CloseUnlessOpenSeen());
+        ui.Semantics(barId, SemanticRole.MenuBar);
         ui.Row(barId, box with
         {
             Height = box.Height ?? theme.MenuBarHeight,
@@ -363,6 +364,7 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var i = ui.Interact(id ?? label);
         var open = TakeTitle(ui, bar, i);
+        ui.Semantics(i.Id, SemanticRole.MenuItem, label, open ? SemanticStates.Expanded : SemanticStates.Collapsed);
         var title = TitleBox(ui, i, open, theme.MenuItemPaddingX);
         ui.Text(label, color: open ? theme.SelectionText : theme.Text);
         return OpenTitled(ui, bar, i.Id, open, title);
@@ -466,7 +468,7 @@ public static partial class UiWidgets
         bar.PopupId = MenuPopupId(id);
         bar.BeginItems(id);
         ui.TryGetRect(id, out var anchor);
-        OpenMenu(ui, bar, anchor);
+        OpenMenu(ui, bar, id, anchor);
         if (MenuKeys(ui, bar, isSubMenu: false) is var direction and not 0)
         {
             bar.Open = bar.Neighbor(id, direction);
@@ -508,7 +510,7 @@ public static partial class UiWidgets
             return default;
 
         state.BeginItems(id);
-        var menu = OpenMenu(ui, state, new UiRect(state.At.X, state.At.Y, 0f, 0f));
+        var menu = OpenMenu(ui, state, id, new UiRect(state.At.X, state.At.Y, 0f, 0f));
         MenuKeys(ui, state, isSubMenu: false);
         return menu;
     }
@@ -535,6 +537,8 @@ public static partial class UiWidgets
         var open = enabled && parent.OpenSub == index;
         var highlighted = enabled && (index == parent.Highlight || open);
         var color = highlighted ? theme.SelectionText : enabled ? theme.Text : theme.TextDisabled;
+        ui.Semantics(i.Id, SemanticRole.MenuItem, label,
+            (open ? SemanticStates.Expanded : SemanticStates.Collapsed) | (enabled ? SemanticStates.None : SemanticStates.Disabled));
 
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
@@ -565,7 +569,7 @@ public static partial class UiWidgets
         ui.TryGetRect(i.Id, out var row);
         var inset = theme.MenuPadding + theme.BorderWidth;
         var anchor = row with { Y = row.Y - inset, Height = row.Height + inset * 2 };
-        var menu = OpenMenu(ui, state, anchor, inset, PopupSide.End);
+        var menu = OpenMenu(ui, state, i.Id, anchor, inset, PopupSide.End);
         MenuKeys(ui, state, isSubMenu: true);
         return menu;
     }
@@ -602,9 +606,10 @@ public static partial class UiWidgets
     }
 
     /// <summary>An item of a menu: a <paramref name="markable"/> one keeps its mark column for the
-    /// mark and shows <paramref name="icon"/> in the icon column after it.</summary>
+    /// mark and shows <paramref name="icon"/> in the icon column after it. One that <paramref name="flipsMark"/>
+    /// has its mark turned over by the caller on the frame it is picked.</summary>
     private static bool MenuItem(this Ui ui, string label, Shortcut? shortcut, bool enabled, MenuMark mark, bool markable, string? id, UiIcon? icon,
-        bool keepOpen, string? detail = null)
+        bool keepOpen, string? detail = null, bool flipsMark = false)
     {
         if (RecordingSystemMenus(ui) is { } system)
             return system.Item(id ?? label, label, shortcut, enabled, mark != MenuMark.None);
@@ -631,6 +636,9 @@ public static partial class UiWidgets
             menu?.UseIconColumn();
         var menuHasIconColumn = menu != null && menu.HasIconColumn;
         var iconColumn = besideMark || menuHasIconColumn;
+        var markedAfter = (mark != MenuMark.None) != (picked && flipsMark);
+        ui.Semantics(i.Id, SemanticRole.MenuItem, label,
+            (markedAfter ? SemanticStates.Checked : SemanticStates.None) | (enabled ? SemanticStates.None : SemanticStates.Disabled));
 
         using (ui.Row(i.Id, MenuRowBox(theme, highlighted)))
         {
@@ -694,7 +702,7 @@ public static partial class UiWidgets
         bool keepOpen = false, UiIcon? icon = null)
     {
         var mark = value ? MenuMark.Check : MenuMark.None;
-        var picked = ui.MenuItem(label, shortcut, enabled, mark, markable: true, id, icon, keepOpen);
+        var picked = ui.MenuItem(label, shortcut, enabled, mark, markable: true, id, icon, keepOpen, flipsMark: true);
         if (picked) value = !value;
         return picked;
     }
@@ -736,19 +744,20 @@ public static partial class UiWidgets
 
     /// <summary>Records the popup of <paramref name="menu"/> at <paramref name="anchor"/>: an input
     /// layer holding a column of items that scrolls once taller than <see cref="UiTheme.MenuMaxHeight"/>.</summary>
-    private static Ui.Scope OpenMenu(Ui ui, MenuPopup menu, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below)
+    private static Ui.Scope OpenMenu(Ui ui, MenuPopup menu, int ownerId, UiRect anchor, float gap = 0f, PopupSide side = PopupSide.Below)
     {
         var theme = ui.Theme;
         menu.TrackPointer(ui);
         var scope = ui.Group(menu, static items => ((MenuPopup)items).EndItems());
         ui.Layer(menu.PopupId);
         ui.Popup(menu.PopupId, anchor, MenuBox(theme), gap: gap, side: side);
+        ui.Semantics(SemanticRole.Menu);
         ui.Scroll(menu.ScrollId, new Box { Width = Sizing.Grow(), Height = Sizing.Fit(max: theme.MenuMaxHeight), Gap = 0f });
         // Items are keyed by their labels, which often come from the app's data, so they get an id
         // scope of the menu's own: a label that matches an id outside the menu, such as an open
         // dialog's, would otherwise be taken for it. See MenuItemId. Closed with the rest when the
         // menu's scope is.
-        ui.UniqueId(menu.PopupId);
+        ui.UniqueId(menu.PopupId, pathOf: ownerId);
         return scope;
     }
 

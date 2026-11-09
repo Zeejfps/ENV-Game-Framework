@@ -424,6 +424,108 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>The last frame as a test sees it. The first call runs a frame of <see cref="Body"/> without
+    /// advancing time to build it; every frame after builds one too.</summary>
+    public SemanticSnapshot Snapshot()
+    {
+        var snapshot = _ui.Snapshot;
+        if (snapshot != null)
+            return snapshot;
+        _ui.BuildsSemantics = true;
+        Run(0f, BoundBody);
+        return _ui.Snapshot ?? throw new InvalidOperationException("The frame built no snapshot.");
+    }
+
+    /// <summary>The one node <paramref name="selector"/> names in the last frame; throws a
+    /// <see cref="UiTargetException"/> when there is none or more than one.</summary>
+    public SemanticNode Find(Selector selector)
+    {
+        var snapshot = Snapshot();
+        var resolved = snapshot.Resolve(selector);
+        if (resolved is TargetResult.Found found)
+            return found.Node;
+        throw UiTargetException.For(resolved, snapshot);
+    }
+
+    /// <summary>Whether a press in the last frame would reach the node <paramref name="selector"/> names,
+    /// through the same topmost-hit and modal rules input follows.</summary>
+    public TargetResult Target(Selector selector) => Snapshot().Target(selector);
+
+    /// <summary>Moves the pointer onto the node <paramref name="selector"/> names, at a point a press would
+    /// reach it, and runs a frame of <see cref="Body"/>; throws a <see cref="UiTargetException"/>, moving
+    /// nothing, when no such point exists, or when after that frame a press there would no longer reach it.</summary>
+    public UiFrames<TState> MoveTo(Selector selector)
+    {
+        var body = BoundBody;
+        var at = Reachable(selector);
+        MovePointer(at);
+        Run(1f / 60f, body);
+        Recheck(selector, at);
+        return this;
+    }
+
+    /// <summary>Clicks the node <paramref name="selector"/> names, as <see cref="MoveTo"/> then a press and a
+    /// release over two more frames; throws a <see cref="UiTargetException"/>, clicking nothing, when a press
+    /// would not reach it.</summary>
+    public UiFrames<TState> ClickOn(Selector selector, PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        var body = BoundBody;
+        MoveTo(selector);
+        Press(button, modifiers);
+        Run(1f / 60f, body);
+        Release(button, modifiers);
+        Run(1f / 60f, body);
+        return this;
+    }
+
+    /// <summary>As <see cref="WaitUntil"/>, until exactly one node matches <paramref name="selector"/>, and
+    /// returns it; the <see cref="TimeoutException"/> says what was found instead and holds the last snapshot.</summary>
+    public SemanticNode WaitFor(Selector selector, TimeSpan timeout)
+    {
+        _ui.BuildsSemantics = true;
+        SemanticNode? node = null;
+        try
+        {
+            WaitUntil(() =>
+            {
+                node = _ui.Snapshot?.Resolve(selector) is TargetResult.Found found ? found.Node : null;
+                return node != null;
+            }, timeout);
+        }
+        catch (TimeoutException timedOut)
+        {
+            var snapshot = _ui.Snapshot;
+            if (snapshot == null)
+                throw;
+            var resolved = snapshot.Resolve(selector);
+            var detail = resolved is TargetResult.Found found
+                ? $"{found.Node} is there, but the frames never became ready.\n\n{snapshot.ToText()}"
+                : UiTargetException.Describe(resolved, snapshot);
+            throw new TimeoutException(timedOut.Message + "\n" + detail, timedOut);
+        }
+        return node ?? throw new InvalidOperationException($"Waited for {selector} without finding it.");
+    }
+
+    private PointF Reachable(Selector selector)
+    {
+        var snapshot = Snapshot();
+        var target = snapshot.Target(selector);
+        if (target is TargetResult.Hittable hittable)
+            return hittable.At;
+        throw UiTargetException.For(target, snapshot);
+    }
+
+    private void Recheck(Selector selector, PointF at)
+    {
+        var snapshot = Snapshot();
+        var resolved = snapshot.Resolve(selector);
+        if (resolved is not TargetResult.Found found)
+            throw UiTargetException.For(resolved, snapshot);
+        var reach = snapshot.ReachAt(found.Node, at);
+        if (reach is not TargetResult.Hittable)
+            throw UiTargetException.For(reach, snapshot);
+    }
+
     /// <summary>The seconds apart <see cref="Settle"/> runs frames.</summary>
     public const float SettleFrameTime = 1f / 60f;
 

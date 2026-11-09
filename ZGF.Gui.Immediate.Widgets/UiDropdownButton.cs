@@ -63,11 +63,15 @@ public static partial class UiWidgets
             ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
+        ui.Semantics(i.Id, SemanticRole.Button, tooltip, DropdownStates(open, enabled));
         if (tooltip != null && !open)
             ui.Tooltip(i.Id, tooltip);
         ui.TryGetRect(i.Id, out var anchor);
-        return DropdownMenu(ui, state, anchor);
+        return DropdownMenu(ui, state, i.Id, anchor);
     }
+
+    private static SemanticStates DropdownStates(bool open, bool enabled) =>
+        (open ? SemanticStates.Expanded : SemanticStates.Collapsed) | (enabled ? SemanticStates.None : SemanticStates.Disabled);
 
     /// <summary>An icon button joined to a dropdown arrow on its right, drawn as one outlined control
     /// with a divider between the halves, like a <see cref="SegmentedControl{T}"/>; each half lights
@@ -115,12 +119,16 @@ public static partial class UiWidgets
                 ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             }
         }
+        ui.Semantics(main.Id, SemanticRole.Button, tooltip ?? id, enabled ? SemanticStates.None : SemanticStates.Disabled);
+        if (ui.WantsSemantics)
+            ui.RecordTestPath(arrowId, new TestSegment.Named("menu"), under: main.Id);
+        ui.Semantics(arrowId, SemanticRole.Button, menuTooltip, DropdownStates(open, enabled));
         if (tooltip != null)
             ui.Tooltip(main.Id, tooltip);
         if (menuTooltip != null && !open)
             ui.Tooltip(arrowId, menuTooltip);
         ui.TryGetRect(shellId, out var anchor);
-        return new SplitButtonScope(main.Clicked || activated, DropdownMenu(ui, state, anchor));
+        return new SplitButtonScope(main.Clicked || activated, DropdownMenu(ui, state, arrowId, anchor));
     }
 
     /// <summary>A button showing <paramref name="value"/>'s label and a down triangle that opens a menu
@@ -187,10 +195,11 @@ public static partial class UiWidgets
                 ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
+        ui.Semantics(i.Id, SemanticRole.Button, text, DropdownStates(open, enabled));
         if (tooltip != null && !open)
             ui.Tooltip(i.Id, tooltip);
         ui.TryGetRect(i.Id, out var anchor);
-        return DropdownMenu(ui, state, anchor);
+        return DropdownMenu(ui, state, i.Id, anchor);
     }
 
     /// <summary>Opens the outlined row that joins controls into one, as a
@@ -243,12 +252,12 @@ public static partial class UiWidgets
             state.HighlightFirstOwner = state.PopupId;
     }
 
-    private static Ui.Scope DropdownMenu(Ui ui, OpenedMenu state, UiRect anchor)
+    private static Ui.Scope DropdownMenu(Ui ui, OpenedMenu state, int ownerId, UiRect anchor)
     {
         if (!state.Open)
             return default;
         state.BeginItems(state.PopupId);
-        var menu = OpenMenu(ui, state, anchor);
+        var menu = OpenMenu(ui, state, ownerId, anchor);
         MenuKeys(ui, state, isSubMenu: false);
         return menu;
     }

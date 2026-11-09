@@ -62,7 +62,7 @@ public readonly struct TabStrip : IDisposable
         bool current = true, UiIcon? icon = null, string? font = null)
     {
         var tab = UiWidgets.Tab(_ui, _id, label, selected, closable, id, tooltip, draggable, current, icon, font);
-        _list.Add(new ListedTab(tab.Id, label, selected, icon));
+        _list.Add(new ListedTab(tab.Id, label, selected, icon, _ui.TestPathOf(tab.Id)));
         if (tab.Id != _picked)
             return tab;
         return tab with { Selected = !selected };
@@ -77,7 +77,9 @@ public readonly struct TabStrip : IDisposable
     }
 }
 
-internal readonly record struct ListedTab(int Id, string Label, bool Selected, UiIcon? Icon);
+/// <summary>A tab as its strip's list shows it; <see cref="Path"/> is the tab's own test path, when a test asked
+/// for a snapshot, which its entry in the list is found by under the list's.</summary>
+internal readonly record struct ListedTab(int Id, string Label, bool Selected, UiIcon? Icon, TestPath? Path);
 
 /// <summary>The tabs a <see cref="TabStrip"/> recorded this frame, for its tab list, and the one
 /// picked from that list, which the strip selects on the next frame only.</summary>
@@ -147,6 +149,7 @@ public static partial class UiWidgets
             AlignY = box.AlignY ?? Align.End,
             Background = null,
         }, showBars: false);
+        ui.Semantics(stripId, SemanticRole.TabList);
         var list = ui.GetState<TabList>(HashCode.Combine(stripId, "tabs"));
         var picked = list.Restart();
         return new TabStrip(ui, row, scroll, stripId, list, picked, listTooltip, background);
@@ -181,6 +184,8 @@ public static partial class UiWidgets
     {
         if (!ui.CanScroll(stripId)) return;
         var theme = ui.Theme;
+        if (ui.WantsSemantics)
+            ui.RecordTestPath(TabListButtonId(stripId), new TestSegment.Named("tab-list"), under: stripId);
         using (ui.Box(new Box { Padding = new Spacing(theme.GapTight, 0f) }))
         using (var menu = ui.DropdownButton(TabListButtonId(stripId), tooltip, revision: list.Revision()))
         {
@@ -205,7 +210,12 @@ public static partial class UiWidgets
     private static bool PickListedTab(Ui ui, ListedTab tab)
     {
         using (ui.Id(tab.Id))
-            return ui.MenuRadioItem(tab.Label, tab.Selected, icon: tab.Icon);
+        {
+            var picked = ui.MenuRadioItem(tab.Label, tab.Selected, icon: tab.Icon);
+            if (tab.Path != null)
+                ui.RecordTestPath(ui.GetId(tab.Label), tab.Path);
+            return picked;
+        }
     }
 
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current,
@@ -223,6 +233,7 @@ public static partial class UiWidgets
 
         var closed = closable && tab.ClickedWith(PointerButton.Middle);
         var hovered = tab.Hovered || ui.IsHovered(closeId);
+        ui.Semantics(tab.Id, SemanticRole.Tab, label, selected ? SemanticStates.Selected : SemanticStates.None);
         using (ui.Row(tab.Id, new Box
         {
             Width = Sizing.Fit(theme.TabMinWidth, theme.TabMaxWidth),
