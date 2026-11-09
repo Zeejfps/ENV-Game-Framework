@@ -130,48 +130,62 @@ public sealed unsafe class MetalSharedResources : IDisposable
         return Marshal.PtrToStringUTF8(utf8) ?? "";
     }
 
+    // Takes ownership of vertexDescriptor and releases it, as well as everything made here, even on failure.
     private static IntPtr BuildPipeline(IntPtr device, IntPtr library, IntPtr vertexDescriptor)
     {
-        var vsName = NSString("vertexMain");
-        var fsName = NSString("fragmentMain");
-        var vs = msg_IntPtr(library, Sel("newFunctionWithName:"), vsName);
-        var fs = msg_IntPtr(library, Sel("newFunctionWithName:"), fsName);
-        Release(vsName);
-        Release(fsName);
-        if (vs == IntPtr.Zero || fs == IntPtr.Zero)
-            throw new Exception("Could not find vertexMain/fragmentMain in compiled library.");
-
-        var descClass = Class("MTLRenderPipelineDescriptor");
-        var desc = New(descClass);
-        msg_Void_IntPtr(desc, Sel("setVertexFunction:"), vs);
-        msg_Void_IntPtr(desc, Sel("setFragmentFunction:"), fs);
-        msg_Void_IntPtr(desc, Sel("setVertexDescriptor:"), vertexDescriptor);
-
-        var colorAttachments = msg_IntPtr(desc, Sel("colorAttachments"));
-        var color0 = msg_IntPtr_NUInt_NUInt(colorAttachments, Sel("objectAtIndexedSubscript:"), 0, 0);
-        msg_Void_UInt(color0, Sel("setPixelFormat:"), (uint)MTLPixelFormat.BGRA8Unorm);
-        msg_Void_Bool(color0, Sel("setBlendingEnabled:"), true);
-        msg_Void_UInt(color0, Sel("setRgbBlendOperation:"), 0);
-        msg_Void_UInt(color0, Sel("setAlphaBlendOperation:"), 0);
-        msg_Void_UInt(color0, Sel("setSourceRGBBlendFactor:"), 4);
-        // Alpha uses (One, OneMinusSrcAlpha) so destination alpha is real coverage; mirroring the
-        // RGB (SrcAlpha, OneMinusSrcAlpha) pair squares it and halos edges on transparent windows.
-        msg_Void_UInt(color0, Sel("setSourceAlphaBlendFactor:"), 1);
-        msg_Void_UInt(color0, Sel("setDestinationRGBBlendFactor:"), 5);
-        msg_Void_UInt(color0, Sel("setDestinationAlphaBlendFactor:"), 5);
-
-        IntPtr error = IntPtr.Zero;
-        var pipeline = msg_NewLibrary(device, Sel("newRenderPipelineStateWithDescriptor:error:"), desc, IntPtr.Zero, ref error);
-        Release(desc);
-        Release(vs);
-        Release(fs);
-        if (pipeline == IntPtr.Zero)
+        var vs = IntPtr.Zero;
+        var fs = IntPtr.Zero;
+        var desc = IntPtr.Zero;
+        try
         {
-            var msg = error != IntPtr.Zero ? NSStringToManaged(msg_IntPtr(error, Sel("localizedDescription"))) : "(no error)";
-            throw new Exception($"newRenderPipelineStateWithDescriptor failed: {msg}");
+            var vsName = NSString("vertexMain");
+            var fsName = NSString("fragmentMain");
+            vs = msg_IntPtr(library, Sel("newFunctionWithName:"), vsName);
+            fs = msg_IntPtr(library, Sel("newFunctionWithName:"), fsName);
+            Release(vsName);
+            Release(fsName);
+            if (vs == IntPtr.Zero || fs == IntPtr.Zero)
+                throw new Exception("Could not find vertexMain/fragmentMain in compiled library.");
+
+            var descClass = Class("MTLRenderPipelineDescriptor");
+            desc = New(descClass);
+            msg_Void_IntPtr(desc, Sel("setVertexFunction:"), vs);
+            msg_Void_IntPtr(desc, Sel("setFragmentFunction:"), fs);
+            msg_Void_IntPtr(desc, Sel("setVertexDescriptor:"), vertexDescriptor);
+
+            var colorAttachments = msg_IntPtr(desc, Sel("colorAttachments"));
+            var color0 = msg_IntPtr_NUInt_NUInt(colorAttachments, Sel("objectAtIndexedSubscript:"), 0, 0);
+            msg_Void_UInt(color0, Sel("setPixelFormat:"), (uint)MTLPixelFormat.BGRA8Unorm);
+            msg_Void_Bool(color0, Sel("setBlendingEnabled:"), true);
+            msg_Void_UInt(color0, Sel("setRgbBlendOperation:"), 0);
+            msg_Void_UInt(color0, Sel("setAlphaBlendOperation:"), 0);
+            msg_Void_UInt(color0, Sel("setSourceRGBBlendFactor:"), 4);
+            // Alpha uses (One, OneMinusSrcAlpha) so destination alpha is real coverage; mirroring the
+            // RGB (SrcAlpha, OneMinusSrcAlpha) pair squares it and halos edges on transparent windows.
+            msg_Void_UInt(color0, Sel("setSourceAlphaBlendFactor:"), 1);
+            msg_Void_UInt(color0, Sel("setDestinationRGBBlendFactor:"), 5);
+            msg_Void_UInt(color0, Sel("setDestinationAlphaBlendFactor:"), 5);
+
+            var error = IntPtr.Zero;
+            var pipeline = msg_NewRenderPipelineState(device, Sel("newRenderPipelineStateWithDescriptor:error:"), desc, ref error);
+            if (pipeline == IntPtr.Zero)
+            {
+                var msg = error != IntPtr.Zero ? NSStringToManaged(msg_IntPtr(error, Sel("localizedDescription"))) : "(no error)";
+                throw new Exception($"newRenderPipelineStateWithDescriptor failed: {msg}");
+            }
+            return pipeline;
         }
-        return pipeline;
+        finally
+        {
+            Release(desc);
+            Release(vs);
+            Release(fs);
+            Release(vertexDescriptor);
+        }
     }
+
+    [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")]
+    private static extern IntPtr msg_NewRenderPipelineState(IntPtr receiver, IntPtr selector, IntPtr descriptor, ref IntPtr error);
 
     private static IntPtr MakeUnitQuadBuffer(IntPtr device)
     {
