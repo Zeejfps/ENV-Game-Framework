@@ -252,6 +252,11 @@ public sealed class GuiApp : IDisposable
     /// </summary>
     public void SetTitleBarDark(bool dark) => _app.MainWindow.SetTitleBarTheme(dark);
 
+    /// <summary>Registers the OS-native <see cref="IFilePicker"/> on the app's context, its dialogs
+    /// belonging to the main window. Anything that asks the context for the picker must do so after
+    /// this is called.</summary>
+    public void AddNativeFilePicker() => _context.AddNativeFilePicker(_app.MainWindow);
+
     /// <summary>The window system's own menu bar, which shows the menus the app gives it in place
     /// of a bar inside the window: macOS's. Null where the system has none.</summary>
     public ISystemMenuBar? SystemMenuBar
