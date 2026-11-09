@@ -153,7 +153,7 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
 #line 83
     }
 
-    // Discarded only once every derivative below is taken: fwidth reads the 2x2 quad's neighbours, which
+    // Discarded only once clipCoverage's derivative is taken: fwidth reads the 2x2 quad's neighbours, which
     // must all still run the same code for it to be defined.
     bool clippedOut_0 = inCornerZone_0 || clipCover_0 <= 0.0;
 
@@ -293,16 +293,22 @@ static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
 
 
 
-    float d_0 = length(mirror_0 - pivot_0);
-    float _S8 = max((fwidth((d_0))), 9.99999997475242708e-07);
+    // A rounded corner's two edges ramp over one device pixel, each by how far its value moves across one,
+    // worked out from the geometry rather than taken with fwidth: the compiler is free to compute a value
+    // only inside the branch that uses it, so a 2x2 quad straddling where the corner starts read undefined
+    // neighbours there, which left a 1-device-pixel seam down the corner at 1x, where corners start mid-quad.
+    float2 logicalPerDevice = metrics.xy / metrics.zw;
+    float2 fromPivot = mirror_0 - pivot_0;
+    float d_0 = length(fromPivot);
+    float _S8 = max(dot(abs(fromPivot), logicalPerDevice) / max(d_0, 9.99999997475242708e-07), 9.99999997475242708e-07);
 
-    // The inner (fill vs border) ellipse of a rounded corner and its derivative, also taken for every
-    // pixel: taken only inside the corner branch, a quad straddling where the corner starts read
-    // undefined neighbours, which left a 1-device-pixel seam down the corner where the fill faded out.
-    float ix_0 = (_S7 - _S5) / max(radius_0 - borderW_0, 9.99999997475242708e-07);
-    float iy_0 = (mirror_0.y - _S6) / max(radius_0 - borderH_0, 9.99999997475242708e-07);
+    // The inner (fill vs border) ellipse e == 1 and how far e moves across a device pixel.
+    float innerW_0 = max(radius_0 - borderW_0, 9.99999997475242708e-07);
+    float innerH_0 = max(radius_0 - borderH_0, 9.99999997475242708e-07);
+    float ix_0 = (_S7 - _S5) / innerW_0;
+    float iy_0 = (mirror_0.y - _S6) / innerH_0;
     float e_0 = ix_0 * ix_0 + iy_0 * iy_0;
-    float aaInner_0 = max(fwidth(e_0), 9.99999997475242708e-07);
+    float aaInner_0 = max(dot(abs(float2(2.0 * ix_0 / innerW_0, 2.0 * iy_0 / innerH_0)), logicalPerDevice), 9.99999997475242708e-07);
 
     if (clippedOut_0)
     {

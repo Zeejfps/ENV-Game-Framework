@@ -56,7 +56,7 @@ void main() {
     // --- Clip test ---
     float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
     vec4 clip = u_clipRects[v_clipIndex];
-    // Discarded only once every derivative below is taken: fwidth reads the 2x2 quad's neighbours,
+    // Discarded only once clipCoverage's derivative is taken: fwidth reads the 2x2 quad's neighbours,
     // which must all still run the same code for it to be defined.
     bool clippedOut = v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
                       v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w || clipCover <= 0.0;
@@ -83,18 +83,22 @@ void main() {
     vec2 pivot = vec2(halfW - radius, halfH - radius);
     bool inCornerZone = (mirror.x > pivot.x) && (mirror.y > pivot.y);
 
-    // Distance from the corner pivot and its screen-space derivative, computed
-    // unconditionally so fwidth has valid neighbours regardless of branch.
-    float d = length(mirror - pivot);
-    float aa = max(fwidth(d), 1e-6);
+    // A rounded corner's two edges ramp over one device pixel, each by how far its value moves across one,
+    // worked out from the geometry rather than taken with fwidth: the compiler is free to compute a value
+    // only inside the branch that uses it, so a 2x2 quad straddling where the corner starts read undefined
+    // neighbours there, which left a 1-device-pixel seam down the corner at 1x, where corners start mid-quad.
+    vec2 logicalPerDevice = u_canvasMetrics.xy / u_canvasMetrics.zw;
+    vec2 fromPivot = mirror - pivot;
+    float d = length(fromPivot);
+    float aa = max(dot(abs(fromPivot), logicalPerDevice) / max(d, 1e-6), 1e-6);
 
-    // The inner (fill vs border) ellipse of a rounded corner and its derivative, also taken for every
-    // pixel: taken only inside the corner branch, a quad straddling where the corner starts read
-    // undefined neighbours, which left a 1-device-pixel seam down the corner where the fill faded out.
-    float ix = (mirror.x - pivot.x) / max(radius - borderW, 1e-6);
-    float iy = (mirror.y - pivot.y) / max(radius - borderH, 1e-6);
+    // The inner (fill vs border) ellipse e == 1 and how far e moves across a device pixel.
+    float innerW = max(radius - borderW, 1e-6);
+    float innerH = max(radius - borderH, 1e-6);
+    float ix = (mirror.x - pivot.x) / innerW;
+    float iy = (mirror.y - pivot.y) / innerH;
     float e = ix * ix + iy * iy;
-    float aaInner = max(fwidth(e), 1e-6);
+    float aaInner = max(dot(abs(vec2(2.0 * ix / innerW, 2.0 * iy / innerH)), logicalPerDevice), 1e-6);
 
     if (clippedOut) discard;
 
