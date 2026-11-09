@@ -86,7 +86,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         remove => _foreground.Changed -= value;
     }
 
-    public event Action? OnTick;
+    public event Action<TickScope>? OnTick;
 
     public void Wake() => Glfw.PostEmptyEvent();
 
@@ -169,13 +169,15 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         if (!_startupConfig.Headless)
             ShowMainWindow();
 
+        var tick = new TickScope();
         while (!Glfw.WindowShouldClose(Main.GlfwWindow))
         {
             BeginTurn();
             try
             {
                 Glfw.PollEvents();
-                OnTick?.Invoke();
+                tick.Begin(StopwatchTimestamp.Now());
+                OnTick?.Invoke(tick);
 
                 var anyRendered = false;
                 for (var i = 0; i < _windows.Count; i++)
@@ -196,11 +198,16 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
                         Glfw.SetWindowShouldClose(w.GlfwWindow, false);
                 }
 
-                // Nothing painted: block for OS events instead of spinning. The timeout bounds
-                // staleness for time-based housekeeping nothing wakes us for; when we did paint,
-                // the main window's vsync'd SwapBuffers paces the loop.
+                // Nothing painted: block for OS events instead of spinning, until the earliest wake a
+                // tick handler asked for. The timeout bounds staleness for time-based housekeeping
+                // nothing wakes us for; when we did paint, the main window's vsync'd SwapBuffers
+                // paces the loop.
                 if (!anyRendered)
-                    Glfw.WaitEventsTimeout(IdleEventTimeoutSeconds);
+                {
+                    var wait = IdleWait.Choose(tick.EarliestWake, StopwatchTimestamp.Now(), IdleEventTimeoutSeconds);
+                    if (wait != null)
+                        Glfw.WaitEventsTimeout(wait.Value);
+                }
             }
             finally
             {

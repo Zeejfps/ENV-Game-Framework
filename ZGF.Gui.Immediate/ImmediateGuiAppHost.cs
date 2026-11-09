@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using ZGF.Desktop;
 using ZGF.Desktop.Input;
 using FreeTypeSharp;
@@ -78,8 +77,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
     private readonly PopupPool _pool;
     private UiInput _pending = new();
     private UiInput _frame = new();
-    private readonly long _startTimestamp = Stopwatch.GetTimestamp();
-    private long _lastFrameTimestamp = Stopwatch.GetTimestamp();
+    private readonly StopwatchTimestamp _startTime = StopwatchTimestamp.Now();
+    private StopwatchTimestamp _lastFrameTime = StopwatchTimestamp.Now();
     private double _wakeAt = double.PositiveInfinity;
     private bool _textInputFocus;
     private (int X, int Y, int Width, int Height)? _imeCaret;
@@ -521,10 +520,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
     {
         if (_automation != null)
             return (_automation.FrameStep, _automation.Now);
-        var now = Stopwatch.GetTimestamp();
-        var dt = _animating ? (float)((now - _lastFrameTimestamp) / (double)Stopwatch.Frequency) : 0f;
-        _lastFrameTimestamp = now;
-        return (MathF.Min(dt, MaxFrameStep), Seconds(now));
+        var now = StopwatchTimestamp.Now();
+        var dt = _animating ? (float)now.SecondsSince(_lastFrameTime) : 0f;
+        _lastFrameTime = now;
+        return (MathF.Min(dt, MaxFrameStep), now.SecondsSince(_startTime));
     }
 
     private void ShowCursor()
@@ -679,9 +678,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
         window.SetPreeditCursorRect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
-    private double Seconds(long timestamp) => (timestamp - _startTimestamp) / (double)Stopwatch.Frequency;
-
-    private void Tick()
+    private void Tick(TickScope tick)
     {
         while (!_disposed && _ticked.TryDequeue(out var work))
             work();
@@ -717,10 +714,14 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
             ApplyAskedFontChanges();
         if (_ui.HasFontListings)
             ListSystemFonts();
-        if (_wakeAt <= Seconds(Stopwatch.GetTimestamp()))
+        if (_wakeAt <= tick.Now.SecondsSince(_startTime))
         {
             _wakeAt = double.PositiveInfinity;
             RequestRedraw();
+        }
+        else if (double.IsFinite(_wakeAt))
+        {
+            tick.WakeAt(_startTime.After(_wakeAt));
         }
         PollPointer();
     }
