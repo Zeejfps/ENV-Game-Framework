@@ -56,8 +56,12 @@ namespace Xilium.CefGlue.Interop
         #endregion
     }
 
+    // From cef/include/internal/cef_types_linux.h. CEF reads |size| first and refuses a browser
+    // (CreateBrowser returns 0, logging nothing in a release build) when it is not this struct's size.
+    [StructLayout(LayoutKind.Sequential, Pack = libcef.ALIGN)]
     internal unsafe struct cef_window_info_t_linux
     {
+        public UIntPtr size;
         public cef_string_t window_name;
         public cef_rect_t bounds;
         public IntPtr parent_window;
@@ -65,6 +69,7 @@ namespace Xilium.CefGlue.Interop
         public int shared_texture_enabled;
         public int external_begin_frame_enabled;
         public IntPtr window;
+        public cef_runtime_style_t runtime_style;
 
         #region Alloc & Free
         private static int _sizeof;
@@ -78,6 +83,7 @@ namespace Xilium.CefGlue.Interop
         {
             var ptr = (cef_window_info_t_linux*)Marshal.AllocHGlobal(_sizeof);
             *ptr = new cef_window_info_t_linux();
+            ptr->size = (UIntPtr)_sizeof;
             return ptr;
         }
 

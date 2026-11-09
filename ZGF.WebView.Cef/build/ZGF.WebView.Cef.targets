@@ -19,12 +19,15 @@
         <_ZgfCefRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_ZgfCefRid>
         <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX')) And '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">osx-arm64</_ZgfCefRid>
         <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('OSX'))">osx-x64</_ZgfCefRid>
+        <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('Linux')) And '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">linux-arm64</_ZgfCefRid>
+        <_ZgfCefRid Condition="'$(_ZgfCefRid)' == '' And $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</_ZgfCefRid>
         <_ZgfCefRid Condition="'$(_ZgfCefRid)' == ''">win-x64</_ZgfCefRid>
         <_ZgfCefPayloadDir>$(MSBuildThisFileDirectory)..\..\CefGlue\cef\$(_ZgfCefRid)\</_ZgfCefPayloadDir>
         <!-- On macOS libcef is the framework bundle, staged whole into the app root. -->
         <_ZgfCefLibrary Condition="$(_ZgfCefRid.StartsWith('osx'))">Release\Chromium Embedded Framework.framework\Chromium Embedded Framework</_ZgfCefLibrary>
+        <_ZgfCefLibrary Condition="$(_ZgfCefRid.StartsWith('linux'))">Release\libcef.so</_ZgfCefLibrary>
         <_ZgfCefLibrary Condition="'$(_ZgfCefLibrary)' == ''">Release\libcef.dll</_ZgfCefLibrary>
-        <_ZgfCefFetchScript Condition="$(_ZgfCefRid.StartsWith('osx'))">CefGlue/fetch-cef.sh</_ZgfCefFetchScript>
+        <_ZgfCefFetchScript Condition="$(_ZgfCefRid.StartsWith('osx')) Or $(_ZgfCefRid.StartsWith('linux'))">CefGlue/fetch-cef.sh</_ZgfCefFetchScript>
         <_ZgfCefFetchScript Condition="'$(_ZgfCefFetchScript)' == ''">CefGlue/fetch-cef.ps1</_ZgfCefFetchScript>
         <_ZgfCefIsMac>$(_ZgfCefRid.StartsWith('osx'))</_ZgfCefIsMac>
     </PropertyGroup>

@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# macOS counterpart of fetch-cef.ps1: fetch, SHA1-verify and stage the pinned CEF build (from
-# CEF_VERSION) into cef/<rid>/{include,Release}. The runtime is Release/Chromium Embedded Framework.framework.
-# Usage: ./fetch-cef.sh [--rid osx-arm64|osx-x64] [--distribution minimal|client] [--force]
+# macOS and Linux counterpart of fetch-cef.ps1: fetch, SHA1-verify and stage the pinned CEF build (from
+# CEF_VERSION) into cef/<rid>/{include,Release,Resources}. The runtime is Release/Chromium Embedded
+# Framework.framework on macOS and Release/libcef.so on Linux.
+# Usage: ./fetch-cef.sh [--rid osx-arm64|osx-x64|linux-x64|linux-arm64] [--distribution minimal|client] [--force]
 
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")" && pwd)"
 
-case "$(uname -m)" in
-    arm64) rid=osx-arm64 ;;
-    *) rid=osx-x64 ;;
+case "$(uname -s)/$(uname -m)" in
+    Darwin/arm64) rid=osx-arm64 ;;
+    Darwin/*) rid=osx-x64 ;;
+    Linux/aarch64|Linux/arm64) rid=linux-arm64 ;;
+    Linux/*) rid=linux-x64 ;;
+    *) echo "fetch-cef.sh stages macOS and Linux payloads only; on Windows run fetch-cef.ps1" >&2; exit 1 ;;
 esac
 distribution=minimal
 force=0
@@ -23,11 +27,6 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ "$(uname -s)" != "Darwin" ]; then
-    echo "fetch-cef.sh stages macOS payloads only; on Windows run fetch-cef.ps1" >&2
-    exit 1
-fi
-
 # --- read the pin -----------------------------------------------------------
 version_file="$root/CEF_VERSION"
 [ -f "$version_file" ] || { echo "CEF_VERSION not found at $version_file" >&2; exit 1; }
@@ -39,7 +38,9 @@ cef_version="$(pin CEF_VERSION)"
 case "$rid" in
     osx-arm64) cdn_platform=macosarm64 ;;
     osx-x64) cdn_platform=macosx64 ;;
-    *) echo "unsupported rid: $rid (osx-arm64 | osx-x64)" >&2; exit 2 ;;
+    linux-x64) cdn_platform=linux64 ;;
+    linux-arm64) cdn_platform=linuxarm64 ;;
+    *) echo "unsupported rid: $rid (osx-arm64 | osx-x64 | linux-x64 | linux-arm64)" >&2; exit 2 ;;
 esac
 case "$distribution" in
     minimal|client) ;;
@@ -58,7 +59,12 @@ mkdir -p "$dl_dir"
 archive="$dl_dir/$file_name"
 
 # --- download (skip if cached + valid) --------------------------------------
-sha1_of() { shasum -a 1 "$1" | cut -d' ' -f1; }
+# macOS ships shasum; Linux distributions ship sha1sum and may lack shasum (it is Perl).
+if command -v sha1sum >/dev/null 2>&1; then
+    sha1_of() { sha1sum "$1" | cut -d' ' -f1; }
+else
+    sha1_of() { shasum -a 1 "$1" | cut -d' ' -f1; }
+fi
 
 if [ -f "$archive" ] && [ "$force" -eq 0 ] && [ "$(sha1_of "$archive")" = "$expected_sha1" ]; then
     echo "Using cached $file_name (sha1 ok)"
@@ -91,8 +97,12 @@ mkdir -p "$stage"
 
 for sub in include Release Resources; do
     if [ -d "$payload/$sub" ]; then
-        # ditto keeps the framework's symlinks and extended attributes intact.
-        ditto "$payload/$sub" "$stage/$sub"
+        if command -v ditto >/dev/null 2>&1; then
+            # ditto keeps the framework's symlinks and extended attributes intact.
+            ditto "$payload/$sub" "$stage/$sub"
+        else
+            cp -a "$payload/$sub" "$stage/$sub"
+        fi
         echo "  staged $sub/"
     fi
 done
