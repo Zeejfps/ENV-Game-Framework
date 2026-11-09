@@ -6,11 +6,11 @@ namespace ZGF.Desktop.Backends.OpenGl;
 /// <summary>Decides whether the GL context the driver gave us can run the renderer.</summary>
 internal static class GlDriverCheck
 {
-    // The canvas shaders are #version 410, so 4.1 is the hard floor. The binding covers all of GL 4.6,
+    // The canvas shaders are #version 450, so 4.5 is the hard floor. The binding covers all of GL 4.6,
     // and drivers stopping short of that leave entry points unresolved — normal, and not fatal, because
-    // everything past 4.1 is either unused or gated on GL46.IsLoaded at its call site.
-    private const int RequiredMajor = 4;
-    private const int RequiredMinor = 1;
+    // everything past 4.5 is either unused or gated on GL46.IsLoaded at its call site.
+    internal const int RequiredMajor = 4;
+    internal const int RequiredMinor = 5;
 
     public static void Verify()
     {

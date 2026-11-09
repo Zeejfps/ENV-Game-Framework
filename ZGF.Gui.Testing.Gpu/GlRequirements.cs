@@ -7,7 +7,7 @@ namespace ZGF.Gui.Testing.Gpu;
 public static class GlRequirements
 {
     public const int Major = 4;
-    public const int Minor = 1;
+    public const int Minor = 5;
 
     /// <summary>Every entry point the canvas (<c>ZGF.Gui.OpenGL</c>, with the shader helpers in
     /// <c>OpenGlUtils</c>) and the offscreen target call unconditionally.</summary>
@@ -21,9 +21,8 @@ public static class GlRequirements
         "glEnable", "glEnableVertexAttribArray", "glFramebufferTexture2D", "glGenBuffers",
         "glGenFramebuffers", "glGenTextures", "glGenVertexArrays", "glGetError", "glGetIntegerv",
         "glGetProgramInfoLog", "glGetProgramiv", "glGetShaderInfoLog", "glGetShaderiv", "glGetString",
-        "glGetUniformBlockIndex", "glGetUniformLocation", "glLinkProgram", "glPixelStorei", "glReadBuffer",
-        "glReadPixels", "glShaderSource", "glTexImage2D", "glTexParameteri", "glTexSubImage2D",
-        "glUniform1i", "glUniform4f", "glUniformBlockBinding", "glUniformMatrix4fv", "glUseProgram",
+        "glGetUniformLocation", "glLinkProgram", "glPixelStorei", "glReadBuffer", "glReadPixels",
+        "glShaderSource", "glTexImage2D", "glTexParameteri", "glTexSubImage2D", "glUseProgram",
         "glVertexAttribDivisor", "glVertexAttribIPointer", "glVertexAttribPointer", "glViewport",
     };
 
@@ -34,7 +33,7 @@ public static class GlRequirements
     };
 
     /// <summary>Checks the context current on this thread, after <see cref="GL46.Import"/>, and describes it.</summary>
-    /// <exception cref="NotSupportedException">The version is below 4.1 or a required entry point is missing.</exception>
+    /// <exception cref="NotSupportedException">The version is below 4.5 or a required entry point is missing.</exception>
     internal static unsafe string Verify()
     {
         var missing = Required.Where(name => !IsLoaded(name)).Order(StringComparer.Ordinal).ToList();

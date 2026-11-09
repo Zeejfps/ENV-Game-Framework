@@ -102,8 +102,8 @@ process-wide, `GlfwApp.cs:24`, `:217`):
 - **Windows:** WGL on a hidden Win32 window created on the render thread (Win32 permits windows on
   any thread). Function loading resolves GL 1.1 entry points from `opengl32.dll` exports and the rest
   through `wglGetProcAddress`, replacing what `Import(Glfw.GetProcAddress)` does in production
-  (`OpenGlApp.cs:19`). Requires a desktop GL 4.1 core context, as production does.
-- **Linux:** EGL with `EGL_MESA_platform_surfaceless` and `EGL_KHR_surfaceless_context`, GL 4.1 core.
+  (`OpenGlApp.cs:19`). Requires a desktop GL 4.5 core context, as production does.
+- **Linux:** EGL with `EGL_MESA_platform_surfaceless` and `EGL_KHR_surfaceless_context`, GL 4.5 core.
   **Initially this means Mesa** (hardware Mesa drivers and llvmpipe); other vendors' EGL is not
   promised. An unsupported configuration fails at device creation with the missing extension named.
 - **macOS:** `MTLCreateSystemDefaultDevice` on the render thread; creation, every frame and teardown

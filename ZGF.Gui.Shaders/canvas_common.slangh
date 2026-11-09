@@ -1,0 +1,67 @@
+// What every canvas shader shares: the Globals and ClipRects blocks, the rounded clip, and color decoding. The
+// bindings are the shader ABI the GL and Metal backends are written to; change them only together with both.
+
+struct GlobalsData
+{
+    float4x4 projection;
+    // Logical canvas size followed by the actual, rounded framebuffer size.
+    float4 canvasMetrics;
+};
+
+[[vk::binding(0)]] ConstantBuffer<GlobalsData> Globals : register(b0);
+
+struct ClipRectsData
+{
+    float4 rects[256];  // (left, bottom, right, top)
+    float4 rounds[256]; // the rounded rect the clip is also cut to, (left, bottom, right, top)
+    float4 radii[256];  // that rect's corner radius in x; 0 when the clip is not rounded
+};
+
+[[vk::binding(1)]] ConstantBuffer<ClipRectsData> ClipRects : register(b1);
+
+float4 project(float2 pixelPos)
+{
+    return mul(Globals.projection, float4(pixelPos, 0.0, 1.0));
+}
+
+// The fragment's pixel center in canvas units, y up, from its window position: GL counts window y up from the
+// bottom, Metal down from the top.
+float2 fragmentPixelPos(float4 fragCoord)
+{
+    float4 m = Globals.canvasMetrics;
+    __target_switch
+    {
+    case glsl: return fragCoord.xy * (m.xy / m.zw);
+    case metal: return float2(fragCoord.x, m.w - fragCoord.y) * (m.xy / m.zw);
+    }
+}
+
+float4 unpackARGB(uint c)
+{
+    float a = float((c >> 24) & 0xFFu) / 255.0;
+    float r = float((c >> 16) & 0xFFu) / 255.0;
+    float g = float((c >>  8) & 0xFFu) / 255.0;
+    float b = float( c        & 0xFFu) / 255.0;
+    return float4(r, g, b, a);
+}
+
+// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over
+// the device pixel its edge crosses. Always 1 for a clip that is not rounded.
+float clipCoverage(float2 p, uint index)
+{
+    float pixel = max(fwidth(p.x), 1e-4);
+    float r = ClipRects.radii[index].x;
+    if (r <= 0.0) return 1.0;
+    float4 rounded = ClipRects.rounds[index];
+    float2 halfSize = (rounded.zw - rounded.xy) * 0.5;
+    float2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - float2(r));
+    float d = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+    return clamp(0.5 - d / pixel, 0.0, 1.0);
+}
+
+// Whether p is outside the clip's rect.
+bool outsideClipRect(float2 p, uint index)
+{
+    float4 clip = ClipRects.rects[index];
+    return p.x < clip.x || p.x >= clip.z || p.y < clip.y || p.y >= clip.w;
+}

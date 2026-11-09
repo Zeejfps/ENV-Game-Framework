@@ -1,0 +1,64 @@
+# Runs the test suites on every push and pull request.
+#
+# The suites run on Linux: GitHub's runners have no GPU, and Mesa's llvmpipe gives the GPU tests a GL 4.5
+# core context with no display. The egl shader baselines (ZGF.Gui.Tests/Baselines/Shaders/egl) were
+# recorded on it.
+# GeneratedShadersTests downloads the pinned slangc on first use; the cache keeps that to once per bump.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+          # MinVer versions every project from the tags.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Install Mesa
+        run: >
+          sudo apt-get update &&
+          sudo apt-get install -y --no-install-recommends
+          libegl1 libegl-mesa0 libgl1-mesa-dri libgbm1 libfontconfig1
+
+      - name: Cache slangc
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/ZGF/slang
+          key: slangc-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ZGF.Gui.Shaders/SLANG_VERSION') }}
+
+      - name: Test
+        run: |
+          status=0
+          for project in ZGF.Gui.Tests ZGF.Gui.Immediate.Tests ZGF.Gui.Automation.Tests ZGF.Svg.Tests ZGF.Markdown.Tests ZGF.AppUtils.Tests; do
+            dotnet test "$project" || status=1
+          done
+          exit $status
+
+  # The Metal the backend compiles at runtime, compiled ahead with Apple's toolchain for both platforms
+  # it ships on. This proves it compiles, not that it draws correctly; the metal shader baselines do that.
+  metal:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Compile the Metal shaders
+        run: |
+          for sdk in macosx iphoneos; do
+            for shader in ZGF.Gui.Metal/Assets/Shaders/*.metal; do
+              echo "$sdk: $shader"
+              xcrun -sdk "$sdk" metal -c "$shader" -o "$RUNNER_TEMP/$(basename "$shader").$sdk.air"
+            done
+          done

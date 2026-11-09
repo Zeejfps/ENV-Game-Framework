@@ -1,0 +1,9 @@
+# The slangc that regenerates the canvas shaders, from https://github.com/shader-slang/slang/releases.
+# Bump deliberately: a new compiler can shift pixels. Then run regenerate.cs and check the shader baselines.
+version 2026.21
+windows-x86_64  slang-2026.21-windows-x86_64.zip             4b6f509e73397175ed36a341beb7ad15f4fff5feaf5f6d95fecf896c0d86b8de
+windows-arm64   slang-2026.21-windows-aarch64.zip            4250623b0e72a5ef297c31aacd1d9f0b7ae1c1b65d7d22834ee94e71c1098027
+linux-x86_64    slang-2026.21-linux-x86_64-glibc-2.27.tar.gz 1b75315dabc97bab349449502c2e64faaa849360c17d9fdf709c0628ad5365ac
+linux-arm64     slang-2026.21-linux-aarch64-glibc-2.28.tar.gz c48f2c9a12f1a382a84a39f2b314b1cf3159c93136fbe8c4f377c87db4ef4dc8
+macos-x86_64    slang-2026.21-macos-x86_64.tar.gz            a6bc9ba38c5d3a092ae868595ba9c838663682b3e16de40d5786bd38964970ba
+macos-arm64     slang-2026.21-macos-aarch64.tar.gz           c3d3c959ba3e0c8fdb6c2a5cf6a471ed097ed19c41820af9fb21625779794fb2

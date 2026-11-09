@@ -149,8 +149,8 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     {
         Glfw.WindowHint(Hint.ClientApi, _clientApi);
         if (_clientApi != ClientApi.OpenGL) return;
-        Glfw.WindowHint(Hint.ContextVersionMajor, 4);
-        Glfw.WindowHint(Hint.ContextVersionMinor, 1);
+        Glfw.WindowHint(Hint.ContextVersionMajor, OpenGl.GlDriverCheck.RequiredMajor);
+        Glfw.WindowHint(Hint.ContextVersionMinor, OpenGl.GlDriverCheck.RequiredMinor);
         Glfw.WindowHint(Hint.OpenglProfile, Profile.Core);
         Glfw.WindowHint(Hint.OpenglForwardCompatible, true);
     }

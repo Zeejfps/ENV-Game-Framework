@@ -4,6 +4,8 @@ Follow the coding rules in @docs/coding_rules.md
 
 To check a UI change, read @docs/testing.md: drive the app from a script and read `scratch/` snapshots and PNGs.
 
+Canvas shaders are edited only as `.slang` under `ZGF.Gui.Shaders/`; run `dotnet run ZGF.Gui.Shaders/regenerate.cs` after.
+
 ## C#
 
 - Check for null with a null check, and for a type with a type check:

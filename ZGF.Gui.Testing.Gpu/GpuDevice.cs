@@ -54,7 +54,7 @@ public sealed class GpuDevice : IDisposable
     public bool IsRenderThread => _thread.IsCurrent;
 
     /// <exception cref="InvalidOperationException">Another OpenGL device is live in this process.</exception>
-    /// <exception cref="NotSupportedException">The GPU cannot run the shipping renderer: no GL 4.1 core context
+    /// <exception cref="NotSupportedException">The GPU cannot run the shipping renderer: no GL 4.5 core context
     /// with every required entry point, a missing EGL extension, or a Metal GPU that is not Apple's. The
     /// message names what is missing.</exception>
     /// <exception cref="PlatformNotSupportedException">This platform has no backend yet.</exception>

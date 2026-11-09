@@ -34,8 +34,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
     private IntPtr _currentEncoder;
     private int _atlasUploads;
 
-    // The existing shaders read the first 64 bytes. Rectangle shaders also read
-    // the logical/physical canvas sizes at byte 64 to reconstruct pixel centers.
+    // The shaders' Globals block, buffer 0; see ZGF.Gui.Shaders/canvas_common.slangh.
     [StructLayout(LayoutKind.Sequential)]
     private struct CanvasGlobals
     {
@@ -281,7 +280,7 @@ public sealed unsafe class MetalRenderedCanvas : RenderedCanvasBase, IDisposable
         var dst = (CanvasGlobals*)msg_IntPtr(_globalsBuffer, Sel("contents"));
         *dst = new CanvasGlobals
         {
-            Projection = Matrix4x4.Transpose(Projection),
+            Projection = Projection,
             CanvasMetrics = new Vector4(ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight),
         };
     }

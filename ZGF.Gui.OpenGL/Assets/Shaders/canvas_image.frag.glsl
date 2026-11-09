@@ -1,83 +1,330 @@
-#version 410
+// Generated from ZGF.Gui.Shaders/canvas_image.slang by ZGF.Gui.Shaders/regenerate.cs. Edit the .slang and regenerate.
+#version 450
+layout(row_major) uniform;
+layout(row_major) buffer;
 
-in vec2 v_pixelPos;
-in vec2 v_uv;
-in vec2 v_local;
-flat in vec2 v_halfSize;
-flat in vec4 v_srcUV;
-flat in float v_fadesEdges;
-flat in uint v_tint;
-flat in uint v_clipIndex;
-flat in vec4 v_cornerRadius;
-
-layout(std140) uniform ClipRects {
-    vec4 u_clipRects[256];  // (left, bottom, right, top)
-    vec4 u_clipRounds[256]; // the rounded rect the clip is also cut to, (left, bottom, right, top)
-    vec4 u_clipRadii[256];  // that rect's corner radius in x; 0 when the clip is not rounded
+#line 13 0
+struct ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
 };
 
-uniform sampler2D u_texture;
-// Logical canvas size followed by the actual, rounded framebuffer size.
-uniform vec4 u_canvasMetrics;
+layout(binding = 1)
+layout(std140) uniform block_ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
+}ClipRects_0;
 
-out vec4 f_Color;
+#line 4
+struct GlobalsData_0
+{
+    mat4x4 projection_0;
+    vec4 canvasMetrics_0;
+};
 
-vec4 unpackARGB(uint c) {
-    float a = float((c >> 24) & 0xFFu) / 255.0;
-    float r = float((c >> 16) & 0xFFu) / 255.0;
-    float g = float((c >>  8) & 0xFFu) / 255.0;
-    float b = float( c        & 0xFFu) / 255.0;
-    return vec4(r, g, b, a);
+
+layout(binding = 0)
+layout(std140) uniform block_GlobalsData_0
+{
+    mat4x4 projection_0;
+    vec4 canvasMetrics_0;
+}Globals_0;
+
+#line 3 1
+layout(binding = 2)
+uniform sampler2D u_texture_0;
+
+
+#line 50 0
+float clipCoverage_0(vec2 p_0, uint index_0)
+{
+    float _S1 = max((fwidth((p_0.x))), 9.9999997473787516e-05);
+    float r_0 = ClipRects_0.radii_0[index_0].x;
+    if(r_0 <= 0.0)
+    {
+
+#line 54
+        return 1.0;
+    }
+    vec2 _S2 = ClipRects_0.rounds_0[index_0].zw;
+
+#line 56
+    vec2 _S3 = ClipRects_0.rounds_0[index_0].xy;
+    vec2 q_0 = abs(p_0 - (_S3 + _S2) * 0.5) - ((_S2 - _S3) * 0.5 - vec2(r_0));
+
+    return clamp(0.5 - (length(max(q_0, vec2(0.0))) + min(max(q_0.x, q_0.y), 0.0) - r_0) / _S1, 0.0, 1.0);
 }
 
-// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over
-// the device pixel its edge crosses. Always 1 for a clip that is not rounded.
-float clipCoverage(vec2 p, uint index) {
-    float pixel = max(fwidth(p.x), 1e-4);
-    float r = u_clipRadii[index].x;
-    if (r <= 0.0) return 1.0;
-    vec4 rounded = u_clipRounds[index];
-    vec2 halfSize = (rounded.zw - rounded.xy) * 0.5;
-    vec2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - vec2(r));
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-    return clamp(0.5 - d / pixel, 0.0, 1.0);
+
+bool outsideClipRect_0(vec2 p_1, uint index_1)
+{
+    vec4 clip_0 = ClipRects_0.rects_0[index_1];
+    float _S4 = p_1.x;
+
+#line 66
+    bool _S5;
+
+#line 66
+    if(_S4 < (ClipRects_0.rects_0[index_1].x))
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = _S4 >= (clip_0.z);
+
+#line 66
+    }
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) < (clip_0.y);
+
+#line 66
+    }
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) >= (clip_0.w);
+
+#line 66
+    }
+
+#line 66
+    return _S5;
 }
 
-void main() {
-    float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
-    vec4 clip = u_clipRects[v_clipIndex];
-    if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
-        v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w) {
+
+#line 39
+vec4 unpackARGB_0(uint c_0)
+{
+
+#line 45
+    return vec4(float((c_0 >> 16) & 255U) / 255.0, float((c_0 >> 8) & 255U) / 255.0, float(c_0 & 255U) / 255.0, float((c_0 >> 24) & 255U) / 255.0);
+}
+
+
+#line 45
+layout(location = 0)
+out vec4 entryPointParam_fragmentMain_0;
+
+
+#line 45
+layout(location = 0)
+in vec2 v_pixelPos_0;
+
+
+#line 45
+layout(location = 1)
+in vec2 v_uv_0;
+
+
+#line 45
+layout(location = 2)
+in vec2 v_local_0;
+
+
+#line 45
+flat layout(location = 3)
+in vec2 v_halfSize_0;
+
+
+#line 45
+flat layout(location = 4)
+in vec4 v_srcUV_0;
+
+
+#line 45
+flat layout(location = 5)
+in float v_fadesEdges_0;
+
+
+#line 45
+flat layout(location = 6)
+in uint v_tint_0;
+
+
+#line 45
+flat layout(location = 7)
+in uint v_clipIndex_0;
+
+
+#line 45
+flat layout(location = 8)
+in vec4 v_cornerRadius_0;
+
+
+#line 72 1
+void main()
+{
+    float clipCover_0 = clipCoverage_0(v_pixelPos_0, v_clipIndex_0);
+    if(outsideClipRect_0(v_pixelPos_0, v_clipIndex_0))
+    {
+
+#line 75
         discard;
-    }
-    if (clipCover <= 0.0) discard;
 
-    // An edge between device pixels fades the pixels it partly covers, by how much it covers them.
-    float coverage = 1.0;
-    if (v_fadesEdges > 0.0) {
-        vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
-        vec2 inside = (v_halfSize - abs(v_local)) * devicePerLogical;
-        coverage = clamp(inside.x + 0.5, 0.0, 1.0) * clamp(inside.y + 0.5, 0.0, 1.0);
-        if (coverage <= 0.0) discard;
+#line 75
     }
+    if(clipCover_0 <= 0.0)
+    {
 
-    // Rounded corners cut the image to their shape, smoothing its edge there over a device pixel. The
-    // canvas's y runs up, so a positive local y is the image's upper half.
-    float radius = v_local.y > 0.0
-        ? (v_local.x > 0.0 ? v_cornerRadius.y : v_cornerRadius.x)
-        : (v_local.x > 0.0 ? v_cornerRadius.z : v_cornerRadius.w);
-    if (radius > 0.0) {
-        vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
-        vec2 q = abs(v_local) - (v_halfSize - vec2(radius));
-        float distance = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
-        coverage *= clamp(0.5 - distance * devicePerLogical.x, 0.0, 1.0);
-        if (coverage <= 0.0) discard;
+#line 76
+        discard;
+
+#line 76
     }
 
-    vec2 uvEnd = v_srcUV.xy + v_srcUV.zw;
-    vec2 uv = clamp(v_uv, min(v_srcUV.xy, uvEnd), max(v_srcUV.xy, uvEnd));
-    vec4 sample0 = texture(u_texture, uv);
-    vec4 tint = unpackARGB(v_tint);
-    f_Color = sample0 * tint * vec4(1.0, 1.0, 1.0, coverage);
-    f_Color.a *= clipCover;
+
+    vec2 devicePerLogical_0 = Globals_0.canvasMetrics_0.zw / Globals_0.canvasMetrics_0.xy;
+
+#line 79
+    float coverage_0;
+
+
+
+    if(v_fadesEdges_0 > 0.0)
+    {
+        vec2 inside_0 = (v_halfSize_0 - abs(v_local_0)) * devicePerLogical_0;
+        float coverage_1 = clamp(inside_0.x + 0.5, 0.0, 1.0) * clamp(inside_0.y + 0.5, 0.0, 1.0);
+        if(coverage_1 <= 0.0)
+        {
+
+#line 87
+            discard;
+
+#line 87
+        }
+
+#line 87
+        coverage_0 = coverage_1;
+
+#line 83
+    }
+    else
+    {
+
+#line 83
+        coverage_0 = 1.0;
+
+#line 83
+    }
+
+#line 83
+    float radius_0;
+
+#line 93
+    if((v_local_0.y) > 0.0)
+    {
+
+#line 93
+        if((v_local_0.x) > 0.0)
+        {
+
+#line 93
+            radius_0 = v_cornerRadius_0.y;
+
+#line 93
+        }
+        else
+        {
+
+#line 93
+            radius_0 = v_cornerRadius_0.x;
+
+#line 93
+        }
+
+#line 93
+    }
+    else
+    {
+
+#line 94
+        if((v_local_0.x) > 0.0)
+        {
+
+#line 94
+            radius_0 = v_cornerRadius_0.z;
+
+#line 94
+        }
+        else
+        {
+
+#line 94
+            radius_0 = v_cornerRadius_0.w;
+
+#line 94
+        }
+
+#line 93
+    }
+
+    if(radius_0 > 0.0)
+    {
+        vec2 q_1 = abs(v_local_0) - (v_halfSize_0 - vec2(radius_0));
+
+        float coverage_2 = coverage_0 * clamp(0.5 - (length(max(q_1, vec2(0.0))) + min(max(q_1.x, q_1.y), 0.0) - radius_0) * devicePerLogical_0.x, 0.0, 1.0);
+        if(coverage_2 <= 0.0)
+        {
+
+#line 100
+            discard;
+
+#line 100
+        }
+
+#line 100
+        coverage_0 = coverage_2;
+
+#line 95
+    }
+    else
+    {
+
+#line 95
+    }
+
+#line 104
+    vec2 uvEnd_0 = v_srcUV_0.xy + v_srcUV_0.zw;
+
+#line 104
+    entryPointParam_fragmentMain_0 = (texture((u_texture_0), (clamp(v_uv_0, min(v_srcUV_0.xy, uvEnd_0), max(v_srcUV_0.xy, uvEnd_0))))) * unpackARGB_0(v_tint_0) * vec4(1.0, 1.0, 1.0, coverage_0 * clipCover_0);
+
+#line 104
+    return;
 }
+

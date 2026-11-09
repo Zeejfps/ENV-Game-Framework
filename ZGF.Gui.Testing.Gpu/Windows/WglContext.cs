@@ -4,7 +4,7 @@ using static ZGF.Gui.Testing.Gpu.Windows.Win32;
 
 namespace ZGF.Gui.Testing.Gpu.Windows;
 
-/// <summary>A desktop GL 4.1+ core context on a hidden window that is never shown. Every member runs on
+/// <summary>A desktop GL 4.5+ core context on a hidden window that is never shown. Every member runs on
 /// the thread that created it.</summary>
 [SupportedOSPlatform("windows")]
 internal sealed unsafe class WglContext : IGlContext

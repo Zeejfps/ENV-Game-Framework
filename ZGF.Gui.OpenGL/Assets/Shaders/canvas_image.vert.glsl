@@ -1,63 +1,290 @@
-#version 410
+// Generated from ZGF.Gui.Shaders/canvas_image.slang by ZGF.Gui.Shaders/regenerate.cs. Edit the .slang and regenerate.
+#version 450
+layout(row_major) uniform;
+layout(row_major) buffer;
 
-// Per-vertex
-layout(location = 0) in vec2 a_unitPos;     // [0,1] x [0,1]
+#line 4 0
+struct GlobalsData_0
+{
+    mat4x4 projection_0;
+    vec4 canvasMetrics_0;
+};
 
-// Per-instance
-layout(location = 1) in vec4 i_rect;        // x, y, w, h (pixel space)
-layout(location = 2) in vec4 i_srcUV;       // u, v, w, h (normalized texture coords)
-layout(location = 3) in uint i_tint;        // ARGB packed
-layout(location = 4) in uint i_clipIndex;
-layout(location = 5) in float i_rotation;   // radians, rotation about the rect's center
-layout(location = 6) in vec4 i_cornerRadius; // tl, tr, br, bl
 
-uniform mat4 u_projection;
-// Logical canvas size followed by the actual, rounded framebuffer size.
-uniform vec4 u_canvasMetrics;
+layout(binding = 0)
+layout(std140) uniform block_GlobalsData_0
+{
+    mat4x4 projection_0;
+    vec4 canvasMetrics_0;
+}Globals_0;
 
-out vec2 v_pixelPos;
-out vec2 v_uv;
-// Where the fragment is from the image's center in its own unrotated frame, and half its size.
-out vec2 v_local;
-flat out vec2 v_halfSize;
-// The image's own texels, which a grown edge is clamped to; and whether its edges fade at all — only
-// when the quad grew, so an image on the grid, or rotated, is drawn exactly as before.
-flat out vec4 v_srcUV;
-flat out float v_fadesEdges;
-flat out uint v_tint;
-flat out uint v_clipIndex;
-flat out vec4 v_cornerRadius;
-
-void main() {
-    // An unrotated image a transform left between device pixels grows a pixel on that axis, so the
-    // fragment shader can fade the pixels its edge partly covers; one on the grid stays as it was.
-    vec2 devicePerLogical = u_canvasMetrics.zw / u_canvasMetrics.xy;
-    vec2 low = i_rect.xy * devicePerLogical;
-    vec2 high = (i_rect.xy + i_rect.zw) * devicePerLogical;
-    vec2 offGrid = max(abs(low - round(low)), abs(high - round(high)));
-    bool growable = i_rotation == 0.0 && i_rect.z > 0.0 && i_rect.w > 0.0;
-    vec2 outset = growable ? step(1.0 / 256.0, offGrid) / devicePerLogical : vec2(0.0);
-    vec2 unit = (a_unitPos * (i_rect.zw + 2.0 * outset) - outset) / max(i_rect.zw, vec2(1e-6));
-
-    vec2 center = i_rect.xy + i_rect.zw * 0.5;
-    vec2 local = (unit - vec2(0.5)) * i_rect.zw;
-    float cs = cos(i_rotation);
-    float sn = sin(i_rotation);
-    vec2 rotated = vec2(cs * local.x - sn * local.y, sn * local.x + cs * local.y);
-    vec2 pixelPos = center + rotated;
-    gl_Position = u_projection * vec4(pixelPos, 0.0, 1.0);
-
-    v_pixelPos = pixelPos;
-    // Past the image's edge the texture clamps, so the grown pixels show its edge texels, faded.
-    v_uv = vec2(
-        i_srcUV.x + unit.x * i_srcUV.z,
-        i_srcUV.y + unit.y * i_srcUV.w
-    );
-    v_local = local;
-    v_halfSize = i_rect.zw * 0.5;
-    v_srcUV = i_srcUV;
-    v_fadesEdges = outset.x > 0.0 || outset.y > 0.0 ? 1.0 : 0.0;
-    v_tint = i_tint;
-    v_clipIndex = i_clipIndex;
-    v_cornerRadius = min(i_cornerRadius, vec4(min(i_rect.z, i_rect.w) * 0.5));
+#line 22
+vec4 project_0(vec2 pixelPos_0)
+{
+    return (((vec4(pixelPos_0, 0.0, 1.0)) * (Globals_0.projection_0)));
 }
+
+
+#line 24
+layout(location = 0)
+out vec2 entryPointParam_vertexMain_pixelPos_0;
+
+
+#line 24
+layout(location = 1)
+out vec2 entryPointParam_vertexMain_uv_0;
+
+
+#line 24
+layout(location = 2)
+out vec2 entryPointParam_vertexMain_local_0;
+
+
+#line 24
+flat layout(location = 3)
+out vec2 entryPointParam_vertexMain_halfSize_0;
+
+
+#line 24
+flat layout(location = 4)
+out vec4 entryPointParam_vertexMain_srcUV_0;
+
+
+#line 24
+flat layout(location = 5)
+out float entryPointParam_vertexMain_fadesEdges_0;
+
+
+#line 24
+flat layout(location = 6)
+out uint entryPointParam_vertexMain_tint_0;
+
+
+#line 24
+flat layout(location = 7)
+out uint entryPointParam_vertexMain_clipIndex_0;
+
+
+#line 24
+flat layout(location = 8)
+out vec4 entryPointParam_vertexMain_cornerRadius_0;
+
+
+#line 24
+layout(location = 0)
+in vec2 input_unitPos_0;
+
+
+#line 24
+layout(location = 1)
+in vec4 input_rect_0;
+
+
+#line 24
+layout(location = 2)
+in vec4 input_srcUV_0;
+
+
+#line 24
+layout(location = 3)
+in uint input_tint_0;
+
+
+#line 24
+layout(location = 4)
+in uint input_clipIndex_0;
+
+
+#line 24
+layout(location = 5)
+in float input_rotation_0;
+
+
+#line 24
+layout(location = 6)
+in vec4 input_cornerRadius_0;
+
+
+#line 16 1
+struct Varyings_0
+{
+    vec4 position_0;
+    vec2 pixelPos_1;
+    vec2 uv_0;
+    vec2 local_0;
+    vec2 halfSize_0;
+    vec4 srcUV_0;
+    float fadesEdges_0;
+    uint tint_0;
+    uint clipIndex_0;
+    vec4 cornerRadius_0;
+};
+
+
+#line 34
+void main()
+{
+
+
+
+    vec2 devicePerLogical_0 = Globals_0.canvasMetrics_0.zw / Globals_0.canvasMetrics_0.xy;
+    vec2 low_0 = input_rect_0.xy * devicePerLogical_0;
+    vec2 high_0 = (input_rect_0.xy + input_rect_0.zw) * devicePerLogical_0;
+    vec2 _S1 = max(abs(low_0 - round(low_0)), abs(high_0 - round(high_0)));
+
+#line 42
+    bool growable_0;
+    if(input_rotation_0 == 0.0)
+    {
+
+#line 43
+        growable_0 = (input_rect_0.z) > 0.0;
+
+#line 43
+    }
+    else
+    {
+
+#line 43
+        growable_0 = false;
+
+#line 43
+    }
+
+#line 43
+    if(growable_0)
+    {
+
+#line 43
+        growable_0 = (input_rect_0.w) > 0.0;
+
+#line 43
+    }
+    else
+    {
+
+#line 43
+        growable_0 = false;
+
+#line 43
+    }
+
+#line 43
+    vec2 outset_0;
+    if(growable_0)
+    {
+
+#line 44
+        outset_0 = step(vec2(0.00390625), _S1) / devicePerLogical_0;
+
+#line 44
+    }
+    else
+    {
+
+#line 44
+        outset_0 = vec2(0.0);
+
+#line 44
+    }
+    vec2 unit_0 = (input_unitPos_0 * (input_rect_0.zw + 2.0 * outset_0) - outset_0) / max(input_rect_0.zw, vec2(9.99999997475242708e-07));
+
+
+    vec2 local_1 = (unit_0 - vec2(0.5)) * input_rect_0.zw;
+    float cs_0 = cos(input_rotation_0);
+    float sn_0 = sin(input_rotation_0);
+    float _S2 = local_1.x;
+
+#line 51
+    float _S3 = local_1.y;
+    vec2 pixelPos_2 = input_rect_0.xy + input_rect_0.zw * 0.5 + vec2(cs_0 * _S2 - sn_0 * _S3, sn_0 * _S2 + cs_0 * _S3);
+
+    Varyings_0 o_0;
+    o_0.position_0 = project_0(pixelPos_2);
+    o_0.pixelPos_1 = pixelPos_2;
+
+    o_0.uv_0 = vec2(input_srcUV_0.x + unit_0.x * input_srcUV_0.z, input_srcUV_0.y + unit_0.y * input_srcUV_0.w);
+
+
+    o_0.local_0 = local_1;
+    o_0.halfSize_0 = input_rect_0.zw * 0.5;
+    o_0.srcUV_0 = input_srcUV_0;
+    if((outset_0.x) > 0.0)
+    {
+
+#line 64
+        growable_0 = true;
+
+#line 64
+    }
+    else
+    {
+
+#line 64
+        growable_0 = (outset_0.y) > 0.0;
+
+#line 64
+    }
+
+#line 64
+    float _S4;
+
+#line 64
+    if(growable_0)
+    {
+
+#line 64
+        _S4 = 1.0;
+
+#line 64
+    }
+    else
+    {
+
+#line 64
+        _S4 = 0.0;
+
+#line 64
+    }
+
+#line 64
+    o_0.fadesEdges_0 = _S4;
+    o_0.tint_0 = input_tint_0;
+    o_0.clipIndex_0 = input_clipIndex_0;
+    o_0.cornerRadius_0 = min(input_cornerRadius_0, vec4(min(input_rect_0.z, input_rect_0.w) * 0.5));
+    Varyings_0 _S5 = o_0;
+
+#line 68
+    gl_Position = o_0.position_0;
+
+#line 68
+    entryPointParam_vertexMain_pixelPos_0 = _S5.pixelPos_1;
+
+#line 68
+    entryPointParam_vertexMain_uv_0 = _S5.uv_0;
+
+#line 68
+    entryPointParam_vertexMain_local_0 = _S5.local_0;
+
+#line 68
+    entryPointParam_vertexMain_halfSize_0 = _S5.halfSize_0;
+
+#line 68
+    entryPointParam_vertexMain_srcUV_0 = _S5.srcUV_0;
+
+#line 68
+    entryPointParam_vertexMain_fadesEdges_0 = _S5.fadesEdges_0;
+
+#line 68
+    entryPointParam_vertexMain_tint_0 = _S5.tint_0;
+
+#line 68
+    entryPointParam_vertexMain_clipIndex_0 = _S5.clipIndex_0;
+
+#line 68
+    entryPointParam_vertexMain_cornerRadius_0 = _S5.cornerRadius_0;
+
+#line 68
+    return;
+}
+

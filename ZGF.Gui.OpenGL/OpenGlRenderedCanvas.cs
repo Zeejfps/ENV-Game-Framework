@@ -18,13 +18,11 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
     // stage far more instances than the initial Max* sizes. We grow the GPU buffers to match
     // rather than overrun them: a glBufferSubData past the buffer's size is GL_INVALID_VALUE.
     private int _rectVboCap, _glyphVboCap, _imageVboCap, _shadowVboCap, _shapeVboCap;
-    private uint _clipUbo;
+    private uint _globalsUbo, _clipUbo;
 
-    // glDrawArraysInstancedBaseInstance is GL 4.2+. When available we pass the batch's
-    // first-instance offset directly and leave the VAO's instance-attribute pointers at
-    // offset 0, avoiding the per-draw glVertexAttribPointer rebind. macOS caps GL at 4.1
-    // but routes to the Metal backend, so this path is exercised on Windows/Linux, where
-    // the forward-compatible context typically reports the driver's real (>= 4.2) version.
+    // glDrawArraysInstancedBaseInstance lets us pass the batch's first-instance offset directly
+    // and leave the VAO's instance-attribute pointers at offset 0, avoiding the per-draw
+    // glVertexAttribPointer rebind.
     private readonly bool _useBaseInstance;
 
     private int _atlasUploads;
@@ -40,9 +38,9 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         _shared = shared;
 
         _useBaseInstance = DetectBaseInstanceSupport();
-        UploadProjection();
+        SetupUniformBuffers();
+        UploadGlobals();
         SetupInstanceBuffers();
-        SetupClipUbo();
     }
 
     private static bool DetectBaseInstanceSupport()
@@ -56,7 +54,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
                && IsLoaded("glDrawArraysInstancedBaseInstance");
     }
 
-    protected override void OnResize(int width, int height) => UploadProjection();
+    protected override void OnResize(int width, int height) => UploadGlobals();
 
     /// <summary>Reads the framebuffer back as top-down RGBA (PNG row order) at device-pixel size.
     /// Must run with this canvas's GL context current and after the frame is drawn but before the
@@ -162,15 +160,13 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
 
     protected override void IssueDraws(IReadOnlyList<DrawCall> drawCalls)
     {
-        // Per-frame setup: the shared shaders' projection uniform is overwritten by
-        // every OTHER canvas that calls UploadProjection, so we must re-establish
-        // this canvas's projection at the start of every frame. Same logic applies
-        // to glViewport: it's per-context, but it's also per-context state we need
-        // to set explicitly when this canvas gets time to draw (window/framebuffer
-        // resizes don't auto-update viewport on subsequent context-make-currents).
-        UploadProjection();
+        // DPI can change without a logical resize, so the globals are refreshed every frame. The two
+        // binding points and the viewport are per-context state every other canvas sharing the
+        // context also sets, so this canvas sets them again whenever it draws.
+        UploadGlobals();
         glViewport(0, 0, DeviceWidth, DeviceHeight);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, _clipUbo);
+        glBindBufferBase(GL_UNIFORM_BUFFER, GlobalsBinding, _globalsUbo);
+        glBindBufferBase(GL_UNIFORM_BUFFER, ClipRectsBinding, _clipUbo);
 
         if (drawCalls.Count == 0) return;
 
@@ -183,7 +179,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glBlendFuncSeparate(
             GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
             GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE0 + TextureUnit);
 
         var atlasTex = _shared.FontAtlasTextureId;
         DrawKind boundKind = (DrawKind)255;
@@ -230,8 +226,8 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
             }
 
             // baseInstance offsets the per-instance attribute fetch, so the VAO keeps its
-            // setup-time offset-0 pointers and no per-draw rebind is needed. Older drivers
-            // (< GL 4.2) fall back to rebinding the instance attribute pointers per draw.
+            // setup-time offset-0 pointers and no per-draw rebind is needed. A driver without the
+            // entry point falls back to rebinding the instance attribute pointers per draw.
             if (_useBaseInstance)
             {
                 glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, call.InstanceCount, (uint)call.InstanceStart);
@@ -254,22 +250,27 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         glBindVertexArray(0);
     }
 
-    private void UploadProjection()
+    // The shader ABI: see ZGF.Gui.Shaders/canvas_common.slangh and the texture each shader declares.
+    private const uint GlobalsBinding = 0;
+    private const uint ClipRectsBinding = 1;
+    private const uint TextureUnit = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CanvasGlobals
     {
-        var p = Projection;
-        var ptr = &p.M11;
-        glUseProgram(_shared.RectShader);
-        glUniformMatrix4fv(_shared.RectProjLoc, 1, false, ptr);
-        glUniform4f(_shared.RectCanvasMetricsLoc, ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight);
-        glUseProgram(_shared.GlyphShader);
-        glUniformMatrix4fv(_shared.GlyphProjLoc, 1, false, ptr);
-        glUseProgram(_shared.ImageShader);
-        glUniformMatrix4fv(_shared.ImageProjLoc, 1, false, ptr);
-        glUniform4f(_shared.ImageCanvasMetricsLoc, ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight);
-        glUseProgram(_shared.ShadowShader);
-        glUniformMatrix4fv(_shared.ShadowProjLoc, 1, false, ptr);
-        glUseProgram(_shared.ShapeShader);
-        glUniformMatrix4fv(_shared.ShapeProjLoc, 1, false, ptr);
+        public Matrix4x4 Projection;
+        public Vector4 CanvasMetrics;
+    }
+
+    private void UploadGlobals()
+    {
+        var globals = new CanvasGlobals
+        {
+            Projection = Projection,
+            CanvasMetrics = new Vector4(ProjectionWidth, ProjectionHeight, DeviceWidth, DeviceHeight),
+        };
+        glBindBuffer(GL_UNIFORM_BUFFER, _globalsUbo);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CanvasGlobals), &globals);
         AssertNoGlError();
     }
 
@@ -510,16 +511,21 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         SetUintInstancePointer(9, stride, baseBytes + OffsetOf<ShapeInstance>(nameof(ShapeInstance.Flags)));
     }
 
-    private void SetupClipUbo()
+    private void SetupUniformBuffers()
+    {
+        _globalsUbo = AllocUniformBuffer(sizeof(CanvasGlobals));
+        // The rects, the rounded rects and the radii of the ClipRects block, MaxClips of each.
+        _clipUbo = AllocUniformBuffer(MaxClips * 3 * sizeof(Vector4));
+    }
+
+    private static uint AllocUniformBuffer(int sizeBytes)
     {
         uint ubo;
         glGenBuffers(1, &ubo);
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        // The rects, the rounded rects and the radii of the ClipRects block, MaxClips of each.
-        glBufferData(GL_UNIFORM_BUFFER, MaxClips * 3 * sizeof(Vector4), (void*)0, GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+        glBufferData(GL_UNIFORM_BUFFER, sizeBytes, (void*)0, GL_DYNAMIC_DRAW);
         AssertNoGlError();
-        _clipUbo = ubo;
+        return ubo;
     }
 
     protected override void HoldTexture(uint textureId) => _shared.ImageManager.HoldTexture(textureId);
@@ -534,6 +540,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         DeleteBuffer(ref _imageInstanceVbo);
         DeleteBuffer(ref _shadowInstanceVbo);
         DeleteBuffer(ref _shapeInstanceVbo);
+        DeleteBuffer(ref _globalsUbo);
         DeleteBuffer(ref _clipUbo);
         DeleteVao(ref _rectVao);
         DeleteVao(ref _glyphVao);

@@ -1,199 +1,243 @@
+// Generated from ZGF.Gui.Shaders/canvas_glyph.slang by ZGF.Gui.Shaders/regenerate.cs. Edit the .slang and regenerate.
 #include <metal_stdlib>
 #include <metal_math>
 #include <metal_texture>
 using namespace metal;
 
-#line 55 "G:/Dev/RiderProjects/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
-float4 unpackARGB_0(uint c_0)
+#line 11 "canvas_common.slangh"
+struct _MatrixStorage_float4x4_ColMajornatural_0
 {
+    array<float4, int(4)> data_0;
+};
 
-#line 61
-    return float4(float((c_0 >> 16U) & 255U) / 255.0, float((c_0 >> 8U) & 255U) / 255.0, float(c_0 & 255U) / 255.0, float((c_0 >> 24U) & 255U) / 255.0);
+
+#line 11
+struct GlobalsData_natural_0
+{
+    _MatrixStorage_float4x4_ColMajornatural_0 projection_0;
+    float4 canvasMetrics_0;
+};
+
+
+#line 13
+struct ClipRectsData_0
+{
+    array<float4, int(256)> rects_0;
+    array<float4, int(256)> rounds_0;
+    array<float4, int(256)> radii_0;
+};
+
+
+#line 3 "canvas_glyph.slang"
+struct KernelContext_0
+{
+    GlobalsData_natural_0 constant* Globals_0;
+    ClipRectsData_0 constant* ClipRects_0;
+    texture2d<float, access::sample> u_atlas_texture_0;
+    sampler u_atlas_sampler_0;
+};
+
+
+#line 22 "canvas_common.slangh"
+float4 project_0(float2 pixelPos_0, KernelContext_0 thread* kernelContext_0)
+{
+    return (((float4(pixelPos_0, 0.0f, 1.0f)) * (matrix<float,int(4),int(4)> (kernelContext_0->Globals_0->projection_0.data_0[int(0)][int(0)], kernelContext_0->Globals_0->projection_0.data_0[int(1)][int(0)], kernelContext_0->Globals_0->projection_0.data_0[int(2)][int(0)], kernelContext_0->Globals_0->projection_0.data_0[int(3)][int(0)], kernelContext_0->Globals_0->projection_0.data_0[int(0)][int(1)], kernelContext_0->Globals_0->projection_0.data_0[int(1)][int(1)], kernelContext_0->Globals_0->projection_0.data_0[int(2)][int(1)], kernelContext_0->Globals_0->projection_0.data_0[int(3)][int(1)], kernelContext_0->Globals_0->projection_0.data_0[int(0)][int(2)], kernelContext_0->Globals_0->projection_0.data_0[int(1)][int(2)], kernelContext_0->Globals_0->projection_0.data_0[int(2)][int(2)], kernelContext_0->Globals_0->projection_0.data_0[int(3)][int(2)], kernelContext_0->Globals_0->projection_0.data_0[int(0)][int(3)], kernelContext_0->Globals_0->projection_0.data_0[int(1)][int(3)], kernelContext_0->Globals_0->projection_0.data_0[int(2)][int(3)], kernelContext_0->Globals_0->projection_0.data_0[int(3)][int(3)]))));
 }
 
 
-#line 90 "core"
+#line 50
+float clipCoverage_0(float2 p_0, uint index_0, KernelContext_0 thread* kernelContext_1)
+{
+    float _S1 = max((fwidth((p_0.x))), 9.9999997473787516e-05f);
+    float r_0 = kernelContext_1->ClipRects_0->radii_0[index_0].x;
+    if(r_0 <= 0.0f)
+    {
+
+#line 54
+        return 1.0f;
+    }
+    float2 _S2 = kernelContext_1->ClipRects_0->rounds_0[index_0].zw;
+
+#line 56
+    float2 _S3 = kernelContext_1->ClipRects_0->rounds_0[index_0].xy;
+
+#line 56
+    float2 _S4 = float2(0.5f) ;
+    float2 q_0 = abs(p_0 - (_S3 + _S2) * _S4) - ((_S2 - _S3) * _S4 - float2(r_0) );
+
+    return clamp(0.5f - (length(max(q_0, float2(0.0f) )) + min(max(q_0.x, q_0.y), 0.0f) - r_0) / _S1, 0.0f, 1.0f);
+}
+
+
+bool outsideClipRect_0(float2 p_1, uint index_1, KernelContext_0 thread* kernelContext_2)
+{
+    float4 clip_0 = kernelContext_2->ClipRects_0->rects_0[index_1];
+    float _S5 = p_1.x;
+
+#line 66
+    bool _S6;
+
+#line 66
+    if(_S5 < (kernelContext_2->ClipRects_0->rects_0[index_1].x))
+    {
+
+#line 66
+        _S6 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S6 = _S5 >= (clip_0.z);
+
+#line 66
+    }
+
+#line 66
+    if(_S6)
+    {
+
+#line 66
+        _S6 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S6 = (p_1.y) < (clip_0.y);
+
+#line 66
+    }
+
+#line 66
+    if(_S6)
+    {
+
+#line 66
+        _S6 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S6 = (p_1.y) >= (clip_0.w);
+
+#line 66
+    }
+
+#line 66
+    return _S6;
+}
+
+
+#line 39
+float4 unpackARGB_0(uint c_0)
+{
+
+#line 45
+    return float4(float((c_0 >> 16U) & 255U) / 255.0f, float((c_0 >> 8U) & 255U) / 255.0f, float(c_0 & 255U) / 255.0f, float((c_0 >> 24U) & 255U) / 255.0f);
+}
+
+
+#line 45
 struct pixelOutput_0
 {
     float4 output_0 [[color(0)]];
 };
 
 
-#line 90
+#line 45
 struct pixelInput_0
 {
-    float2 pixelPos_0 [[user(TEXCOORD)]];
-    float2 atlasUV_0 [[user(TEXCOORD_1)]];
+    float2 pixelPos_1 [[user(PIXEL_POS)]];
+    float2 atlasUV_0 [[user(ATLAS_UV)]];
     [[flat]] uint color_0 [[user(COLOR)]];
-    [[flat]] uint clipIndex_0 [[user(COLOR_1)]];
+    [[flat]] uint clipIndex_0 [[user(CLIP_INDEX)]];
 };
 
 
-#line 23 "G:/Dev/RiderProjects/ENV-Game-Framework/ZGF.Gui.Tests/Assets/Shaders/canvas_glyph.slang"
-struct SLANG_ParameterGroup_Globals_0
-{
-    matrix<float,int(4),int(4)>  u_projection_0;
-};
-
-struct SLANG_ParameterGroup_ClipRects_0
-{
-    array<float4, int(256)> u_clipRects_0;
-    array<float4, int(256)> u_clipRounds_0;
-    array<float4, int(256)> u_clipRadii_0;
-};
-
-
-#line 28
-struct KernelContext_0
-{
-    SLANG_ParameterGroup_Globals_0 constant* Globals_0;
-    SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_0;
-    texture2d<float, access::sample> u_atlas_texture_0;
-    sampler u_atlas_sampler_0;
-};
-
-
-#line 65
-// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over the
-// device pixel, pixel wide, its edge crosses. Always 1 for a clip that is not rounded. Written by hand, as the
-// twin of clipCoverage in the GLSL shaders.
-static float clipCoverage(float2 p, float4 rounded, float r, float pixel)
-{
-    if (r <= 0.0)
-    {
-        return 1.0;
-    }
-    float2 halfSize = (rounded.zw - rounded.xy) * 0.5;
-    float2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - float2(r));
-    float d = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - r;
-    return clamp(0.5 - d / pixel, 0.0, 1.0);
-}
-
-[[fragment]] pixelOutput_0 fragmentMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], SLANG_ParameterGroup_Globals_0 constant* Globals_1 [[buffer(0)]], SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_1 [[buffer(1)]], texture2d<float, access::sample> u_atlas_texture_1 [[texture(0)]], sampler u_atlas_sampler_1 [[sampler(0)]])
+#line 48 "canvas_glyph.slang"
+[[fragment]] pixelOutput_0 fragmentMain(pixelInput_0 _S7 [[stage_in]], float4 position_0 [[position]], GlobalsData_natural_0 constant* Globals_1 [[buffer(0)]], ClipRectsData_0 constant* ClipRects_1 [[buffer(1)]], texture2d<float, access::sample> u_atlas_texture_1 [[texture(0)]], sampler u_atlas_sampler_1 [[sampler(0)]])
 {
 
-#line 65
-    thread KernelContext_0 kernelContext_0;
+#line 48
+    thread KernelContext_0 kernelContext_3;
 
-#line 65
-    (&kernelContext_0)->Globals_0 = Globals_1;
+#line 48
+    (&kernelContext_3)->Globals_0 = Globals_1;
 
-#line 65
-    (&kernelContext_0)->ClipRects_0 = ClipRects_1;
+#line 48
+    (&kernelContext_3)->ClipRects_0 = ClipRects_1;
 
-#line 65
-    (&kernelContext_0)->u_atlas_texture_0 = u_atlas_texture_1;
+#line 48
+    (&kernelContext_3)->u_atlas_texture_0 = u_atlas_texture_1;
 
-#line 65
-    (&kernelContext_0)->u_atlas_sampler_0 = u_atlas_sampler_1;
+#line 48
+    (&kernelContext_3)->u_atlas_sampler_0 = u_atlas_sampler_1;
 
-    float clipCover_0 = clipCoverage(_S1.pixelPos_0, ClipRects_1->u_clipRounds_0[_S1.clipIndex_0], ClipRects_1->u_clipRadii_0[_S1.clipIndex_0].x, max(fwidth(_S1.pixelPos_0.x), 0.0001));
-    if (clipCover_0 <= 0.0)
-    {
-        discard_fragment();
-    }
-    float4 clip_0 = ClipRects_1->u_clipRects_0[_S1.clipIndex_0];
-    float _S2 = _S1.pixelPos_0.x;
+#line 48
+    float _S8 = clipCoverage_0(_S7.pixelPos_1, _S7.clipIndex_0, &kernelContext_3);
 
-#line 68
-    bool _S3;
+#line 48
+    bool _S9 = outsideClipRect_0(_S7.pixelPos_1, _S7.clipIndex_0, &kernelContext_3);
 
-#line 68
-    if(_S2 < (ClipRects_1->u_clipRects_0[_S1.clipIndex_0].x))
+
+    if(_S9)
     {
 
-#line 68
-        _S3 = true;
-
-#line 68
-    }
-    else
-    {
-
-#line 68
-        _S3 = _S2 >= (clip_0.z);
-
-#line 68
-    }
-
-#line 68
-    if(_S3)
-    {
-
-#line 68
-        _S3 = true;
-
-#line 68
-    }
-    else
-    {
-
-#line 68
-        _S3 = (_S1.pixelPos_0.y) < (clip_0.y);
-
-#line 68
-    }
-    if(_S3)
-    {
-
-#line 69
-        _S3 = true;
-
-#line 69
-    }
-    else
-    {
-
-#line 69
-        _S3 = (_S1.pixelPos_0.y) >= (clip_0.w);
-
-#line 69
-    }
-
-#line 68
-    if(_S3)
-    {
-
+#line 51
         discard_fragment();
 
-#line 68
+#line 51
+    }
+    if(_S8 <= 0.0f)
+    {
+
+#line 52
+        discard_fragment();
+
+#line 52
     }
 
-#line 74
     ;
 
-#line 74
-    float alpha_0 = (((&kernelContext_0)->u_atlas_texture_0).sample(((&kernelContext_0)->u_atlas_sampler_0), (_S1.atlasUV_0))).x;
-    if(alpha_0 <= 0.0)
+#line 54
+    float alpha_0 = (((&kernelContext_3)->u_atlas_texture_0).sample(((&kernelContext_3)->u_atlas_sampler_0), (_S7.atlasUV_0))).x;
+    if(alpha_0 <= 0.0f)
     {
 
-#line 75
+#line 55
         discard_fragment();
 
-#line 75
+#line 55
     }
 
-    float4 color_1 = unpackARGB_0(_S1.color_0);
+    float4 color_1 = unpackARGB_0(_S7.color_0);
 
-#line 77
-    pixelOutput_0 _S4 = { float4(color_1.xyz, color_1.w * alpha_0) };
-    _S4.output_0.w = _S4.output_0.w * clipCover_0;
-    return _S4;
+#line 57
+    pixelOutput_0 _S10 = { float4(color_1.xyz, color_1.w * alpha_0 * _S8) };
+    return _S10;
 }
 
 
-#line 78
+#line 58
 struct vertexMain_Result_0
 {
     float4 position_1 [[position]];
-    float2 pixelPos_1 [[user(TEXCOORD)]];
-    float2 atlasUV_1 [[user(TEXCOORD_1)]];
+    float2 pixelPos_2 [[user(PIXEL_POS)]];
+    float2 atlasUV_1 [[user(ATLAS_UV)]];
     uint color_2 [[user(COLOR)]];
-    uint clipIndex_1 [[user(COLOR_1)]];
+    uint clipIndex_1 [[user(CLIP_INDEX)]];
 };
 
 
-#line 78
+#line 58
 struct vertexInput_0
 {
     float2 unitPos_0 [[attribute(0)]];
@@ -205,78 +249,80 @@ struct vertexInput_0
 };
 
 
-#line 14
+#line 15
 struct Varyings_0
 {
     float4 position_2;
-    float2 pixelPos_2;
+    float2 pixelPos_3;
     float2 atlasUV_3;
     [[flat]] uint color_4;
     [[flat]] uint clipIndex_3;
 };
 
 
-#line 14
-[[vertex]] vertexMain_Result_0 vertexMain(vertexInput_0 _S5 [[stage_in]], SLANG_ParameterGroup_Globals_0 constant* Globals_2 [[buffer(0)]], SLANG_ParameterGroup_ClipRects_0 constant* ClipRects_2 [[buffer(1)]], texture2d<float, access::sample> u_atlas_texture_2 [[texture(0)]], sampler u_atlas_sampler_2 [[sampler(0)]])
+#line 15
+[[vertex]] vertexMain_Result_0 vertexMain(vertexInput_0 _S11 [[stage_in]], GlobalsData_natural_0 constant* Globals_2 [[buffer(0)]], ClipRectsData_0 constant* ClipRects_2 [[buffer(1)]], texture2d<float, access::sample> u_atlas_texture_2 [[texture(0)]], sampler u_atlas_sampler_2 [[sampler(0)]])
 {
 
-#line 14
-    thread KernelContext_0 kernelContext_1;
+#line 15
+    thread KernelContext_0 kernelContext_4;
 
-#line 14
-    (&kernelContext_1)->Globals_0 = Globals_2;
+#line 15
+    (&kernelContext_4)->Globals_0 = Globals_2;
 
-#line 14
-    (&kernelContext_1)->ClipRects_0 = ClipRects_2;
+#line 15
+    (&kernelContext_4)->ClipRects_0 = ClipRects_2;
 
-#line 14
-    (&kernelContext_1)->u_atlas_texture_0 = u_atlas_texture_2;
+#line 15
+    (&kernelContext_4)->u_atlas_texture_0 = u_atlas_texture_2;
 
-#line 14
-    (&kernelContext_1)->u_atlas_sampler_0 = u_atlas_sampler_2;
+#line 15
+    (&kernelContext_4)->u_atlas_sampler_0 = u_atlas_sampler_2;
 
-#line 39
-    float2 _S6 = _S5.rect_0.zw;
-    float2 local_0 = (_S5.unitPos_0 - float2(0.5, 0.5)) * _S6;
-    float cs_0 = cos(_S5.rotation_0);
-    float sn_0 = sin(_S5.rotation_0);
-    float _S7 = local_0.x;
+#line 27
+    float2 _S12 = _S11.rect_0.zw;
+    float2 local_0 = (_S11.unitPos_0 - float2(0.5f) ) * _S12;
+    float cs_0 = cos(_S11.rotation_0);
+    float sn_0 = sin(_S11.rotation_0);
+    float _S13 = local_0.x;
 
-#line 43
-    float _S8 = local_0.y;
-    float2 pixelPos_3 = _S5.rect_0.xy + _S6 * float2(0.5)  + float2(cs_0 * _S7 - sn_0 * _S8, sn_0 * _S7 + cs_0 * _S8);
+#line 31
+    float _S14 = local_0.y;
+    float2 pixelPos_4 = _S11.rect_0.xy + _S12 * float2(0.5f)  + float2(cs_0 * _S13 - sn_0 * _S14, sn_0 * _S13 + cs_0 * _S14);
 
-#line 38
     thread Varyings_0 o_0;
 
-#line 45
-    (&o_0)->position_2 = (((float4(pixelPos_3, 0.0, 1.0)) * (Globals_2->u_projection_0)));
-    (&o_0)->pixelPos_2 = pixelPos_3;
-    (&o_0)->atlasUV_3 = float2(_S5.atlasUV_2.x + _S5.unitPos_0.x * _S5.atlasUV_2.z, _S5.atlasUV_2.y + _S5.unitPos_0.y * _S5.atlasUV_2.w);
+#line 34
+    float4 _S15 = project_0(pixelPos_4, &kernelContext_4);
+    (&o_0)->position_2 = _S15;
+    (&o_0)->pixelPos_3 = pixelPos_4;
 
 
-    (&o_0)->color_4 = _S5.color_3;
-    (&o_0)->clipIndex_3 = _S5.clipIndex_2;
+    (&o_0)->atlasUV_3 = float2(_S11.atlasUV_2.x + _S11.unitPos_0.x * _S11.atlasUV_2.z, _S11.atlasUV_2.y + _S11.unitPos_0.y * _S11.atlasUV_2.w);
 
-#line 51
-    thread vertexMain_Result_0 _S9;
 
-#line 51
-    (&_S9)->position_1 = o_0.position_2;
+    (&o_0)->color_4 = _S11.color_3;
+    (&o_0)->clipIndex_3 = _S11.clipIndex_2;
 
-#line 51
-    (&_S9)->pixelPos_1 = o_0.pixelPos_2;
+#line 43
+    thread vertexMain_Result_0 _S16;
 
-#line 51
-    (&_S9)->atlasUV_1 = o_0.atlasUV_3;
+#line 43
+    (&_S16)->position_1 = o_0.position_2;
 
-#line 51
-    (&_S9)->color_2 = o_0.color_4;
+#line 43
+    (&_S16)->pixelPos_2 = o_0.pixelPos_3;
 
-#line 51
-    (&_S9)->clipIndex_1 = o_0.clipIndex_3;
+#line 43
+    (&_S16)->atlasUV_1 = o_0.atlasUV_3;
 
-#line 51
-    return _S9;
+#line 43
+    (&_S16)->color_2 = o_0.color_4;
+
+#line 43
+    (&_S16)->clipIndex_1 = o_0.clipIndex_3;
+
+#line 43
+    return _S16;
 }
 

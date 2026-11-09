@@ -1,192 +1,589 @@
-#version 410
+// Generated from ZGF.Gui.Shaders/canvas_shape.slang by ZGF.Gui.Shaders/regenerate.cs. Edit the .slang and regenerate.
+#version 450
+layout(row_major) uniform;
+layout(row_major) buffer;
 
-// Generic anti-aliased SDF primitive: filled circle, ring (stroked circle) and
-// line/capsule. See canvas_shape.slang for the authoritative source; the OpenGL
-// backend uses this hand-written GLSL, matching the rest of the canvas pipeline.
-
-in vec2 v_pixelPos;
-in vec4 v_shapeData;
-in vec4 v_shapeData2;
-flat in float v_halfWidth;
-flat in uint v_color;
-flat in uint v_shapeType;
-flat in uint v_clipIndex;
-flat in uint v_color2;
-flat in uint v_flags;
-
-layout(std140) uniform ClipRects {
-    vec4 u_clipRects[256];  // (left, bottom, right, top)
-    vec4 u_clipRounds[256]; // the rounded rect the clip is also cut to, (left, bottom, right, top)
-    vec4 u_clipRadii[256];  // that rect's corner radius in x; 0 when the clip is not rounded
+#line 13 0
+struct ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
 };
 
-out vec4 f_Color;
+layout(binding = 1)
+layout(std140) uniform block_ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
+}ClipRects_0;
 
-vec4 unpackARGB(uint c) {
-    float a = float((c >> 24) & 0xFFu) / 255.0;
-    float r = float((c >> 16) & 0xFFu) / 255.0;
-    float g = float((c >>  8) & 0xFFu) / 255.0;
-    float b = float( c        & 0xFFu) / 255.0;
-    return vec4(r, g, b, a);
-}
+#line 50
+float clipCoverage_0(vec2 p_0, uint index_0)
+{
+    float _S1 = max((fwidth((p_0.x))), 9.9999997473787516e-05);
+    float r_0 = ClipRects_0.radii_0[index_0].x;
+    if(r_0 <= 0.0)
+    {
 
-float sdSegment(vec2 p, vec2 a, vec2 b) {
-    vec2 pa = p - a;
-    vec2 ba = b - a;
-    float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
-    return length(pa - ba * h);
-}
-
-// Stroked line with selectable cap: 0 round (capsule), 1 butt, 2 square.
-float sdLineCapped(vec2 p, vec2 a, vec2 b, float hw, uint cap) {
-    if (cap == 0u) return sdSegment(p, a, b) - hw;
-    vec2 ba = b - a;
-    float len = max(length(ba), 1e-6);
-    vec2 dir = ba / len;
-    vec2 rel = p - (a + b) * 0.5;
-    float along = abs(dot(rel, dir));
-    float perp = abs(dot(rel, vec2(-dir.y, dir.x)));
-    float capExt = (cap == 2u) ? hw : 0.0;
-    vec2 q = vec2(along - (len * 0.5 + capExt), perp - hw);
-    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-}
-
-// Distance + closest parameter t for the quadratic Bezier A->B->C (B = control).
-// Returns (distance, t). Source: Inigo Quilez (https://www.shadertoy.com/view/MlKcDD).
-vec2 sdBezier(vec2 p, vec2 A, vec2 B, vec2 C) {
-    vec2 b = A - 2.0 * B + C;
-    if (dot(b, b) < 1e-4) { // control collinear -> segment
-        vec2 ac = C - A;
-        float td = clamp(dot(p - A, ac) / max(dot(ac, ac), 1e-6), 0.0, 1.0);
-        return vec2(sdSegment(p, A, C), td);
+#line 54
+        return 1.0;
     }
-    vec2 a = B - A;
-    vec2 e = A - p;
-    float kk = 1.0 / dot(b, b);
-    float kx = kk * dot(a, b);
-    float ky = kk * (2.0 * dot(a, a) + dot(e, b)) / 3.0;
-    float kz = kk * dot(e, a);
-    float res;
-    float bestT;
-    float pp = ky - kx * kx;
-    float pp3 = pp * pp * pp;
-    float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
-    float h = q * q + 4.0 * pp3;
-    if (h >= 0.0) {
-        h = sqrt(h);
-        vec2 x = (vec2(h, -h) - q) / 2.0;
-        vec2 uv = sign(x) * pow(abs(x), vec2(1.0 / 3.0));
-        float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
-        vec2 dd = e + (2.0 * a + b * t) * t;
-        res = dot(dd, dd);
-        bestT = t;
-    } else {
-        float z = sqrt(-pp);
-        float v = acos(q / (pp * z * 2.0)) / 3.0;
-        float m = cos(v);
-        float n = sin(v) * 1.732050808;
-        float t0 = clamp((m + m) * z - kx, 0.0, 1.0);
-        float t1 = clamp((-n - m) * z - kx, 0.0, 1.0);
-        vec2 d0 = e + (2.0 * a + b * t0) * t0;
-        vec2 d1 = e + (2.0 * a + b * t1) * t1;
-        float dd0 = dot(d0, d0);
-        float dd1 = dot(d1, d1);
-        res = min(dd0, dd1);
-        bestT = dd0 < dd1 ? t0 : t1;
+    vec2 _S2 = ClipRects_0.rounds_0[index_0].zw;
+
+#line 56
+    vec2 _S3 = ClipRects_0.rounds_0[index_0].xy;
+    vec2 q_0 = abs(p_0 - (_S3 + _S2) * 0.5) - ((_S2 - _S3) * 0.5 - vec2(r_0));
+
+    return clamp(0.5 - (length(max(q_0, vec2(0.0))) + min(max(q_0.x, q_0.y), 0.0) - r_0) / _S1, 0.0, 1.0);
+}
+
+
+bool outsideClipRect_0(vec2 p_1, uint index_1)
+{
+    vec4 clip_0 = ClipRects_0.rects_0[index_1];
+    float _S4 = p_1.x;
+
+#line 66
+    bool _S5;
+
+#line 66
+    if(_S4 < (ClipRects_0.rects_0[index_1].x))
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
     }
-    return vec2(sqrt(res), bestT);
-}
+    else
+    {
 
-// Arc length along the quadratic Bezier A->B->C from 0 to t (trapezoidal).
-float bezierArcLength(vec2 A, vec2 B, vec2 C, float t) {
-    vec2 d0 = 2.0 * (B - A);
-    vec2 d1 = 2.0 * (C - B);
-    const int N = 16;
-    float step = t / float(N);
-    float prev = length(d0);
-    float total = 0.0;
-    for (int i = 1; i <= N; i++) {
-        float u = t * float(i) / float(N);
-        float cur = length(d0 * (1.0 - u) + d1 * u);
-        total += (prev + cur) * 0.5 * step;
-        prev = cur;
+#line 66
+        _S5 = _S4 >= (clip_0.z);
+
+#line 66
     }
-    return total;
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) < (clip_0.y);
+
+#line 66
+    }
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) >= (clip_0.w);
+
+#line 66
+    }
+
+#line 66
+    return _S5;
 }
 
-// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over
-// the device pixel its edge crosses. Always 1 for a clip that is not rounded.
-float clipCoverage(vec2 p, uint index) {
-    float pixel = max(fwidth(p.x), 1e-4);
-    float r = u_clipRadii[index].x;
-    if (r <= 0.0) return 1.0;
-    vec4 rounded = u_clipRounds[index];
-    vec2 halfSize = (rounded.zw - rounded.xy) * 0.5;
-    vec2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - vec2(r));
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-    return clamp(0.5 - d / pixel, 0.0, 1.0);
+
+#line 52 1
+float sdSegment_0(vec2 p_2, vec2 a_0, vec2 b_0)
+{
+    vec2 pa_0 = p_2 - a_0;
+    vec2 ba_0 = b_0 - a_0;
+
+    return length(pa_0 - ba_0 * clamp(dot(pa_0, ba_0) / max(dot(ba_0, ba_0), 9.99999997475242708e-07), 0.0, 1.0));
 }
 
-void main() {
-    float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
-    vec4 clip = u_clipRects[v_clipIndex];
-    if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
-        v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w) {
+
+#line 77
+vec2 sdBezier_0(vec2 p_3, vec2 A_0, vec2 B_0, vec2 C_0)
+{
+    vec2 b_1 = A_0 - 2.0 * B_0 + C_0;
+    float _S6 = dot(b_1, b_1);
+
+#line 80
+    if(_S6 < 9.9999997473787516e-05)
+    {
+
+        vec2 ac_0 = C_0 - A_0;
+
+        return vec2(sdSegment_0(p_3, A_0, C_0), clamp(dot(p_3 - A_0, ac_0) / max(dot(ac_0, ac_0), 9.99999997475242708e-07), 0.0, 1.0));
+    }
+    vec2 a_1 = B_0 - A_0;
+    vec2 e_0 = A_0 - p_3;
+    float kk_0 = 1.0 / _S6;
+    float kx_0 = kk_0 * dot(a_1, b_1);
+    float ky_0 = kk_0 * (2.0 * dot(a_1, a_1) + dot(e_0, b_1)) / 3.0;
+
+
+
+    float pp_0 = ky_0 - kx_0 * kx_0;
+
+    float q_1 = kx_0 * (2.0 * kx_0 * kx_0 - 3.0 * ky_0) + kk_0 * dot(e_0, a_1);
+    float h_0 = q_1 * q_1 + 4.0 * (pp_0 * pp_0 * pp_0);
+
+#line 98
+    float res_0;
+
+#line 98
+    float bestT_0;
+    if(h_0 >= 0.0)
+    {
+        float h_1 = sqrt(h_0);
+        vec2 x_0 = (vec2(h_1, - h_1) - q_1) / 2.0;
+        vec2 uv_0 = vec2((ivec2(sign((x_0))))) * pow(abs(x_0), vec2(0.3333333432674408));
+        float t_0 = clamp(uv_0.x + uv_0.y - kx_0, 0.0, 1.0);
+        vec2 dd_0 = e_0 + (2.0 * a_1 + b_1 * t_0) * t_0;
+
+#line 105
+        res_0 = dot(dd_0, dd_0);
+
+#line 105
+        bestT_0 = t_0;
+
+#line 99
+    }
+    else
+    {
+
+#line 111
+        float z_0 = sqrt(- pp_0);
+        float v_0 = acos(q_1 / (pp_0 * z_0 * 2.0)) / 3.0;
+        float m_0 = cos(v_0);
+
+        float t0_0 = clamp((m_0 + m_0) * z_0 - kx_0, 0.0, 1.0);
+        float t1_0 = clamp((- (sin(v_0) * 1.7320507764816284) - m_0) * z_0 - kx_0, 0.0, 1.0);
+        vec2 _S7 = 2.0 * a_1;
+
+#line 117
+        vec2 d0_0 = e_0 + (_S7 + b_1 * t0_0) * t0_0;
+        vec2 d1_0 = e_0 + (_S7 + b_1 * t1_0) * t1_0;
+        float dd0_0 = dot(d0_0, d0_0);
+        float dd1_0 = dot(d1_0, d1_0);
+        float _S8 = min(dd0_0, dd1_0);
+        if(dd0_0 < dd1_0)
+        {
+
+#line 122
+            res_0 = t0_0;
+
+#line 122
+        }
+        else
+        {
+
+#line 122
+            res_0 = t1_0;
+
+#line 122
+        }
+
+#line 122
+        float _S9 = res_0;
+
+#line 122
+        res_0 = _S8;
+
+#line 122
+        bestT_0 = _S9;
+
+#line 99
+    }
+
+#line 124
+    return vec2(sqrt(res_0), bestT_0);
+}
+
+
+float bezierArcLength_0(vec2 A_1, vec2 B_1, vec2 C_1, float t_1)
+{
+    vec2 d0_1 = 2.0 * (B_1 - A_1);
+    vec2 _S10 = 2.0 * (C_1 - B_1);
+
+    float _S11 = t_1 / 16.0;
+
+#line 133
+    float prev_0 = length(d0_1);
+
+#line 133
+    int i_0 = 1;
+
+#line 133
+    float total_0 = 0.0;
+
+
+    for(;;)
+    {
+
+#line 136
+        if(i_0 <= 16)
+        {
+        }
+        else
+        {
+
+#line 136
+            break;
+        }
+        float u_0 = t_1 * float(i_0) / 16.0;
+        float cur_0 = length(d0_1 * (1.0 - u_0) + _S10 * u_0);
+        float total_1 = total_0 + (prev_0 + cur_0) * 0.5 * _S11;
+
+#line 136
+        int _S12 = i_0 + 1;
+
+#line 136
+        prev_0 = cur_0;
+
+#line 136
+        i_0 = _S12;
+
+#line 136
+        total_0 = total_1;
+
+#line 136
+    }
+
+#line 143
+    return total_0;
+}
+
+
+#line 61
+float sdLineCapped_0(vec2 p_4, vec2 a_2, vec2 b_2, float hw_0, uint cap_0)
+{
+    if(cap_0 == 0U)
+    {
+
+#line 63
+        return sdSegment_0(p_4, a_2, b_2) - hw_0;
+    }
+
+#line 64
+    vec2 ba_1 = b_2 - a_2;
+    float _S13 = max(length(ba_1), 9.99999997475242708e-07);
+    vec2 dir_0 = ba_1 / _S13;
+    vec2 rel_0 = p_4 - (a_2 + b_2) * 0.5;
+    float along_0 = abs(dot(rel_0, dir_0));
+    float perp_0 = abs(dot(rel_0, vec2(- dir_0.y, dir_0.x)));
+
+#line 69
+    float capExt_0;
+    if(cap_0 == 2U)
+    {
+
+#line 70
+        capExt_0 = hw_0;
+
+#line 70
+    }
+    else
+    {
+
+#line 70
+        capExt_0 = 0.0;
+
+#line 70
+    }
+    float _S14 = along_0 - (_S13 * 0.5 + capExt_0);
+
+#line 71
+    float _S15 = perp_0 - hw_0;
+    return length(max(vec2(_S14, _S15), vec2(0.0))) + min(max(_S14, _S15), 0.0);
+}
+
+
+#line 39 0
+vec4 unpackARGB_0(uint c_0)
+{
+
+#line 45
+    return vec4(float((c_0 >> 16) & 255U) / 255.0, float((c_0 >> 8) & 255U) / 255.0, float(c_0 & 255U) / 255.0, float((c_0 >> 24) & 255U) / 255.0);
+}
+
+
+#line 45
+layout(location = 0)
+out vec4 entryPointParam_fragmentMain_0;
+
+
+#line 45
+layout(location = 0)
+in vec2 v_pixelPos_0;
+
+
+#line 45
+layout(location = 1)
+in vec4 v_shapeData_0;
+
+
+#line 45
+layout(location = 2)
+in vec4 v_shapeData2_0;
+
+
+#line 45
+flat layout(location = 3)
+in float v_halfWidth_0;
+
+
+#line 45
+flat layout(location = 4)
+in uint v_color_0;
+
+
+#line 45
+flat layout(location = 5)
+in uint v_shapeType_0;
+
+
+#line 45
+flat layout(location = 6)
+in uint v_clipIndex_0;
+
+
+#line 45
+flat layout(location = 7)
+in uint v_color2_0;
+
+
+#line 45
+flat layout(location = 8)
+in uint v_flags_0;
+
+
+#line 147 1
+void main()
+{
+    float clipCover_0 = clipCoverage_0(v_pixelPos_0, v_clipIndex_0);
+    if(outsideClipRect_0(v_pixelPos_0, v_clipIndex_0))
+    {
+
+#line 150
         discard;
-    }
-    if (clipCover <= 0.0) discard;
 
-    float d;
-    float bezierT = 0.0;
-    if (v_shapeType == 3u) {
-        // quadratic bezier stroke (round caps/joins)
-        vec2 bz = sdBezier(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy);
-        d = bz.x - v_halfWidth;
-        bezierT = bz.y;
-        if ((v_flags & 4u) != 0u) {
-            // dashing along the curve's arc length
-            float period = v_shapeData2.z + v_shapeData2.w;
-            if (period > 0.0) {
-                float s = bezierArcLength(v_shapeData.xy, v_shapeData.zw, v_shapeData2.xy, bezierT);
-                if ((s - period * floor(s / period)) > v_shapeData2.z) discard;
+#line 150
+    }
+    if(clipCover_0 <= 0.0)
+    {
+
+#line 151
+        discard;
+
+#line 151
+    }
+
+#line 151
+    float d_0;
+
+#line 151
+    float bezierT_0;
+
+
+
+    if(v_shapeType_0 == 3U)
+    {
+
+        vec2 bz_0 = sdBezier_0(v_pixelPos_0, v_shapeData_0.xy, v_shapeData_0.zw, v_shapeData2_0.xy);
+        float _S16 = bz_0.x - v_halfWidth_0;
+        float bezierT_1 = bz_0.y;
+        if((v_flags_0 & 4U) != 0U)
+        {
+
+            float period_0 = v_shapeData2_0.z + v_shapeData2_0.w;
+            if(period_0 > 0.0)
+            {
+                float s_0 = bezierArcLength_0(v_shapeData_0.xy, v_shapeData_0.zw, v_shapeData2_0.xy, bezierT_1);
+                if((s_0 - period_0 * floor(s_0 / period_0)) > (v_shapeData2_0.z))
+                {
+
+#line 168
+                    discard;
+
+#line 168
+                }
+
+#line 165
             }
+
+#line 161
         }
-    } else if (v_shapeType == 2u) {
-        // line with selectable cap
-        d = sdLineCapped(v_pixelPos, v_shapeData.xy, v_shapeData.zw, v_halfWidth, v_flags & 3u);
-        if ((v_flags & 4u) != 0u) {
-            // dashing: carve gaps along the arclength measured from p0
-            vec2 ba = v_shapeData.zw - v_shapeData.xy;
-            float len = max(length(ba), 1e-6);
-            float s = dot(v_pixelPos - v_shapeData.xy, ba / len);
-            float period = v_shapeData2.z + v_shapeData2.w;
-            if (period > 0.0 && (s - period * floor(s / period)) > v_shapeData2.z) discard;
+
+#line 161
+        d_0 = _S16;
+
+#line 161
+        bezierT_0 = bezierT_1;
+
+#line 155
+    }
+    else
+    {
+
+#line 172
+        if(v_shapeType_0 == 2U)
+        {
+
+            float _S17 = sdLineCapped_0(v_pixelPos_0, v_shapeData_0.xy, v_shapeData_0.zw, v_halfWidth_0, v_flags_0 & 3U);
+            if((v_flags_0 & 4U) != 0U)
+            {
+
+                vec2 ba_2 = v_shapeData_0.zw - v_shapeData_0.xy;
+
+                float s_1 = dot(v_pixelPos_0 - v_shapeData_0.xy, ba_2 / max(length(ba_2), 9.99999997475242708e-07));
+                float period_1 = v_shapeData2_0.z + v_shapeData2_0.w;
+
+#line 182
+                bool _S18;
+                if(period_1 > 0.0)
+                {
+
+#line 183
+                    _S18 = (s_1 - period_1 * floor(s_1 / period_1)) > (v_shapeData2_0.z);
+
+#line 183
+                }
+                else
+                {
+
+#line 183
+                    _S18 = false;
+
+#line 183
+                }
+
+#line 183
+                if(_S18)
+                {
+
+#line 183
+                    discard;
+
+#line 183
+                }
+
+#line 176
+            }
+
+#line 176
+            d_0 = _S17;
+
+#line 172
         }
-    } else if (v_shapeType == 1u) {
-        // ring: distance to the circle outline, then stroke half-width
-        d = abs(length(v_pixelPos - v_shapeData.xy) - v_shapeData.z) - v_halfWidth;
-    } else {
-        // filled circle
-        d = length(v_pixelPos - v_shapeData.xy) - v_shapeData.z;
+        else
+        {
+
+#line 186
+            if(v_shapeType_0 == 1U)
+            {
+
+#line 186
+                d_0 = abs(length(v_pixelPos_0 - v_shapeData_0.xy) - v_shapeData_0.z) - v_halfWidth_0;
+
+#line 186
+            }
+            else
+            {
+
+#line 186
+                d_0 = length(v_pixelPos_0 - v_shapeData_0.xy) - v_shapeData_0.z;
+
+#line 186
+            }
+
+#line 172
+        }
+
+#line 172
+        bezierT_0 = 0.0;
+
+#line 155
     }
 
-    // Analytic coverage: 1px transition centered on the zero isoline.
-    float aa = max(fwidth(d), 1e-6);
-    float coverage = clamp(0.5 - d / aa, 0.0, 1.0);
-    if (coverage <= 0.0) discard;
+#line 199
+    float coverage_0 = clamp(0.5 - d_0 / max((fwidth((d_0))), 9.99999997475242708e-07), 0.0, 1.0);
+    if(coverage_0 <= 0.0)
+    {
 
-    vec4 rgba = unpackARGB(v_color);
-    if ((v_flags & 8u) != 0u) {
-        // gradient: mix color -> color2 along the stroke
-        float g;
-        if (v_shapeType == 3u) {
-            g = bezierT;
-        } else {
-            vec2 ba = v_shapeData.zw - v_shapeData.xy;
-            g = clamp(dot(v_pixelPos - v_shapeData.xy, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
-        }
-        rgba = mix(rgba, unpackARGB(v_color2), g);
+#line 200
+        discard;
+
+#line 200
     }
-    f_Color = vec4(rgba.rgb, rgba.a * coverage);
-    f_Color.a *= clipCover;
+
+    vec4 rgba_0 = unpackARGB_0(v_color_0);
+
+#line 202
+    vec4 rgba_1;
+    if((v_flags_0 & 8U) != 0U)
+    {
+
+#line 203
+        float g_0;
+
+
+
+        if(v_shapeType_0 == 3U)
+        {
+
+#line 207
+            g_0 = bezierT_0;
+
+#line 207
+        }
+        else
+        {
+
+
+
+            vec2 ba_3 = v_shapeData_0.zw - v_shapeData_0.xy;
+
+#line 213
+            g_0 = clamp(dot(v_pixelPos_0 - v_shapeData_0.xy, ba_3) / max(dot(ba_3, ba_3), 9.99999997475242708e-07), 0.0, 1.0);
+
+#line 207
+        }
+
+#line 207
+        rgba_1 = mix(rgba_0, unpackARGB_0(v_color2_0), vec4(g_0));
+
+#line 203
+    }
+    else
+    {
+
+#line 203
+        rgba_1 = rgba_0;
+
+#line 203
+    }
+
+#line 203
+    entryPointParam_fragmentMain_0 = vec4(rgba_1.xyz, rgba_1.w * coverage_0 * clipCover_0);
+
+#line 203
+    return;
 }
+

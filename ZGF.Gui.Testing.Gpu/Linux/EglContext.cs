@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 
 namespace ZGF.Gui.Testing.Gpu.Linux;
 
-/// <summary>A desktop GL 4.1+ core context on Mesa's surfaceless EGL platform, current with no surface.
+/// <summary>A desktop GL 4.5+ core context on Mesa's surfaceless EGL platform, current with no surface.
 /// Every member runs on the thread that created it.</summary>
 [SupportedOSPlatform("linux")]
 internal sealed unsafe class EglContext : IGlContext
@@ -23,7 +23,7 @@ internal sealed unsafe class EglContext : IGlContext
         _egl = egl;
     }
 
-    /// <exception cref="NotSupportedException">EGL, an extension it needs, or a 4.1 core context is
+    /// <exception cref="NotSupportedException">EGL, an extension it needs, or a 4.5 core context is
     /// unavailable; the message names which.</exception>
     public static EglContext Create(int major, int minor)
     {

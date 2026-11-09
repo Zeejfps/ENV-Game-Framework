@@ -1,105 +1,278 @@
-#version 410
+// Generated from ZGF.Gui.Shaders/canvas_shadow.slang by ZGF.Gui.Shaders/regenerate.cs. Edit the .slang and regenerate.
+#version 450
+layout(row_major) uniform;
+layout(row_major) buffer;
 
-// Drop-shadow fragment shader for rounded rectangles. Uses Evan Wallace's
-// erf-integral approximation (madebyevan.com/shaders/fast-rounded-rectangle-shadows).
-// The shadowRect varying is the source rect AFTER offset/spread have been
-// applied on the CPU; this shader handles only blur + clipping.
-
-in vec2 v_pixelPos;
-in vec4 v_shadowRect;
-in vec4 v_borderRadius;
-flat in float v_sigma;
-flat in uint v_color;
-flat in uint v_clipIndex;
-
-layout(std140) uniform ClipRects {
-    vec4 u_clipRects[256];  // (left, bottom, right, top)
-    vec4 u_clipRounds[256]; // the rounded rect the clip is also cut to, (left, bottom, right, top)
-    vec4 u_clipRadii[256];  // that rect's corner radius in x; 0 when the clip is not rounded
+#line 13 0
+struct ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
 };
 
-out vec4 f_Color;
+layout(binding = 1)
+layout(std140) uniform block_ClipRectsData_0
+{
+    vec4  rects_0[256];
+    vec4  rounds_0[256];
+    vec4  radii_0[256];
+}ClipRects_0;
 
-vec4 unpackARGB(uint c) {
-    float a = float((c >> 24) & 0xFFu) / 255.0;
-    float r = float((c >> 16) & 0xFFu) / 255.0;
-    float g = float((c >>  8) & 0xFFu) / 255.0;
-    float b = float( c        & 0xFFu) / 255.0;
-    return vec4(r, g, b, a);
-}
+#line 50
+float clipCoverage_0(vec2 p_0, uint index_0)
+{
+    float _S1 = max((fwidth((p_0.x))), 9.9999997473787516e-05);
+    float r_0 = ClipRects_0.radii_0[index_0].x;
+    if(r_0 <= 0.0)
+    {
 
-vec2 erf2(vec2 x) {
-    vec2 s = sign(x);
-    vec2 a = abs(x);
-    vec2 v = 1.0 + (0.278393 + (0.230389 + 0.078108 * (a * a)) * a) * a;
-    v *= v;
-    return s - s / (v * v);
-}
-
-float gaussian1D(float x, float sigma) {
-    const float pi = 3.141592653589793;
-    return exp(-(x * x) / (2.0 * sigma * sigma)) / (sqrt(2.0 * pi) * sigma);
-}
-
-float roundedBoxShadowX(float x, float y, float sigma, float corner, vec2 halfSize) {
-    float delta = min(halfSize.y - corner - abs(y), 0.0);
-    float curved = halfSize.x - corner + sqrt(max(0.0, corner * corner - delta * delta));
-    vec2 integral = 0.5 + 0.5 * erf2(vec2(x - curved, x + curved) * (sqrt(0.5) / sigma));
-    return integral.y - integral.x;
-}
-
-float roundedBoxShadow(vec2 lower, vec2 upper, vec2 point, float sigma, float corner) {
-    vec2 center = (lower + upper) * 0.5;
-    vec2 halfSize = (upper - lower) * 0.5;
-    vec2 p = point - center;
-
-    float low  = p.y - halfSize.y;
-    float high = p.y + halfSize.y;
-    float start = clamp(-3.0 * sigma, low, high);
-    float end   = clamp( 3.0 * sigma, low, high);
-
-    float stepSize = (end - start) / 4.0;
-    float y = start + stepSize * 0.5;
-    float value = 0.0;
-    for (int i = 0; i < 4; i++) {
-        value += roundedBoxShadowX(p.x, p.y - y, sigma, corner, halfSize) * gaussian1D(y, sigma) * stepSize;
-        y += stepSize;
+#line 54
+        return 1.0;
     }
-    return value;
+    vec2 _S2 = ClipRects_0.rounds_0[index_0].zw;
+
+#line 56
+    vec2 _S3 = ClipRects_0.rounds_0[index_0].xy;
+    vec2 q_0 = abs(p_0 - (_S3 + _S2) * 0.5) - ((_S2 - _S3) * 0.5 - vec2(r_0));
+
+    return clamp(0.5 - (length(max(q_0, vec2(0.0))) + min(max(q_0.x, q_0.y), 0.0) - r_0) / _S1, 0.0, 1.0);
 }
 
-// How much of the pixel at p the clip's rounded rect covers: 1 inside it, 0 outside, and between over
-// the device pixel its edge crosses. Always 1 for a clip that is not rounded.
-float clipCoverage(vec2 p, uint index) {
-    float pixel = max(fwidth(p.x), 1e-4);
-    float r = u_clipRadii[index].x;
-    if (r <= 0.0) return 1.0;
-    vec4 rounded = u_clipRounds[index];
-    vec2 halfSize = (rounded.zw - rounded.xy) * 0.5;
-    vec2 q = abs(p - (rounded.xy + rounded.zw) * 0.5) - (halfSize - vec2(r));
-    float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-    return clamp(0.5 - d / pixel, 0.0, 1.0);
+
+bool outsideClipRect_0(vec2 p_1, uint index_1)
+{
+    vec4 clip_0 = ClipRects_0.rects_0[index_1];
+    float _S4 = p_1.x;
+
+#line 66
+    bool _S5;
+
+#line 66
+    if(_S4 < (ClipRects_0.rects_0[index_1].x))
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = _S4 >= (clip_0.z);
+
+#line 66
+    }
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) < (clip_0.y);
+
+#line 66
+    }
+
+#line 66
+    if(_S5)
+    {
+
+#line 66
+        _S5 = true;
+
+#line 66
+    }
+    else
+    {
+
+#line 66
+        _S5 = (p_1.y) >= (clip_0.w);
+
+#line 66
+    }
+
+#line 66
+    return _S5;
 }
 
-void main() {
-    float clipCover = clipCoverage(v_pixelPos, v_clipIndex);
-    vec4 clip = u_clipRects[v_clipIndex];
-    if (v_pixelPos.x < clip.x || v_pixelPos.x >= clip.z ||
-        v_pixelPos.y < clip.y || v_pixelPos.y >= clip.w) {
+
+#line 45 1
+vec2 erf2_0(vec2 x_0)
+{
+    vec2 _S6 = vec2((ivec2(sign((x_0)))));
+    vec2 a_0 = abs(x_0);
+    vec2 v_0 = 1.0 + (0.27839300036430359 + (0.23038899898529053 + 0.07810799777507782 * (a_0 * a_0)) * a_0) * a_0;
+    vec2 v_1 = v_0 * v_0;
+    return _S6 - _S6 / (v_1 * v_1);
+}
+
+
+#line 60
+float roundedBoxShadowX_0(float x_1, float y_0, float sigma_0, float corner_0, vec2 halfSize_0)
+{
+    float _S7 = min(halfSize_0.y - corner_0 - abs(y_0), 0.0);
+    float curved_0 = halfSize_0.x - corner_0 + sqrt(max(0.0, corner_0 * corner_0 - _S7 * _S7));
+    vec2 integral_0 = 0.5 + 0.5 * erf2_0(vec2(x_1 - curved_0, x_1 + curved_0) * (sqrt(0.5) / sigma_0));
+    return integral_0.y - integral_0.x;
+}
+
+
+#line 54
+float gaussian1D_0(float x_2, float sigma_1)
+{
+
+    return exp(- (x_2 * x_2) / (2.0 * sigma_1 * sigma_1)) / (sqrt(6.2831854820251465) * sigma_1);
+}
+
+
+#line 68
+float roundedBoxShadow_0(vec2 lower_0, vec2 upper_0, vec2 point_0, float sigma_2, float corner_1)
+{
+
+    vec2 halfSize_1 = (upper_0 - lower_0) * 0.5;
+    vec2 p_2 = point_0 - (lower_0 + upper_0) * 0.5;
+
+    float _S8 = p_2.y;
+
+#line 74
+    float _S9 = halfSize_1.y;
+
+#line 74
+    float low_0 = _S8 - _S9;
+    float high_0 = _S8 + _S9;
+    float start_0 = clamp(-3.0 * sigma_2, low_0, high_0);
+
+
+    float stepSize_0 = (clamp(3.0 * sigma_2, low_0, high_0) - start_0) / 4.0;
+    float _S10 = start_0 + stepSize_0 * 0.5;
+
+#line 80
+    int i_0 = 0;
+
+#line 80
+    float y_1 = _S10;
+
+#line 80
+    float value_0 = 0.0;
+
+    for(;;)
+    {
+
+#line 82
+        if(i_0 < 4)
+        {
+        }
+        else
+        {
+
+#line 82
+            break;
+        }
+        float value_1 = value_0 + roundedBoxShadowX_0(p_2.x, _S8 - y_1, sigma_2, corner_1, halfSize_1) * gaussian1D_0(y_1, sigma_2) * stepSize_0;
+        float y_2 = y_1 + stepSize_0;
+
+#line 82
+        i_0 = i_0 + 1;
+
+#line 82
+        y_1 = y_2;
+
+#line 82
+        value_0 = value_1;
+
+#line 82
+    }
+
+#line 87
+    return value_0;
+}
+
+
+#line 39 0
+vec4 unpackARGB_0(uint c_0)
+{
+
+#line 45
+    return vec4(float((c_0 >> 16) & 255U) / 255.0, float((c_0 >> 8) & 255U) / 255.0, float(c_0 & 255U) / 255.0, float((c_0 >> 24) & 255U) / 255.0);
+}
+
+
+#line 45
+layout(location = 0)
+out vec4 entryPointParam_fragmentMain_0;
+
+
+#line 45
+layout(location = 0)
+in vec2 v_pixelPos_0;
+
+
+#line 45
+layout(location = 1)
+in vec4 v_shadowRect_0;
+
+
+#line 45
+layout(location = 2)
+in vec4 v_borderRadius_0;
+
+
+#line 45
+flat layout(location = 3)
+in float v_sigma_0;
+
+
+#line 45
+flat layout(location = 4)
+in uint v_color_0;
+
+
+#line 45
+flat layout(location = 5)
+in uint v_clipIndex_0;
+
+
+#line 91 1
+void main()
+{
+    float clipCover_0 = clipCoverage_0(v_pixelPos_0, v_clipIndex_0);
+    if(outsideClipRect_0(v_pixelPos_0, v_clipIndex_0))
+    {
+
+#line 94
         discard;
+
+#line 94
     }
-    if (clipCover <= 0.0) discard;
+    if(clipCover_0 <= 0.0)
+    {
 
-    vec2 lower = v_shadowRect.xy;
-    vec2 upper = lower + v_shadowRect.zw;
+#line 95
+        discard;
 
-    float corner = max(max(v_borderRadius.x, v_borderRadius.y),
-                       max(v_borderRadius.z, v_borderRadius.w));
-    float maxCorner = min(v_shadowRect.z, v_shadowRect.w) * 0.5;
-    corner = min(corner, maxCorner);
+#line 95
+    }
 
-    float mass = roundedBoxShadow(lower, upper, v_pixelPos, v_sigma, corner);
-    vec4 rgba = unpackARGB(v_color);
-    f_Color = vec4(rgba.rgb, rgba.a * clamp(mass, 0.0, 1.0));
-    f_Color.a *= clipCover;
+    vec2 lower_1 = v_shadowRect_0.xy;
+
+#line 106
+    vec4 rgba_0 = unpackARGB_0(v_color_0);
+
+#line 106
+    entryPointParam_fragmentMain_0 = vec4(rgba_0.xyz, rgba_0.w * clamp(roundedBoxShadow_0(lower_1, lower_1 + v_shadowRect_0.zw, v_pixelPos_0, v_sigma_0, min(max(max(v_borderRadius_0.x, v_borderRadius_0.y), max(v_borderRadius_0.z, v_borderRadius_0.w)), min(v_shadowRect_0.z, v_shadowRect_0.w) * 0.5)), 0.0, 1.0) * clipCover_0);
+
+#line 106
+    return;
 }
+

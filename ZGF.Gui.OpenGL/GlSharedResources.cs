@@ -8,8 +8,6 @@ namespace ZGF.Gui.OpenGL;
 public sealed unsafe class GlSharedResources : IDisposable
 {
     private uint _rectShader, _glyphShader, _imageShader, _shadowShader, _shapeShader;
-    private int _rectProjLoc, _glyphProjLoc, _imageProjLoc, _shadowProjLoc, _shapeProjLoc;
-    private int _glyphAtlasLoc, _imageTexLoc;
     private uint _unitQuadVbo;
     private uint _fontAtlasTextureId;
     private int _uploadedAtlasVersion = -1;
@@ -22,15 +20,6 @@ public sealed unsafe class GlSharedResources : IDisposable
     public uint ImageShader => _imageShader;
     public uint ShadowShader => _shadowShader;
     public uint ShapeShader => _shapeShader;
-    public int RectProjLoc => _rectProjLoc;
-    internal int RectCanvasMetricsLoc { get; }
-    internal int ImageCanvasMetricsLoc { get; }
-    public int GlyphProjLoc => _glyphProjLoc;
-    public int ImageProjLoc => _imageProjLoc;
-    public int ShadowProjLoc => _shadowProjLoc;
-    public int ShapeProjLoc => _shapeProjLoc;
-    public int GlyphAtlasLoc => _glyphAtlasLoc;
-    public int ImageTexLoc => _imageTexLoc;
     public uint UnitQuadVbo => _unitQuadVbo;
     public uint FontAtlasTextureId => _fontAtlasTextureId;
     public GlImageManager ImageManager => _imageManager;
@@ -61,27 +50,6 @@ public sealed unsafe class GlSharedResources : IDisposable
             .WithVertexShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.vert.glsl"))
             .WithFragmentShaderSource(ShaderAssets.LoadShaderSource("canvas_shape.frag.glsl"))
             .Compile();
-
-        _rectProjLoc = glGetUniformLocation(_rectShader, "u_projection");
-        RectCanvasMetricsLoc = glGetUniformLocation(_rectShader, "u_canvasMetrics");
-        ImageCanvasMetricsLoc = glGetUniformLocation(_imageShader, "u_canvasMetrics");
-        _glyphProjLoc = glGetUniformLocation(_glyphShader, "u_projection");
-        _imageProjLoc = glGetUniformLocation(_imageShader, "u_projection");
-        _shadowProjLoc = glGetUniformLocation(_shadowShader, "u_projection");
-        _shapeProjLoc = glGetUniformLocation(_shapeShader, "u_projection");
-        _glyphAtlasLoc = glGetUniformLocation(_glyphShader, "u_atlas");
-        _imageTexLoc = glGetUniformLocation(_imageShader, "u_texture");
-
-        BindClipBlockToZero(_rectShader);
-        BindClipBlockToZero(_glyphShader);
-        BindClipBlockToZero(_imageShader);
-        BindClipBlockToZero(_shadowShader);
-        BindClipBlockToZero(_shapeShader);
-
-        glUseProgram(_glyphShader);
-        glUniform1i(_glyphAtlasLoc, 0);
-        glUseProgram(_imageShader);
-        glUniform1i(_imageTexLoc, 0);
 
         SetupUnitQuad();
         SetupFontAtlas();
@@ -168,19 +136,6 @@ public sealed unsafe class GlSharedResources : IDisposable
 
         _uploadedAtlasVersion = _fonts.AtlasVersion;
         _fonts.ClearDirty();
-    }
-
-    private static void BindClipBlockToZero(uint shader)
-    {
-        Span<byte> name = stackalloc byte[10];
-        name[0] = (byte)'C'; name[1] = (byte)'l'; name[2] = (byte)'i'; name[3] = (byte)'p';
-        name[4] = (byte)'R'; name[5] = (byte)'e'; name[6] = (byte)'c'; name[7] = (byte)'t';
-        name[8] = (byte)'s'; name[9] = 0;
-        uint blockIndex;
-        fixed (byte* p = name)
-            blockIndex = glGetUniformBlockIndex(shader, p);
-        if (blockIndex != GL_INVALID_INDEX)
-            glUniformBlockBinding(shader, blockIndex, 0);
     }
 
     public void Dispose()
