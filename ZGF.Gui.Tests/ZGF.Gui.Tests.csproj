@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- A background GC counts the unused rest of a thread's allocation context as allocated by it, so allocation tests would see bytes no code allocated (dotnet/runtime#134724). -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
