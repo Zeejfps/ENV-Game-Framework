@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
+          # Fonts, golden images and the GLFW natives are in LFS.
+          lfs: true
           # MinVer versions every project from the tags.
           fetch-depth: 0
 
