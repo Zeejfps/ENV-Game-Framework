@@ -460,7 +460,7 @@ public sealed class GuiApp : IDisposable
     /// work outside the render hook (loads, rebuilds).</summary>
     public void MakeMainContextCurrent() => _renderBackend.MakeMainContextCurrent();
 
-    private void HandleTick()
+    private void HandleTick(TickScope _)
     {
         _dispatcher.Drain();
         TickAnimations();

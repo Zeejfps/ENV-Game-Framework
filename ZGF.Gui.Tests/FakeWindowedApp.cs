@@ -29,7 +29,7 @@ internal sealed class FakeWindowedApp : IWindowedApp
 
 #pragma warning disable CS0067
     public event Action<bool>? OnForegroundChanged;
-    public event Action? OnTick;
+    public event Action<TickScope>? OnTick;
 #pragma warning restore CS0067
 
     public void Run() { }

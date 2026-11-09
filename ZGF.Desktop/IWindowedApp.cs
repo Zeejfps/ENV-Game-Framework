@@ -13,7 +13,8 @@ public interface IWindowedApp : IDisposable
     bool IsForeground { get; }
     event Action<bool> OnForegroundChanged;
 
-    event Action OnTick;
+    /// <summary>Runs once per turn of the loop, before any window draws.</summary>
+    event Action<TickScope> OnTick;
     void Run();
 
     /// <summary>Wakes the run loop if it is blocked waiting for OS events. Safe to call from any thread.</summary>
