@@ -3,11 +3,14 @@ using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using McpSdk.Adapter.System.Text.Json;
 using McpSdk.Protocol;
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 using ZGF.Gui.Desktop;
+using ZGF.Fonts;
 using ZGF.Gui.Desktop.Automation;
+using ZGF.Gui.Widgets;
 using ZGF.Observable;
 
 namespace ZGF.Gui.Tests;
@@ -38,35 +41,130 @@ public class GuiMcpServerTests
     }
 
     [Fact]
-    public async Task ToolsList_HasAppToolsAndNoGuiTools_UnlessIncluded()
+    public async Task ToolsList_HasOnlyAppTools()
     {
-        using var server = Start(new McpServerOptions
-        {
-            Port = FreePort(),
-            ToolSources = [new EchoSource()],
-            IncludeGuiTools = false,
-        });
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new EchoSource()] });
         using var client = new McpClient(server.Endpoint);
         await client.Initialize();
 
         var names = await client.ListToolNames();
 
-        Assert.Contains("echo", names);
-        Assert.DoesNotContain(names, n => n.StartsWith("gui_", StringComparison.Ordinal));
+        Assert.Equal(["echo"], names);
     }
 
     [Fact]
-    public async Task ToolsList_HasGuiTools_WhenIncluded()
+    public async Task ToolsList_IsEmpty_WithNoToolSources()
     {
-        using var server = Start(new McpServerOptions { Port = FreePort(), IncludeGuiTools = true });
+        using var server = Start(new McpServerOptions { Port = FreePort() });
+        using var client = new McpClient(server.Endpoint);
+        await client.Initialize();
+
+        var names = await client.ListToolNames();
+
+        Assert.Empty(names);
+    }
+
+    [Fact]
+    public async Task RetainedGuiTools_RegistersTheGuiToolSet()
+    {
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new RetainedGuiTools(EmptyDriver())] });
         Assert.Equal("/mcp", server.Endpoint.AbsolutePath);
         using var client = new McpClient(server.Endpoint);
         await client.Initialize();
 
         var names = await client.ListToolNames();
 
-        Assert.Contains("gui_snapshot", names);
-        Assert.Contains("gui_click", names);
+        Assert.Equal(["gui_click", "gui_key", "gui_move", "gui_screenshot", "gui_snapshot", "gui_type"], names.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task GuiSnapshot_DeclaresOutputSchema_AndReturnsStructuredWindows()
+    {
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new RetainedGuiTools(EmptyDriver())] });
+        using var client = new McpClient(server.Endpoint);
+        await client.Initialize();
+
+        var tools = (await client.Request("tools/list", new { })).GetProperty("tools").EnumerateArray();
+        var snapshot = tools.Single(t => t.GetProperty("name").GetString() == "gui_snapshot");
+        Assert.Equal("array", snapshot.GetProperty("outputSchema").GetProperty("properties").GetProperty("windows").GetProperty("type").GetString());
+
+        var json = await client.Call("gui_snapshot", new { format = "json" });
+        Assert.Equal(JsonValueKind.Array, json.GetProperty("structuredContent").GetProperty("windows").ValueKind);
+        Assert.Equal(JsonValueKind.Array, JsonDocument.Parse(json.GetProperty("content")[0].GetProperty("text").GetString()!).RootElement.ValueKind);
+        Assert.Equal("{\"windows\":[]}", json.GetProperty("content")[1].GetProperty("text").GetString());
+
+        var text = await client.Call("gui_snapshot", new { });
+        Assert.Equal(JsonValueKind.Array, text.GetProperty("structuredContent").GetProperty("windows").ValueKind);
+        Assert.Equal("", text.GetProperty("content")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task GuiSnapshot_ServesADeeplyNestedTree_InBothFormats()
+    {
+        using var fonts = new FreeTypeFontBackend();
+        var font = fonts.LoadFontFromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "Inter-Regular.ttf"), 16);
+        var driver = DriverFor(fonts, font, context =>
+        {
+            IWidget nested = new Text { Value = "leaf" };
+            for (var i = 0; i < 100; i++) nested = new Box { Children = [nested] };
+            return nested.BuildView(context);
+        });
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new RetainedGuiTools(driver)] });
+        using var client = new McpClient(server.Endpoint);
+        await client.Initialize();
+
+        foreach (var format in new[] { "json", "text" })
+        {
+            var result = await client.Call("gui_snapshot", new { format });
+
+            Assert.False(result.TryGetProperty("isError", out var isError) && isError.GetBoolean(), result.ToString());
+            var nodes = result.GetProperty("structuredContent").GetProperty("windows")[0].GetProperty("nodes");
+            var leaf = nodes.EnumerateArray().Single(n => n.GetProperty("text").GetString() == "leaf");
+            var depth = 0;
+            for (var parent = leaf.GetProperty("parent").GetInt32(); parent >= 0; parent = nodes[parent].GetProperty("parent").GetInt32())
+                depth++;
+            Assert.True(depth >= 100, $"leaf depth {depth}");
+            Assert.Contains("leaf", result.GetProperty("content")[0].GetProperty("text").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task ToolCall_RejectsArgumentsThatDifferOnlyInCase()
+    {
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new RetainedGuiTools(EmptyDriver())] });
+        using var client = new McpClient(server.Endpoint);
+        await client.Initialize();
+
+        var result = await client.Call("gui_snapshot", JsonDocument.Parse("{\"format\":\"json\",\"FORMAT\":\"text\"}").RootElement);
+
+        Assert.True(result.GetProperty("isError").GetBoolean());
+        Assert.Equal("'FORMAT' is given more than once.", result.GetProperty("content")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public async Task GuiClick_RejectsANonFiniteCoordinate_NamingIt()
+    {
+        using var server = Start(new McpServerOptions { Port = FreePort(), ToolSources = [new RetainedGuiTools(EmptyDriver())] });
+        using var client = new McpClient(server.Endpoint);
+        await client.Initialize();
+
+        var result = await client.Call("gui_click", JsonDocument.Parse("{\"x\":1e300,\"y\":5}").RootElement);
+
+        Assert.True(result.GetProperty("isError").GetBoolean());
+        Assert.Equal("'x' must be a finite number.", result.GetProperty("content")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
+    public void ToolArguments_RejectsTheWrongJsonType_NamingTheArgument()
+    {
+        var args = ToolArguments.Parse(new SystemJson().Parse("{\"S\":5,\"n\":\"10\",\"b\":\"yes\",\"ok\":\"v\"}"));
+
+        Assert.Equal("v", args.Str("OK"));
+        Assert.Equal("'s' must be a string.", Assert.Throws<InvalidOperationException>(() => args.Str("s")).Message);
+        Assert.Equal("'n' must be a number.", Assert.Throws<InvalidOperationException>(() => args.Num("n")).Message);
+        Assert.Equal("'b' must be a boolean.", Assert.Throws<InvalidOperationException>(() => args.Bool("b", true)).Message);
+        Assert.Null(args.Num("absent"));
+        Assert.True(args.Bool("absent", true));
     }
 
     [Fact]
@@ -173,8 +271,22 @@ public class GuiMcpServerTests
 
     // ---- fixtures ----
 
-    private static GuiMcpServer Start(McpServerOptions options) =>
-        new(options, new GuiDriver(() => [], new InlineDispatcher(), (_, _, _) => { }));
+    private static GuiMcpServer Start(McpServerOptions options) => new(options);
+
+    private static GuiDriver EmptyDriver() => new(() => [], new InlineDispatcher(), (_, _, _) => { });
+
+    private static GuiDriver DriverFor(FreeTypeFontBackend fonts, FontHandle font, Func<Context, View> buildRoot)
+    {
+        var window = new FakeWindow(400, 300);
+        var scale = new FakeUiScale(1f);
+        var input = new DesktopInputSystem(window, scale);
+        var context = new Context();
+        context.AddService(input.InputSystem);
+        var host = new GuiWindowHost(window, new CaptureCanvas(fonts, font), input, context, scale, sizeRootToWindow: true);
+        host.SetRoot(buildRoot(context));
+        var surface = new GuiSurface("main", window, host.Root, input, 1f);
+        return new GuiDriver(() => [surface], new InlineDispatcher(), (_, _, _) => { });
+    }
 
     private static int FreePort()
     {

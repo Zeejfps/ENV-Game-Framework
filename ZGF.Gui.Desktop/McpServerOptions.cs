@@ -4,8 +4,7 @@ namespace ZGF.Gui.Desktop;
 
 /// <summary>
 /// What a <see cref="GuiMcpServer"/> starts from: where it listens, how it introduces itself to the
-/// client, and which tools and prompts it serves. The framework's own <c>gui_*</c> debug tools are
-/// off unless asked for, so an app-facing server exposes only what the app registers.
+/// client, and which tools and prompts it serves.
 /// </summary>
 public sealed record McpServerOptions
 {
@@ -35,14 +34,7 @@ public sealed record McpServerOptions
     /// </summary>
     public McpPathToken? PathToken { get; init; }
 
-    /// <summary>
-    /// Whether the <c>gui_*</c> view-tree and input-injection tools are served. A debug aid: they
-    /// let a client click and type into the live window, so a server a user turns on from a
-    /// preference leaves them off.
-    /// </summary>
-    public bool IncludeGuiTools { get; init; }
-
-    /// <summary>App tool sources, each asked to register its tools once per client session.</summary>
+    /// <summary>Tool sources, each asked to register its tools once per client session.</summary>
     public IReadOnlyList<IMcpToolSource> ToolSources { get; init; } = [];
 
     /// <summary>Prompts to advertise; null leaves the prompts capability off.</summary>

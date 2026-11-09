@@ -14,7 +14,7 @@ namespace ZGF.Gui.Desktop.Automation;
 /// Drives a running app from a script: find a view, click it, type into it, wait for something to
 /// appear, grab a screenshot — across every live window (main, secondary, popups, context menus).
 /// The Playwright-shaped counterpart to the headless test harness, and the engine behind
-/// <see cref="GuiMcpServer"/>.
+/// <see cref="RetainedGuiTools"/>.
 ///
 /// Every call marshals onto the UI thread and blocks for the result, so <b>call this from a script
 /// thread, never from the UI thread</b> — from the UI thread it would deadlock against itself, and
@@ -53,8 +53,7 @@ public sealed class GuiDriver : ITypeSink
 
     /// <summary>Every live window's view tree, rendered as text (or JSON) — roles, labels, bounds,
     /// focus. The thing to print when a lookup fails and you want to know why.</summary>
-    public string Snapshot(bool asJson = false) => RunOnUi(() =>
-        new MultiWindowSnapshot(BuildWindowSnapshots()).Render(asJson));
+    public string Snapshot(bool asJson = false) => SnapshotTool().Render(asJson);
 
     /// <summary>True when a view with this id (or clickable label, or visible text) is on screen.</summary>
     public bool Exists(string selector) => RunOnUi(() => Resolve(selector, exact: true) != null);
@@ -205,6 +204,8 @@ public sealed class GuiDriver : ITypeSink
     }
 
     // ---- the full-selector surface, shared with the MCP tools ----
+
+    internal MultiWindowSnapshot SnapshotTool() => RunOnUi(() => new MultiWindowSnapshot(BuildWindowSnapshots()));
 
     internal string ClickTool(
         string? id, string? label, string? text, bool exact,

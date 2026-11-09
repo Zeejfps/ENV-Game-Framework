@@ -160,9 +160,41 @@ public sealed record UiSnapshot(UiNode Root)
             AppendNode(sb, child, depth + 1);
     }
 
+    /// <summary>Every node in pre-order as one flat array, each carrying the index of its
+    /// <c>parent</c> (-1 for the root) in place of nested <c>children</c>, so the JSON's depth does not
+    /// grow with the tree's.</summary>
+    public void WriteFlatJson(Utf8JsonWriter writer)
+    {
+        writer.WriteStartArray();
+        var next = 0;
+        WriteFlatNode(writer, Root, -1, ref next);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteFlatNode(Utf8JsonWriter w, UiNode n, int parent, ref int next)
+    {
+        var index = next++;
+        w.WriteStartObject();
+        w.WriteNumber("parent", parent);
+        WriteNodeFields(w, n);
+        w.WriteEndObject();
+        foreach (var child in n.Children) WriteFlatNode(w, child, index, ref next);
+    }
+
     private static void WriteNode(Utf8JsonWriter w, UiNode n)
     {
         w.WriteStartObject();
+        WriteNodeFields(w, n);
+
+        w.WriteStartArray("children");
+        foreach (var child in n.Children) WriteNode(w, child);
+        w.WriteEndArray();
+
+        w.WriteEndObject();
+    }
+
+    private static void WriteNodeFields(Utf8JsonWriter w, UiNode n)
+    {
         w.WriteString("type", n.Type);
         WriteStringOrNull(w, "id", n.Id);
         WriteStringOrNull(w, "role", string.IsNullOrEmpty(n.Role.Name) ? null : n.Role.Name);
@@ -183,12 +215,6 @@ public sealed record UiSnapshot(UiNode Root)
         w.WriteStartArray("states");
         foreach (var state in n.States) w.WriteStringValue(state);
         w.WriteEndArray();
-
-        w.WriteStartArray("children");
-        foreach (var child in n.Children) WriteNode(w, child);
-        w.WriteEndArray();
-
-        w.WriteEndObject();
     }
 
     private static void WriteStringOrNull(Utf8JsonWriter w, string name, string? value)

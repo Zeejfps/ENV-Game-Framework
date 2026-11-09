@@ -330,7 +330,7 @@ public sealed class GuiApp : IDisposable
         GuiMcpServer server;
         try
         {
-            server = new GuiMcpServer(options, CreateDriver());
+            server = new GuiMcpServer(options);
         }
         catch (System.Net.HttpListenerException ex)
         {
@@ -359,7 +359,7 @@ public sealed class GuiApp : IDisposable
         if ((configuredPort ?? ResolveEnvMcpPort()) is not { } port) return;
         try
         {
-            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, IncludeGuiTools = true }, CreateDriver());
+            _debugMcpServer = new GuiMcpServer(new McpServerOptions { Port = port, ToolSources = [new RetainedGuiTools(CreateDriver())] });
             Console.WriteLine($"[GuiMcpServer] MCP (Streamable HTTP) listening on {_debugMcpServer.Endpoint}  (tools: gui_snapshot, gui_screenshot, gui_click, gui_move, gui_type, gui_key)");
         }
         catch (System.Net.HttpListenerException ex)
