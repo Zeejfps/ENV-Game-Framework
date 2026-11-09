@@ -132,7 +132,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
             _clearColor = _ui.WindowBackground;
             WireMainFrame();
             _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
-            _maximizeOnShow = config.StartHidden && config.StartMaximized;
+            _maximizeOnShow = config.StartHidden && config.StartMaximized && !config.IsFixedSize;
 
             Subscribe(_window);
             _window.OnResize += HandleResize;

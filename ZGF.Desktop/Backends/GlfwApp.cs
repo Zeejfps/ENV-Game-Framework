@@ -34,6 +34,9 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         if (startupConfig.IsUndecorated)
             Glfw.WindowHint(Hint.Decorated, false);
 
+        if (startupConfig.IsFixedSize)
+            Glfw.WindowHint(Hint.Resizable, false);
+
         if (startupConfig.StartUnfocused || startupConfig.Headless)
         {
             Glfw.WindowHint(Hint.FocusOnShow, false);
@@ -230,7 +233,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         else
         {
             Main.Show();
-            if (_startupConfig.StartMaximized)
+            if (_startupConfig.StartMaximized && !_startupConfig.IsFixedSize)
                 Glfw.MaximizeWindow(Main.GlfwWindow);
         }
     }

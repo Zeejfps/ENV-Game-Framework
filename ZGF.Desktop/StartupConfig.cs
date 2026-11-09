@@ -22,8 +22,13 @@ public readonly struct StartupConfig
     public int? WindowY { get; init; }
 
     // Opens the main window maximized; WindowX/WindowY/WindowWidth/WindowHeight are then the bounds
-    // it restores to.
+    // it restores to. Ignored for a window of IsFixedSize.
     public bool StartMaximized { get; init; }
+
+    // Keeps the main window at the size it opens at: the user can neither resize nor maximize it, the
+    // window system leaving off its resize edges and its maximize (on macOS, zoom) button, as for a
+    // small window that only shows progress.
+    public bool IsFixedSize { get; init; }
 
     // Never shows or focuses the main window, and the run loop never draws it: for automation, which draws
     // every window offscreen when it asks. StartHidden and StartMaximized are then ignored.
