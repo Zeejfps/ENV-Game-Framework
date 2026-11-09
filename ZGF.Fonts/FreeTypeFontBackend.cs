@@ -21,6 +21,7 @@ public sealed unsafe class FreeTypeFontBackend : IDisposable
 
     public FreeTypeFontBackend(int atlasWidth = 2048, int atlasHeight = 2048, int atlasMaxHeight = 8192)
     {
+        NativeFontLibraries.EnsureLoaded();
         _library = new FreeTypeLibrary();
         _atlas = new GlyphAtlas(atlasWidth, atlasHeight, atlasMaxHeight);
     }

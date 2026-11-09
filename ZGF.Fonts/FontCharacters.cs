@@ -21,6 +21,7 @@ public sealed class FontCharacters
     /// when FreeType cannot load it, as when the data is no font or a font cut short.</summary>
     public static unsafe FontCharacters? TryRead(byte[] data, int faceIndex = 0)
     {
+        NativeFontLibraries.EnsureLoaded();
         using var library = new FreeTypeLibrary();
         fixed (byte* bytes = data)
         {
