@@ -51,11 +51,27 @@ public sealed class WebViewTests
         _frames.Frame(2);
         Assert.Empty(_frames.Canvas.Images);
 
-        _web.Sink!.OnPixels(2, 2, new byte[16]);
+        _web.Sink!.OnPixels(200, 100, new byte[200 * 100 * 4]);
         _frames.Frame();
 
         var image = Assert.Single(_frames.Canvas.Images);
         Assert.Equal(Page.Width, image.Inputs.Position.Width);
+        Assert.Equal(Page.Height, image.Inputs.Position.Height);
+    }
+
+    [Fact]
+    public void A_frame_painted_before_a_resize_is_drawn_at_its_own_size_over_the_background()
+    {
+        _setup = new WebViewSetup { Background = 0xFF0A0A0A };
+        _frames.Frame(2);
+
+        _web.Sink!.OnPixels(120, 60, new byte[120 * 60 * 4]);
+        _frames.Frame();
+
+        var page = Page;
+        var image = _frames.ToUi(Assert.Single(_frames.Canvas.Images).Inputs.Position);
+        Assert.Equal(new UiRect(page.X, page.Y, 120f, 60f), image);
+        Assert.Equal(0xFF0A0A0Au, PlaceholderColor());
     }
 
     private uint PlaceholderColor()
@@ -136,7 +152,9 @@ public sealed class WebViewTests
 
         _frames.Key(KeyboardKey.W).Key(KeyboardKey.UpArrow).Key(KeyboardKey.Space).Frame();
 
-        int[] expected = OperatingSystem.IsMacOS() ? [0x0D, 0x7E, 0x31] : [0x11, 0xE048, 0x39];
+        int[] expected = OperatingSystem.IsMacOS() ? [0x0D, 0x7E, 0x31]
+            : OperatingSystem.IsLinux() ? [25, 111, 65]
+            : [0x11, 0xE048, 0x39];
         Assert.Equal(expected, View.NativeKeyCodes);
     }
 
