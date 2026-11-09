@@ -17,7 +17,9 @@ public static class NativeFilePicker
     /// <param name="owner">The window the dialogs belong to: they stay above it, open centred on
     /// it, and block input to it while open. Null leaves them unowned. Honoured on Windows and on
     /// Linux through the portal under X11 (XWayland included); the macOS chooser and the Linux
-    /// command-line fallbacks run in another process and cannot be owned.</param>
+    /// command-line fallbacks run in another process and cannot be owned. On Windows an owner needs
+    /// the calling thread to be an STA, as a <c>[STAThread]</c> Main makes the UI thread; on an MTA
+    /// this throws.</param>
     public static IFilePicker Create(Action<Action> postToUiThread, IWindow? owner)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

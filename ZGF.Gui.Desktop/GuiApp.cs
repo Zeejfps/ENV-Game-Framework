@@ -34,6 +34,7 @@ public sealed class GuiApp : IDisposable
     private readonly State<McpServerState> _mcpServerState = new(new McpServerState.Stopped());
     private GuiMcpServer? _mcpServer;
     private GuiMcpServer? _debugMcpServer;
+    private ISystemMenuBar? _systemMenuBar;
 
     public Context Context => _context;
     
@@ -250,6 +251,23 @@ public sealed class GuiApp : IDisposable
     ///     appearance, where the platform draws one the app can theme.
     /// </summary>
     public void SetTitleBarDark(bool dark) => _app.MainWindow.SetTitleBarTheme(dark);
+
+    /// <summary>Registers the OS-native <see cref="IFilePicker"/> on the app's context, its dialogs
+    /// belonging to the main window. Anything that asks the context for the picker must do so after
+    /// this is called.</summary>
+    public void AddNativeFilePicker() => _context.AddNativeFilePicker(_app.MainWindow);
+
+    /// <summary>The window system's own menu bar, which shows the menus the app gives it in place
+    /// of a bar inside the window: macOS's. Null where the system has none.</summary>
+    public ISystemMenuBar? SystemMenuBar
+    {
+        get
+        {
+            if (!OperatingSystem.IsMacOS())
+                return null;
+            return _systemMenuBar ??= new MacMenuBar();
+        }
+    }
 
     /// <summary>
     /// Sets the UI's base writing direction on the main canvas, flipping text alignment and the bidi

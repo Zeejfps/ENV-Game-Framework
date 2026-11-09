@@ -14,7 +14,7 @@ public enum AppMenuRole
 }
 
 /// <summary>What the system itself does for an item, in place of the app: macOS hides and quits
-/// the app and minimizes and zooms its windows.</summary>
+/// the app and minimizes, zooms, closes and takes full screen its windows.</summary>
 public enum AppMenuSystemAction
 {
     None,
@@ -24,6 +24,8 @@ public enum AppMenuSystemAction
     Quit,
     Minimize,
     Zoom,
+    ToggleFullScreen,
+    Close,
     BringAllToFront,
 }
 
