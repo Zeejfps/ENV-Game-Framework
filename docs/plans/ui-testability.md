@@ -1,6 +1,8 @@
 # UI Testability: Scriptable, Headless, Cross-Platform
 
-Status: **proposed**, revised after three adversarial reviews. Drafted 2026-11-08.
+Status: **phases 1–4 implemented**; D8 remains. Drafted 2026-11-08. Usage is in `docs/testing.md`.
+Not yet run on macOS: the Metal device, offscreen targets and automation-mode setup compile but have
+only been verified on Windows and Linux (Mesa).
 
 ## Goal
 
