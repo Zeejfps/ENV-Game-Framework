@@ -1361,10 +1361,18 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
         _normalBounds = (x, y, _window.Width, _window.Height);
     }
 
+    /// <summary>Draws the frame now at the window's new size, so a live resize does not show stretched content. A resize
+    /// that comes while a frame is being drawn, as when the frame shows the window maximized and Windows sizes it at once,
+    /// only asks for another: drawing one inside it would start the frame's UI over under the frame still being drawn.</summary>
     private void HandleResize(int width, int height)
     {
         TrackBounds();
         SyncScale();
+        if (_drawing)
+        {
+            RequestRedraw();
+            return;
+        }
         if (_automation == null)
             _render.RenderWindowNow(_window);
     }
