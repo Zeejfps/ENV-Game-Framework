@@ -83,8 +83,11 @@ text nodes, and raw coordinates (`Click(x, y)`, `Drag`) always work.
 - Input goes into the next frame; a click is move, press and release over three frames.
 - Time is virtual. `Settle(max)` steps it until nothing but perpetual animation (spinners, caret blink)
   is pending.
-- `WaitUntilReady(timeout)` and `WaitUntil(predicate, timeout)` wait in real time for posted work,
-  frame requests and tracked `BackgroundWork`, without advancing virtual time.
+- `WaitUntilReady(timeout)` waits in real time for posted work, frame requests and tracked
+  `BackgroundWork`, without advancing virtual time.
+- `WaitUntil(predicate, timeout)` and `WaitFor(selector, timeout)` wait for posted work and frame
+  requests until the predicate holds or the node appears, but not for tracked `BackgroundWork`; call
+  `WaitUntilReady` first when the result depends on it.
 - Animation that needs time to pass calls `ui.RequestAnimationFrame()`; a state change that needs another
   frame calls `ui.RequestUpdate()`. Readiness waits for the second, `Settle` for both.
 
@@ -99,16 +102,20 @@ app.WaitFor(Selector.WithText("groceries.txt"), TimeSpan.FromSeconds(20));
 app.Look("opened");
 ```
 
+That clicks the sample's File menu, which is drawn in the window on Windows and Linux. On macOS the menu
+bar is the system's, so it has no nodes there: list it with `SystemMenuItems()` and invoke an item with
+`PickSystemMenuItem`.
+
 `RemoteApp` launches the app with `--zgf-automation`, and drives it over its MCP server. In automation
 mode the app keeps every window hidden, takes input only from the driver, runs on a virtual clock, and
 answers the file picker, clipboard and menus from fakes the script controls (`QueueFilePickerAnswer`,
-`SetClipboard`, `PickSystemMenuItem`, `Effects()`). The app must serve automation at startup, as
+`SetClipboardText`, `PickSystemMenuItem`, `Effects()`). The app must serve automation at startup, as
 `ZGF.Gui.Immediate.Sample/Program.cs` does with `ImmediateMcp.ServeAutomation`. On Linux it needs a
 display server. See `ZGF.Gui.Automation.Tests` for examples.
 
 ## An app that is already running
 
 An app started with an inspection server (the sample: `--zgf-inspect <port>`, via
-`ImmediateMcp.ServeInspection`) serves `gui_snapshot` and `gui_screenshot` only. Every tool that would
-send input answers `unsupported`, so looking never disturbs the user. Screenshots show the main window
-only.
+`ImmediateMcp.ServeInspection`) answers `gui_capabilities`, `gui_snapshot` and `gui_screenshot`. Every
+other tool is listed but answers `unsupported`, so looking never sends input or moves focus.
+Screenshots show the main window only.
