@@ -68,7 +68,7 @@ public static partial class UiWidgets
             state.GoalX = -1f;
             // Dragging above or below the field scrolls it, a frame at a time, as the caret follows.
             if (i.Held && ui.TryGetRect(scrollId, out var view) && (pointer.Y < view.Y || pointer.Y > view.Bottom))
-                ui.RequestUpdate();
+                ui.RequestAnimationFrame();
         }
         if (i.Pressed)
         {

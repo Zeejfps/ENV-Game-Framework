@@ -353,7 +353,11 @@ public static partial class UiWidgets
         var theme = ui.Theme;
         var height = theme.ProgressHeight;
         using (ui.Box(new Box { Width = width ?? Sizing.Grow(), Height = height, Background = theme.Control, Radius = height / 2 }))
+        {
+            if (ui.WantsSemantics)
+                ui.Semantics(SemanticRole.ProgressBar, value: Math.Clamp(fraction, 0f, 1f).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
             ui.Leaf(new Box { Width = Sizing.Percent(Math.Clamp(fraction, 0f, 1f)), Height = Sizing.Grow(), Background = theme.Accent, Radius = height / 2 });
+        }
     }
 
     /// <summary>Paints <see cref="UiTheme.FocusRing"/> inside the element being recorded, rounded by

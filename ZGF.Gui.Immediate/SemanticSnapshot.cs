@@ -19,10 +19,12 @@ public sealed class SemanticSnapshot
     private readonly IReadOnlyList<SemanticNode?> _modals;
     private readonly IReadOnlyDictionary<int, SemanticNode> _byHitId;
     private readonly bool _pointerLocked;
+    private readonly IReadOnlyList<ICanvas> _canvases;
 
-    internal SemanticSnapshot(long frame, SemanticNode root, IReadOnlyList<SemanticSurface> surfaces, HitRegion[] hits,
-        IReadOnlyList<SemanticNode?> modals, IReadOnlyDictionary<int, SemanticNode> byHitId, bool pointerLocked)
+    internal SemanticSnapshot(long frame, SemanticNode root, IReadOnlyList<SemanticSurface> surfaces, IReadOnlyList<ICanvas> canvases,
+        HitRegion[] hits, IReadOnlyList<SemanticNode?> modals, IReadOnlyDictionary<int, SemanticNode> byHitId, bool pointerLocked)
     {
+        _canvases = canvases;
         Frame = frame;
         Root = root;
         Surfaces = surfaces;
@@ -42,6 +44,23 @@ public sealed class SemanticSnapshot
     public IReadOnlyList<SemanticSurface> Surfaces { get; }
 
     public IEnumerable<SemanticNode> Nodes => Root.SelfAndDescendants();
+
+    /// <summary>The canvas <paramref name="surface"/>, taken from this snapshot or an earlier one of the same
+    /// <see cref="Ui"/>, was drawn on, if it is still shown in this one.</summary>
+    /// <exception cref="ArgumentException"><paramref name="surface"/> came from another <see cref="Ui"/>'s snapshot,
+    /// or is not shown in this one: closed, or replaced by another window, wherever that is.</exception>
+    internal ICanvas CanvasOf(SemanticSurface surface)
+    {
+        var owner = Surfaces[0].Owner;
+        if (surface.Owner == null || surface.Owner != owner)
+            throw new ArgumentException($"{surface} came from another harness's snapshot, not this one's.", nameof(surface));
+        for (var i = 0; i < Surfaces.Count; i++)
+        {
+            if (Surfaces[i].Id == surface.Id)
+                return _canvases[i];
+        }
+        throw new ArgumentException($"{surface} is not shown in frame {Frame}: it was closed, or replaced by another.", nameof(surface));
+    }
 
     /// <summary>The one node <paramref name="selector"/> names: <see cref="TargetResult.Found"/>, or
     /// <see cref="TargetResult.NotFound"/> or <see cref="TargetResult.Ambiguous"/>.</summary>

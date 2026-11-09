@@ -6,7 +6,7 @@ public enum FramePending
 {
     None = 0,
 
-    /// <summary>The frame asked for the next at once, as an animation under way does.</summary>
+    /// <summary>The frame asked for the next at once to finish a change of state, as a focus move does.</summary>
     Update = 1,
 
     /// <summary>The frame asked for one once some time has passed, and not as ambient.</summary>
@@ -17,6 +17,10 @@ public enum FramePending
 
     /// <summary>Tracked <see cref="BackgroundWork"/> is still running.</summary>
     BackgroundWork = 8,
+
+    /// <summary>The frame asked for the next at once because something moves as time passes, as an animation
+    /// under way does; readiness does not wait for it, settling runs it out.</summary>
+    Animation = 16,
 }
 
 /// <summary>How <see cref="UiFrames{TState}.Settle"/> ended: settled when nothing is

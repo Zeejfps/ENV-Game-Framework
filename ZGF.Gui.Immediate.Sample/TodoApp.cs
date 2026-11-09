@@ -129,7 +129,7 @@ public sealed class TodoApp(TodoState state) : ImmediateGuiApp<DefaultUiState>(n
             for (var i = list.First; i < list.End; i++)
             {
                 var item = _shown[i];
-                using (ui.Id(item.Id))
+                using (ui.KeyedId(item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)))
                 using (list.Row(i, ui.GetId("row"), new Box { Padding = 0f }))
                 {
                     ui.Checkbox(item.Title, ref item.Done, item.Done ? theme.TextMuted : null, id: "done");

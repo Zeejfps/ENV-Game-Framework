@@ -231,6 +231,37 @@ public sealed class ReadinessTests
     }
 
     [Fact]
+    public void Readiness_does_not_wait_for_a_tween_that_needs_time_and_reports_it_animating()
+    {
+        var target = 0f;
+        var frames = new UiFrames(new DefaultUiState(), body: ui => ui.Animate("v", target, Tween.Linear(1000f)));
+        frames.Frame();
+        target = 1f;
+
+        frames.WaitUntilReady(Timeout);
+
+        Assert.Equal(0.0, frames.RealTime);
+        Assert.Equal(FramePending.Animation, frames.Animating & FramePending.Animation);
+        Assert.False(frames.Settle(maxSeconds: 0.1).Settled);
+    }
+
+    [Fact]
+    public void Readiness_runs_a_long_finite_chain_of_updates_to_its_end()
+    {
+        var left = 50;
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            if (left-- > 0)
+                ui.RequestUpdate();
+        });
+
+        frames.WaitUntilReady(Timeout);
+
+        Assert.True(left < 0);
+        Assert.Equal(FramePending.None, frames.Animating);
+    }
+
+    [Fact]
     public void Readiness_reports_work_that_failed()
     {
         var background = new BackgroundWork();

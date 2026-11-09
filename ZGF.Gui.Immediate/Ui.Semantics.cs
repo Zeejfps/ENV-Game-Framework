@@ -18,6 +18,13 @@ public abstract partial class Ui
     private readonly Dictionary<int, int> _modalElements = new();
     private readonly HashSet<int> _windowElements = new();
     private readonly List<ElementVisit> _visits = new();
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ICanvas, System.Runtime.CompilerServices.StrongBox<long>> _surfaceIds = new();
+    private long _nextSurfaceId;
+
+    /// <summary>The identity of the surface <paramref name="canvas"/> draws, given the first time it is asked for
+    /// and never given to another canvas.</summary>
+    private long SurfaceIdOf(ICanvas canvas) =>
+        _surfaceIds.GetValue(canvas, _ => new System.Runtime.CompilerServices.StrongBox<long>(++_nextSurfaceId)).Value;
 
     /// <summary>Whether each frame ends by building a <see cref="Snapshot"/>; until set, frames record no
     /// semantics, paths or snapshot at all. Takes effect from the next frame.</summary>
@@ -197,6 +204,7 @@ public abstract partial class Ui
         private readonly int _hovered;
         private readonly Dictionary<int, SemanticSurface> _surfaceOfLayer = new();
         private readonly List<SemanticSurface> _surfaces = new();
+        private readonly List<ICanvas> _canvases = new();
         private readonly HashSet<int> _popupElements = new();
         private readonly HashSet<int> _modalElements;
         private readonly Dictionary<int, SemanticNode> _nodeOfElement = new();
@@ -216,7 +224,12 @@ public abstract partial class Ui
         {
             var ui = _ui;
             var tree = ui._tree;
-            _surfaces.Add(new SemanticSurface(SurfaceKind.Main, 0, new UiRect(0f, 0f, ui.Width, ui.Height), ui._canvas.DpiScale));
+            _surfaces.Add(new SemanticSurface(SurfaceKind.Main, 0, new UiRect(0f, 0f, ui.Width, ui.Height), ui._canvas.DpiScale)
+            {
+                Id = ui.SurfaceIdOf(ui._canvas),
+                Owner = ui,
+            });
+            _canvases.Add(ui._canvas);
             for (var i = 0; i < tree.Count; i++)
                 AddSurface(i);
 
@@ -228,7 +241,7 @@ public abstract partial class Ui
             var modals = new SemanticNode?[ui._layers.Count];
             foreach (var (layer, element) in ui._modalElements)
                 modals[layer] = _nodeOfElement.GetValueOrDefault(element);
-            return new SemanticSnapshot(ui._frame, root, _surfaces, _hits, modals, _byHitId, ui._input.PointerLocked);
+            return new SemanticSnapshot(ui._frame, root, _surfaces, _canvases, _hits, modals, _byHitId, ui._input.PointerLocked);
         }
 
         private void AddSurface(int index)
@@ -238,8 +251,9 @@ public abstract partial class Ui
             var (canvas, rect) = _ui._tree.LayerAt(layer);
             if (canvas == null) return;
             var kind = _popupElements.Contains(index) ? SurfaceKind.Popup : SurfaceKind.Window;
-            var surface = new SemanticSurface(kind, _surfaces.Count, rect, canvas.DpiScale);
+            var surface = new SemanticSurface(kind, _surfaces.Count, rect, canvas.DpiScale) { Id = _ui.SurfaceIdOf(canvas), Owner = _ui };
             _surfaces.Add(surface);
+            _canvases.Add(canvas);
             _surfaceOfLayer[layer] = surface;
         }
 

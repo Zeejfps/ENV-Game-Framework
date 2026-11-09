@@ -6,7 +6,7 @@ namespace ZGF.Gui.Immediate.Testing;
 /// <see cref="Result"/> says which. The message holds the snapshot it was looked for in.</summary>
 public sealed class UiTargetException : Exception
 {
-    private UiTargetException(TargetResult result, string message) : base(message)
+    private UiTargetException(TargetResult result, string message, Exception? inner = null) : base(message, inner)
     {
         Result = result;
     }
@@ -14,6 +14,9 @@ public sealed class UiTargetException : Exception
     public TargetResult Result { get; }
 
     internal static UiTargetException For(TargetResult result, SemanticSnapshot snapshot) => new(result, Describe(result, snapshot));
+
+    /// <summary>This failure with <paramref name="note"/> put first in its message.</summary>
+    internal UiTargetException WithNote(string note) => new(Result, note + "\n" + Message, this);
 
     internal static string Describe(TargetResult result, SemanticSnapshot snapshot)
     {

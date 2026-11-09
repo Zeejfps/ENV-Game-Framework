@@ -14,6 +14,8 @@ public enum SemanticRole
     TextField,
     TextArea,
     Slider,
+    /// <summary>How far something has got; its value is the fraction done, 0 to 1.</summary>
+    ProgressBar,
     SegmentedControl,
     Segment,
     TabList,
@@ -76,8 +78,17 @@ public enum SurfaceKind
 
 /// <summary>The window a node draws on: the main one, index 0, or a popup or window of its own,
 /// whose top-left is <see cref="Rect"/>'s, in the main window's UI points, at
-/// <see cref="DpiScale"/> pixels per point.</summary>
-public readonly record struct SemanticSurface(SurfaceKind Kind, int Index, UiRect Rect, float DpiScale);
+/// <see cref="DpiScale"/> pixels per point. Two are equal only when they are the same window of the same
+/// <see cref="Ui"/>: a window replaced by another at the same place is another surface.</summary>
+public readonly record struct SemanticSurface(SurfaceKind Kind, int Index, UiRect Rect, float DpiScale)
+{
+    /// <summary>The surface's identity within <see cref="Owner"/>, given when its canvas first drew as one and
+    /// never given to another.</summary>
+    internal long Id { get; init; }
+
+    /// <summary>The <see cref="Ui"/> whose snapshot it came from.</summary>
+    internal object? Owner { get; init; }
+}
 
 /// <summary>One element of a completed frame as a test sees it: what it is, what it says, its state,
 /// and where it is, in the main window's UI points from its top-left.</summary>

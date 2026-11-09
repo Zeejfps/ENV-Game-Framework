@@ -11,28 +11,28 @@ public sealed class GlCanvasSession : ICanvasSession
 
     private readonly GpuDevice _device;
     private readonly FreeTypeFontBackend _fonts;
+    private readonly FontHandle _font;
     private readonly GlImageManager _images;
     private readonly GlSharedResources _shared;
-    private readonly OpenGlRenderedCanvas _canvas;
-    private readonly GlOffscreenTarget _target;
-    private bool _drawing;
+    private readonly GlCanvasSurface _main;
+    private readonly List<GlCanvasSurface> _surfaces = [];
     private bool _released;
 
-    private GlCanvasSession(GpuDevice device, FreeTypeFontBackend fonts, GlImageManager images,
-        GlSharedResources shared, OpenGlRenderedCanvas canvas, GlOffscreenTarget target)
+    private GlCanvasSession(GpuDevice device, FreeTypeFontBackend fonts, FontHandle font, GlImageManager images,
+        GlSharedResources shared, GlCanvasSurface main)
     {
         _device = device;
         _fonts = fonts;
+        _font = font;
         _images = images;
         _shared = shared;
-        _canvas = canvas;
-        _target = target;
+        _main = main;
     }
 
-    public TargetSize Size => _target.Size;
+    public TargetSize Size => _main.Size;
 
     /// <inheritdoc/>
-    public RenderedCanvasBase Canvas => _canvas;
+    public RenderedCanvasBase Canvas => _main.Canvas;
 
     public FreeTypeFontBackend Fonts => _fonts;
 
@@ -44,68 +44,60 @@ public sealed class GlCanvasSession : ICanvasSession
         var size = TargetSize.Of(width, height, dpiScale);
         return device.Run(() =>
         {
-            var target = GlOffscreenTarget.Create(device, size);
             var fonts = new FreeTypeFontBackend();
             var images = new GlImageManager();
             GlSharedResources? shared = null;
-            OpenGlRenderedCanvas? canvas = null;
             try
             {
                 var pixels = Math.Max(1, (int)MathF.Round(DefaultPixels * dpiScale));
                 var font = fonts.LoadFontFromMemory(EmbeddedAssets.LoadBytes(typeof(RenderedCanvasBase).Assembly, "Inter-Regular.ttf"), pixels);
                 shared = new GlSharedResources(fonts, images);
-                canvas = new OpenGlRenderedCanvas(width, height, fonts, font, shared, dpiScale);
-                var session = new GlCanvasSession(device, fonts, images, shared, canvas, target);
+                var main = GlCanvasSurface.Create(device, size, fonts, font, shared, null);
+                var session = new GlCanvasSession(device, fonts, font, images, shared, main);
                 device.Own(session);
                 return session;
             }
             catch
             {
-                canvas?.Dispose();
                 shared?.Dispose();
                 images.Dispose();
                 fonts.Dispose();
-                target.Dispose();
                 throw;
             }
         });
     }
 
     /// <inheritdoc/>
-    public void Draw(Action<RenderedCanvasBase> draw, uint clearArgb = 0u) => _device.Run(() =>
-    {
-        ObjectDisposedException.ThrowIf(_released, this);
-        if (_drawing)
-            throw new InvalidOperationException("This session is already drawing a frame.");
-        _drawing = true;
-        try
-        {
-            _target.Clear(clearArgb);
-            _canvas.BeginFrame();
-            draw(_canvas);
-            _target.Bind();
-            _canvas.EndFrame();
-        }
-        finally
-        {
-            _drawing = false;
-        }
-    });
-
-    /// <inheritdoc cref="GlOffscreenTarget.Read"/>
-    public RgbaImage Read() => _target.Read();
+    public void Draw(Action<RenderedCanvasBase> draw, uint clearArgb = 0u) => _main.Draw(draw, clearArgb);
 
     /// <inheritdoc/>
-    public void Resize(int width, int height)
+    public void BeginFrame() => _main.BeginFrame();
+
+    /// <inheritdoc/>
+    public void EndFrame(uint clearArgb = 0u) => _main.EndFrame(clearArgb);
+
+    /// <inheritdoc cref="GlOffscreenTarget.Read"/>
+    public RgbaImage Read() => _main.Read();
+
+    /// <inheritdoc/>
+    public void Resize(int width, int height) => _main.Resize(width, height);
+
+    /// <inheritdoc/>
+    public void Resize(int width, int height, float dpiScale) => _main.Resize(width, height, dpiScale);
+
+    /// <inheritdoc/>
+    /// <remarks>The surface starts with the main canvas's font configuration: its default size in points, and the
+    /// families and bold faces registered with it so far.</remarks>
+    public ICanvasSurface CreateSurface(int width, int height, float dpiScale)
     {
-        var size = TargetSize.Of(width, height, Size.DpiScale);
-        _device.Run(() =>
+        var size = TargetSize.Of(width, height, dpiScale);
+        return _device.Run(() =>
         {
             ObjectDisposedException.ThrowIf(_released, this);
-            if (_drawing)
-                throw new InvalidOperationException("A session cannot be resized while it draws a frame.");
-            _target.Resize(size);
-            _canvas.Resize(width, height);
+            var surface = GlCanvasSurface.Create(_device, size, _fonts, _font, _shared, released => _surfaces.Remove(released));
+            _surfaces.Add(surface);
+            surface.Canvas.CopyFontsFrom(_main.Canvas);
+            return surface;
         });
     }
 
@@ -114,7 +106,7 @@ public sealed class GlCanvasSession : ICanvasSession
     /// <exception cref="InvalidOperationException">Called from inside this session's own <see cref="Draw"/>.</exception>
     public void Dispose() => _device.TryRun(() =>
     {
-        if (_drawing)
+        if (_main.IsDrawing)
             throw new InvalidOperationException("A session cannot be disposed while it draws a frame.");
         Release();
     });
@@ -124,10 +116,11 @@ public sealed class GlCanvasSession : ICanvasSession
         if (_released) return;
         _released = true;
         _device.Disown(this);
-        _canvas.Dispose();
+        foreach (var surface in _surfaces.ToArray())
+            surface.Release();
+        _main.Release();
         _shared.Dispose();
         _images.Dispose();
         _fonts.Dispose();
-        _target.Dispose();
     }
 }

@@ -13,28 +13,28 @@ public sealed class MetalCanvasSession : ICanvasSession
 
     private readonly GpuDevice _device;
     private readonly FreeTypeFontBackend _fonts;
+    private readonly FontHandle _font;
     private readonly MetalImageManager _images;
     private readonly MetalSharedResources _shared;
-    private readonly MetalRenderedCanvas _canvas;
-    private readonly MetalOffscreenTarget _target;
-    private bool _drawing;
+    private readonly MetalCanvasSurface _main;
+    private readonly List<MetalCanvasSurface> _surfaces = [];
     private bool _released;
 
-    private MetalCanvasSession(GpuDevice device, FreeTypeFontBackend fonts, MetalImageManager images,
-        MetalSharedResources shared, MetalRenderedCanvas canvas, MetalOffscreenTarget target)
+    private MetalCanvasSession(GpuDevice device, FreeTypeFontBackend fonts, FontHandle font, MetalImageManager images,
+        MetalSharedResources shared, MetalCanvasSurface main)
     {
         _device = device;
         _fonts = fonts;
+        _font = font;
         _images = images;
         _shared = shared;
-        _canvas = canvas;
-        _target = target;
+        _main = main;
     }
 
-    public TargetSize Size => _target.Size;
+    public TargetSize Size => _main.Size;
 
     /// <inheritdoc/>
-    public RenderedCanvasBase Canvas => _canvas;
+    public RenderedCanvasBase Canvas => _main.Canvas;
 
     public FreeTypeFontBackend Fonts => _fonts;
 
@@ -46,67 +46,61 @@ public sealed class MetalCanvasSession : ICanvasSession
         var size = TargetSize.Of(width, height, dpiScale);
         return device.Run(() =>
         {
-            var target = MetalOffscreenTarget.Create(device, size);
             var fonts = new FreeTypeFontBackend();
             MetalImageManager? images = null;
             MetalSharedResources? shared = null;
-            MetalRenderedCanvas? canvas = null;
             try
             {
                 var pixels = Math.Max(1, (int)MathF.Round(DefaultPixels * dpiScale));
                 var font = fonts.LoadFontFromMemory(EmbeddedAssets.LoadBytes(typeof(RenderedCanvasBase).Assembly, "Inter-Regular.ttf"), pixels);
                 images = new MetalImageManager(metal.Device, metal.CommandQueue);
                 shared = new MetalSharedResources(metal.Device, metal.CommandQueue, fonts, images);
-                canvas = new MetalRenderedCanvas(width, height, fonts, font, shared, dpiScale);
-                var session = new MetalCanvasSession(device, fonts, images, shared, canvas, target);
+                var main = MetalCanvasSurface.Create(device, size, fonts, font, shared, null);
+                var session = new MetalCanvasSession(device, fonts, font, images, shared, main);
                 device.Own(session);
                 return session;
             }
             catch
             {
-                canvas?.Dispose();
                 shared?.Dispose();
                 images?.Dispose();
                 fonts.Dispose();
-                target.Dispose();
                 throw;
             }
         });
     }
 
     /// <inheritdoc/>
-    public void Draw(Action<RenderedCanvasBase> draw, uint clearArgb = 0u) => _device.Run(() =>
-    {
-        ObjectDisposedException.ThrowIf(_released, this);
-        if (_drawing)
-            throw new InvalidOperationException("This session is already drawing a frame.");
-        _drawing = true;
-        try
-        {
-            _canvas.BeginFrame();
-            draw(_canvas);
-            _target.Render(clearArgb, _canvas.EndFrame);
-        }
-        finally
-        {
-            _drawing = false;
-        }
-    });
+    public void Draw(Action<RenderedCanvasBase> draw, uint clearArgb = 0u) => _main.Draw(draw, clearArgb);
 
     /// <inheritdoc/>
-    public RgbaImage Read() => _target.Read();
+    public void BeginFrame() => _main.BeginFrame();
 
     /// <inheritdoc/>
-    public void Resize(int width, int height)
+    public void EndFrame(uint clearArgb = 0u) => _main.EndFrame(clearArgb);
+
+    /// <inheritdoc/>
+    public RgbaImage Read() => _main.Read();
+
+    /// <inheritdoc/>
+    public void Resize(int width, int height) => _main.Resize(width, height);
+
+    /// <inheritdoc/>
+    public void Resize(int width, int height, float dpiScale) => _main.Resize(width, height, dpiScale);
+
+    /// <inheritdoc/>
+    /// <remarks>The surface starts with the main canvas's font configuration: its default size in points, and the
+    /// families and bold faces registered with it so far.</remarks>
+    public ICanvasSurface CreateSurface(int width, int height, float dpiScale)
     {
-        var size = TargetSize.Of(width, height, Size.DpiScale);
-        _device.Run(() =>
+        var size = TargetSize.Of(width, height, dpiScale);
+        return _device.Run(() =>
         {
             ObjectDisposedException.ThrowIf(_released, this);
-            if (_drawing)
-                throw new InvalidOperationException("A session cannot be resized while it draws a frame.");
-            _target.Resize(size);
-            _canvas.Resize(width, height);
+            var surface = MetalCanvasSurface.Create(_device, size, _fonts, _font, _shared, released => _surfaces.Remove(released));
+            _surfaces.Add(surface);
+            surface.Canvas.CopyFontsFrom(_main.Canvas);
+            return surface;
         });
     }
 
@@ -115,7 +109,7 @@ public sealed class MetalCanvasSession : ICanvasSession
     /// <exception cref="InvalidOperationException">Called from inside this session's own <see cref="Draw"/>.</exception>
     public void Dispose() => _device.TryRun(() =>
     {
-        if (_drawing)
+        if (_main.IsDrawing)
             throw new InvalidOperationException("A session cannot be disposed while it draws a frame.");
         Release();
     });
@@ -125,10 +119,11 @@ public sealed class MetalCanvasSession : ICanvasSession
         if (_released) return;
         _released = true;
         _device.Disown(this);
-        _canvas.Dispose();
+        foreach (var surface in _surfaces.ToArray())
+            surface.Release();
+        _main.Release();
         _shared.Dispose();
         _images.Dispose();
         _fonts.Dispose();
-        _target.Dispose();
     }
 }

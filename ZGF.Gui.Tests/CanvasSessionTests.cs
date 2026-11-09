@@ -216,6 +216,78 @@ public sealed class CanvasSessionTests(GpuDeviceFixture fixture, ITestOutputHelp
         Assert.Equal(new Rgba8(0, 0, 255, 255), session.Read()[10, 10]);
     }
 
+    [GpuFact]
+    public void Frames_begun_on_a_session_and_its_surfaces_end_each_into_its_own_target()
+    {
+        using var session = Device.CreateSession(60, 40);
+        var surface = session.CreateSurface(30, 20, 2f);
+
+        Device.Run(() =>
+        {
+            session.BeginFrame();
+            surface.BeginFrame();
+            Fill(session.Canvas, new RectF(0, 0, 60, 40), 0xFFFF0000u);
+            Fill(surface.Canvas, new RectF(0, 0, 30, 20), 0xFF00FF00u);
+            surface.EndFrame();
+            session.EndFrame();
+        });
+
+        Assert.Equal(new Rgba8(255, 0, 0, 255), session.Read()[30, 20]);
+        var image = surface.Read();
+        Assert.Equal((60, 40), (image.Width, image.Height));
+        Assert.Equal(new Rgba8(0, 255, 0, 255), image[59, 39]);
+        Assert.Throws<InvalidOperationException>(() => surface.EndFrame());
+    }
+
+    [GpuFact]
+    public void A_surface_draws_text_with_its_sessions_fonts_and_goes_when_the_session_does()
+    {
+        var session = Device.CreateSession(20, 20);
+        var surface = session.CreateSurface(200, 60, 1f);
+        Device.Run(() =>
+        {
+            surface.BeginFrame();
+            surface.Canvas.DrawText(new DrawTextInputs
+            {
+                Position = new RectF(10, 20, 180, 24),
+                Text = "Hello, surface",
+                Style = new TextStyle { TextColor = 0xFF000000u },
+                ZIndex = 0,
+            });
+            surface.EndFrame(0xFFFFFFFFu);
+        });
+        var image = surface.Read();
+        session.Dispose();
+
+        Assert.Contains(Enumerable.Range(0, image.Width * image.Height), i => image[i % image.Width, i / image.Width] != new Rgba8(255, 255, 255, 255));
+        Assert.Throws<ObjectDisposedException>(() => surface.Read());
+    }
+
+    [GpuFact]
+    public void A_surface_at_twice_its_sessions_scale_draws_text_at_the_same_size_in_points()
+    {
+        using var session = Device.CreateSession(200, 60);
+        var surface = session.CreateSurface(200, 60, 2f);
+        var style = new TextStyle { TextColor = 0xFF000000u };
+        void Hello(ICanvas canvas) => canvas.DrawText(new DrawTextInputs { Position = new RectF(10, 10, 180, 40), Text = "Hello", Style = style, ZIndex = 0 });
+
+        var (lineHeight, surfaceLineHeight) = Device.Run(() => (session.Canvas.MeasureTextLineHeight(style), surface.Canvas.MeasureTextLineHeight(style)));
+        session.Draw(Hello, clearArgb: 0xFFFFFFFFu);
+        Device.Run(() =>
+        {
+            surface.BeginFrame();
+            Hello(surface.Canvas);
+            surface.EndFrame(0xFFFFFFFFu);
+        });
+
+        Assert.Equal(lineHeight, surfaceLineHeight, 0.5f);
+        var ratio = InkedRows(surface.Read()) / (float)InkedRows(session.Read());
+        Assert.InRange(ratio, 1.7f, 2.3f);
+    }
+
+    private static int InkedRows(RgbaImage image) =>
+        Enumerable.Range(0, image.Height).Count(y => Enumerable.Range(0, image.Width).Any(x => image[x, y] != new Rgba8(255, 255, 255, 255)));
+
     [Fact]
     public void A_size_whose_pixels_cannot_be_held_is_refused()
     {

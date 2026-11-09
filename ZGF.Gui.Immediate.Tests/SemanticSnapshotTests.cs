@@ -350,7 +350,7 @@ public sealed class SemanticSnapshotTests
         for (var i = 0; i < 257; i++)
             hits.Add(new HitRegion(2 + i, new UiRect(2f + 3f * i, 0f, 1f, 10f), 0, hits.Count));
         hits.Add(new HitRegion(1000, new UiRect(0f, 0f, 771f, 10f), 0, hits.Count));
-        var snapshot = new SemanticSnapshot(1, target, [], hits.ToArray(), [], new Dictionary<int, SemanticNode>(), pointerLocked: false);
+        var snapshot = new SemanticSnapshot(1, target, [], [], hits.ToArray(), [], new Dictionary<int, SemanticNode>(), pointerLocked: false);
 
         var hittable = Assert.IsType<TargetResult.Hittable>(snapshot.Target(Selector.AtPath("target")));
 
@@ -392,6 +392,21 @@ public sealed class SemanticSnapshotTests
 
         Assert.Contains("never became ready", error.Message);
         Assert.Contains("# frame", error.Message);
+    }
+
+    [Fact]
+    public void A_wait_for_a_node_that_is_there_while_it_animates_finds_it_and_reports_the_animation()
+    {
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            ui.Button("Here");
+            ui.RequestAnimationFrame();
+        });
+
+        var node = frames.WaitFor(Selector.AtPath("Here"), TimeSpan.FromSeconds(10));
+
+        Assert.Equal("Here", node.Label);
+        Assert.Equal(FramePending.Animation, frames.Animating & FramePending.Animation);
     }
 
     [Fact]

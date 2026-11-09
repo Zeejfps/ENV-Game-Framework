@@ -25,3 +25,6 @@ DawnCache/
 GrShaderCache/
 ShaderCache/
 debug.log
+
+# GpuFrames.Look output
+/scratch/

@@ -17,6 +17,7 @@ public static class SampleWidgets
         var flipped = i.Clicked || keyed;
         if (flipped) on = !on;
 
+        ui.Semantics(i.Id, SemanticRole.Switch, label, on ? SemanticStates.Checked : SemanticStates.None);
         var t = ui.Animate(i.Id, on ? 1f : 0f, Spring.Wobbly);
         var track = on ? i.Hovered ? theme.AccentHovered : theme.Accent : i.Hovered ? theme.BorderStrong : theme.Border;
         using (ui.Row(i.Id, new Box { Width = Sizing.Fit(), Height = theme.ControlHeight }))
@@ -64,6 +65,8 @@ public static class SampleWidgets
         }
         value = Math.Clamp(value, min, max);
 
+        if (ui.WantsSemantics)
+            ui.Semantics(i.Id, SemanticRole.Group, value: value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var hovered = i.Hovered || decrement.Hovered || increment.Hovered;
         using (ui.Row(i.Id, new Box
         {
@@ -77,16 +80,17 @@ public static class SampleWidgets
             BorderWidth = focused && ui.FocusVisible ? theme.FocusRingWidth : theme.BorderWidth,
         }))
         {
-            Chevron(ui, "‹", decrement, value > min);
+            Chevron(ui, "‹", $"Decrease {id}", decrement, value > min);
             ui.Text(ui.Memo(id, value, static v => v.ToString()), new Box { Width = theme.ControlHeight - theme.GapTight }, align: Align.Center,
                 bold: true);
-            Chevron(ui, "›", increment, value < max);
+            Chevron(ui, "›", $"Increase {id}", increment, value < max);
         }
         return value != before;
     }
 
-    private static void Chevron(Ui ui, string glyph, Interaction i, bool enabled)
+    private static void Chevron(Ui ui, string glyph, string label, Interaction i, bool enabled)
     {
+        ui.Semantics(i.Id, SemanticRole.Button, label, enabled ? SemanticStates.None : SemanticStates.Disabled);
         var theme = ui.Theme;
         var size = theme.ControlHeight - theme.GapTight * 2;
         ui.Text(glyph, new Box

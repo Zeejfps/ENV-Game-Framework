@@ -152,9 +152,30 @@ public abstract partial class Ui
     /// <summary>When the earliest <see cref="RequestUpdateIn"/> that is not ambient wants its frame.</summary>
     internal double NonAmbientWakeAt { get; private set; } = double.PositiveInfinity;
 
-    /// <summary>Draws another frame after this one, for animation or state that settles over
-    /// several frames.</summary>
-    public void RequestUpdate() => UpdateRequested = true;
+    /// <summary>Whether something recorded so far this frame asked for the next with <see cref="RequestUpdate"/>, to
+    /// finish a change of state, rather than with <see cref="RequestAnimationFrame"/>.</summary>
+    internal bool RequiredUpdateRequested { get; private set; }
+
+    /// <summary>Draws another frame after this one, for state that settles over several frames, such as focus
+    /// moving or a scroll offset taking effect; a test waiting for the UI to be ready waits for it. For something
+    /// that moves while time passes, use <see cref="RequestAnimationFrame"/>.</summary>
+    public void RequestUpdate()
+    {
+        UpdateRequested = true;
+        RequiredUpdateRequested = true;
+    }
+
+    /// <summary>Draws another frame after this one, for something moving on its own as time passes, such as an
+    /// animation, a glide or a drag that scrolls each frame: a test waiting for the UI to be ready does not wait
+    /// for it, and one settling the UI runs it out.</summary>
+    public void RequestAnimationFrame()
+    {
+        UpdateRequested = true;
+        AnimationFrameRequested = true;
+    }
+
+    /// <summary>Whether something recorded so far this frame asked for the next with <see cref="RequestAnimationFrame"/>.</summary>
+    internal bool AnimationFrameRequested { get; private set; }
 
     /// <summary>Draws a frame once <paramref name="seconds"/> of <see cref="RealTime"/> have
     /// passed, without drawing the frames in between.</summary>
@@ -350,6 +371,8 @@ public abstract partial class Ui
         Time += deltaTime;
         RealTime = realTime;
         UpdateRequested = false;
+        RequiredUpdateRequested = false;
+        AnimationFrameRequested = false;
         WakeAt = double.PositiveInfinity;
         NonAmbientWakeAt = double.PositiveInfinity;
         Cursor = MouseCursor.Default;

@@ -183,7 +183,7 @@ public static partial class UiWidgets
             if (PositionNearPointer() is not { } at)
                 return;
             Selection.Drag(Leaves, at);
-            ui.RequestUpdate();
+            ui.RequestAnimationFrame();
         }
 
         private MarkdownPos? PositionNearPointer()
