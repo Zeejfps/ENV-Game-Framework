@@ -321,6 +321,10 @@ internal sealed class CefWebView : IWebView
     public void GoForward() => RunOrDefer(b => b.GoForward());
     public void Reload() => RunOrDefer(b => b.Reload());
 
+    // --- IWebView: audio -------------------------------------------------------
+
+    public void SetAudioMuted(bool muted) => RunOrDefer(b => b.GetHost().SetAudioMuted(muted));
+
     // --- IWebView: input -------------------------------------------------------
 
     public void SendMouseMove(float x, float y, WebInputModifiers modifiers) =>

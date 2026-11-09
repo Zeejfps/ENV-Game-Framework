@@ -19,6 +19,11 @@ public interface IWebView : IDisposable
     void GoForward();
     void Reload();
 
+    // --- Audio ----------------------------------------------------------------
+    /// <summary>Silences everything the view plays, in every frame, or lets it be heard again. The page is not told
+    /// and its media go on playing. Kept across navigations; a view starts unmuted.</summary>
+    void SetAudioMuted(bool muted);
+
     // --- Scripting / JS<->C# bridge ------------------------------------------
     /// <summary>Runs <paramref name="js"/> in the page's top frame (fire-and-forget).</summary>
     void ExecuteScript(string js);

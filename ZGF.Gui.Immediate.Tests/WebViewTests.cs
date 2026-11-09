@@ -274,6 +274,7 @@ public sealed class WebViewTests
         public void GoBack() { }
         public void GoForward() { }
         public void Reload() { }
+        public void SetAudioMuted(bool muted) => Events.Add($"muted {muted}");
         public void ExecuteScript(string js) { }
         public void PostMessage(string json) { }
         public void Resize(int widthPx, int heightPx, float dpiScale) => Events.Add($"resize {widthPx}x{heightPx}@{dpiScale}");
