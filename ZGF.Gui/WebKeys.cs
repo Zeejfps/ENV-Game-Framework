@@ -72,8 +72,22 @@ public static class WebKeys
     /// Chromium turns it into the DOM <c>KeyboardEvent.code</c> (<c>"KeyW"</c>, <c>"ArrowUp"</c>), which
     /// games read for movement; given another platform's code, a page reads W as some other key.
     /// </summary>
-    public static int NativeKeyCodeOf(KeyboardKey key) =>
-        OperatingSystem.IsMacOS() ? MacKeyCodeOf(key) : WindowsNativeKeyCodeOf(key);
+    public static int NativeKeyCodeOf(KeyboardKey key)
+    {
+        if (OperatingSystem.IsMacOS())
+            return MacKeyCodeOf(key);
+        if (OperatingSystem.IsLinux())
+            return LinuxKeyCodeOf(key);
+        return WindowsNativeKeyCodeOf(key);
+    }
+
+    /// <summary>Linux: the X11/XKB keycode, which is the evdev code plus 8; given a Windows scan code
+    /// instead, a page reads W as <c>"Digit8"</c>. 0 for keys without one.</summary>
+    public static int LinuxKeyCodeOf(KeyboardKey key)
+    {
+        var evdev = EvdevCodeOf(key);
+        return evdev == 0 ? 0 : evdev + 8;
+    }
 
     /// <summary>Windows: the set-1 scan code, with <c>0xE000</c> added for the keys sent with an
     /// <c>E0</c> prefix; given the virtual-key code instead, a page reads W as <c>"F11"</c>. 0 for keys
@@ -309,6 +323,115 @@ public static class WebKeys
             KeyboardKey.LeftSuper => Extended | 0x5B,
             KeyboardKey.RightSuper => Extended | 0x5C,
             KeyboardKey.Menu => Extended | 0x5D,
+            _ => 0,
+        };
+    }
+
+    /// <summary>The Linux input-event code (<c>KEY_*</c> in <c>input-event-codes.h</c>) of the key at
+    /// <paramref name="key"/>'s position; 0 for none.</summary>
+    private static int EvdevCodeOf(KeyboardKey key)
+    {
+        if (key is >= KeyboardKey.F1 and <= KeyboardKey.F10)
+            return 59 + (key - KeyboardKey.F1);
+        if (key is >= KeyboardKey.F13 and <= KeyboardKey.F24)
+            return 183 + (key - KeyboardKey.F13);
+        return key switch
+        {
+            KeyboardKey.Escape => 1,
+            KeyboardKey.Alpha1 => 2,
+            KeyboardKey.Alpha2 => 3,
+            KeyboardKey.Alpha3 => 4,
+            KeyboardKey.Alpha4 => 5,
+            KeyboardKey.Alpha5 => 6,
+            KeyboardKey.Alpha6 => 7,
+            KeyboardKey.Alpha7 => 8,
+            KeyboardKey.Alpha8 => 9,
+            KeyboardKey.Alpha9 => 10,
+            KeyboardKey.Alpha0 => 11,
+            KeyboardKey.Minus => 12,
+            KeyboardKey.Equals => 13,
+            KeyboardKey.Backspace => 14,
+            KeyboardKey.Tab => 15,
+            KeyboardKey.Q => 16,
+            KeyboardKey.W => 17,
+            KeyboardKey.E => 18,
+            KeyboardKey.R => 19,
+            KeyboardKey.T => 20,
+            KeyboardKey.Y => 21,
+            KeyboardKey.U => 22,
+            KeyboardKey.I => 23,
+            KeyboardKey.O => 24,
+            KeyboardKey.P => 25,
+            KeyboardKey.LeftBracket => 26,
+            KeyboardKey.RightBracket => 27,
+            KeyboardKey.Enter => 28,
+            KeyboardKey.LeftControl => 29,
+            KeyboardKey.A => 30,
+            KeyboardKey.S => 31,
+            KeyboardKey.D => 32,
+            KeyboardKey.F => 33,
+            KeyboardKey.G => 34,
+            KeyboardKey.H => 35,
+            KeyboardKey.J => 36,
+            KeyboardKey.K => 37,
+            KeyboardKey.L => 38,
+            KeyboardKey.SemiColon => 39,
+            KeyboardKey.Apostrophe => 40,
+            KeyboardKey.GraveAccent => 41,
+            KeyboardKey.LeftShift => 42,
+            KeyboardKey.Backslash => 43,
+            KeyboardKey.Z => 44,
+            KeyboardKey.X => 45,
+            KeyboardKey.C => 46,
+            KeyboardKey.V => 47,
+            KeyboardKey.B => 48,
+            KeyboardKey.N => 49,
+            KeyboardKey.M => 50,
+            KeyboardKey.Comma => 51,
+            KeyboardKey.Period => 52,
+            KeyboardKey.Slash => 53,
+            KeyboardKey.RightShift => 54,
+            KeyboardKey.NumpadMultiply => 55,
+            KeyboardKey.LeftAlt => 56,
+            KeyboardKey.Space => 57,
+            KeyboardKey.CapsLock => 58,
+            KeyboardKey.NumLock => 69,
+            KeyboardKey.ScrollLock => 70,
+            KeyboardKey.Numpad7 => 71,
+            KeyboardKey.Numpad8 => 72,
+            KeyboardKey.Numpad9 => 73,
+            KeyboardKey.NumpadSubtract => 74,
+            KeyboardKey.Numpad4 => 75,
+            KeyboardKey.Numpad5 => 76,
+            KeyboardKey.Numpad6 => 77,
+            KeyboardKey.NumpadAdd => 78,
+            KeyboardKey.Numpad1 => 79,
+            KeyboardKey.Numpad2 => 80,
+            KeyboardKey.Numpad3 => 81,
+            KeyboardKey.Numpad0 => 82,
+            KeyboardKey.NumpadDecimal => 83,
+            KeyboardKey.F11 => 87,
+            KeyboardKey.F12 => 88,
+            KeyboardKey.NumpadEnter => 96,
+            KeyboardKey.RightControl => 97,
+            KeyboardKey.NumpadDivide => 98,
+            KeyboardKey.PrintScreen => 99,
+            KeyboardKey.RightAlt => 100,
+            KeyboardKey.Home => 102,
+            KeyboardKey.UpArrow => 103,
+            KeyboardKey.PageUp => 104,
+            KeyboardKey.LeftArrow => 105,
+            KeyboardKey.RightArrow => 106,
+            KeyboardKey.End => 107,
+            KeyboardKey.DownArrow => 108,
+            KeyboardKey.PageDown => 109,
+            KeyboardKey.Insert => 110,
+            KeyboardKey.Delete => 111,
+            KeyboardKey.NumpadEquals => 117,
+            KeyboardKey.Pause => 119,
+            KeyboardKey.LeftSuper => 125,
+            KeyboardKey.RightSuper => 126,
+            KeyboardKey.Menu => 127,
             _ => 0,
         };
     }
