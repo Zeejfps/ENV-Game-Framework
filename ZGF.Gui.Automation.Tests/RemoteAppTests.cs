@@ -6,7 +6,9 @@ using ZGF.KeyboardModule;
 namespace ZGF.Gui.Automation.Tests;
 
 /// <summary>The acceptance flows of an app driven from another process: open a file through a queued picker answer,
-/// drag a splitter, and open a popup and a dialog without a native window being shown or activated.</summary>
+/// drag a splitter, and open a popup and a dialog without a native window being shown or activated. Menu items are
+/// picked from the system menu bar where the app records its menus there, as on macOS, and clicked in the window
+/// elsewhere.</summary>
 public sealed class RemoteAppTests(ITestOutputHelper output)
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
@@ -20,8 +22,7 @@ public sealed class RemoteAppTests(ITestOutputHelper output)
         using var app = RemoteApp.Launch(SampleApp.Launch, output.WriteLine);
 
         app.QueueFilePickerAnswer(file);
-        app.ClickOn(Selector.AtPath("file"));
-        app.ClickOn(Selector.AtPath("file/menu-open"));
+        PickMenuItem(app, OpenItem);
 
         app.WaitFor(Selector.WithText("groceries.txt"), Timeout);
         app.WaitFor(Selector.WithText("Buy milk, Call Bob"), Timeout);
@@ -75,12 +76,17 @@ public sealed class RemoteAppTests(ITestOutputHelper output)
 
     private static void OpenPopupThenDialog(RemoteApp app)
     {
-        app.ClickOn(Selector.AtPath("file"));
-        app.WaitFor(Selector.AtPath("file/menu-export"), Timeout);
+        var row = app.WaitFor(Selector.AtPath("#2/row"), Timeout).Bounds;
+        app.Click(row.X + row.Width - 60f, row.Y + row.Height / 2f, PointerButton.Right);
+        app.WaitFor(Selector.WithText("Toggle done"), Timeout);
         Assert.Contains("# surface popup", app.Snapshot());
         app.Look("remote-popup");
 
-        app.ClickOn(Selector.AtPath("file/menu-export"));
+        app.Key(KeyboardKey.Escape);
+        app.Settle();
+        Assert.DoesNotContain("# surface popup", app.Snapshot());
+
+        PickMenuItem(app, ExportItem);
         app.WaitFor(Selector.WithText("Tasks are exported as plain text, one per line."), Timeout);
         app.Settle();
         Assert.Contains("# surface window", app.Snapshot());
@@ -89,6 +95,22 @@ public sealed class RemoteAppTests(ITestOutputHelper output)
         app.ClickOn(Selector.AtPath("export-done"));
         app.Settle();
         Assert.DoesNotContain("# surface window", app.Snapshot());
+    }
+
+    private sealed record MenuItemTarget(string[] SystemPath, string WindowMenu, string WindowItem);
+
+    private static readonly MenuItemTarget OpenItem = new(["File", "Open…"], "file", "file/menu-open");
+    private static readonly MenuItemTarget ExportItem = new(["File", "Export…"], "file", "file/menu-export");
+
+    private static void PickMenuItem(RemoteApp app, MenuItemTarget item)
+    {
+        if (app.SystemMenuItems().Count > 0)
+        {
+            app.PickSystemMenuItem(item.SystemPath);
+            return;
+        }
+        app.ClickOn(Selector.AtPath(item.WindowMenu));
+        app.ClickOn(Selector.AtPath(item.WindowItem));
     }
 
     [SampleAppFact]
