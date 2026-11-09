@@ -6,7 +6,7 @@ using McpSdk.Protocol;
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// Building blocks for an <see cref="IMcpToolSource"/>: a tool whose body reads
@@ -27,6 +27,19 @@ public static class McpTools
         var tool = NewTool(name, description, input, readOnly);
         tool.OutputSchema = output.Schema;
         return new DelegateTool(tool, args => Structured(output, call(args)));
+    }
+
+    /// <summary>A structured tool that reads its arguments itself, from the JSON object the client sent, so that a bad
+    /// argument comes back as the tool's own structured answer: the server neither checks them against
+    /// <paramref name="input"/>, which it still advertises, nor parses them. <paramref name="call"/> gets the request's
+    /// cancellation, which fires when the client cancels it or its session ends. An exception it throws is an internal
+    /// failure, answered as an unstructured tool error.</summary>
+    public static IToolHandler DefineUnchecked<T>(string name, string description, ObjectSchema input, bool readOnly,
+        ToolOutput<T> output, Func<string, CancellationToken, ToolReply<T>> call)
+    {
+        var tool = NewTool(name, description, input, readOnly);
+        tool.OutputSchema = output.Schema;
+        return new UncheckedTool(tool, (arguments, cancel) => Structured(output, call(arguments, cancel)));
     }
 
     public static CallToolResult Text(string text) => CallToolResult.Ok(new TextContent(text));
@@ -50,9 +63,33 @@ public static class McpTools
             writer.WriteEndObject();
         }
         var serialized = Encoding.UTF8.GetString(buffer.WrittenSpan);
-        return new CallToolResult(
-            [new TextContent(reply.Text), new TextContent(serialized)],
-            null, Json.Parse(serialized), null);
+        Content[] content = reply.Png == null
+            ? [new TextContent(reply.Text), new TextContent(serialized)]
+            : [new TextContent(reply.Text), new TextContent(serialized), new ImageContent("image/png", reply.Png)];
+        return new CallToolResult(content, reply.IsError ? true : null, Json.Parse(serialized), null);
+    }
+
+    internal sealed class UncheckedTool(Tool tool, Func<string, CancellationToken, CallToolResult> call) : IToolHandler
+    {
+        private const string Wrapper = "arguments";
+
+        public Tool Tool { get; } = tool;
+
+        public Task<CallToolResult> Call(IJsonObject? arguments, McpRequestContext context)
+        {
+            try { return Task.FromResult(call(Raw(arguments), context.CancellationToken)); }
+            catch (Exception ex) { return Task.FromResult(CallToolResult.Error(new TextContent($"{Tool.Name} failed inside the server: {ex}"))); }
+        }
+
+        /// <summary>The arguments as the client sent them, duplicate names included.</summary>
+        private static string Raw(IJsonObject? arguments)
+        {
+            if (arguments == null)
+                return "{}";
+            var wrapped = Json.Stringify(writer => writer.Write(Wrapper, arguments));
+            using var document = JsonDocument.Parse(wrapped);
+            return document.RootElement.GetProperty(Wrapper).GetRawText();
+        }
     }
 
     private sealed class DelegateTool(Tool tool, Func<ToolArguments, CallToolResult> call) : IToolHandler
@@ -81,8 +118,13 @@ public sealed class ToolOutput<T>(ObjectSchema schema, Action<Utf8JsonWriter, T>
 
 /// <summary>A structured tool's answer: the value sent as <c>structuredContent</c>, and the text
 /// sent as the first <c>content</c> block, ahead of a second holding the structured value serialized,
-/// for clients that read only <c>content</c>.</summary>
-public readonly record struct ToolReply<T>(T Value, string Text);
+/// for clients that read only <c>content</c>, and a third holding <see cref="Png"/> when there is one.
+/// <see cref="IsError"/> marks the call failed while still answering with the structured value.</summary>
+public readonly record struct ToolReply<T>(T Value, string Text)
+{
+    public byte[]? Png { get; init; }
+    public bool IsError { get; init; }
+}
 
 /// <summary>
 /// A tool call's arguments. Names match case-insensitively, and each failure below is a tool error

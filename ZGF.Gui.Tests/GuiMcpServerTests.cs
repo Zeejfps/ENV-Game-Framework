@@ -8,6 +8,7 @@ using McpSdk.Protocol;
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 using ZGF.Gui.Desktop;
+using ZGF.Gui.Mcp;
 using ZGF.Fonts;
 using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Testing;
@@ -307,10 +308,10 @@ public class GuiMcpServerTests
     {
         public McpSession? LastSession { get; private set; }
 
-        public void Register(McpSession session, DefaultToolsController tools)
+        public void Register(McpSession session, McpToolSet tools)
         {
             LastSession = session;
-            tools.AddTool(new EchoTool());
+            tools.Add(new EchoTool());
         }
 
         private sealed class EchoTool : IToolHandler
@@ -333,10 +334,10 @@ public class GuiMcpServerTests
         public TaskCompletionSource<bool> Left { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public McpSession? Session { get; private set; }
 
-        public void Register(McpSession session, DefaultToolsController tools)
+        public void Register(McpSession session, McpToolSet tools)
         {
             Session = session;
-            tools.AddTool(new WaitTool(this, session));
+            tools.Add(new WaitTool(this, session));
         }
 
         private sealed class WaitTool(WaitSource owner, McpSession session) : IToolHandler

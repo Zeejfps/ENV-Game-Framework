@@ -64,6 +64,10 @@ public sealed class AutomationModeTests
         public string Name = "";
         public ImmediateAutomation? Automation;
         public Exception? CalledFromUiThread;
+        public AutomationRunner? Runner;
+        public AutomationResult? RunnerFromUiThread;
+        public volatile CancellationTokenSource? CancelOnPress;
+        public volatile bool LeftDown;
         public volatile ManualResetEventSlim? Block;
         public readonly ManualResetEventSlim Blocked = new();
         public bool CallDuringShutdown;
@@ -79,6 +83,9 @@ public sealed class AutomationModeTests
         protected override void OnUpdate(Ui<DefaultUiState> ui)
         {
             Frames++;
+            if (CancelOnPress != null && ui.Input.WasPressed(PointerButton.Left))
+                CancelOnPress.Cancel();
+            LeftDown = ui.Input.IsDown(PointerButton.Left);
             if (AskOnSemantics)
             {
                 if (_askedOnSemantics)
@@ -164,6 +171,7 @@ public sealed class AutomationModeTests
 
         private void CallFromUiThread()
         {
+            RunnerFromUiThread = Runner?.Run(new AutomationCommand.Step());
             try
             {
                 Automation?.Step();
@@ -390,6 +398,132 @@ public sealed class AutomationModeTests
         Click(running.Automation, "reenter");
 
         Assert.IsType<InvalidOperationException>(app.CalledFromUiThread);
+    }
+
+    [AutomatedHostFact]
+    public void A_runner_called_on_the_UI_thread_rejects_at_once_while_another_command_holds_its_turn()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        running.Automation.WaitUntilReady(Timeout);
+        var runner = AutomationRunner.Driving(running.Automation);
+        app.Runner = runner;
+        var holding = Task.Run(() => runner.Run(new AutomationCommand.WaitFor(Selector.WithText("Never shown"), TimeSpan.FromSeconds(2))));
+        Thread.Sleep(200);
+
+        Click(running.Automation, "reenter");
+
+        var rejected = Assert.IsType<AutomationResult.Rejected>(app.RunnerFromUiThread);
+        Assert.Contains("UI thread", rejected.Message);
+        Assert.IsType<AutomationResult.Timeout>(holding.Result);
+    }
+
+    [AutomatedHostFact]
+    public void A_command_cancelled_while_it_waits_its_turn_is_dropped_before_it_injects_anything()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        running.Automation.WaitUntilReady(Timeout);
+        var runner = AutomationRunner.Driving(running.Automation);
+        var holding = Task.Run(() => runner.Run(new AutomationCommand.WaitFor(Selector.WithText("Never shown"), TimeSpan.FromSeconds(1.5))));
+        Thread.Sleep(200);
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+
+        var click = runner.Run(new AutomationCommand.ClickOn(Selector.AtPath("count")), cancel.Token);
+
+        Assert.Contains("cancelled", Assert.IsType<AutomationResult.Timeout>(click).Message);
+        Assert.IsType<AutomationResult.Timeout>(holding.Result);
+        running.Automation.Step(3);
+        Assert.Equal(0, app.Clicks);
+    }
+
+    [AutomatedHostFact]
+    public void A_wait_cancelled_while_it_runs_stops_at_once()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        running.Automation.WaitUntilReady(Timeout);
+        var runner = AutomationRunner.Driving(running.Automation);
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+
+        var result = runner.Run(new AutomationCommand.WaitFor(Selector.WithText("Never shown"), TimeSpan.FromSeconds(10)), cancel.Token);
+
+        Assert.Contains("cancelled", Assert.IsType<AutomationResult.Timeout>(result).Message);
+        Assert.True(waited.Elapsed < TimeSpan.FromSeconds(3), $"The wait ran {waited.Elapsed} after it was cancelled at 0.2s.");
+        Assert.IsType<AutomationResult.Ok>(runner.Run(new AutomationCommand.Step()));
+    }
+
+    [AutomatedHostFact]
+    public void A_click_cancelled_after_its_press_frame_clicks_nothing_holds_nothing_and_leaves_the_next_command_alone()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        running.Automation.WaitUntilReady(Timeout);
+        var runner = AutomationRunner.Driving(running.Automation);
+        using var cancel = new CancellationTokenSource();
+        app.CancelOnPress = cancel;
+
+        var cancelled = runner.Run(new AutomationCommand.ClickOn(Selector.AtPath("count")), cancel.Token);
+
+        app.CancelOnPress = null;
+        Assert.Contains("cancelled", Assert.IsType<AutomationResult.Timeout>(cancelled).Message);
+        running.Automation.Step(2);
+        Assert.Equal(0, app.Clicks);
+        Assert.False(app.LeftDown);
+        Assert.IsType<AutomationResult.Ok>(runner.Run(new AutomationCommand.ClickOn(Selector.AtPath("count"))));
+        Assert.Equal(1, app.Clicks);
+    }
+
+    [AutomatedHostFact]
+    public void Input_a_cancelled_command_queued_that_no_frame_saw_is_dropped()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        var automation = running.Automation;
+        automation.WaitUntilReady(Timeout);
+        Click(automation, "name");
+        automation.Step();
+
+        automation.Type("lost");
+        automation.Press();
+        automation.AbandonInput([], [], TimeSpan.FromSeconds(5));
+        automation.Step(2);
+
+        Assert.Equal("", app.Name);
+        Assert.False(app.LeftDown);
+        automation.Type("kept");
+        automation.Step();
+        Assert.Equal("kept", app.Name);
+    }
+
+    [AutomatedHostFact]
+    public void A_clipboard_change_cancelled_while_the_UI_thread_is_busy_never_happens_and_frees_the_turn()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        var automation = running.Automation;
+        automation.WaitUntilReady(Timeout);
+        automation.SetClipboardText("before");
+        var runner = AutomationRunner.Driving(automation);
+        using var unblock = new ManualResetEventSlim();
+        app.Block = unblock;
+        var busy = Task.Run(() => automation.Step());
+        Assert.True(app.Blocked.Wait(Timeout), "The UI thread did not block.");
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+
+        var set = runner.Run(new AutomationCommand.SetClipboard("after"), cancel.Token);
+        var held = waited.Elapsed;
+        app.Block = null;
+        unblock.Set();
+
+        Assert.True(held < TimeSpan.FromSeconds(3), $"The cancelled command held the turn for {held}.");
+        Assert.IsType<AutomationResult.Timeout>(set);
+        Assert.True(busy.Wait(Timeout));
+        automation.Step();
+        var read = Assert.IsType<AutomationResult.Ok>(runner.Run(new AutomationCommand.GetClipboard()));
+        Assert.Equal("before", Assert.IsType<AutomationPayload.Clipboard>(read.Payload).Text);
     }
 
     [AutomatedHostFact]

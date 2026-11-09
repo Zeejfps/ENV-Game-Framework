@@ -1,6 +1,6 @@
 using McpSdk.Server;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// What a <see cref="GuiMcpServer"/> starts from: where it listens, how it introduces itself to the

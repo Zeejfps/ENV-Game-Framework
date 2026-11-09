@@ -1,6 +1,6 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
-/// <summary>Whether a <see cref="GuiApp"/>'s MCP server is up, and where.</summary>
+/// <summary>Whether an app's MCP server is up, and where.</summary>
 public abstract record McpServerState
 {
     private McpServerState() { }
@@ -10,7 +10,7 @@ public abstract record McpServerState
     public sealed record Running(Uri Endpoint) : McpServerState;
 }
 
-/// <summary>The outcome of <see cref="GuiApp.StartMcpServer"/>.</summary>
+/// <summary>The outcome of starting an app's MCP server.</summary>
 public abstract record McpServerStart
 {
     private McpServerStart() { }

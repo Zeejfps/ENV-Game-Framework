@@ -1,6 +1,5 @@
-using McpSdk.Server;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// Contributes tools to a <see cref="GuiMcpServer"/>. Asked once per client session, with that
@@ -11,5 +10,5 @@ namespace ZGF.Gui.Desktop;
 /// </summary>
 public interface IMcpToolSource
 {
-    void Register(McpSession session, DefaultToolsController tools);
+    void Register(McpSession session, McpToolSet tools);
 }

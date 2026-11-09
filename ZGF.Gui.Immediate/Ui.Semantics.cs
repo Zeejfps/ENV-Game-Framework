@@ -42,6 +42,9 @@ public abstract partial class Ui
     /// <summary>How many snapshot nodes every frame so far has built.</summary>
     internal long SemanticNodesBuilt { get; private set; }
 
+    /// <summary>The number of the frame drawn last, as a snapshot of it is numbered.</summary>
+    internal long FrameNumber => _frame;
+
     /// <summary>Scopes widget ids under <paramref name="key"/>, as <see cref="Id(string)"/> does, for an item of a
     /// collection told apart by a key of the app's, such as a row's: tests find what is inside it under
     /// <see cref="TestSegment.Keyed"/> <paramref name="key"/> wherever the item moves.</summary>

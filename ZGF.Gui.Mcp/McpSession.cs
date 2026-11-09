@@ -1,4 +1,4 @@
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// One connected MCP client. <see cref="Ended"/> is cancelled when the client terminates the session

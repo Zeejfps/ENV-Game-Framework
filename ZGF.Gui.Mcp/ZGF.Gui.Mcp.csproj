@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The Model Context Protocol transport an app serves its tools over: Streamable HTTP, self-hosted over
+         System.Net.HttpListener on 127.0.0.1. No GUI dependency; each host brings its own tool sources. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="ZGF.Gui.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="McpSdk.Server" />
+      <PackageReference Include="McpSdk.Adapter.System.Text.Json" />
+      <PackageReference Include="McpSdk.Adapter.StreamableHttpServer" />
+    </ItemGroup>
+
+</Project>

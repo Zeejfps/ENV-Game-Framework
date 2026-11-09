@@ -5,7 +5,7 @@ using McpSdk.Protocol;
 using McpSdk.Server;
 using McpSdk.Shared;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// An in-process Model Context Protocol server (Streamable HTTP, bound to 127.0.0.1) through which an
@@ -54,7 +54,7 @@ public sealed class GuiMcpServer : IDisposable
             .WithVersion("1.0.0")
             .WithLogger(_loggerFactory)
             .WithStreamableHttpTransport(transport)
-            .WithDefaultToolsCapability(_json, tools => RegisterTools(session, tools));
+            .WithToolsCapability(Tools(session));
         if (_options.Instructions is { } instructions) builder.WithInstructions(instructions);
         if (_options.Prompts is { } prompts) builder.WithPromptsCapability(prompts);
         await builder.Build().Start();
@@ -83,10 +83,12 @@ public sealed class GuiMcpServer : IDisposable
         _ = http.Stop();
     }
 
-    private void RegisterTools(McpSession session, DefaultToolsController tools)
+    private IToolsController Tools(McpSession session)
     {
+        var tools = new McpToolSet(new DefaultToolsController(_json));
         foreach (var source in _options.ToolSources)
             source.Register(session, tools);
+        return tools.Controller();
     }
 
     /// <summary>Stops listening and ends every open session, so a tool waiting on a person sees its

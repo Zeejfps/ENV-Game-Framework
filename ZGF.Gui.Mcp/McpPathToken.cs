@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>
 /// The secret path segment that gates a <see cref="GuiMcpServer"/> endpoint. Only URL-unreserved
@@ -20,11 +20,11 @@ public sealed record McpPathToken
 
     /// <summary>
     /// Accepts a stored token back: 1–128 characters, each a letter, digit, <c>-</c>, <c>.</c>,
-    /// <c>_</c> or <c>~</c>.
+    /// <c>_</c> or <c>~</c>, and not <c>.</c> or <c>..</c>, which a URL path drops.
     /// </summary>
     public static bool TryParse(string? text, [NotNullWhen(true)] out McpPathToken? token)
     {
-        if (text is { Length: >= 1 and <= MaxLength } && text.All(IsUnreserved))
+        if (text != null && text.Length is >= 1 and <= MaxLength && text is not ("." or "..") && text.All(IsUnreserved))
         {
             token = new McpPathToken(text);
             return true;

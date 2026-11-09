@@ -5,6 +5,7 @@ using ZGF.Gui.Desktop.Automation;
 using ZGF.Gui.Desktop.Components.ContextMenu;
 using ZGF.Gui.Desktop.Input;
 using ZGF.Gui.Hosting;
+using ZGF.Gui.Mcp;
 using ZGF.Gui.Views;
 using ZGF.Observable;
 

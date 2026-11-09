@@ -26,6 +26,9 @@ internal interface IAutomatedHost
     SurfaceImage Capture(SemanticSnapshot snapshot, SemanticSurface surface);
 
     void RunPostedWork();
+
+    /// <summary>Drops the input queued since the last frame: the next frame starts from what the last one saw.</summary>
+    void DiscardPendingInput();
     void Close();
 }
 
@@ -85,36 +88,62 @@ public sealed class ImmediateAutomation
     public void MovePointer(float x, float y) => MovePointer(new PointF(x, y));
 
     /// <summary>Puts the pointer at <paramref name="at"/>, in the main window's UI points, from the next frame.</summary>
-    public void MovePointer(PointF at) => Feed(input => input.MovePointer(at));
+    public void MovePointer(PointF at, CancellationToken cancel = default) => Feed(input => input.MovePointer(at), cancel);
 
     /// <summary>Takes the pointer off every window of the app, from the next frame.</summary>
     public void LeaveWindow() => Feed(input => input.MovePointer(UiInput.Offscreen));
 
-    public void Press(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
-        Feed(input => input.Button((int)button, InputAction.Press, modifiers));
+    public void Press(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None, CancellationToken cancel = default) =>
+        Feed(input => input.Button((int)button, InputAction.Press, modifiers), cancel);
 
-    public void Release(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None) =>
-        Feed(input => input.Button((int)button, InputAction.Release, modifiers));
+    public void Release(PointerButton button = PointerButton.Left, KeyModifiers modifiers = KeyModifiers.None, CancellationToken cancel = default) =>
+        Feed(input => input.Button((int)button, InputAction.Release, modifiers), cancel);
 
-    public void Scroll(double x, double y) => Feed(input => input.Scroll(x, y));
+    public void Scroll(double x, double y, CancellationToken cancel = default) => Feed(input => input.Scroll(x, y), cancel);
 
-    public void KeyDown(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) =>
-        Feed(input => input.Key(key, InputAction.Press, modifiers));
+    public void KeyDown(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None, CancellationToken cancel = default) =>
+        Feed(input => input.Key(key, InputAction.Press, modifiers), cancel);
 
-    public void KeyUp(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) =>
-        Feed(input => input.Key(key, InputAction.Release, modifiers));
+    public void KeyUp(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None, CancellationToken cancel = default) =>
+        Feed(input => input.Key(key, InputAction.Release, modifiers), cancel);
+
+    /// <summary>Presses and releases <paramref name="key"/> in one call, so nothing can come between the two.</summary>
+    internal void PressKey(KeyboardKey key, KeyModifiers modifiers, CancellationToken cancel) => Feed(input =>
+    {
+        input.Key(key, InputAction.Press, modifiers);
+        input.Key(key, InputAction.Release, modifiers);
+    }, cancel);
+
+    /// <summary>Cleans up after a command cancelled partway: drops the input it queued that no frame has seen, lets go
+    /// of the pointer <paramref name="buttons"/> and <paramref name="keys"/> it holds, and runs one frame so the app
+    /// sees them go before the next command. The buttons come up as a cancelled release, which ends a drag and clicks
+    /// nothing, as when the app loses focus. Not itself cancellable: it runs once the UI thread takes it, within
+    /// <paramref name="timeout"/>.</summary>
+    internal void AbandonInput(IReadOnlyCollection<PointerButton> buttons, IReadOnlyCollection<(KeyboardKey Key, KeyModifiers Modifiers)> keys,
+        TimeSpan timeout) => Invoke(() =>
+    {
+        _host.DiscardPendingInput();
+        if (buttons.Count == 0 && keys.Count == 0)
+            return;
+        foreach (var button in buttons)
+            _host.Input.CancelButton(button);
+        foreach (var (key, modifiers) in keys)
+            _host.Input.Key(key, InputAction.Release, modifiers);
+        _readiness.RequestFrame();
+        Frame(0.0);
+    }, FrameReadiness.Deadline(timeout));
 
     /// <summary>Commits <paramref name="text"/> as typed characters.</summary>
-    public void Type(string text) => Feed(input =>
+    public void Type(string text, CancellationToken cancel = default) => Feed(input =>
     {
         foreach (var rune in text.EnumerateRunes())
             input.Character((uint)rune.Value);
-    });
+    }, cancel);
 
     /// <summary>The IME replaces its composition with <paramref name="text"/>, caret at <paramref name="caret"/>,
     /// the end by default; an empty text ends it.</summary>
-    public void Compose(string text, int? caret = null) => Feed(input =>
-        input.Compose(text.Length == 0 ? PreeditText.Empty : new PreeditText(text, caret ?? text.Length, [], -1)));
+    public void Compose(string text, int? caret = null, CancellationToken cancel = default) => Feed(input =>
+        input.Compose(text.Length == 0 ? PreeditText.Empty : new PreeditText(text, caret ?? text.Length, [], -1)), cancel);
 
     /// <summary>Files dragged from the OS file manager are dropped where the pointer is.</summary>
     public void DropFiles(params string[] paths) => Feed(input => input.DropFiles(paths));
@@ -131,20 +160,21 @@ public sealed class ImmediateAutomation
     /// <summary>The cursor the last frame asked for; no window shows it.</summary>
     public MouseCursor Cursor => Invoke(() => _host.Cursor);
 
-    /// <summary>Runs <paramref name="count"/> frames without moving the clock.</summary>
-    public void Step(int count = 1)
+    /// <summary>Runs <paramref name="count"/> frames without moving the clock. Once <paramref name="cancel"/> fires, a
+    /// call not yet started is dropped, and one running stops before its next frame.</summary>
+    public void Step(int count = 1, CancellationToken cancel = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         Invoke(() =>
         {
             for (var i = 0; i < count; i++)
-                Frame(0.0);
-        });
+                Frame(0.0, cancel);
+        }, NoDeadline, cancel);
     }
 
     /// <summary>Moves the clock on by <paramref name="seconds"/>, from 0 to <see cref="MaxSeconds"/>, a frame every
     /// <see cref="FrameTime"/> and one at the end for what is left.</summary>
-    public void Advance(double seconds)
+    public void Advance(double seconds, CancellationToken cancel = default)
     {
         RequireDuration(seconds, nameof(seconds));
         var frames = (long)Math.Ceiling(seconds / FrameTime);
@@ -152,23 +182,23 @@ public sealed class ImmediateAutomation
         {
             var end = Now + seconds;
             for (var i = 1; i < frames; i++)
-                Frame(FrameTime);
+                Frame(FrameTime, cancel);
             if (frames > 0)
-                Frame(Math.Max(0.0, end - Now));
-        });
+                Frame(Math.Max(0.0, end - Now), cancel);
+        }, NoDeadline, cancel);
     }
 
     /// <summary>Runs frames <see cref="FrameTime"/> apart until one ends with nothing but background work pending, or
     /// <paramref name="maxSeconds"/>, from 0 to <see cref="MaxSeconds"/>, of virtual time have passed: animation and
     /// scheduled updates run out, as ambient ones need not.</summary>
-    public SettleResult Settle(double maxSeconds)
+    public SettleResult Settle(double maxSeconds, CancellationToken cancel = default)
     {
         RequireDuration(maxSeconds, nameof(maxSeconds));
         return Invoke(() => FrameReadiness.Settle(() =>
         {
-            Frame(FrameTime);
+            Frame(FrameTime, cancel);
             return _readiness.Pending(_host.Ui);
-        }, () => Now, maxSeconds));
+        }, () => Now, maxSeconds), NoDeadline, cancel);
     }
 
     /// <summary>Runs the work posted to the UI thread so far, through <see cref="Ui.Post"/> or the host's
@@ -181,29 +211,45 @@ public sealed class ImmediateAutomation
     /// <summary>The virtual seconds since the app started, as frames see them in <see cref="Ui.RealTime"/>.</summary>
     public double Time => Invoke(() => Now);
 
+    /// <summary>The number of the last frame drawn, as <see cref="SemanticSnapshot.Frame"/> numbers it.</summary>
+    public long FrameNumber => LastFrame(CancellationToken.None);
+
+    internal long LastFrame(CancellationToken cancel) => Invoke(() => _host.Ui.FrameNumber, NoDeadline, cancel);
+
+    internal FramePending PendingNow(CancellationToken cancel) => Invoke(() => _readiness.Pending(_host.Ui), NoDeadline, cancel);
+
+    /// <summary>Whether the calling thread is the app's UI thread, where every other call throws.</summary>
+    public bool OnUiThread => Environment.CurrentManagedThreadId == _uiThread;
+
     /// <summary>Runs a frame, then more without moving the clock for as long as one asks for the next with
     /// <see cref="Ui.RequestUpdate"/>, work is posted or input waits, until one ends with none of these and no
     /// <see cref="BackgroundWork"/> running; animation frames are not waited for. Throws a <see cref="TimeoutException"/>
-    /// once <paramref name="timeout"/> of real time has passed, the UI thread busy or not yet running included, and an
-    /// <see cref="AggregateException"/> when background work failed.</summary>
-    public void WaitUntilReady(TimeSpan timeout) => WaitUntil(static () => true, true, timeout, buildSemantics: false);
+    /// once <paramref name="timeout"/> of real time has passed, the UI thread busy or not yet running included, an
+    /// <see cref="AggregateException"/> when background work failed, and an <see cref="OperationCanceledException"/> once
+    /// <paramref name="cancel"/> fires.</summary>
+    public void WaitUntilReady(TimeSpan timeout, CancellationToken cancel = default) =>
+        WaitUntil(static () => true, true, timeout, buildSemantics: false, cancel);
 
     /// <summary>As <see cref="WaitUntilReady"/>, but without waiting for background work, until exactly one node
     /// matches <paramref name="selector"/>, and returns it.</summary>
-    public SemanticNode WaitFor(Selector selector, TimeSpan timeout)
+    public SemanticNode WaitFor(Selector selector, TimeSpan timeout, CancellationToken cancel = default)
     {
         SemanticNode? node = null;
         WaitUntil(() =>
         {
             node = _host.Ui.Snapshot?.Resolve(selector) is TargetResult.Found found ? found.Node : null;
             return node != null;
-        }, false, timeout, buildSemantics: true);
+        }, false, timeout, buildSemantics: true, cancel);
         return node ?? throw new InvalidOperationException($"Waited for {selector} without finding it.");
     }
 
     /// <summary>The last frame as a test sees it. Until one is asked for, frames build none; the first call runs a
     /// frame, without moving the clock, to build it, and every frame after builds one too.</summary>
-    public SemanticSnapshot Snapshot() => Invoke(SnapshotNow);
+    public SemanticSnapshot Snapshot(CancellationToken cancel = default) => Invoke(SnapshotNow, NoDeadline, cancel);
+
+    /// <summary>As <see cref="Snapshot()"/>, but throws a <see cref="TimeoutException"/> once <paramref name="timeout"/> of
+    /// real time has passed without the UI thread starting it.</summary>
+    internal SemanticSnapshot Snapshot(TimeSpan timeout) => Invoke(SnapshotNow, FrameReadiness.Deadline(timeout));
 
     /// <summary>What <paramref name="surface"/>, an index into <see cref="Snapshot"/>'s surfaces, drew in the last
     /// frame: 0 is the main window, then each popup and window of its own.</summary>
@@ -217,39 +263,43 @@ public sealed class ImmediateAutomation
 
     /// <summary>What <paramref name="surface"/>, from this or an earlier snapshot, drew in the last frame, if it is
     /// still shown.</summary>
-    public SurfaceImage Capture(SemanticSurface surface) => Invoke(() => _host.Capture(SnapshotNow(), surface));
+    public SurfaceImage Capture(SemanticSurface surface, CancellationToken cancel = default) =>
+        Invoke(() => _host.Capture(SnapshotNow(), surface), NoDeadline, cancel);
 
     /// <summary>Answers the next file picker the app opens with <paramref name="path"/>. Pickers with no answer
     /// queued cancel.</summary>
-    public void QueueFilePickerAnswer(string path) => Invoke(() => FilePicker.Queue(path));
+    public void QueueFilePickerAnswer(string path, CancellationToken cancel = default) => Invoke(() => FilePicker.Queue(path), NoDeadline, cancel);
 
     /// <summary>Cancels the next file picker the app opens, before the answers queued after.</summary>
-    public void QueueFilePickerCancel() => Invoke(() => FilePicker.Queue(null));
+    public void QueueFilePickerCancel(CancellationToken cancel = default) => Invoke(() => FilePicker.Queue(null), NoDeadline, cancel);
 
     /// <summary>Every file picker the app opened, in order.</summary>
-    public IReadOnlyList<FilePickerRequest> FilePickerRequests() => Invoke(() => FilePicker.Requests.ToArray());
+    public IReadOnlyList<FilePickerRequest> FilePickerRequests(CancellationToken cancel = default) =>
+        Invoke(() => FilePicker.Requests.ToArray(), NoDeadline, cancel);
 
-    public string? GetClipboardText() => Invoke(() => Clipboard.Text);
+    public string? GetClipboardText(CancellationToken cancel = default) => Invoke(() => Clipboard.Text, NoDeadline, cancel);
 
     /// <summary>The HTML last put on the clipboard; null after plain text.</summary>
-    public string? GetClipboardHtml() => Invoke(() => Clipboard.Html);
+    public string? GetClipboardHtml(CancellationToken cancel = default) => Invoke(() => Clipboard.Html, NoDeadline, cancel);
 
-    public void SetClipboardText(string text) => Invoke(() => Clipboard.SetText(text));
+    public void SetClipboardText(string text, CancellationToken cancel = default) => Invoke(() => Clipboard.SetText(text), NoDeadline, cancel);
 
     /// <summary>The items of the system menu bar the app's <c>MenuBar</c> records into, where there is one: macOS's.
     /// Empty elsewhere, where menu bars are drawn in the window.</summary>
-    public IReadOnlyList<SystemMenuItem> SystemMenuItems() => Invoke(MenuBar.Items);
+    public IReadOnlyList<SystemMenuItem> SystemMenuItems(CancellationToken cancel = default) => Invoke(MenuBar.Items, NoDeadline, cancel);
 
     /// <summary>Picks the system menu bar's item <paramref name="path"/> names, menu titles then its own, as clicking
     /// it would; the app sees it on its next frame.</summary>
-    public void PickSystemMenuItem(params string[] path) => Invoke(() => MenuBar.Pick(path));
+    public void PickSystemMenuItem(params string[] path) => PickSystemMenuItem(path, CancellationToken.None);
+
+    public void PickSystemMenuItem(IReadOnlyList<string> path, CancellationToken cancel) => Invoke(() => MenuBar.Pick(path), NoDeadline, cancel);
 
     /// <summary>Every platform effect the app asked for, in order, recorded instead of performed.</summary>
-    public IReadOnlyList<AutomationEffect> Effects() => Invoke(() => _effects.ToArray());
+    public IReadOnlyList<AutomationEffect> Effects(CancellationToken cancel = default) => Invoke(() => _effects.ToArray(), NoDeadline, cancel);
 
     /// <summary>Closes the app as <see cref="ImmediateGuiAppHost{TUiState}.CloseImmediately"/> does. Calls queued behind
     /// this one, and every call after, fail.</summary>
-    public void Close() => Invoke(_host.Close);
+    public void Close(CancellationToken cancel = default) => Invoke(_host.Close, NoDeadline, cancel);
 
     internal void Record(AutomationEffect effect) => _effects.Add(effect);
 
@@ -280,16 +330,17 @@ public sealed class ImmediateAutomation
             return _closed;
     }
 
-    private void Feed(Action<UiInput> enqueue) => Invoke(() =>
+    private void Feed(Action<UiInput> enqueue, CancellationToken cancel = default) => Invoke(() =>
     {
         enqueue(_host.Input);
         _readiness.RequestFrame();
-    });
+    }, NoDeadline, cancel);
 
-    private void Frame(double step)
+    private void Frame(double step, CancellationToken cancel = default)
     {
         if (IsClosed())
             throw Closed();
+        cancel.ThrowIfCancellationRequested();
         _readiness.BeginFrame();
         Now += step;
         FrameStep = (float)step;
@@ -316,32 +367,35 @@ public sealed class ImmediateAutomation
     }
 
     /// <summary>Readiness by the shared rules, each step carrying the deadline across to the UI thread: one not started
-    /// by then never runs, and one still running then is left to finish while the wait gives up.</summary>
-    private void WaitUntil(Func<bool> done, bool untilBackgroundDone, TimeSpan timeout, bool buildSemantics)
+    /// by then never runs, and one still running then is left to finish while the wait gives up. <paramref name="cancel"/>
+    /// wakes the wait, which then throws before running another step.</summary>
+    private void WaitUntil(Func<bool> done, bool untilBackgroundDone, TimeSpan timeout, bool buildSemantics, CancellationToken cancel)
     {
         var deadline = FrameReadiness.Deadline(timeout);
+        using var wake = cancel.Register(_readiness.RequestFrame);
         _readiness.WaitUntil(runFrame => Invoke(() =>
         {
             if (buildSemantics)
                 _host.Ui.BuildsSemantics = true;
             if (runFrame)
-                Frame(0.0);
+                Frame(0.0, cancel);
             return _readiness.Check(_host.Ui, done);
-        }, deadline), FrameReadiness.Blocking(untilBackgroundDone), timeout, deadline);
+        }, deadline, cancel), FrameReadiness.Blocking(untilBackgroundDone), timeout, deadline);
     }
 
-    private void Invoke(Action action, long deadline = NoDeadline) => Invoke(() =>
+    private void Invoke(Action action, long deadline = NoDeadline, CancellationToken cancel = default) => Invoke(() =>
     {
         action();
         return true;
-    }, deadline);
+    }, deadline, cancel);
 
-    private T Invoke<T>(Func<T> work, long deadline = NoDeadline)
+    private T Invoke<T>(Func<T> work, long deadline = NoDeadline, CancellationToken cancel = default)
     {
-        if (Environment.CurrentManagedThreadId == _uiThread)
+        if (OnUiThread)
             throw new InvalidOperationException(
                 "ImmediateAutomation was called on the app's UI thread, which would wait for itself; call it from another thread.");
-        var call = new QueuedCall<T>(work, deadline);
+        cancel.ThrowIfCancellationRequested();
+        var call = new QueuedCall<T>(work, deadline, cancel);
         lock (_closeGate)
         {
             if (_closed)
@@ -361,9 +415,9 @@ public sealed class ImmediateAutomation
     }
 
     /// <summary>A call waiting for the UI thread. Whichever of the UI thread starting it, the caller giving up at its
-    /// deadline and the app closing comes first decides whether it runs; a caller that gives up on a call already
-    /// running leaves it to finish and drops what it returns.</summary>
-    private sealed class QueuedCall<T>(Func<T> work, long deadline) : IQueuedCall
+    /// deadline or on cancellation, and the app closing comes first decides whether it runs; a caller that gives up on a
+    /// call already running leaves it to finish and drops what it returns. A cancelled call never starts.</summary>
+    private sealed class QueuedCall<T>(Func<T> work, long deadline, CancellationToken cancel) : IQueuedCall
     {
         private const int Queued = 0;
         private const int Taken = 1;
@@ -385,6 +439,7 @@ public sealed class ImmediateAutomation
                 return;
             try
             {
+                cancel.ThrowIfCancellationRequested();
                 if (deadline != NoDeadline && FrameReadiness.Remaining(deadline) <= TimeSpan.Zero)
                     throw new OwnerBusyException("the UI thread did not start a call before its deadline");
                 _result = new Returned(work());
@@ -409,30 +464,44 @@ public sealed class ImmediateAutomation
 
         public T Await()
         {
-            if (deadline == NoDeadline)
-                _done.Wait();
-            else
-                AwaitUntilDeadline();
+            while (!WaitOnce())
+            {
+                if (cancel.IsCancellationRequested)
+                {
+                    if (Interlocked.CompareExchange(ref _state, Taken, Queued) == Queued)
+                        throw new OperationCanceledException("The call was cancelled before the UI thread started it.", cancel);
+                    _done.Wait();
+                    break;
+                }
+                if (deadline == NoDeadline || FrameReadiness.Remaining(deadline) > TimeSpan.Zero)
+                    continue;
+                if (Interlocked.CompareExchange(ref _state, Taken, Queued) == Queued)
+                    throw new OwnerBusyException("the UI thread did not start a call before its deadline, being busy or not yet running");
+                throw new OwnerBusyException("a call the UI thread started had not finished by the deadline; it finishes on its own");
+            }
             _error?.Throw();
             if (_result == null)
                 throw new InvalidOperationException("A call finished without a result or an error.");
             return _result.Value;
         }
 
-        private void AwaitUntilDeadline()
+        /// <summary>Waits until the call is done, its deadline passes or it is cancelled; true when done.</summary>
+        private bool WaitOnce()
         {
-            while (!_done.Wait(WaitSlice()))
+            try
             {
-                if (FrameReadiness.Remaining(deadline) > TimeSpan.Zero)
-                    continue;
-                if (Interlocked.CompareExchange(ref _state, Taken, Queued) == Queued)
-                    throw new OwnerBusyException("the UI thread did not start a call before its deadline, being busy or not yet running");
-                throw new OwnerBusyException("a call the UI thread started had not finished by the deadline; it finishes on its own");
+                return _done.Wait(WaitSlice(), cancel);
+            }
+            catch (OperationCanceledException)
+            {
+                return _done.IsSet;
             }
         }
 
         private TimeSpan WaitSlice()
         {
+            if (deadline == NoDeadline)
+                return MaxWaitSlice;
             var remaining = FrameReadiness.Remaining(deadline);
             if (remaining < TimeSpan.Zero)
                 return TimeSpan.Zero;

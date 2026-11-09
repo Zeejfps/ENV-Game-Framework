@@ -61,6 +61,9 @@ public sealed class SurfaceImage
         Png.EncodeToFile(Png.CreateRgba(Width, Height, ToStraightAlpha()), path);
     }
 
+    /// <summary>A straight-alpha PNG, encoded for speed rather than size, for a capture read once.</summary>
+    public byte[] ToPng() => FastPng.Encode(Width, Height, ToStraightAlpha());
+
     private static byte Unpremultiply(byte channel, byte alpha) =>
         (byte)Math.Min(255, (channel * 255 + alpha / 2) / alpha);
 }

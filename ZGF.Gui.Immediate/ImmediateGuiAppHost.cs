@@ -13,7 +13,7 @@ namespace ZGF.Gui.Immediate;
 
 /// <summary>The window, render loop and UI thread a <see cref="ImmediateGuiApp{TUiState}"/> runs in. While it runs,
 /// <c>await</c> on the UI thread continues before the next frame.</summary>
-public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost where TUiState : class, IUiState
+public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, IInspectedHost where TUiState : class, IUiState
 {
     private const float MaxFrameStep = 0.1f;
     private const int PopupPoolSize = 8;
@@ -65,6 +65,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
     private readonly PlatformClipboard? _platformClipboard;
     private readonly IFilePicker _filePicker;
     private readonly ImmediateAutomation? _automation;
+    private readonly ImmediateInspection? _inspection;
+    private readonly int _uiThread = Environment.CurrentManagedThreadId;
     private readonly ISystemFonts _systemFonts = NativeSystemFonts.Create();
     private readonly FontRegistry _fontRegistry;
     private readonly List<Popup> _popups = new();
@@ -126,6 +128,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
             }
             _filePicker = _automation == null ? NativeFilePicker.Create(_ui.Post, _window) : _automation.FilePicker;
             Dispatcher = new TickDispatcher(this);
+            if (_automation == null)
+                _inspection = new ImmediateInspection(this);
             _clearColor = _ui.WindowBackground;
             WireMainFrame();
             _normalBounds = (config.WindowX ?? 0, config.WindowY ?? 0, config.WindowWidth, config.WindowHeight);
@@ -171,6 +175,10 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
 
     /// <summary>What drives the app in automation mode; null when it runs as usual.</summary>
     public ImmediateAutomation? Automation => _automation;
+
+    /// <summary>Reads the app as it runs as usual, for an inspection-only debug server; null in automation mode, where
+    /// <see cref="Automation"/> reads it.</summary>
+    public ImmediateInspection? Inspection => _inspection;
 
     /// <summary>Makes the default font's bold text Inter SemiBold rather than synthesized.</summary>
     private void RegisterDefaultBold() =>
@@ -445,6 +453,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
         _ui.BeginFrame(_frame, dt, seconds, _render.MainCanvas.Width, _render.MainCanvas.Height);
         _app.Update(_ui);
         _ui.EndFrame();
+        _inspection?.FrameEnded();
         _drawing = false;
         if (_ui.WindowBackground != _clearColor)
         {
@@ -1393,6 +1402,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
     {
         _disposed = true;
         _automation?.Shutdown();
+        _inspection?.Shutdown();
         _ui.Wake = null;
         HotReload.Applied -= Invalidate;
         if (_automation == null)
@@ -1416,6 +1426,12 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
         _render.Dispose();
     }
 
+    void IInspectedHost.Post(Action work) => Dispatcher.Post(work);
+    bool IInspectedHost.OnUiThread => Environment.CurrentManagedThreadId == _uiThread;
+    void IInspectedHost.Invalidate() => Invalidate();
+    Ui IInspectedHost.Ui => _ui;
+    void IInspectedHost.RequestScreenshot(string path, Action done) => RequestScreenshot(path, done);
+
     UiInput IAutomatedHost.Input => _pending;
     MouseCursor IAutomatedHost.Cursor => _cursor;
     Ui IAutomatedHost.Ui => _ui;
@@ -1425,6 +1441,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost w
         _render.RenderWindowNow(_window);
         AnswerAutomatedServices();
     }
+
+    void IAutomatedHost.DiscardPendingInput() => _pending.BeginAfter(_frame);
 
     void IAutomatedHost.RunPostedWork()
     {

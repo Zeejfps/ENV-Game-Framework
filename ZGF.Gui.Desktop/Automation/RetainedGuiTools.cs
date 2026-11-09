@@ -1,6 +1,7 @@
 using McpSdk.Protocol.Models;
 using McpSdk.Server;
 using ZGF.Gui.Desktop.Inspection;
+using ZGF.Gui.Mcp;
 
 namespace ZGF.Gui.Desktop.Automation;
 
@@ -23,9 +24,9 @@ public sealed class RetainedGuiTools(GuiDriver driver) : IMcpToolSource
             snapshot.WriteFlatJson(writer);
         });
 
-    public void Register(McpSession session, DefaultToolsController tools)
+    public void Register(McpSession session, McpToolSet tools)
     {
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_snapshot",
             "Read the laid-out view tree of every live window — the main window plus any open context menu, tooltip, or secondary window — each under a \"=== window: ROLE [x,y wxh] ===\" header. Call this first to discover what is on screen (incl. context menus, which are separate windows) and how to target it.",
             new ObjectSchema().AddOption("format", new StringSchema
@@ -42,7 +43,7 @@ public sealed class RetainedGuiTools(GuiDriver driver) : IMcpToolSource
                 return new ToolReply<MultiWindowSnapshot>(snapshot, snapshot.Render(asJson));
             }));
 
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_screenshot",
             "Capture a PNG screenshot of a rendered window. Defaults to the topmost open context menu if one is open, else the main window; pass \"window\" (a role like \"context-menu\" or \"main\", or a snapshot window index) to target another. Returns image content, or an error if the active render backend cannot read back its framebuffer.",
             new ObjectSchema()
@@ -50,7 +51,7 @@ public sealed class RetainedGuiTools(GuiDriver driver) : IMcpToolSource
             readOnly: true,
             a => McpTools.Image(driver.ScreenshotTool(a.Str("window")))));
 
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_click",
             "Click a view in any live window (searches open context menus first, then secondary windows, then main). Target it by \"id\", \"label\", or \"text\", or click absolute GUI coordinates with \"x\" and \"y\" (in the \"window\" you name, default main).",
             new ObjectSchema()
@@ -67,7 +68,7 @@ public sealed class RetainedGuiTools(GuiDriver driver) : IMcpToolSource
                 a.Str("id"), a.Str("label"), a.Str("text"),
                 a.Bool("exact", true), a.Num("x"), a.Num("y"), a.Str("button"), a.Str("window")))));
 
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_move",
             "Move the pointer without clicking, so hover behaviour can be driven: tooltips, hover cards, cursor changes. Target a view by \"id\", \"label\" or \"text\", or absolute GUI coordinates with \"x\" and \"y\". Anything that waits for the pointer to settle needs a moment after this before it appears.",
             new ObjectSchema()
@@ -83,14 +84,14 @@ public sealed class RetainedGuiTools(GuiDriver driver) : IMcpToolSource
                 a.Num("x"), a.Num("y"), a.Str("id"), a.Str("label"), a.Str("text"),
                 a.Bool("exact", true), a.Str("window")))));
 
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_type",
             "Type ASCII text into the focused view, one key at a time. Use gui_key for non-printable keys (Enter, Tab, ...).",
             new ObjectSchema().Add("text", new StringSchema { Description = "ASCII text to type." }),
             readOnly: false,
             a => McpTools.Text(driver.TypeTool(a.RequiredStr("text")))));
 
-        tools.AddTool(McpTools.Define(
+        tools.Add(McpTools.Define(
             "gui_key",
             "Press a single key, optionally with modifiers — e.g. Enter, Escape, Tab, or A with Control.",
             new ObjectSchema()

@@ -19,5 +19,12 @@
   "menu.file": "Archivo",
   "menu.view": "Ver",
   "action.toggle_done": "Marcar como hecha",
-  "tooltip.add_many": "Añade mil tareas generadas"
+  "tooltip.add_many": "Añade mil tareas generadas",
+  "action.open": "Abrir…",
+  "action.export": "Exportar…",
+  "action.done": "Hecho",
+  "open.title": "Abrir una lista de tareas",
+  "preview.empty": "Ningún archivo abierto",
+  "export.title": "Exportar",
+  "export.body": "Las tareas se exportan como texto plano, una por línea."
 }

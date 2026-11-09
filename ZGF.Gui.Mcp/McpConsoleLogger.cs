@@ -1,6 +1,6 @@
 using McpSdk.Shared;
 
-namespace ZGF.Gui.Desktop;
+namespace ZGF.Gui.Mcp;
 
 /// <summary>McpSdk's logger seam routed to the console for errors and warnings only, so a session
 /// that fails to set up — a tool source throwing in <c>Register</c>, a schema the adapter rejects —
