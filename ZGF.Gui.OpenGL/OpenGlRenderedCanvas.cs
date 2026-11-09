@@ -170,6 +170,7 @@ public sealed unsafe class OpenGlRenderedCanvas : RenderedCanvasBase, IDisposabl
         // resizes don't auto-update viewport on subsequent context-make-currents).
         UploadProjection();
         glViewport(0, 0, DeviceWidth, DeviceHeight);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, _clipUbo);
 
         if (drawCalls.Count == 0) return;
 
