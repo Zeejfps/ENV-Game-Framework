@@ -38,11 +38,15 @@ public static partial class UiWidgets
     /// does a change of <paramref name="revision"/> — pass what the items are built from, so a pick
     /// never lands on a row that moved. Enter or Space while focused opens it with its first item
     /// highlighted, and keys then work as in a <see cref="MenuBar"/>. While
-    /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way.</summary>
-    public static Ui.Scope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0) =>
-        ui.DropdownButton(ui.GetId(id), tooltip, enabled, revision);
+    /// <see cref="Ui.Scope.IsOpen"/>, record its items inside the scope; dispose either way. Given a
+    /// <paramref name="glyph"/>, it is an <see cref="IconButton"/>'s size and shows that icon in place
+    /// of the triangle, as a "more" button does.</summary>
+    public static Ui.Scope DropdownButton(this Ui ui, string id, string? tooltip = null, bool enabled = true, int revision = 0,
+        IconGlyph? glyph = null) =>
+        ui.DropdownButton(ui.GetId(id), tooltip, enabled, revision, glyph);
 
-    public static Ui.Scope DropdownButton(this Ui ui, int id, string? tooltip = null, bool enabled = true, int revision = 0)
+    public static Ui.Scope DropdownButton(this Ui ui, int id, string? tooltip = null, bool enabled = true, int revision = 0,
+        IconGlyph? glyph = null)
     {
         var theme = ui.Theme;
         var i = Pressable(ui, id, enabled, out var activated, out var ring);
@@ -54,13 +58,18 @@ public static partial class UiWidgets
 
         using (ui.Box(i.Id, new Box
         {
-            Width = theme.DropdownButtonWidth,
+            Width = glyph != null ? theme.IconButtonSize : theme.DropdownButtonWidth,
             Height = theme.IconButtonSize,
+            AlignX = Align.Center,
+            AlignY = Align.Center,
             Background = fill,
             Radius = theme.CornerRadius,
         }))
         {
-            ui.PaintGlyph(UiGlyph.DropdownArrow, color);
+            if (glyph != null)
+                ui.Glyph(glyph.Value, color, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
+            else
+                ui.PaintGlyph(UiGlyph.DropdownArrow, color);
             if (ring) FocusRing(ui, theme.CornerRadius);
         }
         ui.Semantics(i.Id, SemanticRole.Button, tooltip, DropdownStates(open, enabled));
