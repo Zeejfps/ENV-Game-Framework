@@ -17,22 +17,25 @@ public sealed class TestFilePicker : IFilePicker
     /// <summary>Runs as each picker opens, as the platform's modal dialog would take over.</summary>
     public Action? OnOpen { get; set; }
 
-    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) => Pick(title, onPicked);
+    public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) => Pick(title, onPicked, null);
 
-    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Pick(title, onPicked);
+    public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Pick(title, onPicked, null);
 
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked,
+        Action onCancelled)
     {
         LastSave = (suggestedFileName, filters);
-        Pick(title, onPicked);
+        Pick(title, onPicked, onCancelled);
     }
 
-    private void Pick(string title, Action<string> onPicked)
+    private void Pick(string title, Action<string> onPicked, Action? onCancelled)
     {
         Titles.Add(title);
         OnOpen?.Invoke();
         if (Answer != null)
             onPicked(Answer);
+        else
+            onCancelled?.Invoke();
     }
 }
 

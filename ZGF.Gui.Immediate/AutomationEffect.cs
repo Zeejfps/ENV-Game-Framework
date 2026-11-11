@@ -27,4 +27,7 @@ public abstract record AutomationEffect
     public sealed record FolderOpened(string Path) : AutomationEffect;
 
     public sealed record UrlOpened(string Url) : AutomationEffect;
+
+    /// <summary>A file handed to the share sheet, which answered that it was shared.</summary>
+    public sealed record FileShared(string Path, string Title, string? Text) : AutomationEffect;
 }

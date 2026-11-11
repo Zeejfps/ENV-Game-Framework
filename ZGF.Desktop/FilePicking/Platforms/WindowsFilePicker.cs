@@ -62,7 +62,8 @@ internal sealed class WindowsFilePicker : IFilePicker
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked)
+        Action<string> onPicked,
+        Action onCancelled)
     {
         var path = ShowFileDialog(_owner, title, DialogKind.SaveFile, initialDirectory, suggestedFileName, filters);
 
@@ -72,6 +73,8 @@ internal sealed class WindowsFilePicker : IFilePicker
 
         if (!string.IsNullOrEmpty(path))
             onPicked(path);
+        else
+            onCancelled();
     }
 
     private enum DialogKind

@@ -43,18 +43,19 @@ internal sealed class LinuxFilePicker : IFilePicker
     }
 
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
-        Pick(title, LinuxChooser.Folder, initialDirectory, null, null, onPicked);
+        Pick(title, LinuxChooser.Folder, initialDirectory, null, null, onPicked, null);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(title, LinuxChooser.File, initialDirectory, null, filters, onPicked);
+        Pick(title, LinuxChooser.File, initialDirectory, null, filters, onPicked, null);
 
     public void PickSaveFile(
         string title,
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked) =>
-        Pick(title, LinuxChooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked);
+        Action<string> onPicked,
+        Action onCancelled) =>
+        Pick(title, LinuxChooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked, onCancelled);
 
     private void Pick(
         string title,
@@ -62,10 +63,17 @@ internal sealed class LinuxFilePicker : IFilePicker
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked)
+        Action<string> onPicked,
+        Action? onCancelled)
     {
-        // The picker stays open until it exits — ignore Browse clicks made while one is up.
-        if (Interlocked.CompareExchange(ref _pickerOpen, 1, 0) != 0) return;
+        // The picker stays open until it exits — ignore Browse clicks made while one is up, but
+        // tell a caller waiting to hear (onCancelled) that this one was not shown.
+        if (Interlocked.CompareExchange(ref _pickerOpen, 1, 0) != 0)
+        {
+            if (onCancelled != null)
+                _post(onCancelled);
+            return;
+        }
 
         // Either picker can be left open indefinitely. Waiting for it on the UI thread stalls the
         // event loop, so the window manager marks the app unresponsive and offers to kill it.
@@ -80,6 +88,8 @@ internal sealed class LinuxFilePicker : IFilePicker
 
                 if (!string.IsNullOrEmpty(path))
                     _post(() => onPicked(path));
+                else if (onCancelled != null)
+                    _post(onCancelled);
             }
             finally
             {

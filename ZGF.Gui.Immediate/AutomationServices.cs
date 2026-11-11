@@ -58,21 +58,37 @@ internal sealed class AutomationFilePicker : IFilePicker
     public void Queue(string? answer) => _answers.Enqueue(answer);
 
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
-        Pick(FilePickerKind.Folder, title, initialDirectory, null, null, onPicked);
+        Pick(FilePickerKind.Folder, title, initialDirectory, null, null, onPicked, null);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(FilePickerKind.File, title, initialDirectory, null, filters, onPicked);
+        Pick(FilePickerKind.File, title, initialDirectory, null, filters, onPicked, null);
 
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(FilePickerKind.SaveFile, title, initialDirectory, suggestedFileName, filters, onPicked);
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked,
+        Action onCancelled) =>
+        Pick(FilePickerKind.SaveFile, title, initialDirectory, suggestedFileName, filters, onPicked, onCancelled);
 
     private void Pick(FilePickerKind kind, string title, string? initialDirectory, string? suggestedFileName,
-        IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+        IReadOnlyList<FileFilter>? filters, Action<string> onPicked, Action? onCancelled)
     {
         _answers.TryDequeue(out var answer);
         _requests.Add(new FilePickerRequest(kind, title, initialDirectory, suggestedFileName, filters, answer));
         if (answer != null)
             onPicked(answer);
+        else
+            onCancelled?.Invoke();
+    }
+}
+
+/// <summary>Records each file the app shares (<see cref="AutomationEffect.FileShared"/>) and answers that it was
+/// shared, as a user who picked an app would. UI thread only.</summary>
+internal sealed class AutomationFileSharer(ImmediateAutomation automation) : IFileSharer
+{
+    public bool CanShare => true;
+
+    public void Share(FileToShare file, Action<ShareOutcome> onDone)
+    {
+        automation.Record(new AutomationEffect.FileShared(file.Path, file.Title, file.Text));
+        onDone(new ShareOutcome.Shared());
     }
 }
 

@@ -24,18 +24,19 @@ internal sealed class MacOsFilePicker : IFilePicker
     }
 
     public void PickFolder(string title, string? initialDirectory, Action<string> onPicked) =>
-        Pick(title, Chooser.Folder, initialDirectory, null, null, onPicked);
+        Pick(title, Chooser.Folder, initialDirectory, null, null, onPicked, null);
 
     public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        Pick(title, Chooser.File, initialDirectory, null, filters, onPicked);
+        Pick(title, Chooser.File, initialDirectory, null, filters, onPicked, null);
 
     public void PickSaveFile(
         string title,
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked) =>
-        Pick(title, Chooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked);
+        Action<string> onPicked,
+        Action onCancelled) =>
+        Pick(title, Chooser.SaveName, initialDirectory, suggestedFileName, filters, onPicked, onCancelled);
 
     private void Pick(
         string title,
@@ -43,10 +44,17 @@ internal sealed class MacOsFilePicker : IFilePicker
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked)
+        Action<string> onPicked,
+        Action? onCancelled)
     {
-        // The picker stays open until it exits — ignore Browse clicks made while one is up.
-        if (Interlocked.CompareExchange(ref _pickerOpen, 1, 0) != 0) return;
+        // The picker stays open until it exits — ignore Browse clicks made while one is up, but
+        // tell a caller waiting to hear (onCancelled) that this one was not shown.
+        if (Interlocked.CompareExchange(ref _pickerOpen, 1, 0) != 0)
+        {
+            if (onCancelled != null)
+                _post(onCancelled);
+            return;
+        }
 
         // osascript blocks until the user closes the dialog; waiting for it on the UI thread
         // stalls the event loop (beachball). Wait on a worker and post the result back.
@@ -60,6 +68,8 @@ internal sealed class MacOsFilePicker : IFilePicker
 
                 if (!string.IsNullOrEmpty(path))
                     _post(() => onPicked(path));
+                else if (onCancelled != null)
+                    _post(onCancelled);
             }
             finally
             {

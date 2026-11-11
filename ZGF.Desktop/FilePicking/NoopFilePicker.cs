@@ -2,7 +2,7 @@ namespace ZGF.Desktop;
 
 /// <summary>
 /// Fallback <see cref="IFilePicker"/> for platforms without a native picker. Logs the request
-/// and never invokes the callback, so a Browse button is a harmless no-op rather than a crash.
+/// and never invokes the picked callback (a save's cancel runs at once), so a Browse button is a harmless no-op rather than a crash.
 /// </summary>
 public sealed class NoopFilePicker : IFilePicker
 {
@@ -17,6 +17,10 @@ public sealed class NoopFilePicker : IFilePicker
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked) =>
+        Action<string> onPicked,
+        Action onCancelled)
+    {
         Console.WriteLine($"[FilePicker] No native save dialog for this OS. Title: {title}");
+        onCancelled();
+    }
 }

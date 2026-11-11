@@ -831,6 +831,12 @@ public static class AutomationWire
                 w.WriteString("kind", "urlOpened");
                 w.WriteString("url", url.Url);
                 break;
+            case AutomationEffect.FileShared shared:
+                w.WriteString("kind", "fileShared");
+                w.WriteString("path", shared.Path);
+                w.WriteString("title", shared.Title);
+                WriteOptional(w, "text", shared.Text);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(effect), effect, null);
         }
@@ -1017,16 +1023,17 @@ public static class AutomationWire
 
     private static AutomationEffect ReadEffect(JsonElement element)
     {
-        var kind = Fields.Of(element, "effect", ["kind"], ["state", "locked", "path", "url"]).Str("kind");
+        var kind = Fields.Of(element, "effect", ["kind"], ["state", "locked", "path", "url", "title", "text"]).Str("kind");
         var members = kind switch
         {
             "windowStateRequested" => new[] { "kind", "state" },
             "pointerLockChanged" => ["kind", "locked"],
             "fileOpened" or "fileRevealed" or "folderOpened" => ["kind", "path"],
             "urlOpened" => ["kind", "url"],
+            "fileShared" => ["kind", "path", "title"],
             _ => ["kind"],
         };
-        var effect = Fields.Of(element, $"{kind} effect", members, []);
+        var effect = Fields.Of(element, $"{kind} effect", members, kind == "fileShared" ? ["text"] : []);
         return kind switch
         {
             "windowShown" => new AutomationEffect.WindowShown(),
@@ -1037,6 +1044,7 @@ public static class AutomationWire
             "fileOpened" => new AutomationEffect.FileOpened(effect.Str("path")),
             "fileRevealed" => new AutomationEffect.FileRevealed(effect.Str("path")),
             "folderOpened" => new AutomationEffect.FolderOpened(effect.Str("path")),
+            "fileShared" => new AutomationEffect.FileShared(effect.Str("path"), effect.Str("title"), effect.OptionalStr("text")),
             "urlOpened" => new AutomationEffect.UrlOpened(effect.Str("url")),
             _ => throw new FormatException($"Unknown effect \"{kind}\"."),
         };

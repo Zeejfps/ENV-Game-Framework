@@ -62,6 +62,8 @@ public sealed class AutomationModeTests
         public bool PopupOpen;
         public bool DialogOpen;
         public string? Picked;
+        public bool SaveCancelled;
+        public ShareOutcome? Shared;
         public string Name = "";
         public ImmediateAutomation? Automation;
         public Exception? CalledFromUiThread;
@@ -120,6 +122,10 @@ public sealed class AutomationModeTests
                     ui.PickFile("Open a note", null, null, path => Picked = path);
                 if (ui.Button("Help", id: "help"))
                     ui.OpenUrl("https://example.com/help");
+                if (ui.Button("Save", id: "save"))
+                    ui.PickSaveFile("Save a note", null, "note.md", null, path => Picked = path, () => SaveCancelled = true);
+                if (ui.Button("Share", id: "share"))
+                    ui.ShareFile(new FileToShare(@"C:\notes\today.md", "Today", "My notes"), outcome => Shared = outcome);
                 if (ui.Button("Popup", id: "popup"))
                     PopupOpen = !PopupOpen;
                 if (ui.Button("Dialog", id: "dialog"))
@@ -346,6 +352,36 @@ public sealed class AutomationModeTests
 
         Click(automation, "help");
         Assert.Equal(new AutomationEffect[] { new AutomationEffect.UrlOpened("https://example.com/help") }, automation.Effects());
+    }
+
+    [AutomatedHostFact]
+    public void An_unanswered_save_picker_tells_the_app_it_was_cancelled()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        var automation = running.Automation;
+        automation.WaitUntilReady(Timeout);
+
+        Click(automation, "save");
+        automation.WaitUntilReady(Timeout);
+
+        Assert.True(app.SaveCancelled);
+        Assert.Null(app.Picked);
+    }
+
+    [AutomatedHostFact]
+    public void A_shared_file_is_recorded_and_answered_as_shared()
+    {
+        var app = new TestApp();
+        using var running = RunningHost.Start(app);
+        var automation = running.Automation;
+        automation.WaitUntilReady(Timeout);
+
+        Click(automation, "share");
+        automation.WaitUntilReady(Timeout);
+
+        Assert.Equal(new ShareOutcome.Shared(), app.Shared);
+        Assert.Equal(new AutomationEffect[] { new AutomationEffect.FileShared(@"C:\notes\today.md", "Today", "My notes") }, automation.Effects());
     }
 
     [AutomatedWindowsHostFact]

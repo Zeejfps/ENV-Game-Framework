@@ -27,6 +27,7 @@ public abstract partial class Ui
     private readonly IPopupHost? _popupHost;
     private readonly ConcurrentQueue<Action> _posted;
     private readonly List<Action<IFilePicker>> _dialogs = new();
+    private readonly List<(FileToShare File, Action<ShareOutcome> OnDone)> _shares = new();
     private readonly List<string> _foldersToOpen = new();
     private readonly List<string> _filesToReveal = new();
     private readonly List<string> _filesToOpen = new();
@@ -226,17 +227,69 @@ public abstract partial class Ui
         _dialogs.Add(picker => picker.PickFolder(title, initialDirectory, InFrame(onPicked)));
 
     /// <summary>Shows the OS save dialog, as <see cref="PickFile"/> does. See
-    /// <see cref="IFilePicker.PickSaveFile"/>.</summary>
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-        _dialogs.Add(picker => picker.PickSaveFile(title, initialDirectory, suggestedFileName, filters, InFrame(onPicked)));
+    /// <see cref="IFilePicker.PickSaveFile"/>. <paramref name="onCancelled"/>, when given, runs at
+    /// the start of a later frame when no path was chosen, for whatever reason.</summary>
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked,
+        Action? onCancelled = null) =>
+        _dialogs.Add(picker => picker.PickSaveFile(title, initialDirectory, suggestedFileName, filters, InFrame(onPicked),
+            InFrame(onCancelled ?? (() => { }))));
 
-    private Action<string> InFrame(Action<string> onPicked) => path =>
+    /// <summary><paramref name="answer"/>, run at the start of a later frame when it is called while the
+    /// host shows dialogs, outside any frame, and at once otherwise, as then it is called at a frame's
+    /// start already.</summary>
+    private Action<T> InFrame<T>(Action<T> answer) => value =>
     {
         if (_showingDialogs)
-            Post(() => onPicked(path));
+            Post(() => answer(value));
         else
-            onPicked(path);
+            answer(value);
     };
+
+    private Action InFrame(Action answer) => () =>
+    {
+        if (_showingDialogs)
+            Post(answer);
+        else
+            answer();
+    };
+
+    /// <summary>The share sheet the host gave this window, if any; see <see cref="CanShareFiles"/>.</summary>
+    internal IFileSharer? FileSharer { get; set; }
+
+    /// <summary>Whether <see cref="ShareFile"/> can show the OS's share sheet here. Where it cannot,
+    /// offering to save the file (<see cref="PickSaveFile"/>) is the nearest thing.</summary>
+    public bool CanShareFiles => FileSharer?.CanShare == true;
+
+    /// <summary>Shows the OS's share sheet for a file once this frame is drawn.
+    /// <paramref name="onDone"/> runs at the start of a later frame with how it ended. See
+    /// <see cref="IFileSharer.Share"/>.</summary>
+    public void ShareFile(FileToShare file, Action<ShareOutcome> onDone) => _shares.Add((file, onDone));
+
+    internal bool HasShares => _shares.Count > 0;
+
+    /// <summary>Opens the share sheets asked for during the last frame. The host calls it outside any
+    /// frame.</summary>
+    internal void ShowShares()
+    {
+        var shares = _shares.ToArray();
+        _shares.Clear();
+        _showingDialogs = true;
+        try
+        {
+            foreach (var (file, onDone) in shares)
+            {
+                var answer = InFrame(onDone);
+                if (FileSharer == null)
+                    answer(new ShareOutcome.Failed("This window has no share sheet"));
+                else
+                    FileSharer.Share(file, answer);
+            }
+        }
+        finally
+        {
+            _showingDialogs = false;
+        }
+    }
 
     /// <summary>Hides every popup, then runs the dialogs asked for during the last frame. The host
     /// calls it outside any frame, since a modal dialog pumps the window's events. Returns whether

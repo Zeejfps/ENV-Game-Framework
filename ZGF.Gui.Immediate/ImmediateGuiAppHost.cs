@@ -126,6 +126,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
                 _ui.SystemMenus = new SystemMenus(menuBar, Invalidate);
             }
             _filePicker = _automation == null ? NativeFilePicker.Create(_ui.Post, _window) : _automation.FilePicker;
+            _ui.FileSharer = _automation == null ? NativeFileSharer.Create(_ui.Post, _window) : new AutomationFileSharer(_automation);
             Dispatcher = new TickDispatcher(this);
             if (_automation == null)
                 _inspection = new ImmediateInspection(this);
@@ -702,6 +703,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
             _pending.DismissPopups();
             RequestRedraw();
         }
+        if (_ui.HasShares)
+            _ui.ShowShares();
         if (_ui.HasFoldersToOpen)
             OpenFolders();
         if (_ui.HasFilesToReveal)
@@ -1488,6 +1491,8 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
             return;
         if (_ui.HasDialogs && _ui.ShowDialogs(_automation.FilePicker))
             _pending.DismissPopups();
+        if (_ui.HasShares)
+            _ui.ShowShares();
         foreach (var folder in _ui.TakeFoldersToOpen())
             _automation.Record(new AutomationEffect.FolderOpened(folder));
         foreach (var file in _ui.TakeFilesToReveal())

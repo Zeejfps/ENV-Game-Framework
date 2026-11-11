@@ -48,10 +48,11 @@ internal sealed class UiThreadFilePicker : IFilePicker
         _inner.PickFile(title, initialDirectory, filters, onPicked);
     }
 
-    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked)
+    public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked,
+        Action onCancelled)
     {
         Resolve();
-        _inner.PickSaveFile(title, initialDirectory, suggestedFileName, filters, onPicked);
+        _inner.PickSaveFile(title, initialDirectory, suggestedFileName, filters, onPicked, onCancelled);
     }
 
     private void Resolve() => _dispatcher ??= _resolve();

@@ -27,7 +27,10 @@ public interface IFilePicker
     /// Shows the OS save dialog, following the same threading and cancel contract as
     /// <see cref="PickFolder"/>. <paramref name="suggestedFileName"/> pre-fills the name box and
     /// supplies the extension appended when the user types one without; pass null to leave both
-    /// to the user. Filters are honoured where the platform can express them.
+    /// to the user. Filters are honoured where the platform can express them. Unlike the other
+    /// pickers it always answers: <paramref name="onCancelled"/> runs, on the UI thread, when the
+    /// user cancels, another picker is already open, or no dialog could be shown, so a caller
+    /// waiting on the choice is never left waiting.
     /// </summary>
     /// <remarks>
     /// The chosen path usually does not exist yet — that is the point — so it is a destination to
@@ -40,5 +43,6 @@ public interface IFilePicker
         string? initialDirectory,
         string? suggestedFileName,
         IReadOnlyList<FileFilter>? filters,
-        Action<string> onPicked);
+        Action<string> onPicked,
+        Action onCancelled);
 }
