@@ -11,6 +11,18 @@ public sealed class TextAreaTests
     private const float LineHeight = 16f;
 
     [Fact]
+    public void Paste_from_the_menu_keeps_the_clipboards_line_breaks_at_the_line_right_clicked()
+    {
+        var area = new Area("one\ntwo");
+        area.Frames.Clipboard.Text = "A\nB";
+
+        area.RightClick(1, 1);
+        area.Pick("paste");
+
+        Assert.Equal("one\ntA\nBwo", area.Text);
+    }
+
+    [Fact]
     public void Enter_submits_and_shift_enter_breaks_the_line()
     {
         var area = new Area();
@@ -230,5 +242,18 @@ public sealed class TextAreaTests
         public void Key(KeyboardKey key, KeyModifiers modifiers = KeyModifiers.None) => Frames.Key(key, modifiers).Frame();
 
         public void Type(string text) => Frames.Type(text).Frame();
+
+        /// <summary>Right-clicks where <see cref="Click"/> clicks.</summary>
+        public void RightClick(int line, int column)
+        {
+            var field = Frames.RectOf("area");
+            var x = field.X + UiTheme.Dark.FieldPaddingX + column * CharWidth + 1f;
+            var y = field.Y + PaddingY + line * LineHeight + LineHeight / 2;
+            Frames.Wait(1).MovePointer(x, y).Press(PointerButton.Right).Frame();
+            Frames.Release(PointerButton.Right).Frame();
+        }
+
+        public void Pick(string item) =>
+            Frames.ClickOn(ui => UiWidgets.MenuItemId(UiWidgets.TextMenuId(ui.GetId("area")), item)).Frame();
     }
 }

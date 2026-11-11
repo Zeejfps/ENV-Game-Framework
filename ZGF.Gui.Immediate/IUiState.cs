@@ -5,4 +5,7 @@ namespace ZGF.Gui.Immediate;
 public interface IUiState
 {
     UiTheme Theme { get; }
+
+    /// <summary>The words the framework's widgets show; English unless the app gives its own.</summary>
+    UiWords Words => UiWords.English;
 }

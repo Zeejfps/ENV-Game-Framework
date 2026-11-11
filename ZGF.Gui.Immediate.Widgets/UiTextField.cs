@@ -33,6 +33,9 @@ public static partial class UiWidgets
     /// <summary>The id of the cross that empties the clearable field <paramref name="fieldId"/>.</summary>
     internal static int ClearButtonId(int fieldId) => HashCode.Combine(fieldId, "clear");
 
+    /// <summary>The id of the menu the field <paramref name="fieldId"/> opens right-clicked.</summary>
+    internal static int TextMenuId(int fieldId) => HashCode.Combine(fieldId, "text-menu");
+
     private const double CaretBlinkSeconds = 0.53;
     private const int MaxUndo = 100;
 
@@ -54,6 +57,10 @@ public static partial class UiWidgets
         public readonly List<TextSnapshot> Undo = new();
         public readonly List<TextSnapshot> Redo = new();
         public double BlinkFrom;
+
+        /// <summary>Whether the clipboard held text when the field's menu opened, so Paste is offered
+        /// without reading the clipboard every frame the menu shows.</summary>
+        public bool CanPaste;
 
         /// <summary>In a text area, the x Up and Down keep the caret at as they pass shorter lines;
         /// negative until the first of them.</summary>
@@ -215,9 +222,23 @@ public static partial class UiWidgets
             ui.Focus(i.Id);
             focused = true;
         }
+        if (i.ClickedWith(PointerButton.Right))
+        {
+            if (!preedit.IsEmpty)
+            {
+                ui.ResetComposition();
+                preedit = PreeditText.Empty;
+            }
+            if (!focused) state.Shift = 0f;
+            OpenTextMenu(ui, i.Id, state, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift));
+        }
+        // While the menu shows it takes the keys, so the field edits nothing.
+        var menuShown = TextMenu(ui, i.Id, state, ref text, area: null);
+        if (menuShown)
+            focused = true;
 
         var submitted = false;
-        if (focused)
+        if (focused && !menuShown)
         {
             if (!preedit.IsEmpty && state.HasSelection)
                 Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
@@ -415,16 +436,13 @@ public static partial class UiWidgets
                     state.Select(0, text.Length);
                     break;
                 case KeyboardKey.C when shortcut && state.HasSelection:
-                    ui.ClipboardText = state.Selection.Of(text);
+                    Copy(ui, state, text);
                     break;
                 case KeyboardKey.X when shortcut && state.HasSelection:
-                    ui.ClipboardText = state.Selection.Of(text);
-                    Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
+                    Cut(ui, state, ref text);
                     break;
                 case KeyboardKey.V when shortcut:
-                    var pasted = ui.ClipboardText.ReplaceLineEndings(area != null ? "\n" : " ");
-                    if (pasted.Length > 0)
-                        Replace(state, ref text, state.SelectionStart, state.SelectionEnd, pasted, EditKind.None);
+                    Paste(ui, state, ref text, area);
                     break;
                 case KeyboardKey.Z when shortcut && extend:
                 case KeyboardKey.Y when shortcut:
@@ -444,6 +462,60 @@ public static partial class UiWidgets
         if (ui.Input.Text.Length > 0)
             Replace(state, ref text, state.SelectionStart, state.SelectionEnd, ui.Input.Text, EditKind.Typing);
         return false;
+    }
+
+    private static void Copy(Ui ui, TextFieldState state, string text) => ui.ClipboardText = state.Selection.Of(text);
+
+    private static void Cut(Ui ui, TextFieldState state, ref string text)
+    {
+        Copy(ui, state, text);
+        Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
+    }
+
+    /// <summary>Puts the clipboard's text in place of the selection, its line breaks made spaces in a
+    /// field of one line.</summary>
+    private static void Paste(Ui ui, TextFieldState state, ref string text, AreaEditing? area)
+    {
+        var pasted = ui.ClipboardText.ReplaceLineEndings(area != null ? "\n" : " ");
+        if (pasted.Length > 0)
+            Replace(state, ref text, state.SelectionStart, state.SelectionEnd, pasted, EditKind.None);
+    }
+
+    /// <summary>Opens the menu of the field <paramref name="fieldId"/>, right-clicked at the text index
+    /// <paramref name="at"/>: the field takes focus, its caret moving there unless that is inside the
+    /// selection, which the menu then acts on.</summary>
+    private static void OpenTextMenu(Ui ui, int fieldId, TextFieldState state, int at)
+    {
+        if (!state.HasSelection || at < state.SelectionStart || at > state.SelectionEnd)
+            state.Select(at, at);
+        state.LastEdit = EditKind.None;
+        state.GoalX = -1f;
+        state.CanPaste = ui.ClipboardText.Length > 0;
+        ui.Focus(fieldId);
+        ui.OpenContextMenu(TextMenuId(fieldId));
+    }
+
+    /// <summary>Records the field's menu: Cut, Copy, Paste and Select All in the app's words, each doing
+    /// what its keys do. Returns true while it shows, the frame an item is picked included, and keeps the
+    /// field focused meanwhile, as a press on the menu would otherwise take focus away.</summary>
+    private static bool TextMenu(Ui ui, int fieldId, TextFieldState state, ref string text, AreaEditing? area)
+    {
+        using var menu = ui.ContextMenu(TextMenuId(fieldId));
+        if (!menu.IsOpen)
+            return false;
+        var words = ui.Words;
+        if (ui.MenuItem(words.Cut, Shortcut.Command(KeyboardKey.X), enabled: state.HasSelection, id: "cut"))
+            Cut(ui, state, ref text);
+        if (ui.MenuItem(words.Copy, Shortcut.Command(KeyboardKey.C), enabled: state.HasSelection, id: "copy"))
+            Copy(ui, state, text);
+        if (ui.MenuItem(words.Paste, Shortcut.Command(KeyboardKey.V), enabled: state.CanPaste, id: "paste"))
+            Paste(ui, state, ref text, area);
+        ui.MenuSeparator();
+        var partly = state.SelectionStart > 0 || state.SelectionEnd < text.Length;
+        if (ui.MenuItem(words.SelectAll, Shortcut.Command(KeyboardKey.A), enabled: partly, id: "select-all"))
+            state.Select(0, text.Length);
+        ui.Focus(fieldId);
+        return true;
     }
 
     private static void Move(TextFieldState state, int caret, bool extend) =>

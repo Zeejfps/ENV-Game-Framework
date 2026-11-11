@@ -8,6 +8,9 @@ public abstract partial class Ui
 
     /// <summary>The theme of the UI state at this point of the frame.</summary>
     public UiTheme Theme => _state.Theme;
+
+    /// <summary>The words the framework's widgets show, from the UI state at this point of the frame.</summary>
+    public UiWords Words => _state.Words;
 }
 
 /// <summary>A <see cref="Ui"/> carrying the app's <typeparamref name="T"/>, what its views read

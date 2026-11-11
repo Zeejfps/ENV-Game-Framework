@@ -364,6 +364,128 @@ public sealed class TextFieldTests
         Assert.Equal("a|b", field.Text);
     }
 
+    [Fact]
+    public void Copy_from_the_menu_copies_the_selection_right_clicked_and_leaves_the_text()
+    {
+        var field = new Field("hello world");
+        field.Click(6);
+        for (var i = 0; i < 5; i++) field.Key(KeyboardKey.RightArrow, KeyModifiers.Shift);
+
+        field.RightClick(8);
+        field.Pick("copy");
+
+        Assert.Equal("world", field.Clipboard.Text);
+        Assert.Equal("hello world", field.Text);
+    }
+
+    [Fact]
+    public void Cut_from_the_menu_takes_the_selection_out_onto_the_clipboard()
+    {
+        var field = new Field("hello world");
+        field.Click(6);
+        for (var i = 0; i < 5; i++) field.Key(KeyboardKey.RightArrow, KeyModifiers.Shift);
+
+        field.RightClick(8);
+        field.Pick("cut");
+
+        Assert.Equal("world", field.Clipboard.Text);
+        Assert.Equal("hello ", field.Text);
+    }
+
+    [Fact]
+    public void Paste_from_the_menu_goes_where_an_unfocused_field_was_right_clicked_and_typing_goes_on_after_it()
+    {
+        var field = new Field("abcd");
+        field.Clipboard.Text = "XY";
+
+        field.RightClick(2);
+        field.Pick("paste");
+        field.Type("!");
+
+        Assert.Equal("abXY!cd", field.Text);
+    }
+
+    [Fact]
+    public void Paste_is_offered_only_while_the_clipboard_holds_text()
+    {
+        var field = new Field("abcd");
+        field.Clipboard.Text = null;
+
+        field.RightClick(2);
+        field.Pick("paste");
+
+        Assert.Equal("abcd", field.Text);
+    }
+
+    [Fact]
+    public void Select_all_from_the_menu_selects_everything_so_typing_replaces_it()
+    {
+        var field = new Field("abc");
+
+        field.RightClick(1);
+        field.Pick("select-all");
+        field.Type("z");
+
+        Assert.Equal("z", field.Text);
+    }
+
+    [Fact]
+    public void While_the_menu_shows_it_takes_the_keys_so_Enter_picks_rather_than_submits()
+    {
+        var field = new Field("abc");
+        field.Clipboard.Text = null;
+        field.RightClick(1);
+
+        field.Type("q");
+        Assert.Equal("abc", field.Text);
+        field.Key(KeyboardKey.DownArrow);
+        field.Key(KeyboardKey.Enter);
+        // A menu keeps the keys from what is under it until the frame after it closes.
+        field.Frame();
+        field.Type("z");
+
+        Assert.Equal(0, field.Submits);
+        Assert.Equal("z", field.Text);
+    }
+
+    [Fact]
+    public void Escape_closes_the_menu_and_the_field_keeps_its_caret_where_it_was_right_clicked()
+    {
+        var field = new Field("abc");
+        field.RightClick(1);
+
+        field.Key(KeyboardKey.Escape);
+        field.Frame();
+        field.Type("x");
+
+        Assert.Equal("axbc", field.Text);
+    }
+
+    [Fact]
+    public void The_menu_speaks_the_apps_words_and_English_for_any_it_does_not_give()
+    {
+        var text = "abc";
+        var frames = new UiFrames<WordsState>(new WordsState(), body: ui =>
+        {
+            using (ui.Screen())
+                ui.TextField("field", ref text);
+        }) { FrameTime = 1f / 60f }.Frame();
+
+        frames.Wait(1).MovePointer(TextLeft + CharWidth, 31f).Press(PointerButton.Right).Frame();
+        frames.Release(PointerButton.Right).Frame();
+
+        Assert.True(frames.Drew("Copiar"));
+        Assert.True(frames.Drew("Paste"));
+        Assert.False(frames.Drew("Copy"));
+    }
+
+    private sealed class WordsState : IUiState
+    {
+        public UiTheme Theme => UiTheme.Dark;
+
+        public UiWords Words { get; } = new() { Copy = "Copiar" };
+    }
+
     private const float TextLeft = 24f;
     private const float CharWidth = 8f;
 
@@ -391,11 +513,26 @@ public sealed class TextFieldTests
 
         public void Frame() => Frames.Frame();
 
+        public int Submits { get; private set; }
+
         private void Body(Ui ui)
         {
             using (ui.Screen())
-                ui.TextField("field", ref _text);
+            {
+                if (ui.TextField("field", ref _text))
+                    Submits++;
+            }
         }
+
+        public void RightClick(int index)
+        {
+            Frames.Wait(1).MovePointer(TextLeft + index * CharWidth, MiddleY).Press(PointerButton.Right).Frame();
+            Frames.Release(PointerButton.Right).Frame();
+        }
+
+        /// <summary>Clicks <paramref name="item"/> of the field's menu.</summary>
+        public void Pick(string item) =>
+            Frames.ClickOn(ui => UiWidgets.MenuItemId(UiWidgets.TextMenuId(ui.GetId("field")), item)).Frame();
 
         public void Press(int index, KeyModifiers modifiers = KeyModifiers.None, bool fresh = true) =>
             Frames.Wait(fresh ? 1 : 0).MovePointer(TextLeft + index * CharWidth, MiddleY).Press(modifiers).Frame();

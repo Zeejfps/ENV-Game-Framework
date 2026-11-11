@@ -75,9 +75,23 @@ public static partial class UiWidgets
             ui.Focus(fieldId);
             focused = true;
         }
+        if (hasRect && (field.ClickedWith(PointerButton.Right) || lines.ClickedWith(PointerButton.Right)))
+        {
+            if (!preedit.IsEmpty)
+            {
+                ui.ResetComposition();
+                preedit = PreeditText.Empty;
+            }
+            var pointer = ui.Input.Pointer;
+            OpenTextMenu(ui, fieldId, state, AreaCaretAt(ui, text, area.Width, pointer.X - content.X, pointer.Y - content.Y, lineHeight));
+        }
+        // While the menu shows it takes the keys, so the area edits nothing.
+        var menuShown = TextMenu(ui, fieldId, state, ref text, area);
+        if (menuShown)
+            focused = true;
 
         var submitted = false;
-        if (focused)
+        if (focused && !menuShown)
         {
             if (!preedit.IsEmpty && state.HasSelection)
                 Replace(state, ref text, state.SelectionStart, state.SelectionEnd, "", EditKind.None);
