@@ -89,6 +89,70 @@ public class WindowPlacementTests
     }
 
     [Fact]
+    public void SavedAtTheTopOfTheScreen_KeepsTheTitleBarOnIt()
+    {
+        var (x, y) = WindowPlacement.Compute(TwoMonitors, 1400, 900, savedX: 100, savedY: 0,
+            frameLeft: 8, frameTop: 31, frameRight: 8, frameBottom: 8);
+
+        Assert.Equal(100, x);
+        Assert.Equal(31, y);
+    }
+
+    [Fact]
+    public void NoSavedPosition_CentersWithItsFrame()
+    {
+        var (x, y) = WindowPlacement.Compute(TwoMonitors, 1400, 900, savedX: null, savedY: null,
+            frameLeft: 8, frameTop: 31, frameRight: 8, frameBottom: 8);
+
+        Assert.Equal((1920 - 1416) / 2 + 8, x);
+        Assert.Equal((1040 - 939) / 2 + 31, y);
+    }
+
+    [Fact]
+    public void FitSize_WindowFits_KeepsItsSize()
+    {
+        var size = WindowPlacement.FitSize(TwoMonitors, 1400, 900, savedX: 100, savedY: 50, frameWidth: 16, frameHeight: 39);
+
+        Assert.Equal((1400, 900), size);
+    }
+
+    [Fact]
+    public void FitSize_SavedLargerThanMonitor_ShrinksToItsWorkAreaLessTheFrame()
+    {
+        var size = WindowPlacement.FitSize(TwoMonitors, 2200, 2182, savedX: 100, savedY: 50, frameWidth: 16, frameHeight: 39);
+
+        Assert.Equal((1920 - 16, 1040 - 39), size);
+    }
+
+    [Fact]
+    public void FitSize_SavedOnSecondaryMonitor_FitsThatMonitor()
+    {
+        var monitors = new MonitorWorkArea[]
+        {
+            new(X: 0, Y: 0, Width: 2560, Height: 1400),
+            new(X: -1280, Y: 0, Width: 1280, Height: 680),
+        };
+
+        var size = WindowPlacement.FitSize(monitors, 1400, 900, savedX: -1200, savedY: 20);
+
+        Assert.Equal((1280, 680), size);
+    }
+
+    [Fact]
+    public void FitSize_NoSavedPosition_FitsThePrimary()
+    {
+        var size = WindowPlacement.FitSize(TwoMonitors, 4000, 3000, savedX: null, savedY: null);
+
+        Assert.Equal((1920, 1040), size);
+    }
+
+    [Fact]
+    public void FitSize_NoMonitors_KeepsTheSize()
+    {
+        Assert.Equal((4000, 3000), WindowPlacement.FitSize(Array.Empty<MonitorWorkArea>(), 4000, 3000, null, null));
+    }
+
+    [Fact]
     public void NoMonitors_FallsBackToSavedOrOrigin()
     {
         Assert.Equal((10, 20), WindowPlacement.Compute(Array.Empty<MonitorWorkArea>(), 800, 600, 10, 20));

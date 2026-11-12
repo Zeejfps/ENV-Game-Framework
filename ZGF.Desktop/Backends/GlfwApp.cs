@@ -166,8 +166,18 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
     public void Run()
     {
         Glfw.GetWindowSize(Main.GlfwWindow, out var ww, out var wh);
+        Glfw.GetWindowFrameSize(Main.GlfwWindow, out var frameLeft, out var frameTop, out var frameRight, out var frameBottom);
+        var (fw, fh) = WindowPlacement.FitSize(Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY,
+            frameLeft + frameRight, frameTop + frameBottom);
+        if (fw != ww || fh != wh)
+        {
+            Glfw.SetWindowSize(Main.GlfwWindow, fw, fh);
+            ww = fw;
+            wh = fh;
+        }
+
         var (px, py) = WindowPlacement.Compute(
-            Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY);
+            Monitors, ww, wh, _startupConfig.WindowX, _startupConfig.WindowY, frameLeft, frameTop, frameRight, frameBottom);
         Main.SetPosition(px, py);
         if (!_startupConfig.Headless)
             ShowMainWindow();

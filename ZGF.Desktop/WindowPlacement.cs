@@ -15,22 +15,65 @@ public static class WindowPlacement
     /// centered on the primary monitor. <paramref name="monitors"/> is the connected monitors'
     /// work areas with the primary first (as GLFW reports them).
     /// </summary>
+    /// <remarks>The position and size are the window's content area, as GLFW places a window; the frame the window
+    /// system draws around it (<paramref name="frameLeft"/>, <paramref name="frameTop"/> for the title bar,
+    /// <paramref name="frameRight"/>, <paramref name="frameBottom"/>) is kept on the monitor too, so a window saved at
+    /// the top of the screen never opens with its title bar above it, out of reach.</remarks>
     public static (int X, int Y) Compute(
         IReadOnlyList<MonitorWorkArea> monitors,
         int windowWidth, int windowHeight,
-        int? savedX, int? savedY)
+        int? savedX, int? savedY,
+        int frameLeft = 0, int frameTop = 0, int frameRight = 0, int frameBottom = 0)
     {
         if (monitors.Count == 0)
             return (savedX ?? 0, savedY ?? 0);
 
+        var outerWidth = windowWidth + frameLeft + frameRight;
+        var outerHeight = windowHeight + frameTop + frameBottom;
         if (savedX is { } sx && savedY is { } sy &&
-            ClampOntoMonitor(monitors, sx, sy, windowWidth, windowHeight) is { } clamped)
-            return clamped;
+            ClampOntoMonitor(monitors, sx - frameLeft, sy - frameTop, outerWidth, outerHeight) is { } clamped)
+            return (clamped.X + frameLeft, clamped.Y + frameTop);
 
         var primary = monitors[0];
         return (
-            primary.X + (primary.Width - windowWidth) / 2,
-            primary.Y + (primary.Height - windowHeight) / 2);
+            primary.X + (primary.Width - outerWidth) / 2 + frameLeft,
+            primary.Y + (primary.Height - outerHeight) / 2 + frameTop);
+    }
+
+    /// <summary>
+    /// Returns the size a <paramref name="windowWidth"/>×<paramref name="windowHeight"/> window opens at so that it,
+    /// with its frame (<paramref name="frameWidth"/> and <paramref name="frameHeight"/> added by the window system's
+    /// borders and title bar), fits the work area of the monitor it opens on: the one a saved position overlaps most,
+    /// else the primary. A window that fits keeps its size, so only a saved size from a bigger screen (or a monitor
+    /// since scaled up) shrinks. Call before <see cref="Compute"/>, giving it the fitted size.
+    /// </summary>
+    public static (int Width, int Height) FitSize(
+        IReadOnlyList<MonitorWorkArea> monitors,
+        int windowWidth, int windowHeight,
+        int? savedX, int? savedY,
+        int frameWidth = 0, int frameHeight = 0)
+    {
+        if (monitors.Count == 0)
+            return (windowWidth, windowHeight);
+
+        var monitor = monitors[0];
+        if (savedX is { } sx && savedY is { } sy)
+        {
+            var bestOverlap = 0L;
+            foreach (var m in monitors)
+            {
+                var overlap = OverlapArea(sx, sy, windowWidth, windowHeight, m);
+                if (overlap > bestOverlap)
+                {
+                    bestOverlap = overlap;
+                    monitor = m;
+                }
+            }
+        }
+
+        var width = Math.Min(windowWidth, Math.Max(1, monitor.Width - frameWidth));
+        var height = Math.Min(windowHeight, Math.Max(1, monitor.Height - frameHeight));
+        return (width, height);
     }
 
     // Snaps the window fully inside the monitor it overlaps most, so a spot that hung off an edge
