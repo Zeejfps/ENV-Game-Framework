@@ -262,9 +262,14 @@ public sealed partial record UiTheme
     public float TooltipGap { get; init; } = 4f;
     public double TooltipDelaySeconds { get; init; } = 0.5;
 
-    /// <summary>The draggable thickness of a split pane's divider; its painted line is
-    /// <see cref="SeparatorWidth"/>.</summary>
+    /// <summary>The thickness a split pane's divider takes between its panes, and grabs by unless
+    /// <see cref="SplitterHitSize"/> is wider; its painted line is <see cref="SeparatorWidth"/>.</summary>
     public float SplitterSize { get; init; } = 6f;
+
+    /// <summary>How wide a split pane's divider is to the pointer: centered on its <see cref="SplitterSize"/> strip
+    /// and reaching over the panes beside it where it is wider, so a thin divider is still easy to grab. Null, or
+    /// anything up to <see cref="SplitterSize"/>, makes it the strip itself.</summary>
+    public float? SplitterHitSize { get; init; }
 
     /// <summary>The painted thickness of a scroll thumb.</summary>
     public float ScrollBarWidth { get; init; } = 8f;

@@ -44,8 +44,8 @@ public readonly struct SplitPane : IDisposable
     public Ui.Scope First() => Pane(SplitSide.First);
 
     /// <summary>Records the divider — a <see cref="UiTheme.SeparatorWidth"/> line in a
-    /// <see cref="UiTheme.SplitterSize"/> strip, stronger while hovered and accented while dragged —
-    /// then opens the second pane, a clipped column.</summary>
+    /// <see cref="UiTheme.SplitterSize"/> strip, stronger while hovered and accented while dragged, grabbed across
+    /// <see cref="UiTheme.SplitterHitSize"/> — then opens the second pane, a clipped column.</summary>
     public Ui.Scope Second()
     {
         var theme = _ui.Theme;
@@ -53,10 +53,13 @@ public readonly struct SplitPane : IDisposable
         var held = _divider.Held;
         var color = held ? theme.Accent : _divider.Hovered ? theme.BorderStrong : theme.Separator;
         var line = held || _divider.Hovered ? MathF.Max(theme.SeparatorWidth, theme.FocusRingWidth) : theme.SeparatorWidth;
-        using (_ui.Box(_divider.Id, _horizontal
+        var reach = DividerReach(theme);
+        using (_ui.Box(reach > 0f ? 0 : _divider.Id, _horizontal
             ? new Box { Width = thickness, Height = Sizing.Grow() }
             : new Box { Width = Sizing.Grow(), Height = thickness }))
         {
+            if (reach > 0f)
+                HitArea(thickness + reach * 2f, reach);
             _ui.Paint((color, line, _horizontal), static (p, s) =>
             {
                 var r = p.Rect;
@@ -68,6 +71,21 @@ public readonly struct SplitPane : IDisposable
         }
         return Pane(SplitSide.Second);
     }
+
+    // The divider's grab area where the theme makes it wider than the strip: a floating element over the strip,
+    // reaching into the panes on both sides, recorded with the divider's id so the pointer finds it first.
+    private void HitArea(float hit, float reach)
+    {
+        using (_ui.Float(0f, 0f, _horizontal ? -reach : 0f, _horizontal ? 0f : -reach, _horizontal
+                   ? new Box { Width = hit, Height = Sizing.Grow() }
+                   : new Box { Width = Sizing.Grow(), Height = hit }, id: _divider.Id))
+        {
+        }
+    }
+
+    /// <summary>How far a divider's grab area reaches past each side of its strip.</summary>
+    internal static float DividerReach(UiTheme theme) =>
+        MathF.Max(0f, ((theme.SplitterHitSize ?? theme.SplitterSize) - theme.SplitterSize) / 2f);
 
     private Ui.Scope Pane(SplitSide side)
     {
@@ -115,7 +133,8 @@ public static partial class UiWidgets
         if (ui.TryGetDragStart(divider, offset, out var grab) && hasContainer)
         {
             var start = horizontal ? container.X : container.Y;
-            var dividerAt = pointer - grab;
+            // The grab is measured from the grab area, which starts DividerReach before the strip.
+            var dividerAt = pointer - grab + Widgets.SplitPane.DividerReach(ui.Theme);
             points = sized == SplitSide.First ? dividerAt - start : start + extent - dividerAt - thickness;
         }
 
