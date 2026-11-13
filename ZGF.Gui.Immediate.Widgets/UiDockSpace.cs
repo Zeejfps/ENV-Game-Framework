@@ -63,21 +63,22 @@ public static partial class UiWidgets
     /// (<see cref="DockLayout.Focused"/>). A tab right-clicked is named by <see cref="DockSpace.TabMenu"/>
     /// for the caller's context menu, and one double-clicked by <see cref="DockSpace.TabDoubleClicked"/>. Every change is written to <paramref name="layout"/> when
     /// the scope ends. Escape cancels a drag. <paramref name="tabListTooltip"/> names the button
-    /// that lists a group's tabs while they overflow.
+    /// that lists a group's tabs while they overflow. <paramref name="header"/> records each group's header, calling the
+    /// <see cref="DockHeader"/> parts it shows; the stock one, <see cref="PaintDockHeader"/>, is the group's tabs.
     /// </summary>
     public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default,
-        string? tabListTooltip = null) =>
-        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box, tabListTooltip);
+        string? tabListTooltip = null, DockHeaderPainter? header = null) =>
+        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box, tabListTooltip, header);
 
     /// <summary>A <see cref="DockSpace(Ui, string, DockLayout, Func{string, DockTab}, Box)"/> whose
     /// tabs are named by <paramref name="tab"/> from <paramref name="state"/>, so a static lambda
     /// can name them without allocating.</summary>
     public static DockSpace DockSpace<TState>(this Ui ui, string id, DockLayout layout, TState state, Func<TState, string, DockTab> tab, Box box = default,
-        string? tabListTooltip = null)
+        string? tabListTooltip = null, DockHeaderPainter? header = null)
     {
         var dockId = ui.GetId(id);
         var walker = ui.GetState<DockWalker>(HashCode.Combine(dockId, DockWalkerSalt));
-        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box, tabListTooltip);
+        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box, tabListTooltip, header);
         return new DockSpace(walker);
     }
 }
@@ -154,6 +155,8 @@ internal sealed class DockWalker
     private DockLayout _layout = null!;
     private IDockTabs _tab = null!;
     private string? _tabListTooltip;
+    private DockHeaderPainter? _headerPainter;
+    private int _headerStrip;
     private IDockTabs? _source;
     private Ui.Scope _idScope;
     private Ui.Scope _root;
@@ -176,13 +179,15 @@ internal sealed class DockWalker
         return tabs;
     }
 
-    public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box, string? tabListTooltip)
+    public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box, string? tabListTooltip,
+        DockHeaderPainter? headerPainter)
     {
         _ui = ui;
         _theme = ui.Theme;
         _layout = layout;
         _tab = tab;
         _tabListTooltip = tabListTooltip;
+        _headerPainter = headerPainter;
         _dockId = dockId;
         _frames.Clear();
         _groups.Clear();
@@ -414,35 +419,18 @@ internal sealed class DockWalker
         var stripId = HashCode.Combine(elementId, "tabs");
         var firstTab = _tabs.Count;
         var fixedPanel = IsFixed(group);
+        _headerStrip = 0;
         if (group.Panels.Count > 0 && !fixedPanel)
         {
-            using (_ui.Id(TabsSalt))
-            using (var strip = _ui.TabStrip(stripId, listTooltip: _tabListTooltip))
-            {
-                for (var i = 0; i < group.Panels.Count; i++)
-                {
-                    var panel = group.Panels[i];
-                    var info = _tab.Tab(panel);
-                    var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current, info.Icon,
-                        info.TitleFont);
-                    _tabs.Add(tab.Id);
-                    if (tab.Selected)
-                    {
-                        _layout.SelectTab(group, panel);
-                        _ui.RequestUpdate();
-                    }
-                    if (tab.Closed)
-                        _closed.Add(panel);
-                    if (tab.Dragged)
-                        BeginPanelDrag(panel, elementId, tab.Id);
-                    if (tab.ContextMenuRequested)
-                        TabMenu = new DockTabMenu(panel, tab.ContextMenuAt);
-                    if (tab.DoubleClicked)
-                        TabDoubleClicked = panel;
-                }
-            }
+            var front = group.Active ?? group.Panels[0];
+            var header = new DockHeader(this, group, elementId, stripId, _tab.Tab(front), frame.Window != null);
+            var painter = _headerPainter;
+            if (painter != null)
+                painter(_ui, header);
+            else
+                _ui.PaintDockHeader(header);
         }
-        _groups.Add(new GroupEntry(group, frame.Window, elementId, fixedPanel ? 0 : stripId, firstTab, _tabs.Count - firstTab));
+        _groups.Add(new GroupEntry(group, frame.Window, elementId, _headerStrip, firstTab, _tabs.Count - firstTab));
 
         foreach (var panel in group.Panels)
         {
@@ -455,6 +443,76 @@ internal sealed class DockWalker
         frame.State = _ui.StateScope(group.Active);
         return group.Active;
     }
+
+    internal void HeaderTabs(DockGroup group, int elementId, int stripId, Box box)
+    {
+        _headerStrip = stripId;
+        using (_ui.Id(TabsSalt))
+        using (var strip = _ui.TabStrip(stripId, box, _tabListTooltip))
+        {
+            for (var i = 0; i < group.Panels.Count; i++)
+            {
+                var panel = group.Panels[i];
+                var info = _tab.Tab(panel);
+                var tab = strip.Tab(info.Title, panel == group.Active, info.Closable, panel, info.Tooltip, info.Movable, info.Current, info.Icon,
+                    info.TitleFont);
+                _tabs.Add(tab.Id);
+                if (tab.Selected)
+                {
+                    _layout.SelectTab(group, panel);
+                    _ui.RequestUpdate();
+                }
+                if (tab.Closed)
+                    _closed.Add(panel);
+                if (tab.Dragged)
+                    BeginPanelDrag(panel, elementId, tab.Id);
+                if (tab.ContextMenuRequested)
+                    TabMenu = new DockTabMenu(panel, tab.ContextMenuAt);
+                if (tab.DoubleClicked)
+                    TabDoubleClicked = panel;
+            }
+        }
+    }
+
+    internal Interaction HeaderGrip(DockGroup group, int elementId, int id)
+    {
+        var panel = FrontOf(group);
+        var movable = _tab.Tab(panel).Movable;
+        var grip = _ui.Pressable(id, movable, out _, out _, hand: false, tabStop: false);
+        if (movable && _ui.ShouldBeginDrag(grip))
+            BeginPanelDrag(panel, elementId, id);
+        if (grip.ClickedWith(PointerButton.Right))
+            TabMenu = new DockTabMenu(panel, _ui.Input.Pointer);
+        if (grip.DoubleClicked)
+            TabDoubleClicked = panel;
+        return grip;
+    }
+
+    internal ButtonState HeaderMenuButton(DockGroup group, int id, string label)
+    {
+        var menu = _ui.ButtonBehavior(id);
+        _ui.Semantics(menu.Id, SemanticRole.Button, label);
+        if (menu.Activated)
+        {
+            var at = _ui.TryGetRect(id, out var button) ? new PointF(button.X, button.Bottom) : _ui.Input.Pointer;
+            TabMenu = new DockTabMenu(FrontOf(group), at);
+        }
+        return menu;
+    }
+
+    internal ButtonState? HeaderCloseButton(DockGroup group, int id)
+    {
+        var panel = FrontOf(group);
+        if (!_tab.Tab(panel).Closable)
+            return null;
+        var close = _ui.CloseButtonBehavior(id);
+        _ui.Semantics(close.Id, SemanticRole.Button, "Close");
+        if (close.Activated)
+            _closed.Add(panel);
+        return close;
+    }
+
+    private static string FrontOf(DockGroup group) => group.Active ?? group.Panels[0];
 
     private bool IsFixed(DockGroup group) => group.Panels.Count == 1 && !_tab.Tab(group.Panels[0]).Movable;
 

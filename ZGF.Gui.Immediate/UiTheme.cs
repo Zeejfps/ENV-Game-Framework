@@ -292,6 +292,10 @@ public sealed partial record UiTheme
     /// gutters, grab areas and thumb lengths still come from the metrics above.</summary>
     public ScrollBarPainter? ScrollBarPainter { get; init; }
 
+    /// <summary>Draws every tab of a <c>TabStrip</c>, the dock space's included, in place of the stock look, which
+    /// null keeps; selecting, closing, dragging and the strip's scrolling stay the framework's.</summary>
+    public TabPainter? TabPainter { get; init; }
+
     /// <summary>This theme's palette with <paramref name="density"/>'s control geometry and type
     /// sizes; everything else is kept.</summary>
     public UiTheme WithDensity(UiDensity density) => density == UiDensity.Compact

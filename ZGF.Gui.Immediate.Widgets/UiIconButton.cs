@@ -56,24 +56,44 @@ public static partial class UiWidgets
     /// only while the button is hovered or focused.</summary>
     public static bool CloseButton(this Ui ui, int id, float? size = null, bool tabStop = true, bool hideIdle = false)
     {
-        var theme = ui.Theme;
+        var state = ui.CloseButtonBehavior(id, tabStop);
+        ui.Semantics(state.Id, SemanticRole.Button, "Close");
+        ui.PaintCloseButton(state, size, hideIdle);
+        return state.Activated;
+    }
+
+    /// <summary>What a <see cref="CloseButton"/> does, without drawing it: it is
+    /// <see cref="ButtonState.Activated"/> when clicked with the left or middle button, or with Enter or Space while
+    /// focused, and <see cref="ButtonState.Down"/> while the pointer holds it; without <paramref name="tabStop"/> it
+    /// takes no focus. Record its element with the returned <see cref="ButtonState.Id"/> this frame, as
+    /// <see cref="PaintCloseButton"/> does.</summary>
+    public static ButtonState CloseButtonBehavior(this Ui ui, int id, bool tabStop = true)
+    {
         var close = ui.Pressable(id, true, out var activated, out var ring, tabStop: tabStop);
+        var clicked = close.Clicked || activated || close.ClickedWith(PointerButton.Middle);
+        return new ButtonState(close.Id, ButtonAvailability.Enabled, close.Hovered, close.Held, ring, clicked);
+    }
+
+    /// <summary>The stock look of a <see cref="CloseButton"/>: a square of the theme's
+    /// <see cref="UiTheme.TabCloseSize"/>, unless <paramref name="size"/> is given, filled while hovered or held, its
+    /// cross shown only while lit when <paramref name="hideIdle"/> — for a painter of an app's own to fall back to.</summary>
+    public static void PaintCloseButton(this Ui ui, in ButtonState state, float? size = null, bool hideIdle = false)
+    {
+        var theme = ui.Theme;
         var side = size ?? theme.TabCloseSize;
-        ui.Semantics(close.Id, SemanticRole.Button, "Close");
-        using (ui.Box(close.Id, new Box
+        using (ui.Box(state.Id, new Box
         {
             Width = side,
             Height = side,
             Radius = theme.CornerRadius,
-            Background = theme.ControlFill(close.Held, close.Hovered),
+            Background = theme.ControlFill(state.Down, state.Hovered),
         }))
         {
-            var glyph = CloseGlyphColor(theme, close.Hovered || ring, hideIdle);
+            var glyph = CloseGlyphColor(theme, state.Hovered || state.FocusVisible, hideIdle);
             if (glyph != 0)
                 ui.PaintGlyph(UiGlyph.Cross, glyph);
-            if (ring) FocusRing(ui, theme.CornerRadius);
+            if (state.FocusVisible) FocusRing(ui, theme.CornerRadius);
         }
-        return close.Clicked || activated || close.ClickedWith(PointerButton.Middle);
     }
 
     private static uint CloseGlyphColor(UiTheme theme, bool lit, bool hideIdle)

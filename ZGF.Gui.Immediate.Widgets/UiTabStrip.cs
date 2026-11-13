@@ -116,7 +116,7 @@ internal sealed class TabList
 
 public static partial class UiWidgets
 {
-    private sealed class TabState
+    private sealed class TabScroll
     {
         public bool WasSelected;
     }
@@ -221,49 +221,30 @@ public static partial class UiWidgets
     internal static TabResult Tab(Ui ui, int stripId, string label, bool selected, bool closable, string? id, string? tooltip, bool draggable, bool current,
         UiIcon? icon, string? font)
     {
-        var theme = ui.Theme;
         var tab = Pressable(ui, ui.GetId(id ?? label), true, out var picked, out var tabRing, hand: false);
         var closeId = CloseButtonId(tab.Id);
 
-        var state = ui.GetState<TabState>(HashCode.Combine(tab.Id, "tab"));
+        var scroll = ui.GetState<TabScroll>(HashCode.Combine(tab.Id, "tab"));
         if (!selected)
-            state.WasSelected = false;
-        else if (!state.WasSelected)
-            state.WasSelected = ui.ScrollIntoView(stripId, tab.Id);
+            scroll.WasSelected = false;
+        else if (!scroll.WasSelected)
+            scroll.WasSelected = ui.ScrollIntoView(stripId, tab.Id);
 
-        var closed = closable && tab.ClickedWith(PointerButton.Middle);
+        ButtonState? close = closable ? ui.CloseButtonBehavior(closeId) : null;
         var hovered = tab.Hovered || ui.IsHovered(closeId);
         ui.Semantics(tab.Id, SemanticRole.Tab, label, selected ? SemanticStates.Selected : SemanticStates.None);
-        using (ui.Row(tab.Id, new Box
-        {
-            Width = Sizing.Fit(theme.TabMinWidth, theme.TabMaxWidth),
-            Height = theme.TabHeight,
-            Padding = new Spacing(theme.TabPaddingX, 0f, closable ? theme.GapTight : theme.TabPaddingX, 0f),
-            Gap = theme.GapTight,
-            Background = selected ? theme.TabActiveBackground : hovered ? theme.TabHoverBackground : 0u,
-        }))
-        {
-            ui.Paint((selected ? current ? theme.Accent : theme.BorderStrong : 0u, theme.ActiveIndicatorWidth, theme.Separator, theme.SeparatorWidth), static (p, s) =>
-            {
-                var r = p.Rect;
-                if (s.Item1 != 0)
-                    p.FillRect(r with { Height = s.ActiveIndicatorWidth }, s.Item1);
-                p.FillRect(new UiRect(r.Right - s.SeparatorWidth, r.Y, s.SeparatorWidth, r.Height), s.Separator);
-            });
-            if (tabRing) FocusRing(ui, 0f);
-            if (icon != null)
-                ui.Icon(icon.Value);
-            ui.Text(label, color: selected ? theme.Text : theme.TextMuted, family: font, overflow: TextOverflow.Ellipsis);
-            if (closable)
-            {
-                ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
-                var idle = !selected && !hovered;
-                if (ui.CloseButton(closeId, hideIdle: idle))
-                    closed = true;
-            }
-        }
+        var state = new TabState(tab.Id, selected, hovered, tabRing, close);
+        var face = new TabFace(label, current, icon, font);
+        var painter = ui.Theme.TabPainter;
+        if (painter != null)
+            painter(ui, state, face);
+        else
+            ui.PaintTab(state, face);
+        if (close != null)
+            ui.Semantics(closeId, SemanticRole.Button, "Close");
         if (tooltip != null)
             ui.Tooltip(tab.Id, tooltip);
+        var closed = closable && (tab.ClickedWith(PointerButton.Middle) || close?.Activated == true);
         return new TabResult((tab.Pressed || picked) && !selected, closed)
         {
             Id = tab.Id,
@@ -272,5 +253,42 @@ public static partial class UiWidgets
             ContextMenuAt = ui.Input.Pointer,
             DoubleClicked = tab.DoubleClicked,
         };
+    }
+
+    /// <summary>The stock look of a tab: between the theme's <see cref="UiTheme.TabMinWidth"/> and
+    /// <see cref="UiTheme.TabMaxWidth"/> wide, filled while selected or hovered, the selected one marked along its top
+    /// edge, a separator at its right, and its close button's cross shown only while selected or hovered — for a
+    /// painter of an app's own to fall back to.</summary>
+    public static void PaintTab(this Ui ui, in TabState state, in TabFace face)
+    {
+        var theme = ui.Theme;
+        var close = state.Close;
+        using (ui.Row(state.Id, new Box
+        {
+            Width = Sizing.Fit(theme.TabMinWidth, theme.TabMaxWidth),
+            Height = theme.TabHeight,
+            Padding = new Spacing(theme.TabPaddingX, 0f, close != null ? theme.GapTight : theme.TabPaddingX, 0f),
+            Gap = theme.GapTight,
+            Background = state.Selected ? theme.TabActiveBackground : state.Hovered ? theme.TabHoverBackground : 0u,
+        }))
+        {
+            var marker = state.Selected ? face.Current ? theme.Accent : theme.BorderStrong : 0u;
+            ui.Paint((marker, theme.ActiveIndicatorWidth, theme.Separator, theme.SeparatorWidth), static (p, s) =>
+            {
+                var r = p.Rect;
+                if (s.Item1 != 0)
+                    p.FillRect(r with { Height = s.ActiveIndicatorWidth }, s.Item1);
+                p.FillRect(new UiRect(r.Right - s.SeparatorWidth, r.Y, s.SeparatorWidth, r.Height), s.Separator);
+            });
+            if (state.FocusVisible) FocusRing(ui, 0f);
+            if (face.Icon != null)
+                ui.Icon(face.Icon.Value);
+            ui.Text(face.Label, color: state.Selected ? theme.Text : theme.TextMuted, family: face.Font, overflow: TextOverflow.Ellipsis);
+            if (close != null)
+            {
+                ui.Leaf(new Box { Width = Sizing.Grow(), Height = 0f });
+                ui.PaintCloseButton(close.Value, hideIdle: !state.Selected && !state.Hovered);
+            }
+        }
     }
 }

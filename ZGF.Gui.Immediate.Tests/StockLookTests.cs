@@ -6,7 +6,7 @@ using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Tests;
 
-/// <summary>Pins every draw call of the stock buttons and scroll bars, captured before their painting
+/// <summary>Pins every draw call of the stock buttons, scroll bars and tabs, captured before their painting
 /// moved out of their behavior, so a theme without painters draws exactly what it did.</summary>
 public sealed class StockLookTests
 {
@@ -47,6 +47,42 @@ public sealed class StockLookTests
         using var list = ui.VirtualScroll("list", 100, 20f, new Box { Height = 80f });
         for (var i = list.First; i < list.End; i++)
             ui.Leaf(new Box { Width = Sizing.Grow(), Height = 20f });
+    }
+
+    private static readonly DockLayout TabsLayout = DockLayout.Split(Direction.Horizontal, 0.5f, DockLayout.Group("one", "two", "three"),
+        DockLayout.Group("solo")) is var root ? new DockLayout { Root = root } : throw new InvalidOperationException();
+
+    private static void Tabs(Ui ui)
+    {
+        using var screen = ui.Screen();
+        using (var strip = ui.TabStrip("strip"))
+        {
+            strip.Tab("Alpha", selected: true);
+            strip.Tab("Beta", selected: false);
+            strip.Tab("Gamma", selected: false, closable: false, icon: new UiIcon(IconGlyph.FromFont("*")));
+            strip.Tab("Delta", selected: true, current: false, closable: false);
+        }
+        using var dock = ui.DockSpace("dock", TabsLayout, static p => new DockTab(p.ToUpperInvariant(), Closable: p != "three"));
+        while (dock.Next(out var panel))
+            ui.Text(panel);
+    }
+
+    [Fact]
+    public void Tabs_at_rest_hovered_and_focused_draw_as_before()
+    {
+        var frames = new UiFrames(new DefaultUiState(), width: 800f, height: 300f, body: Tabs).Frame(3);
+        var dump = new StringBuilder();
+        Dump(frames, "rest", dump);
+
+        frames.MovePointer(frames.RectOf("Beta")).Frame(2);
+        Dump(frames, "hover tab", dump);
+        var close = frames.RectOf(ui => UiWidgets.CloseButtonId(ui.GetId("Beta")));
+        frames.MovePointer(close).Frame(2);
+        Dump(frames, "hover close", dump);
+        frames.MovePointer(700f, 290f).Key(KeyboardKey.Tab).Frame(2);
+        Dump(frames, "focus", dump);
+
+        Assert.Equal(ExpectedTabs.ReplaceLineEndings("\n"), dump.ToString().TrimEnd());
     }
 
     [Fact]
@@ -115,6 +151,153 @@ public sealed class StockLookTests
     private static string Clip(RectF? clip) => clip == null ? "-" : Rect(clip.Value);
 
     private static string N(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private const string ExpectedTabs = """
+        # rest
+        R 0,0,800,300 FF1B1E24 00000000 0 0 -
+        R 16,248,768,36 FF22252C 00000000 0 0 -
+        R 16,248,88,36 FF191C22 00000000 0 0 16,248,768,36
+        R 16,282,88,2 FF356FE0 00000000 0 0 16,248,768,36
+        R 103,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Alpha 28,258,40,16 FFE4E7ED
+        R 183,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Beta 116,258,32,16 FFA6ACB8
+        R 267,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T * 200,258,8,16 FFA6ACB8
+        T Gamma 216,258,40,16 FFA6ACB8
+        R 268,248,80,36 FF191C22 00000000 0 0 16,248,768,36
+        R 268,282,80,2 FF8B95A5 00000000 0 0 16,248,768,36
+        R 347,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Delta 280,258,40,16 FFE4E7ED
+        R 16,16,384,224 FF191C22 00000000 0 0 16,16,384,224
+        R 16,204,384,36 FF22252C 00000000 0 0 16,16,384,224
+        R 16,204,80,36 FF191C22 00000000 0 0 16,204,384,36
+        R 16,238,80,2 FF356FE0 00000000 0 0 16,204,384,36
+        R 95,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T ONE 28,214,24,16 FFE4E7ED
+        R 175,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T TWO 108,214,24,16 FFA6ACB8
+        R 255,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T THREE 188,214,40,16 FFA6ACB8
+        T one 16,188,24,16 FFE4E7ED
+        R 402,16,1,224 FF343A45 00000000 0 0 -
+        R 406,16,378,224 FF191C22 00000000 0 0 406,16,378,224
+        R 406,204,378,36 FF22252C 00000000 0 0 406,16,378,224
+        R 406,204,80,36 FF191C22 00000000 0 0 406,204,378,36
+        R 406,238,80,2 FF356FE0 00000000 0 0 406,204,378,36
+        R 485,204,1,36 FF343A45 00000000 0 0 406,204,378,36
+        T SOLO 418,214,32,16 FFE4E7ED
+        T solo 406,188,32,16 FFE4E7ED
+        # hover tab
+        R 0,0,800,300 FF1B1E24 00000000 0 0 -
+        R 16,248,768,36 FF22252C 00000000 0 0 -
+        R 16,248,88,36 FF191C22 00000000 0 0 16,248,768,36
+        R 16,282,88,2 FF356FE0 00000000 0 0 16,248,768,36
+        R 103,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Alpha 28,258,40,16 FFE4E7ED
+        R 104,248,80,36 FF2B303A 00000000 0 0 16,248,768,36
+        R 183,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Beta 116,258,32,16 FFA6ACB8
+        R 267,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T * 200,258,8,16 FFA6ACB8
+        T Gamma 216,258,40,16 FFA6ACB8
+        R 268,248,80,36 FF191C22 00000000 0 0 16,248,768,36
+        R 268,282,80,2 FF8B95A5 00000000 0 0 16,248,768,36
+        R 347,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Delta 280,258,40,16 FFE4E7ED
+        R 16,16,384,224 FF191C22 00000000 0 0 16,16,384,224
+        R 16,204,384,36 FF22252C 00000000 0 0 16,16,384,224
+        R 16,204,80,36 FF191C22 00000000 0 0 16,204,384,36
+        R 16,238,80,2 FF356FE0 00000000 0 0 16,204,384,36
+        R 95,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T ONE 28,214,24,16 FFE4E7ED
+        R 175,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T TWO 108,214,24,16 FFA6ACB8
+        R 255,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T THREE 188,214,40,16 FFA6ACB8
+        T one 16,188,24,16 FFE4E7ED
+        R 402,16,1,224 FF343A45 00000000 0 0 -
+        R 406,16,378,224 FF191C22 00000000 0 0 406,16,378,224
+        R 406,204,378,36 FF22252C 00000000 0 0 406,16,378,224
+        R 406,204,80,36 FF191C22 00000000 0 0 406,204,378,36
+        R 406,238,80,2 FF356FE0 00000000 0 0 406,204,378,36
+        R 485,204,1,36 FF343A45 00000000 0 0 406,204,378,36
+        T SOLO 418,214,32,16 FFE4E7ED
+        T solo 406,188,32,16 FFE4E7ED
+        # hover close
+        R 0,0,800,300 FF1B1E24 00000000 0 0 -
+        R 16,248,768,36 FF22252C 00000000 0 0 -
+        R 16,248,88,36 FF191C22 00000000 0 0 16,248,768,36
+        R 16,282,88,2 FF356FE0 00000000 0 0 16,248,768,36
+        R 103,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Alpha 28,258,40,16 FFE4E7ED
+        R 104,248,80,36 FF2B303A 00000000 0 0 16,248,768,36
+        R 183,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Beta 116,258,32,16 FFA6ACB8
+        R 156,254,24,24 FF3A414D 00000000 0 4 16,248,768,36
+        R 267,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T * 200,258,8,16 FFA6ACB8
+        T Gamma 216,258,40,16 FFA6ACB8
+        R 268,248,80,36 FF191C22 00000000 0 0 16,248,768,36
+        R 268,282,80,2 FF8B95A5 00000000 0 0 16,248,768,36
+        R 347,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Delta 280,258,40,16 FFE4E7ED
+        R 16,16,384,224 FF191C22 00000000 0 0 16,16,384,224
+        R 16,204,384,36 FF22252C 00000000 0 0 16,16,384,224
+        R 16,204,80,36 FF191C22 00000000 0 0 16,204,384,36
+        R 16,238,80,2 FF356FE0 00000000 0 0 16,204,384,36
+        R 95,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T ONE 28,214,24,16 FFE4E7ED
+        R 175,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T TWO 108,214,24,16 FFA6ACB8
+        R 255,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T THREE 188,214,40,16 FFA6ACB8
+        T one 16,188,24,16 FFE4E7ED
+        R 402,16,1,224 FF343A45 00000000 0 0 -
+        R 406,16,378,224 FF191C22 00000000 0 0 406,16,378,224
+        R 406,204,378,36 FF22252C 00000000 0 0 406,16,378,224
+        R 406,204,80,36 FF191C22 00000000 0 0 406,204,378,36
+        R 406,238,80,2 FF356FE0 00000000 0 0 406,204,378,36
+        R 485,204,1,36 FF343A45 00000000 0 0 406,204,378,36
+        T SOLO 418,214,32,16 FFE4E7ED
+        T solo 406,188,32,16 FFE4E7ED
+        # focus
+        R 0,0,800,300 FF1B1E24 00000000 0 0 -
+        R 16,248,768,36 FF22252C 00000000 0 0 -
+        R 16,248,88,36 FF191C22 00000000 0 0 16,248,768,36
+        R 16,282,88,2 FF356FE0 00000000 0 0 16,248,768,36
+        R 103,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        R 16,248,88,36 00000000 FF7AA7FF 2 0 16,248,768,36
+        T Alpha 28,258,40,16 FFE4E7ED
+        R 183,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Beta 116,258,32,16 FFA6ACB8
+        R 267,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T * 200,258,8,16 FFA6ACB8
+        T Gamma 216,258,40,16 FFA6ACB8
+        R 268,248,80,36 FF191C22 00000000 0 0 16,248,768,36
+        R 268,282,80,2 FF8B95A5 00000000 0 0 16,248,768,36
+        R 347,248,1,36 FF343A45 00000000 0 0 16,248,768,36
+        T Delta 280,258,40,16 FFE4E7ED
+        R 16,16,384,224 FF191C22 00000000 0 0 16,16,384,224
+        R 16,204,384,36 FF22252C 00000000 0 0 16,16,384,224
+        R 16,204,80,36 FF191C22 00000000 0 0 16,204,384,36
+        R 16,238,80,2 FF356FE0 00000000 0 0 16,204,384,36
+        R 95,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T ONE 28,214,24,16 FFE4E7ED
+        R 175,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T TWO 108,214,24,16 FFA6ACB8
+        R 255,204,1,36 FF343A45 00000000 0 0 16,204,384,36
+        T THREE 188,214,40,16 FFA6ACB8
+        T one 16,188,24,16 FFE4E7ED
+        R 402,16,1,224 FF343A45 00000000 0 0 -
+        R 406,16,378,224 FF191C22 00000000 0 0 406,16,378,224
+        R 406,204,378,36 FF22252C 00000000 0 0 406,16,378,224
+        R 406,204,80,36 FF191C22 00000000 0 0 406,204,378,36
+        R 406,238,80,2 FF356FE0 00000000 0 0 406,204,378,36
+        R 485,204,1,36 FF343A45 00000000 0 0 406,204,378,36
+        T SOLO 418,214,32,16 FFE4E7ED
+        T solo 406,188,32,16 FFE4E7ED
+        """;
 
     private const string ExpectedButtons = """
         # rest
