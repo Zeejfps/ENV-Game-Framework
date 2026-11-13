@@ -311,9 +311,20 @@ public static partial class UiWidgets
 
         private void CodeLines(ShownBlock.Code code)
         {
-            var box = new Box { Width = Sizing.Grow(), Gap = 0f, AlignY = Align.Start };
-            using (ui.Scroll(ui.GetId(HashCode.Combine(MarkdownScrollSalt, code.Leaf)), ScrollAxes.Horizontal, box))
+            var scrollId = ui.GetId(HashCode.Combine(MarkdownScrollSalt, code.Leaf));
+            var box = new Box { Width = Sizing.Grow(), Gap = 0f, AlignY = Align.Start, Padding = RoomForBar(scrollId) };
+            using (ui.Scroll(scrollId, ScrollAxes.Horizontal, box))
                 Leaf(code.Leaf);
+        }
+
+        /// <summary>Room under a sideways scroll for its bar, which a scrolling row draws over its content: while the
+        /// content is wider than the view, so the last line stays readable above the bar; none while it fits.</summary>
+        private Spacing RoomForBar(int scrollId)
+        {
+            if (ui.ScrollMax(scrollId).X <= 0f)
+                return default;
+            var theme = ui.Theme;
+            return new Spacing(0f, 0f, 0f, theme.ScrollBarWidth + theme.ScrollBarInset * 2f);
         }
 
         private void CodeHeader(ShownBlock.Code code, string language)
@@ -419,7 +430,7 @@ public static partial class UiWidgets
         {
             var theme = ui.Theme;
             var scrollId = ui.GetId(HashCode.Combine(MarkdownScrollSalt, table.Header.Count > 0 ? table.Header[0] : -1));
-            using (ui.Scroll(scrollId, ScrollAxes.Horizontal, new Box { Gap = 0f, AlignY = Align.Start }))
+            using (ui.Scroll(scrollId, ScrollAxes.Horizontal, new Box { Gap = 0f, AlignY = Align.Start, Padding = RoomForBar(scrollId) }))
             using (ui.Row(new Box { Gap = 0f, BorderColor = theme.Border, BorderWidth = theme.BorderWidth }))
             {
                 for (var column = 0; column < table.Columns.Count; column++)
