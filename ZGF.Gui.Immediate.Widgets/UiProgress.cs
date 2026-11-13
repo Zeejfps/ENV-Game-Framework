@@ -4,7 +4,6 @@ namespace ZGF.Gui.Immediate.Widgets;
 
 public static partial class UiWidgets
 {
-    private const double AnimationStep = 1.0 / 30.0;
     private const double SpinnerPeriod = 0.9;
     private const int SpinnerDots = 8;
     private const double SlidePeriod = 1.4;
@@ -21,7 +20,7 @@ public static partial class UiWidgets
         var ink = color ?? theme.AccentText;
         using (ui.Box(new Box { Width = Sizing.Fixed(side), Height = Sizing.Fixed(side) }))
             ui.Paint((phase, ink, background), static (p, s) => PaintSpinner(p, s.phase, s.ink, s.background));
-        ui.RequestAmbientUpdateIn(AnimationStep);
+        ui.RequestAmbientUpdateIn(0);
     }
 
     private static void PaintSpinner(UiPainter p, float phase, uint color, uint background)
@@ -51,7 +50,7 @@ public static partial class UiWidgets
         var phase = (float)(ui.RealTime % SlidePeriod / SlidePeriod);
         using (ui.Box(new Box { Width = width ?? Sizing.Grow(), Height = tall, Background = theme.Control, Radius = tall / 2 }))
             ui.Paint((phase, theme.Accent), static (p, s) => PaintSlide(p, s.phase, s.Accent));
-        ui.RequestAmbientUpdateIn(AnimationStep);
+        ui.RequestAmbientUpdateIn(0);
     }
 
     private static void PaintSlide(UiPainter p, float phase, uint color)
