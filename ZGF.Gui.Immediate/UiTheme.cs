@@ -297,6 +297,10 @@ public sealed partial record UiTheme
     /// keeps; the field's behavior stays the framework's.</summary>
     public NumberFieldPainter? NumberFieldPainter { get; init; }
 
+    /// <summary>Draws every <c>RangeSlider</c> in place of the stock look, which null keeps; the slider's behavior
+    /// stays the framework's.</summary>
+    public RangeSliderPainter? RangeSliderPainter { get; init; }
+
     /// <summary>Draws the bars of every scroll in place of the stock thumb, which null keeps. The bars'
     /// gutters, grab areas and thumb lengths still come from the metrics above.</summary>
     public ScrollBarPainter? ScrollBarPainter { get; init; }

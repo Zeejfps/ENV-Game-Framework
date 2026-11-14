@@ -23,6 +23,7 @@ look without changing the behavior, in two ways.
 | `ScrollBarPainter` | the bars of every `ui.Scroll` and `ui.VirtualScroll` | `ui.PaintScrollBar(bar)` |
 | `TabPainter` | every tab of a `ui.TabStrip`, a dock space's included | `ui.PaintTab(state, face)` |
 | `NumberFieldPainter` | every `ui.NumberField` while it is not typed in | `ui.PaintNumberField(state, face)` |
+| `RangeSliderPainter` | every `ui.RangeSlider` | `ui.PaintRangeSlider(state)` |
 
 Controls recorded inside `ui.JoinedGroup(id)` are joined into one strip, as a professional toolbar groups its
 transport or a pair of fields: the group draws one outlined, rounded box, and each stock painter of an icon button,
