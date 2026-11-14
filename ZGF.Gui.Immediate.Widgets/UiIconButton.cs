@@ -11,41 +11,65 @@ public static partial class UiWidgets
         ButtonVariant variant = ButtonVariant.Ghost)
     {
         var state = ui.ButtonBehavior(id, enabled);
-        var face = new IconButtonFace(glyph, variant);
+        DrawIconButton(ui, id, state, new IconButtonFace(glyph, variant), tooltip, SemanticStates.None);
+        return state.Activated;
+    }
+
+    /// <summary>An <see cref="IconButton"/> that toggles <paramref name="on"/> when clicked, or activated with Enter
+    /// or Space, and shows it: on the selection fill while on. Returns true on the frame it toggles.</summary>
+    public static bool IconToggle(this Ui ui, string id, IconGlyph glyph, ref bool on, string? tooltip = null, bool enabled = true)
+    {
+        var state = ui.ButtonBehavior(id, enabled);
+        if (state.Activated)
+            on = !on;
+        var face = new IconButtonFace(glyph, ButtonVariant.Ghost, Checked: on);
+        DrawIconButton(ui, id, state, face, tooltip, on ? SemanticStates.Checked : SemanticStates.None);
+        return state.Activated;
+    }
+
+    private static void DrawIconButton(Ui ui, string id, in ButtonState state, in IconButtonFace face, string? tooltip, SemanticStates states)
+    {
         var painter = ui.Theme.IconButtonPainter;
         if (painter != null)
             painter(ui, state, face);
         else
             ui.PaintIconButton(state, face);
-        ui.Semantics(state.Id, SemanticRole.Button, tooltip ?? id, ButtonStates(state.Availability));
+        ui.Semantics(state.Id, SemanticRole.Button, tooltip ?? id, ButtonStates(state.Availability) | states);
         if (tooltip != null)
             ui.Tooltip(state.Id, tooltip);
-        return state.Activated;
     }
 
     /// <summary>The stock look of an <see cref="IconButton"/>: <see cref="UiTheme.IconButtonSize"/>
-    /// square on its variant's colors, the glyph in its text color — for a painter of an app's own to
-    /// fall back to.</summary>
+    /// square on its variant's colors, the glyph in its text color; a checked one on the selection fill. In a
+    /// <see cref="JoinedGroup"/> it is square-cornered and unoutlined, divided from the control before it — for a
+    /// painter of an app's own to fall back to.</summary>
     public static void PaintIconButton(this Ui ui, in ButtonState state, in IconButtonFace face)
     {
         var theme = ui.Theme;
         var (fill, border, text) = ButtonColors(theme, face.Variant, state);
+        if (face.Checked && state.Availability != ButtonAvailability.Disabled)
+            (fill, text) = (state.Down ? theme.ControlPressed : theme.Selection, theme.SelectionText);
+        var slot = ui.TakeJoinedSlot();
         var size = theme.IconButtonSize;
+        var radius = slot == null ? theme.CornerRadius : 0f;
+        if (slot != null)
+            border = 0u;
 
         using (ui.Box(state.Id, new Box
         {
             Width = size,
-            Height = size,
+            Height = slot != null ? Sizing.Grow() : size,
             AlignX = Align.Center,
             AlignY = Align.Center,
             Background = fill,
             BorderColor = border,
             BorderWidth = border != 0 ? theme.BorderWidth : 0f,
-            Radius = theme.CornerRadius,
+            Radius = radius,
         }))
         {
+            ui.PaintJoinedDivider(slot);
             ui.Glyph(face.Glyph, text, theme.IconSize, new Box { Width = Sizing.Fit(theme.IconSize), Height = theme.IconSize });
-            if (state.FocusVisible) FocusRing(ui, theme.CornerRadius);
+            if (state.FocusVisible) FocusRing(ui, radius);
         }
     }
 

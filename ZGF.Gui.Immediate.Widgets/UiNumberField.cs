@@ -49,12 +49,13 @@ public static partial class UiWidgets
     /// one way, again and again while held; dragging the value sideways scrubs it, a step every few points; a click
     /// on it, or Enter while it has the focus, types over it, the whole value selected, Enter or the focus leaving
     /// taking what was typed (kept in range) and Escape dropping it. The wheel over it, or Up and Down while it has the
-    /// focus, step it. Returns true on the frame the value changes. It is drawn by the theme's
+    /// focus, step it. A <paramref name="label"/> names the value inside the field, before it, as "Start 1".
+    /// Returns true on the frame the value changes. It is drawn by the theme's
     /// <see cref="UiTheme.NumberFieldPainter"/>, or as <see cref="PaintNumberField"/> draws one, and while typed in it
     /// is a <see cref="TextField"/>.
     /// </summary>
     public static bool NumberField(this Ui ui, string id, ref int value, int min, int max, float width, string? tooltip = null,
-        bool enabled = true)
+        bool enabled = true, string? label = null)
     {
         if (max < min)
             throw new ArgumentOutOfRangeException(nameof(max), max, $"The most a number field takes is less than its least, {min}.");
@@ -71,14 +72,14 @@ public static partial class UiWidgets
         }
 
         edit.Typing = false;
-        var face = new NumberFieldFace(width, ui.Theme.IconSize);
+        var face = new NumberFieldFace(width, ui.Theme.IconSize, label);
         var state = NumberFieldBehavior(ui, fieldId, edit, ref value, min, max, face, enabled);
         var painter = ui.Theme.NumberFieldPainter;
         if (painter != null)
             painter(ui, state, face);
         else
             ui.PaintNumberField(state, face);
-        ui.Semantics(fieldId, SemanticRole.Slider, tooltip ?? id, enabled ? SemanticStates.None : SemanticStates.Disabled, state.Text);
+        ui.Semantics(fieldId, SemanticRole.Slider, label ?? tooltip ?? id, enabled ? SemanticStates.None : SemanticStates.Disabled, state.Text);
         if (tooltip != null)
             ui.Tooltip(fieldId, tooltip);
         return value != before;
@@ -268,32 +269,38 @@ public static partial class UiWidgets
 
     /// <summary>The stock look of a <see cref="NumberField"/> not being typed in: a field box
     /// <see cref="UiTheme.ControlHeight"/> tall, the value against its end in tabular figures, short of the increase
-    /// arrow's room so it holds still as the arrows show, and the arrows while the field is hovered — for a painter
-    /// of an app's own to fall back to.</summary>
+    /// arrow's room so it holds still as the arrows show, its label before it in muted text, and the arrows while
+    /// the field is hovered. In a <see cref="JoinedGroup"/> it is square-cornered and unoutlined, divided from the
+    /// control before it — for a painter of an app's own to fall back to.</summary>
     public static void PaintNumberField(this Ui ui, in NumberFieldState state, in NumberFieldFace face)
     {
         var theme = ui.Theme;
-        var border = !state.Enabled ? theme.Border : state.Hovered ? theme.BorderStrong : theme.Border;
+        var slot = ui.TakeJoinedSlot();
+        var border = slot != null ? 0u : !state.Enabled ? theme.Border : state.Hovered ? theme.BorderStrong : theme.Border;
+        var radius = slot == null ? theme.CornerRadius : 0f;
         using (ui.Row(state.Id, new Box
         {
             Width = face.Width,
-            Height = theme.ControlHeight,
+            Height = slot != null ? Sizing.Grow() : theme.ControlHeight,
             Gap = 0f,
             AlignY = Align.Center,
-            Background = state.Enabled ? theme.Field : theme.Control,
+            Background = !state.Enabled ? theme.Control : slot != null && state.Hovered ? theme.ControlHovered : theme.Field,
             BorderColor = border,
-            BorderWidth = theme.BorderWidth,
-            Radius = theme.CornerRadius,
+            BorderWidth = border != 0 ? theme.BorderWidth : 0f,
+            Radius = radius,
         }))
         {
+            ui.PaintJoinedDivider(slot);
             var arrows = state.Hovered || state.Scrubbing;
             NumberArrow(ui, state, face.ArrowWidth, NumberFieldPart.Decrease, arrows && !state.AtMin);
+            if (face.Label != null)
+                ui.Text(face.Label, new Box { Height = Sizing.Grow() }, state.Enabled ? theme.TextMuted : theme.TextDisabled);
             var color = state.Enabled ? theme.Text : theme.TextDisabled;
             ui.Text(state.Text, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }, color, align: Align.End,
                 features: FontFeatureSet.TabularFigures);
             NumberArrow(ui, state, face.ArrowWidth, NumberFieldPart.Increase, arrows && !state.AtMax);
             if (state.FocusVisible)
-                FocusRing(ui, theme.CornerRadius);
+                FocusRing(ui, radius);
         }
     }
 

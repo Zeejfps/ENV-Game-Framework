@@ -25,9 +25,10 @@ public enum NumberFieldPart
 public readonly record struct NumberFieldState(int Id, string Text, bool Enabled, bool Hovered, NumberFieldPart HoveredPart,
     NumberFieldPart PressedPart, bool Scrubbing, bool FocusVisible, bool AtMin, bool AtMax);
 
-/// <summary>What a number field shows besides its value: its <see cref="Width"/>, and the room each arrow at its ends
-/// takes, <see cref="ArrowWidth"/>, which its behavior hit-tests against.</summary>
-public readonly record struct NumberFieldFace(float Width, float ArrowWidth);
+/// <summary>What a number field shows besides its value: its <see cref="Width"/>, the room each arrow at its ends
+/// takes, <see cref="ArrowWidth"/>, which its behavior hit-tests against, and a <see cref="Label"/> naming the value
+/// inside the field, before it ("Start 1"), when there is one.</summary>
+public readonly record struct NumberFieldFace(float Width, float ArrowWidth, string? Label = null);
 
 /// <summary>Records a number field that is not being typed in: its element, hit-testable as
 /// <see cref="NumberFieldState.Id"/>, and everything drawn in it.</summary>

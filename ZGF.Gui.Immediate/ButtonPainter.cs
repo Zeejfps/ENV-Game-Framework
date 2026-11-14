@@ -32,8 +32,8 @@ public readonly record struct ButtonState(int Id, ButtonAvailability Availabilit
 /// one, at <see cref="Width"/>, or fitted to its label when null.</summary>
 public readonly record struct ButtonFace(string Label, ButtonVariant Variant = ButtonVariant.Neutral, UiIcon? Icon = null, Sizing? Width = null);
 
-/// <summary>What a square icon button shows.</summary>
-public readonly record struct IconButtonFace(IconGlyph Glyph, ButtonVariant Variant = ButtonVariant.Ghost);
+/// <summary>What a square icon button shows; a <see cref="Checked"/> one is a toggle that is on.</summary>
+public readonly record struct IconButtonFace(IconGlyph Glyph, ButtonVariant Variant = ButtonVariant.Ghost, bool Checked = false);
 
 /// <summary>Records a text button: its element, hit-testable as <see cref="ButtonState.Id"/>, and
 /// everything drawn in it.</summary>

@@ -22,6 +22,13 @@ look without changing the behavior, in two ways.
 | `IconButtonPainter` | every `ui.IconButton` | `ui.PaintIconButton(state, face)` |
 | `ScrollBarPainter` | the bars of every `ui.Scroll` and `ui.VirtualScroll` | `ui.PaintScrollBar(bar)` |
 | `TabPainter` | every tab of a `ui.TabStrip`, a dock space's included | `ui.PaintTab(state, face)` |
+| `NumberFieldPainter` | every `ui.NumberField` while it is not typed in | `ui.PaintNumberField(state, face)` |
+
+Controls recorded inside `ui.JoinedGroup(id)` are joined into one strip, as a professional toolbar groups its
+transport or a pair of fields: the group draws one outlined, rounded box, and each stock painter of an icon button,
+icon toggle or number field asks `ui.TakeJoinedSlot()` where it goes, then draws square-cornered and unoutlined,
+filling the group's height, with `ui.PaintJoinedDivider(slot)` on its leading edge after the first. A painter of an
+app's own joins the same way.
 
 A null painter draws the stock look. The stock painters are public, so an app's painter can restyle
 some cases and pass the rest on to the stock look. The theme is part of the app's `IUiState`, so
