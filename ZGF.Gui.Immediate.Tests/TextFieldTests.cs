@@ -92,6 +92,25 @@ public sealed class TextFieldTests
     }
 
     [Fact]
+    public void A_fixed_width_end_aligned_field_draws_its_text_against_its_end_from_the_frame_it_appears()
+    {
+        var text = "42";
+        var shows = false;
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.Text("before");
+            if (shows)
+                ui.TextField("number", ref text, width: 120f, align: Align.End);
+        }).Frame(2);
+
+        shows = true;
+        frames.Frame();
+
+        Assert.Equal(frames.RectOf("number").Right - UiTheme.Dark.FieldPaddingX, frames.TextRect("42").Right, 1f);
+    }
+
+    [Fact]
     public void A_clearable_fields_cross_empties_it_and_leaves_it_focused_and_shows_only_while_it_holds_text()
     {
         var text = "abc";

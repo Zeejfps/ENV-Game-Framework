@@ -293,6 +293,10 @@ public sealed partial record UiTheme
     /// <summary>Draws every <c>IconButton</c> in place of the stock look, which null keeps.</summary>
     public IconButtonPainter? IconButtonPainter { get; init; }
 
+    /// <summary>Draws every <c>NumberField</c> that is not being typed in, in place of the stock look, which null
+    /// keeps; the field's behavior stays the framework's.</summary>
+    public NumberFieldPainter? NumberFieldPainter { get; init; }
+
     /// <summary>Draws the bars of every scroll in place of the stock thumb, which null keeps. The bars'
     /// gutters, grab areas and thumb lengths still come from the metrics above.</summary>
     public ScrollBarPainter? ScrollBarPainter { get; init; }

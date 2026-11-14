@@ -191,10 +191,11 @@ public static partial class UiWidgets
     }
 
     private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon, string? hint,
-        bool inline, FieldLook look, bool clearable = false, bool selectAllOnFocus = false, Align align = Align.Start)
+        bool inline, FieldLook look, bool clearable = false, bool selectAllOnFocus = false, Align align = Align.Start, float? paddingEnd = null)
     {
         var theme = ui.Theme;
         var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
+        var endPadding = paddingEnd ?? padding;
         var i = ui.Interact(id);
         if (i.Hovered || i.Held) ui.SetCursor(MouseCursor.Text);
 
@@ -206,12 +207,15 @@ public static partial class UiWidgets
         var hasRect = ui.TryGetRect(i.Id, out var rect);
         var lead = leadingIcon != null ? theme.IconSize + theme.GapTight : 0f;
         var hintWidth = hint != null ? ui.MeasureText(hint, theme.FontSizeSmall) + theme.GapTight : 0f;
-        var showHint = hint != null && (!hasRect || rect.Width - padding * 2 - lead - hintWidth >= MinFieldWidth);
+        var showHint = hint != null && (!hasRect || rect.Width - padding - endPadding - lead - hintWidth >= MinFieldWidth);
         var clear = clearable && text.Length > 0;
         var clearWidth = clear ? theme.TabCloseSize + theme.GapTight : 0f;
         var trail = (showHint ? hintWidth : 0f) + clearWidth;
         var textLeft = rect.X + padding + lead;
-        var innerWidth = hasRect ? rect.Width - padding * 2 - lead - trail : float.PositiveInfinity;
+        // A field laid out for the first time has no rect yet; one of a fixed width knows its width anyway, so its
+        // text is aligned from the first frame it shows.
+        var fieldWidth = hasRect ? rect.Width : width != null && width.Value.Kind == SizingKind.Fixed ? width.Value.Value : float.NaN;
+        var innerWidth = float.IsNaN(fieldWidth) ? float.PositiveInfinity : fieldWidth - padding - endPadding - lead - trail;
         // How far in from the start text narrower than the field sits; it scrolls as a negative shift.
         var indent = Indent(align, innerWidth, text.Length > 0 ? ui.MeasureText(text) : 0f);
         var preedit = focused ? ui.Input.Composition : PreeditText.Empty;
@@ -293,7 +297,7 @@ public static partial class UiWidgets
         {
             Width = width ?? Sizing.Grow(MinFieldWidth),
             Height = inline ? lineHeight + theme.InlineEditPaddingY * 2 : theme.ControlHeight,
-            Padding = new Spacing(padding, 0f),
+            Padding = new Spacing(padding, 0f, endPadding, 0f),
             Gap = theme.GapTight,
             Background = FieldBackground(theme, look, focused),
             BorderColor = FieldBorder(theme, look, focused, i.Hovered),
