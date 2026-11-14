@@ -24,6 +24,74 @@ public sealed class TextFieldTests
     }
 
     [Fact]
+    public void A_field_that_selects_all_on_focus_is_replaced_by_what_is_typed_after_a_click()
+    {
+        var text = "42";
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("number", ref text, width: 120f, selectAllOnFocus: true);
+        }).Frame();
+
+        frames.ClickOn("number").Frame();
+        frames.Type("7").Frame();
+
+        Assert.Equal("7", text);
+    }
+
+    [Fact]
+    public void A_field_that_selects_all_on_focus_selects_it_when_tabbed_to()
+    {
+        var text = "42";
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("number", ref text, width: 120f, selectAllOnFocus: true);
+        }).Frame();
+
+        frames.Key(KeyboardKey.Tab).Frame(2);
+        frames.Type("7").Frame();
+
+        Assert.Equal("7", text);
+    }
+
+    [Fact]
+    public void A_field_that_selects_all_on_focus_places_the_caret_on_a_second_click()
+    {
+        var text = "42";
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("number", ref text, width: 120f, selectAllOnFocus: true);
+        }).Frame();
+        var field = frames.RectOf("number");
+
+        frames.ClickOn("number").Frame();
+        frames.Click(field.Right - 4f, field.Y + field.Height / 2f).Frame();
+        frames.Type("7").Frame();
+
+        Assert.Equal("427", text);
+    }
+
+    [Fact]
+    public void An_end_aligned_field_draws_its_text_against_its_end_and_places_the_caret_where_it_is_drawn()
+    {
+        var text = "42";
+        var frames = new UiFrames(new DefaultUiState(), body: ui =>
+        {
+            using var screen = ui.Screen();
+            ui.TextField("number", ref text, width: 120f, align: Align.End);
+        }).Frame(2);
+        var field = frames.RectOf("number");
+
+        Assert.Equal(field.Right - UiTheme.Dark.FieldPaddingX, frames.TextRect("42").Right, 1f);
+        frames.Click(field.X + UiTheme.Dark.FieldPaddingX + 2f, field.Y + field.Height / 2f).Frame();
+        frames.Type("7").Frame();
+
+        Assert.Equal("742", text);
+    }
+
+    [Fact]
     public void A_clearable_fields_cross_empties_it_and_leaves_it_focused_and_shows_only_while_it_holds_text()
     {
         var text = "abc";

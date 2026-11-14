@@ -58,6 +58,14 @@ public static partial class UiWidgets
         public readonly List<TextSnapshot> Redo = new();
         public double BlinkFrom;
 
+        /// <summary>Whether the field had the focus when last drawn, so one that selects all on focus knows
+        /// the frame it gets it.</summary>
+        public bool HadFocus;
+
+        /// <summary>While the press that focused a select-all-on-focus field is held: the pointer leaves the
+        /// whole text selected rather than placing the caret.</summary>
+        public bool SelectingAll;
+
         /// <summary>Whether the clipboard held text when the field's menu opened, so Paste is offered
         /// without reading the clipboard every frame the menu shows.</summary>
         public bool CanPaste;
@@ -115,16 +123,21 @@ public static partial class UiWidgets
     /// left out while the field is too narrow to keep room for typing. <paramref name="look"/> says
     /// how it looks while not being edited. When not <paramref name="enabled"/> it shows
     /// <paramref name="text"/> greyed out and ignores input. A <paramref name="clearable"/> field shows a
-    /// cross at its end while it holds text, which empties it and leaves the field focused.</summary>
+    /// cross at its end while it holds text, which empties it and leaves the field focused. A field that
+    /// <paramref name="selectAllOnFocus"/> selects its whole text when it gets the focus, by a click or Tab, so
+    /// typing replaces it, as a number field does; a click once it has the focus places the caret as usual.
+    /// <paramref name="align"/> places text narrower than the field: at its end, say, for a number; text
+    /// wider than the field starts at its start and scrolls with the caret, whatever the alignment.</summary>
     public static bool TextField(this Ui ui, string id, ref string text, string? placeholder = null, Sizing? width = null, IconGlyph? leadingIcon = null,
-        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true, bool clearable = false)
+        string? hint = null, FieldLook look = FieldLook.Boxed, bool enabled = true, bool clearable = false, bool selectAllOnFocus = false,
+        Align align = Align.Start)
     {
         if (!enabled)
         {
             DisabledField(ui, id, text, placeholder, width, leadingIcon);
             return false;
         }
-        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look, clearable);
+        return Field(ui, id, ref text, placeholder, width, leadingIcon, hint, inline: false, look, clearable, selectAllOnFocus, align);
     }
 
     /// <summary>A boxed field's look, its text in <see cref="UiTheme.TextDisabled"/>, taking no input.</summary>
@@ -178,7 +191,7 @@ public static partial class UiWidgets
     }
 
     private static bool Field(Ui ui, string id, ref string text, string? placeholder, Sizing? width, IconGlyph? leadingIcon, string? hint,
-        bool inline, FieldLook look, bool clearable = false)
+        bool inline, FieldLook look, bool clearable = false, bool selectAllOnFocus = false, Align align = Align.Start)
     {
         var theme = ui.Theme;
         var padding = inline ? theme.InlineEditPaddingX : theme.FieldPaddingX;
@@ -199,6 +212,8 @@ public static partial class UiWidgets
         var trail = (showHint ? hintWidth : 0f) + clearWidth;
         var textLeft = rect.X + padding + lead;
         var innerWidth = hasRect ? rect.Width - padding * 2 - lead - trail : float.PositiveInfinity;
+        // How far in from the start text narrower than the field sits; it scrolls as a negative shift.
+        var indent = Indent(align, innerWidth, text.Length > 0 ? ui.MeasureText(text) : 0f);
         var preedit = focused ? ui.Input.Composition : PreeditText.Empty;
 
         if (i.Pressed)
@@ -210,10 +225,15 @@ public static partial class UiWidgets
             }
             if (!focused) state.Shift = 0f;
         }
-        var pointing = i.Pressed || (i.Held && focused && hasRect);
+        var gainsFocus = selectAllOnFocus && !state.HadFocus;
+        if (i.Pressed && gainsFocus)
+            state.SelectingAll = true;
+        if (!i.Held)
+            state.SelectingAll = false;
+        var pointing = !state.SelectingAll && (i.Pressed || (i.Held && focused && hasRect));
         if (pointing)
         {
-            var at = ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift);
+            var at = ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift - indent);
             SelectWithPointer(ui, i, state.Selection, text, at, focused && IsShiftHeld(ui), textLeft, textLeft + innerWidth);
             state.LastEdit = EditKind.None;
         }
@@ -222,6 +242,8 @@ public static partial class UiWidgets
             ui.Focus(i.Id);
             focused = true;
         }
+        if (gainsFocus && focused)
+            state.Select(0, text.Length);
         if (i.ClickedWith(PointerButton.Right))
         {
             if (!preedit.IsEmpty)
@@ -230,7 +252,7 @@ public static partial class UiWidgets
                 preedit = PreeditText.Empty;
             }
             if (!focused) state.Shift = 0f;
-            OpenTextMenu(ui, i.Id, state, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift));
+            OpenTextMenu(ui, i.Id, state, ui.CaretAt(text, ui.Input.Pointer.X - textLeft + state.Shift - indent));
         }
         // While the menu shows it takes the keys, so the field edits nothing.
         var menuShown = TextMenu(ui, i.Id, state, ref text, area: null);
@@ -247,6 +269,7 @@ public static partial class UiWidgets
         }
         if (!focused)
             preedit = PreeditText.Empty;
+        state.HadFocus = focused;
 
         var shown = GetShownText(state, text, preedit);
         var caretX = 0f;
@@ -261,9 +284,9 @@ public static partial class UiWidgets
             if (state.Caret != caretBefore || state.Anchor != anchorBefore || !ReferenceEquals(text, textBefore) || i.Pressed)
                 state.BlinkFrom = ui.RealTime;
             if (hasRect)
-                ui.SetImeCaret(new UiRect(textLeft + caretX - state.Shift, rect.Y + (rect.Height - lineHeight) / 2, theme.CaretWidth, lineHeight));
+                ui.SetImeCaret(new UiRect(textLeft + indent + caretX - state.Shift, rect.Y + (rect.Height - lineHeight) / 2, theme.CaretWidth, lineHeight));
         }
-        var shift = focused ? state.Shift : 0f;
+        var shift = (focused ? state.Shift : 0f) - indent;
         ui.Semantics(i.Id, SemanticRole.TextField, placeholder, value: text);
 
         using (ui.Row(i.Id, new Box
@@ -315,6 +338,18 @@ public static partial class UiWidgets
             }
         }
         return submitted;
+    }
+
+    private static float Indent(Align align, float innerWidth, float textWidth)
+    {
+        if (float.IsInfinity(innerWidth) || textWidth >= innerWidth)
+            return 0f;
+        return align switch
+        {
+            Align.End => innerWidth - textWidth,
+            Align.Center => (innerWidth - textWidth) / 2f,
+            _ => 0f,
+        };
     }
 
     /// <summary>What the field shows: <paramref name="text"/> with <paramref name="preedit"/> in it at
