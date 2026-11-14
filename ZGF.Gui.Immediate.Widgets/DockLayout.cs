@@ -20,11 +20,20 @@ public abstract class DockNode
 }
 
 /// <summary>Two nodes side by side (<see cref="Direction.Horizontal"/>) or stacked;
-/// <see cref="Ratio"/> is the first one's share of the space.</summary>
+/// <see cref="Ratio"/> is the first one's share of the space, unless a <see cref="KeptSide"/> keeps its size.</summary>
 public sealed class DockSplit : DockNode
 {
     public Direction Direction { get; set; }
     public float Ratio { get; set; } = 0.5f;
+
+    /// <summary>The side that keeps its size, <see cref="KeptSize"/>, as the dock space resizes, the other taking the
+    /// rest, as a border layout's edges keep theirs and its center grows: the side a panel was docked against an
+    /// edge on. Null while both follow the dock space, sharing it by <see cref="Ratio"/>.</summary>
+    public SplitSide? KeptSide { get; set; }
+
+    /// <summary>The <see cref="KeptSide"/>'s width or height in points, which dragging the splitter sets; 0 until the
+    /// split is first laid out, when it takes the side's share by <see cref="Ratio"/>.</summary>
+    public float KeptSize { get; set; }
     public DockNode First { get; set; } = new DockGroup();
     public DockNode Second { get; set; } = new DockGroup();
 }
@@ -155,6 +164,17 @@ public sealed class DockLayout
     public int Changes { get; private set; }
 
     private bool _isMoving;
+
+    /// <summary>Gives <paramref name="split"/>'s kept side the size a dragged splitter sets, noting the drag when it
+    /// moved; or, the first time it is laid out, the size its share comes to, which is no drag.</summary>
+    internal void ResizeKept(DockSplit split, float size, bool dragged)
+    {
+        if (size == split.KeptSize)
+            return;
+        split.KeptSize = size;
+        if (dragged)
+            _isMoving = true;
+    }
 
     /// <summary>Gives <paramref name="split"/> the ratio a dragged splitter sets, noting the drag when it moved.</summary>
     internal void Resize(DockSplit split, float ratio)
@@ -357,6 +377,8 @@ public sealed class DockLayout
             Id = split.Id,
             Direction = split.Direction,
             Ratio = split.Ratio,
+            KeptSide = split.KeptSide,
+            KeptSize = split.KeptSize,
             First = CopyNode(split.First),
             Second = CopyNode(split.Second),
         },
@@ -463,11 +485,13 @@ public sealed class DockLayout
     private void PlaceBeside(DockNode node, DockNode target, DockEdge edge, float share)
     {
         var before = edge is DockEdge.Left or DockEdge.Top;
+        // What is docked against an edge keeps its size as the dock space resizes; what it was docked beside grows.
         var split = new DockSplit
         {
             Id = NextId++,
             Direction = edge is DockEdge.Left or DockEdge.Right ? Direction.Horizontal : Direction.Vertical,
             Ratio = before ? share : 1f - share,
+            KeptSide = before ? SplitSide.First : SplitSide.Second,
         };
         Replace(target, split);
         split.First = before ? node : target;

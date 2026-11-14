@@ -264,9 +264,7 @@ internal sealed class DockWalker
                     switch (frame.Stage)
                     {
                         case 0:
-                            var ratio = split.Ratio;
-                            frame.Split = _ui.SplitPane(_ui.GetId(split.Id), split.Direction, ref ratio, MinPane, MinPane, unit: SplitUnit.Fraction);
-                            _layout.Resize(split, ratio);
+                            frame.Split = SplitPaneOf(split);
                             frame.Outer = frame.Split.First();
                             frame.Stage = 1;
                             _frames[top] = frame;
@@ -374,6 +372,33 @@ internal sealed class DockWalker
     internal static int WindowId(Ui ui, string dock, DockWindow window) => WindowId(ui.GetId(dock), window);
 
     private static int WindowId(int dockId, DockWindow window) => HashCode.Combine(dockId, "window", window.Id);
+
+    // A split's panes: one kept at its size in points while the other takes the rest, or both sharing the space by the
+    // split's ratio. A kept size not yet set is the kept side's share once the split has been laid out.
+    private SplitPane SplitPaneOf(DockSplit split)
+    {
+        var id = _ui.GetId(split.Id);
+        var kept = split.KeptSide;
+        if (kept != null && split.KeptSize <= 0f && _ui.TryGetRect(id, out var laidOut))
+        {
+            var extent = split.Direction == Direction.Horizontal ? laidOut.Width : laidOut.Height;
+            var share = kept == SplitSide.First ? split.Ratio : 1f - split.Ratio;
+            _layout.ResizeKept(split, MathF.Round(extent * share), dragged: false);
+        }
+
+        if (kept != null && split.KeptSize > 0f)
+        {
+            var size = split.KeptSize;
+            var pane = _ui.SplitPane(id, split.Direction, ref size, MinPane, MinPane, sized: kept.Value, unit: SplitUnit.Points);
+            _layout.ResizeKept(split, size, dragged: true);
+            return pane;
+        }
+
+        var ratio = split.Ratio;
+        var shared = _ui.SplitPane(id, split.Direction, ref ratio, MinPane, MinPane, unit: SplitUnit.Fraction);
+        _layout.Resize(split, ratio);
+        return shared;
+    }
 
     private void PushNode(DockNode node, DockWindow? window) =>
         _frames.Add(new Frame { Kind = node is DockSplit ? FrameKind.Split : FrameKind.Group, Node = node, Window = window });
