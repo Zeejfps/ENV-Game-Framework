@@ -1,3 +1,4 @@
+using ZGF.Fonts;
 using ZGF.Geometry;
 
 namespace ZGF.Gui.Immediate;
@@ -257,18 +258,26 @@ public sealed class UiPainter
         new(rect.X + (rect.Width - size) / 2, rect.Y + (rect.Height - size) / 2, size, size);
 
     /// <summary>Draws <paramref name="text"/> vertically centered in <paramref name="rect"/>. A null
-    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
-    public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null)
+    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>; <paramref name="features"/> are
+    /// the OpenType features it is shaped with.</summary>
+    public void Text(UiRect rect, string text, uint color, float? size = null, bool bold = false, Align align = Align.Start, string? family = null,
+        FontFeatureSet features = default)
     {
         if (string.IsNullOrEmpty(text)) return;
-        _canvas.DrawText(new DrawTextInputs { Position = _origin.ToCanvas(rect), Text = text, Style = _ui.TextStyleFor(size, color, bold, align, family), ZIndex = _z });
+        _canvas.DrawText(new DrawTextInputs
+        {
+            Position = _origin.ToCanvas(rect),
+            Text = text,
+            Style = _ui.TextStyleFor(size, color, bold, align, family, features),
+            ZIndex = _z,
+        });
     }
 
     /// <summary>Draws <paramref name="length"/> characters of <paramref name="text"/> from
     /// <paramref name="start"/>, shaped on their own, as <see cref="Text(UiRect, string, uint, float?, bool, Align, string?)"/>
     /// does — a slice of a longer line, with nothing allocated. See <see cref="Ui.MeasureText(ReadOnlySpan{char}, float?, bool, string?)"/>.</summary>
     public void Text(UiRect rect, string text, int start, int length, uint color, float? size = null, bool bold = false, Align align = Align.Start,
-        string? family = null)
+        string? family = null, FontFeatureSet features = default)
     {
         if (length <= 0) return;
         _canvas.DrawText(new DrawTextInputs
@@ -276,7 +285,7 @@ public sealed class UiPainter
             Position = _origin.ToCanvas(rect),
             Text = text,
             Slice = new Range(start, start + length),
-            Style = _ui.TextStyleFor(size, color, bold, align, family),
+            Style = _ui.TextStyleFor(size, color, bold, align, family, features),
             ZIndex = _z,
         });
     }

@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Fonts;
 using ZGF.KeyboardModule;
 
 namespace ZGF.Gui.Immediate.Widgets;
@@ -14,8 +15,10 @@ public static partial class UiWidgets
     private const float SwitchInset = 2f;
     private const float SwitchAspect = 1.8f;
 
-    public static void Label(this Ui ui, string text, uint? color = null, float? size = null, bool bold = false) =>
-        ui.Text(text, color: color, size: size, bold: bold);
+    /// <summary>A line of text; <paramref name="features"/> are the OpenType features it is shaped with, such as
+    /// <see cref="FontFeatureSet.TabularFigures"/> for a number that changes in place.</summary>
+    public static void Label(this Ui ui, string text, uint? color = null, float? size = null, bool bold = false, FontFeatureSet features = default) =>
+        ui.Text(text, color: color, size: size, bold: bold, features: features);
 
     /// <summary>A title: <see cref="UiTheme.FontSizeTitle"/>, bold.</summary>
     public static void Heading(this Ui ui, string text) =>

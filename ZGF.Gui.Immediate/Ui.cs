@@ -38,7 +38,7 @@ public abstract partial class Ui
     private readonly LayoutTree _tree = new();
     private readonly Stack<int> _open = new();
     private readonly Stack<int> _ids = new();
-    private readonly FrameCache<(float Size, uint Color, bool Bold, Align Align, string? Family), TextStyle> _textStyles = new();
+    private readonly FrameCache<(float Size, uint Color, bool Bold, Align Align, string? Family, ulong Features), TextStyle> _textStyles = new();
     private readonly Dictionary<int, (object State, long LastFrame, int Owner)> _states = new();
     private readonly Dictionary<int, long> _keptStates = new();
     private readonly Stack<int> _stateOwners = new();
@@ -783,17 +783,19 @@ public abstract partial class Ui
     }
 
     /// <summary>Width of <paramref name="text"/> as <see cref="Text"/> draws it. A null
-    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>.</summary>
-    public float MeasureText(string text, float? size = null, bool bold = false, string? family = null) =>
-        MeasureWidth(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family));
+    /// <paramref name="family"/> means the theme's <see cref="UiTheme.FontFamily"/>; <paramref name="features"/>
+    /// are the OpenType features it is shaped with, such as <see cref="FontFeatureSet.TabularFigures"/>.</summary>
+    public float MeasureText(string text, float? size = null, bool bold = false, string? family = null, FontFeatureSet features = default) =>
+        MeasureWidth(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family, features));
 
     /// <summary>Width of the first <paramref name="length"/> characters, shaped in context of the
     /// whole line — for placing a caret.</summary>
-    public float MeasureText(string text, int length, float? size = null, bool bold = false, string? family = null)
+    public float MeasureText(string text, int length, float? size = null, bool bold = false, string? family = null,
+        FontFeatureSet features = default)
     {
         if (length <= 0)
             return 0f;
-        var offsets = GetCaretOffsets(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family));
+        var offsets = GetCaretOffsets(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family, features));
         return offsets[Math.Min(length, text.Length)];
     }
 
@@ -858,9 +860,9 @@ public abstract partial class Ui
         _textStyles.BeginFrame(invalidate: false);
     }
 
-    internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family)
+    internal TextStyle TextStyleFor(float? size, uint color, bool bold, Align align, string? family, FontFeatureSet features = default)
     {
-        var key = (size ?? Theme.FontSize, color, bold, align, family ?? Theme.FontFamily);
+        var key = (size ?? Theme.FontSize, color, bold, align, family ?? Theme.FontFamily, features.Signature);
         if (_textStyles.TryGet(key, out var style))
             return style;
 
@@ -877,6 +879,7 @@ public abstract partial class Ui
                 _ => TextAlignment.Start,
             },
             VerticalAlignment = TextAlignment.Center,
+            FontFeatures = new StyleValue<FontFeatureSet>(features, !features.IsEmpty),
         };
         return _textStyles.Keep(key, style);
     }

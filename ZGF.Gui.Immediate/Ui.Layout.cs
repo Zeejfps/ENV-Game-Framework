@@ -1,4 +1,5 @@
 using ZGF.Desktop;
+using ZGF.Fonts;
 
 namespace ZGF.Gui.Immediate;
 
@@ -203,11 +204,11 @@ public abstract partial class Ui
     /// out at. Wrapped text with more lines than a positive <paramref name="maxLines"/> shows that
     /// many, the last ending in an ellipsis.</summary>
     public void Text(string text, Box box = default, uint? color = null, float? size = null, bool bold = false, Align align = Align.Start, int id = 0,
-        string? family = null, bool wrap = false, TextOverflow overflow = TextOverflow.Clip, int maxLines = 0)
+        string? family = null, bool wrap = false, TextOverflow overflow = TextOverflow.Clip, int maxLines = 0, FontFeatureSet features = default)
     {
         if (wrap && box.Width == null)
             box = box with { Width = Sizing.Grow() };
-        var e = Describe(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family), wrap);
+        var e = Describe(id, box, text, TextStyleFor(size, color ?? Theme.Text, bold, align, family, features), wrap);
         if (wrap && maxLines > 0 && e.Lines != null)
         {
             e.MaxLines = maxLines;
@@ -233,8 +234,9 @@ public abstract partial class Ui
     /// <see cref="RichText"/>. The same choices give the same style while it is asked for each frame;
     /// one not asked for in a frame is made anew when next asked, an equal style but another object,
     /// while one kept from before stays good to draw with.</summary>
-    public TextStyle StyleText(uint? color = null, float? size = null, bool bold = false, string? family = null) =>
-        TextStyleFor(size, color ?? Theme.Text, bold, Align.Start, family);
+    public TextStyle StyleText(uint? color = null, float? size = null, bool bold = false, string? family = null,
+        FontFeatureSet features = default) =>
+        TextStyleFor(size, color ?? Theme.Text, bold, Align.Start, family, features);
 
     /// <summary>A text element of styled runs that wrap together, as <see cref="Text"/> with
     /// <c>wrap</c> wraps one style: lines break between words across runs to fit the element's

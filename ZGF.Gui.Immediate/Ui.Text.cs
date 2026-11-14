@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using ZGF.Fonts;
 
 namespace ZGF.Gui.Immediate;
 
@@ -65,8 +66,9 @@ public abstract partial class Ui : ITextLayout
     /// <summary>Width of <paramref name="text"/> shaped on its own — a slice of a longer string —
     /// as <see cref="UiPainter.Text(UiRect, string, int, int, uint, float?, bool, Align, string?)"/>
     /// draws it. Not cached.</summary>
-    public float MeasureText(ReadOnlySpan<char> text, float? size = null, bool bold = false, string? family = null) =>
-        text.IsEmpty ? 0f : MathF.Ceiling(_canvas.MeasureTextWidth(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family)));
+    public float MeasureText(ReadOnlySpan<char> text, float? size = null, bool bold = false, string? family = null,
+        FontFeatureSet features = default) =>
+        text.IsEmpty ? 0f : MathF.Ceiling(_canvas.MeasureTextWidth(text, TextStyleFor(size, Theme.Text, bold, Align.Start, family, features)));
 
     TextLines ITextLayout.BreakLines(string text, TextStyle style, float maxWidth) => BreakLines(text, style, maxWidth);
 
