@@ -102,11 +102,19 @@ internal sealed class MacOsFilePicker : IFilePicker
         // so a save dialog on macOS simply does not restrict what can be typed.
         var ofType = chooser == Chooser.File ? BuildOfTypeClause(filters) : "";
 
+        // A type looked up by its extension (one the table below doesn't know, such as an app's own
+        // document type) is worked out by UTType, from AppleScriptObjC; once a script uses a
+        // framework, it must ask for the scripting additions that hold "choose file" too.
+        var header = ofType.Contains(TypeLookup, StringComparison.Ordinal)
+            ? "use framework \"Foundation\"\nuse framework \"UniformTypeIdentifiers\"\nuse scripting additions\n"
+            : "";
+
         var defaultName = chooser == Chooser.SaveName && !string.IsNullOrEmpty(suggestedFileName)
             ? $" default name \"{EscapeForAppleScript(suggestedFileName)}\""
             : "";
 
         var script =
+            header +
             $"set chosen to {verb} with prompt \"{EscapeForAppleScript(title)}\"{defaultName}{location}{ofType}\n" +
             "return POSIX path of chosen";
 
@@ -150,7 +158,8 @@ internal sealed class MacOsFilePicker : IFilePicker
     // Uniform Type Identifiers for the extensions we can express. "choose file of type" silently
     // ignores bare extensions on current macOS — the dialog then filters nothing at all — so every
     // pattern has to be translated to a UTI before it reaches AppleScript. One UTI often covers
-    // several extensions (public.jpeg matches .jpg and .jpeg), hence the dedupe below.
+    // several extensions (public.jpeg matches .jpg and .jpeg), hence the dedupe below. An extension
+    // missing here is looked up in the script itself (TypeLookup).
     private static readonly Dictionary<string, string> UtiByExtension = new(StringComparer.OrdinalIgnoreCase)
     {
         ["png"] = "public.png",
@@ -169,14 +178,20 @@ internal sealed class MacOsFilePicker : IFilePicker
         ["zip"] = "public.zip-archive",
     };
 
+    // Marks a type the script looks up by extension; the script then needs AppleScriptObjC.
+    private const string TypeLookup = "typeWithFilenameExtension:";
+
     // "choose file of type" greys out everything that doesn't match — macOS has no filter dropdown.
-    // Only plain "*.ext" patterns with a known UTI are expressible; anything else is dropped from
-    // the clause rather than dropping the whole clause, so one unmappable pattern can't quietly
-    // turn the filter off. A "*" / "*.*" group does mean anything may be picked, so that omits it.
+    // Only plain "*.ext" patterns are expressible; anything else is dropped from the clause rather
+    // than dropping the whole clause, so one unmappable pattern can't quietly turn the filter off.
+    // An extension the table doesn't know becomes a lookup of the type macOS gives files of that
+    // extension (a dynamic "dyn." type for one no app declares), which matches them as the table's
+    // UTIs match theirs. A "*" / "*.*" group does mean anything may be picked, so that omits it.
     private static string BuildOfTypeClause(IReadOnlyList<FileFilter>? filters)
     {
         if (filters == null || filters.Count == 0) return "";
 
+        // Each an AppleScript expression for one type: a quoted UTI, or a lookup by extension.
         var utis = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var filter in filters)
@@ -190,11 +205,9 @@ internal sealed class MacOsFilePicker : IFilePicker
                     continue;
                 }
                 var extension = pattern[2..];
-                if (!UtiByExtension.TryGetValue(extension, out var uti))
-                {
-                    Console.WriteLine($"[FilePicker] No UTI known for '.{extension}'; ignored on macOS.");
-                    continue;
-                }
+                var uti = UtiByExtension.TryGetValue(extension, out var known)
+                    ? $"\"{known}\""
+                    : $"((current application's UTType's {TypeLookup}\"{EscapeForAppleScript(extension)}\")'s identifier() as text)";
                 if (seen.Add(uti)) utis.Add(uti);
             }
         }
@@ -206,12 +219,12 @@ internal sealed class MacOsFilePicker : IFilePicker
             return "";
         }
 
-        // The UTIs come from the table above, so they need no AppleScript escaping.
+        // Each is quoted or escaped already as it was built.
         var sb = new StringBuilder(" of type {");
         for (var i = 0; i < utis.Count; i++)
         {
             if (i > 0) sb.Append(", ");
-            sb.Append('"').Append(utis[i]).Append('"');
+            sb.Append(utis[i]);
         }
         return sb.Append('}').ToString();
     }
