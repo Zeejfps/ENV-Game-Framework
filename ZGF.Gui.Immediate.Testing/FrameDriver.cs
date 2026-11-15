@@ -148,6 +148,8 @@ internal sealed class FrameDriver<TState> where TState : class, IUiState
 
     public void Wheel(double y, double x) => _pending.Scroll(x, y);
 
+    public void Pinch(double magnification) => _pending.Pinch(magnification);
+
     public void Swipe(double x, double y, ScrollPhase gesture, ScrollPhase momentum) => _pending.Scroll(x, y, gesture, momentum);
 
     public void DropFiles(string[] paths) => _pending.DropFiles(paths);

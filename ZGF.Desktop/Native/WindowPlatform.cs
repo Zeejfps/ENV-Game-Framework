@@ -30,6 +30,12 @@ internal class WindowPlatform
 
     public virtual void UnwatchNonClientPress(IntPtr window) { }
 
+    /// <summary>Reports each trackpad pinch over the window's content: how much it magnifies, as the fraction to grow
+    /// by (0.1 a tenth larger, negative smaller). GLFW passes pinches on nowhere; only macOS reports them here.</summary>
+    public virtual void WatchMagnify(IntPtr window, Action<double> onMagnify) { }
+
+    public virtual void UnwatchMagnify(IntPtr window) { }
+
     public virtual void SetTitleBarTheme(IntPtr window, bool dark) { }
 
     public virtual bool CanExtendIntoTitleBar => false;

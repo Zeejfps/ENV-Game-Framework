@@ -5,8 +5,14 @@ using static ZGF.Rendering.Metal.Objc;
 namespace ZGF.Desktop;
 
 [SupportedOSPlatform("macos")]
-internal sealed class MacOsWindowPlatform : WindowPlatform
+internal sealed unsafe class MacOsWindowPlatform : WindowPlatform
 {
+    // The windows whose pinches are watched, by NSWindow, and the content view classes taught to answer them. GLFW's
+    // view doesn't implement magnifyWithEvent:, so AppKit would pass a pinch up the responder chain and drop it; the
+    // method added to its class hands it to the window it is in. Both are touched only on the main thread.
+    private static readonly Dictionary<IntPtr, Action<double>> Magnifying = new();
+    private static readonly HashSet<IntPtr> MagnifyingClasses = new();
+
     // Outside-click capture and the non-client press watch are not implemented here: both need an
     // NSEvent monitor block trampoline. Menus rely on main-window-click and focus-change dismissal.
 
@@ -44,6 +50,35 @@ internal sealed class MacOsWindowPlatform : WindowPlatform
             NSWindowCollectionBehaviorTransient
             | NSWindowCollectionBehaviorIgnoresCycle
             | NSWindowCollectionBehaviorCanJoinAllSpaces);
+    }
+
+    public override void WatchMagnify(IntPtr nsWindow, Action<double> onMagnify)
+    {
+        if (nsWindow == IntPtr.Zero) return;
+
+        var view = msg_IntPtr(nsWindow, Sel("contentView"));
+        if (view == IntPtr.Zero) return;
+
+        var viewClass = object_getClass(view);
+        if (MagnifyingClasses.Add(viewClass))
+        {
+            delegate* unmanaged<IntPtr, IntPtr, IntPtr, void> handler = &MagnifyWithEvent;
+            class_addMethod(viewClass, Sel("magnifyWithEvent:"), (IntPtr)handler, "v@:@");
+        }
+
+        Magnifying[nsWindow] = onMagnify;
+    }
+
+    public override void UnwatchMagnify(IntPtr nsWindow) => Magnifying.Remove(nsWindow);
+
+    // -[NSView magnifyWithEvent:] on GLFW's content view: the pinch goes to the window the view is in, if watched.
+    [UnmanagedCallersOnly]
+    private static void MagnifyWithEvent(IntPtr self, IntPtr cmd, IntPtr nsEvent)
+    {
+        var nsWindow = msg_IntPtr(self, Sel("window"));
+        if (!Magnifying.TryGetValue(nsWindow, out var onMagnify)) return;
+
+        onMagnify(msg_Double(nsEvent, Sel("magnification")));
     }
 
     // AppKit has no EnableWindow. This turns off what the window itself lets the user do: moving,

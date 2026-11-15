@@ -195,6 +195,10 @@ public sealed class GpuFrames<TState> : IDisposable where TState : class, IUiSta
 
     public GpuFrames<TState> Wheel(double y, double x = 0) => Do(() => _driver.Wheel(y, x));
 
+    /// <summary>A pinch on a trackpad at the pointer, magnifying by <paramref name="magnification"/> (0.1 a tenth larger,
+    /// negative smaller), as macOS reports one.</summary>
+    public GpuFrames<TState> Pinch(double magnification) => Do(() => _driver.Pinch(magnification));
+
     /// <summary>A scroll on a trackpad: the fingers' <paramref name="gesture"/> phase, or the system's coast after
     /// them when <paramref name="momentum"/> is not <see cref="ScrollPhase.None"/>, as macOS reports them.</summary>
     public GpuFrames<TState> Swipe(double x, double y, ScrollPhase gesture, ScrollPhase momentum = ScrollPhase.None) =>

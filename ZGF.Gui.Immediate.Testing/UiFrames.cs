@@ -253,6 +253,14 @@ public sealed class UiFrames<TState> where TState : class, IUiState
         return this;
     }
 
+    /// <summary>A pinch on a trackpad at the pointer, magnifying by <paramref name="magnification"/> (0.1 a tenth larger,
+    /// negative smaller), as macOS reports one.</summary>
+    public UiFrames<TState> Pinch(double magnification)
+    {
+        _driver.Pinch(magnification);
+        return this;
+    }
+
     /// <summary>A scroll on a trackpad: the fingers' <paramref name="gesture"/> phase, or the system's coast after
     /// them when <paramref name="momentum"/> is not <see cref="ScrollPhase.None"/>, as macOS reports them.</summary>
     public UiFrames<TState> Swipe(double x, double y, ScrollPhase gesture, ScrollPhase momentum = ScrollPhase.None)

@@ -36,6 +36,7 @@ public abstract class GlfwWindowBase : IWindow
     private bool _isDisposed;
     private MouseCursor _currentCursor = MouseCursor.Default;
     private Action? _nonClientPress;
+    private Action<double>? _magnify;
 
     protected float DpiScaleValue = 1f;
     protected float ContentScaleValue = 1f;
@@ -126,6 +127,24 @@ public abstract class GlfwWindowBase : IWindow
     public event Action<double, double>? OnScroll;
     public event Action<bool>? OnPointerEnter;
     public event Action<IReadOnlyList<string>>? OnFileDrop;
+
+    public event Action<double>? OnMagnify
+    {
+        add
+        {
+            if (_magnify == null)
+                Platform.WatchMagnify(NativeHandle, RaiseMagnify);
+            _magnify += value;
+        }
+        remove
+        {
+            _magnify -= value;
+            if (_magnify == null)
+                Platform.UnwatchMagnify(NativeHandle);
+        }
+    }
+
+    private void RaiseMagnify(double magnification) => _magnify?.Invoke(magnification);
 
     public event Action? OnNonClientPress
     {
@@ -370,6 +389,8 @@ public abstract class GlfwWindowBase : IWindow
         _isDisposed = true;
         if (_nonClientPress != null)
             Platform.UnwatchNonClientPress(NativeHandle);
+        if (_magnify != null)
+            Platform.UnwatchMagnify(NativeHandle);
         if (!IsMain)
         {
             GLFW.Glfw.DestroyWindow(GlfwWindow);

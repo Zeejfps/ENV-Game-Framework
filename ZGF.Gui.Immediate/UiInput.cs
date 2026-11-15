@@ -72,6 +72,11 @@ public sealed class UiInput
     /// trackpad, which nothing the user does now drives. Only macOS says; elsewhere it is never true.</summary>
     public bool ScrollCoasting { get; private set; }
 
+    /// <summary>How much trackpad pinches magnified since the previous frame, together: the fraction to grow by (0.1 a
+    /// tenth larger, negative smaller), each pinch event's added. Only macOS reports pinches; elsewhere, and with no
+    /// pinch, it is 0. <see cref="Pointer"/> is where the fingers pinched.</summary>
+    public float Magnify { get; private set; }
+
     /// <summary>Whether the last scroll, in whichever frame, was the system's coast, which a swipe of the fingers
     /// after it begins anew.</summary>
     private bool _lastScrollCoasted;
@@ -238,6 +243,12 @@ public sealed class UiInput
         HasEvents = true;
     }
 
+    internal void Pinch(double magnification)
+    {
+        Magnify += (float)magnification;
+        HasEvents = true;
+    }
+
     internal void DropFiles(IReadOnlyList<string> paths)
     {
         _droppedFiles.AddRange(paths);
@@ -301,6 +312,7 @@ public sealed class UiInput
         ScrollY = source.ScrollY;
         ScrollBegan = source.ScrollBegan;
         ScrollCoasting = source.ScrollCoasting;
+        Magnify = source.Magnify;
         Modifiers = source.Modifiers;
         IsForeground = source.IsForeground;
         IsMinimized = source.IsMinimized;
@@ -320,6 +332,7 @@ public sealed class UiInput
         ScrollY = 0;
         ScrollBegan = false;
         ScrollCoasting = false;
+        Magnify = 0;
         Modifiers = KeyModifiers.None;
     }
 
@@ -343,6 +356,7 @@ public sealed class UiInput
         ScrollY = 0;
         ScrollBegan = false;
         ScrollCoasting = false;
+        Magnify = 0;
         _scrolled = false;
         _lastScrollCoasted = previous._lastScrollCoasted;
         PopupsDismissed = false;

@@ -29,4 +29,20 @@ public sealed class UiInputTests
 
         Assert.Equal(0, allocated);
     }
+
+    [Fact]
+    public void Pinches_in_a_frame_add_up_and_the_next_frame_starts_from_none()
+    {
+        var input = new UiInput();
+        input.Pinch(0.1);
+        input.Pinch(0.05);
+        var pinched = input.Magnify;
+
+        var next = new UiInput();
+        next.BeginAfter(input);
+
+        Assert.Equal(0.15f, pinched, 5);
+        Assert.True(input.HasEvents);
+        Assert.Equal(0f, next.Magnify);
+    }
 }

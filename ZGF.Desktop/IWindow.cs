@@ -66,6 +66,9 @@ public interface IWindow : IDisposable
     event Action<PreeditText> OnPreedit;
     event Action<int, InputAction, KeyModifiers> OnMouseButton;
     event Action<double, double> OnScroll;
+    // A pinch on a trackpad over the client area: how much it magnifies, as the fraction to grow by (0.1 a tenth
+    // larger, negative smaller). Only macOS reports pinches; elsewhere it is never raised.
+    event Action<double> OnMagnify;
     event Action<bool> OnPointerEnter;
     // Files or folders dragged from the OS file manager and dropped on the client area, as full
     // paths in the order the platform lists them. The platform moves the cursor to the drop point first.

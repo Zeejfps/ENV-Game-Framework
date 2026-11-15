@@ -16,6 +16,10 @@ public static unsafe class Objc
     [DllImport(Libobjc)]
     public static extern IntPtr sel_registerName([MarshalAs(UnmanagedType.LPStr)] string name);
 
+    // The class an object is an instance of, to add a method to the class of an object made elsewhere (GLFW's view).
+    [DllImport(Libobjc)]
+    public static extern IntPtr object_getClass(IntPtr obj);
+
     // --- runtime class creation ---
     //
     // Used to synthesize a tiny Objective-C target class at runtime (e.g. the receiver

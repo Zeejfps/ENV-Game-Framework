@@ -76,6 +76,7 @@ internal sealed class FakeWindow : IWindow
     public event Action<PreeditText>? OnPreedit;
     public event Action<int, InputAction, KeyModifiers>? OnMouseButton;
     public event Action<double, double>? OnScroll;
+    public event Action<double>? OnMagnify;
     public event Action<bool>? OnPointerEnter;
     public event Action<IReadOnlyList<string>>? OnFileDrop;
     public event Action? OnNonClientPress;

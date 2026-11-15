@@ -1251,6 +1251,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
         window.OnPreedit += HandlePreedit;
         window.OnMouseButton += HandleMouseButton;
         window.OnScroll += HandleScroll;
+        window.OnMagnify += HandleMagnify;
         window.OnFileDrop += HandleFileDrop;
     }
 
@@ -1261,6 +1262,7 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
         window.OnPreedit -= HandlePreedit;
         window.OnMouseButton -= HandleMouseButton;
         window.OnScroll -= HandleScroll;
+        window.OnMagnify -= HandleMagnify;
         window.OnFileDrop -= HandleFileDrop;
     }
 
@@ -1294,6 +1296,13 @@ public sealed class ImmediateGuiAppHost<TUiState> : IPopupHost, IAutomatedHost, 
         // Read while still inside the platform's callback: the event behind it is the current one only until it returns.
         var (gesture, momentum) = MacScrollPhase.Read();
         _pending.Scroll(x, y, gesture, momentum);
+        RequestRedraw();
+    }
+
+    private void HandleMagnify(double magnification)
+    {
+        PollPointer();
+        _pending.Pinch(magnification);
         RequestRedraw();
     }
 
