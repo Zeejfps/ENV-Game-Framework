@@ -45,6 +45,12 @@
         ///     The top-right to bottom-left diagonal resize arrow shape. Requires GLFW 3.4 or newer;
         ///     older libraries reject it and return <see cref="Cursor.None" />.
         /// </summary>
-        ResizeNesw = 0x00036008
+        ResizeNesw = 0x00036008,
+
+        /// <summary>
+        ///     The omni-directional resize, or move, arrow shape. Requires GLFW 3.4 or newer;
+        ///     older libraries reject it and return <see cref="Cursor.None" />.
+        /// </summary>
+        ResizeAll = 0x00036009
     }
 }

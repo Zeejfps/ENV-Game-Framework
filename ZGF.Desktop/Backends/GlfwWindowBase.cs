@@ -35,6 +35,7 @@ public abstract class GlfwWindowBase : IWindow
     private bool _isVisible;
     private bool _isDisposed;
     private MouseCursor _currentCursor = MouseCursor.Default;
+    private float _currentCursorScale;
     private Action? _nonClientPress;
     private Action<double>? _magnify;
 
@@ -236,9 +237,11 @@ public abstract class GlfwWindowBase : IWindow
 
     public void SetCursor(MouseCursor cursor)
     {
-        if (cursor == _currentCursor) return;
+        // A shape ZGF draws is sized by the content scale, so moving to a screen of another scale draws it anew.
+        if (cursor == _currentCursor && ContentScaleValue == _currentCursorScale) return;
         _currentCursor = cursor;
-        GLFW.Glfw.SetCursor(GlfwWindow, GlfwStandardCursors.Get(cursor));
+        _currentCursorScale = ContentScaleValue;
+        GLFW.Glfw.SetCursor(GlfwWindow, GlfwCursors.Get(cursor, ContentScaleValue));
     }
 
     public void SetPointerLocked(bool locked)

@@ -259,7 +259,7 @@ public abstract class GlfwApp<TWindow> : IWindowedApp where TWindow : GlfwWindow
         }
         Main.Dispose();
         ReleaseDevice();
-        GlfwStandardCursors.Release();
+        GlfwCursors.Release();
         Glfw.Terminate();
         OnTerminated();
         GC.SuppressFinalize(this);

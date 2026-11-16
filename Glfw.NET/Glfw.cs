@@ -1071,7 +1071,7 @@ namespace GLFW
         /// <param name="yHotspot">The y hotspot.</param>
         /// <returns>The created cursor.</returns>
         [DllImport(LIBRARY, EntryPoint = "glfwCreateCursor", CallingConvention = CallingConvention.Cdecl)]
-        public static extern Cursor CreateCursor(Image image, int xHotspot, int yHotspot);
+        public static extern Cursor CreateCursor(ref Image image, int xHotspot, int yHotspot);
 
         /// <summary>
         ///     This function destroys a cursor previously created with <see cref="CreateCursor" />. Any remaining cursors will be
