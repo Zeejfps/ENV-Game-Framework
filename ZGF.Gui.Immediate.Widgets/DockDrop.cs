@@ -26,12 +26,13 @@ public enum DockDropKind
 /// <see cref="UiPainter"/> draws in.</summary>
 public readonly struct DockDrop
 {
-    internal DockDrop(DockDropKind kind, DockEdge edge, UiRect ghost, UiRect? caret, DockTab tab, PointF pointer)
+    internal DockDrop(DockDropKind kind, DockEdge edge, UiRect ghost, UiRect? caret, UiRect? tabSlot, DockTab tab, PointF pointer)
     {
         Kind = kind;
         Edge = edge;
         Ghost = ghost;
         Caret = caret;
+        TabSlot = tabSlot;
         Tab = tab;
         Pointer = pointer;
     }
@@ -42,11 +43,18 @@ public readonly struct DockDrop
     /// <see cref="DockEdge.Center"/> otherwise.</summary>
     public DockEdge Edge { get; }
 
-    /// <summary>Where the dragged panel will be once released; empty for <see cref="DockDropKind.None"/>.</summary>
+    /// <summary>Where the dragged panel will be once released: for <see cref="DockDropKind.Tab"/>, the group's body
+    /// below its header; empty for <see cref="DockDropKind.None"/>.</summary>
     public UiRect Ghost { get; }
 
     /// <summary>For <see cref="DockDropKind.Tab"/> over a tab strip, the line between the tabs it goes between.</summary>
     public UiRect? Caret { get; }
+
+    /// <summary>For <see cref="DockDropKind.Tab"/>, the part of the group's header from where the panel's tab goes to
+    /// the header's end, to show the tab there: after the group's last tab or its lone panel's title
+    /// (<see cref="DockHeader.TitleId"/>), or where <see cref="Caret"/> is. Null for a group showing no header, whose
+    /// <see cref="Ghost"/> is the whole group.</summary>
+    public UiRect? TabSlot { get; }
 
     /// <summary>The dragged panel's tab; for a dragged window, its front panel's.</summary>
     public DockTab Tab { get; }
@@ -91,8 +99,8 @@ public static partial class UiWidgets
     private const byte DropTintAlpha = 0x22;
 
     /// <summary>The stock look of a drag in a dock space: a ghost of the panel where it will land, titled as its
-    /// header is and saying what releasing does, the line between tabs it goes between, and its name beside the
-    /// pointer — for a painter of an app's own to fall back to.</summary>
+    /// header is and saying what releasing does — joining a group, its tab in the group's header beside the others —
+    /// and its name beside the pointer — for a painter of an app's own to fall back to.</summary>
     public static void PaintDockDrop(this Ui ui, in DockDrop drop)
     {
         var theme = ui.Theme;
@@ -102,17 +110,19 @@ public static partial class UiWidgets
         var chip = new UiRect(drop.Pointer.X + DropChipOffsetX, drop.Pointer.Y + DropChipOffsetY, titleWidth + theme.TooltipPaddingX * 2f,
             chipHeight);
         ui.Paint(new DropLook(theme, drop.Kind == DockDropKind.None ? null : drop.Ghost, drop.Caret, drop.Hint, title, drop.Tab.TitleFont,
-            titleWidth, chip, drop.Pointer), static (p, look) => look.Paint(p));
+            titleWidth, chip, drop.Pointer, drop.TabSlot), static (p, look) => look.Paint(p));
     }
 
     private readonly record struct DropLook(UiTheme Theme, UiRect? Ghost, UiRect? Caret, string Hint, string Title, string? Font, float TitleWidth,
-        UiRect Chip, PointF Pointer)
+        UiRect Chip, PointF Pointer, UiRect? TabSlot)
     {
         public void Paint(UiPainter p)
         {
             if (Ghost != null)
-                PaintGhost(p, Ghost.Value);
-            if (Caret != null)
+                PaintGhost(p, Ghost.Value, titled: TabSlot == null);
+            if (TabSlot != null)
+                PaintTab(p, TabSlot.Value);
+            else if (Caret != null)
                 p.FillRect(Caret.Value, Theme.Accent);
 
             // Below and right of the pointer, or across it from an edge of the dock space it would run past.
@@ -126,16 +136,17 @@ public static partial class UiWidgets
                 family: Font);
         }
 
-        // The panel as it will look docked: a header with its title marked in the accent, over its body, which says
-        // what releasing does. Too short for both, it is the body alone.
-        private void PaintGhost(UiPainter p, UiRect ghost)
+        // The panel as it will look docked: a header with its title marked in the accent, unless it is to be titled by
+        // a tab in a group's header, over its body, which says what releasing does. Too short for both, it is the body
+        // alone.
+        private void PaintGhost(UiPainter p, UiRect ghost, bool titled)
         {
             var t = Theme;
             p.FillRect(ghost, Faded(t.PaneBackground, DropGhostAlpha), t.RadiusSmall);
             p.FillRect(ghost, Faded(t.Accent, DropTintAlpha), t.RadiusSmall, t.Accent, t.BorderWidth);
 
             var body = ghost;
-            if (ghost.Height >= t.TabHeight * 3f)
+            if (titled && ghost.Height >= t.TabHeight * 3f)
             {
                 var header = ghost with { Height = t.TabHeight };
                 p.FillRect(new UiRect(header.X, header.Bottom - t.SeparatorWidth, header.Width, t.SeparatorWidth), t.Separator);
@@ -145,6 +156,19 @@ public static partial class UiWidgets
                 body = ghost with { Y = header.Bottom, Height = ghost.Height - t.TabHeight };
             }
             p.Text(body, Hint, t.TextMuted, align: Align.Center);
+        }
+
+        // The panel's tab in the group's header where it goes, in front as it will be once dropped, over whatever
+        // tabs follow it there.
+        private void PaintTab(UiPainter p, UiRect slot)
+        {
+            var t = Theme;
+            var tab = slot with { Width = MathF.Min(TitleWidth + t.TabPaddingX * 2f, slot.Width) };
+            p.FillRect(tab, t.TabStripBackground);
+            p.FillRect(tab, Faded(t.Accent, DropTintAlpha));
+            p.Text(tab with { X = tab.X + t.TabPaddingX, Width = MathF.Max(0f, tab.Width - t.TabPaddingX * 2f) }, Title, t.Text,
+                family: Font);
+            p.FillRect(new UiRect(tab.X, tab.Bottom - t.ActiveIndicatorWidth, tab.Width, t.ActiveIndicatorWidth), t.Accent);
         }
 
         private static uint Faded(uint color, byte alpha) => (color & 0x00FFFFFFu) | ((uint)alpha << 24);

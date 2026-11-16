@@ -38,6 +38,10 @@ public readonly struct DockHeader
     /// <summary>An id for a part of this group's header, distinct from every other group's.</summary>
     public int IdOf(string part) => HashCode.Combine(_elementId, part);
 
+    /// <summary>The id to record <see cref="Panel"/>'s title with, when the painter shows a title rather than
+    /// <see cref="Tabs"/>: a panel dragged onto the group as a tab is previewed in the header just after it.</summary>
+    public int TitleId => DockWalker.TitleId(_elementId);
+
     /// <summary>Records the group's tab strip, one tab per panel, as the stock header does: picking, closing and
     /// dragging a tab, its context menu (<see cref="DockSpace.TabMenu"/>), and dropping a dragged panel among the
     /// tabs. Without it, a panel dragged onto this group docks beside or into it, not between tabs.</summary>

@@ -139,7 +139,10 @@ static void PaneHeader(Ui ui, in DockHeader header)
         if (header.PanelCount > 1)
             header.Tabs(new Box { Width = Sizing.Grow() });
         else
-            ui.Text(header.Tab.Title, new Box { Width = Sizing.Grow() });
+        {
+            ui.Text(header.Tab.Title, id: header.TitleId);
+            ui.Spacer();
+        }
         var menu = header.MenuButton(header.IdOf("menu"), "Panel menu");
         ui.PaintIconButton(menu, new IconButtonFace(More));
         var close = header.CloseButton(header.IdOf("close"));
@@ -151,7 +154,8 @@ static void PaneHeader(Ui ui, in DockHeader header)
 
 A panel dropped in a group's middle, or on its header out of its tabs, joins the group as a tab,
 whether or not the painter shows `header.Tabs` for a group of one; dropped toward a side, it splits
-the group.
+the group. A painter that shows a lone panel's title records it with `header.TitleId`, so the new
+tab is previewed just after it.
 
 ## 4. A dock drop painter shows a drag over the dock space
 
@@ -159,10 +163,11 @@ the group.
 how a drag looks each frame of it, over the dock space. `drop.Kind` says what releasing does (`Tab`,
 `Split`, `Edge` of the whole dock space, `Float` with Ctrl held, or `None`), `drop.Edge` the side
 taken, `drop.Ghost` where the panel will be, `drop.Caret` the line between the tabs it goes
-between, `drop.Tab` the dragged panel's tab, `drop.Pointer` where the pointer is, and `drop.Hint`
+between, `drop.TabSlot` the part of the group's header the new tab goes in, `drop.Tab` the dragged panel's tab, `drop.Pointer` where the pointer is, and `drop.Hint`
 what releasing does in words ("Release to split right"). Rects are in window coordinates, as a
 `ui.Paint` callback draws. The stock one, `ui.PaintDockDrop(drop)`, draws a ghost of the panel with
-its title and the hint, the caret, and the panel's name beside the pointer.
+its title and the hint (joining a group, the ghost is the group's body and the panel's tab sits in its
+header beside the others), and the panel's name beside the pointer.
 
 The dock space sets the pointer itself: an open hand over a grip or a floating window's title bar
 (`MouseCursor.Grab`), closed while it is held (`MouseCursor.Grabbing`), and arrows to all sides once

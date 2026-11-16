@@ -113,7 +113,10 @@ public sealed class DockHeaderPainterTests
             if (header.PanelCount > 1)
                 header.Tabs(new Box { Width = Sizing.Grow() });
             else
-                ui.Text("title:" + header.Tab.Title, new Box { Width = Sizing.Grow() });
+            {
+                ui.Text("title:" + header.Tab.Title, id: header.TitleId);
+                ui.Spacer();
+            }
             var menu = header.MenuButton(header.IdOf("menu"), "Panel menu");
             _menuIds[header.Panel] = menu.Id;
             ui.Leaf(menu.Id, new Box { Width = 20f, Height = 20f });
@@ -199,17 +202,42 @@ public sealed class DockHeaderPainterTests
     {
         _frames.Frame(2);
 
-        DragGrip("a", Center(GroupRect("c")));
-        Assert.Equal(DockDropKind.Tab, _drop!.Value.Kind);
-        Assert.Equal("Release to add as tab", _drop.Value.Hint);
-        Assert.Equal("A", _drop.Value.Tab.Title);
-        Assert.Equal(GroupRect("c"), _drop.Value.Ghost);
+        var group = GroupRect("c");
+        var title = _frames.RectOf(ui => DockWalker.TitleId(DockWalker.NodeId(ui, "dock", _layout.GroupOf("c")!)));
+
+        DragGrip("a", Center(group));
+        var drop = _drop!.Value;
+        Assert.Equal(DockDropKind.Tab, drop.Kind);
+        Assert.Equal("Release to add as tab", drop.Hint);
+        Assert.Equal("A", drop.Tab.Title);
+        // The ghost is the body below the header, and the tab goes in the header just after the lone panel's title.
+        Assert.Equal(group.Bottom, drop.Ghost.Bottom);
+        Assert.True(drop.Ghost.Y > group.Y);
+        var slot = drop.TabSlot!.Value;
+        Assert.Equal(group.Y, slot.Y);
+        Assert.Equal(drop.Ghost.Y, slot.Bottom);
+        Assert.InRange(slot.X, title.Right, title.Right + 8f);
+        Assert.Equal(group.Right, slot.Right);
         _frames.Release().Frame(2);
 
         Assert.Equal(["c", "a"], _layout.GroupOf("c")!.Panels);
         Assert.Equal("a", _layout.GroupOf("c")!.Active);
         Assert.True(_frames.Drew("A"));
         Assert.True(_frames.Drew("C"));
+    }
+
+    [Fact]
+    public void Dropping_in_the_middle_of_a_group_of_tabs_shows_the_new_tab_after_its_last()
+    {
+        _frames.Frame(2);
+        var last = _frames.RectOf(ui => DockWalker.TabId(ui, "dock", "b"));
+
+        DragGrip("c", Center(GroupRect("a")));
+
+        var slot = _drop!.Value.TabSlot!.Value;
+        Assert.Equal(last.Right, slot.X);
+        _frames.Release().Frame(2);
+        Assert.Equal(["a", "b", "c"], _layout.GroupOf("a")!.Panels);
     }
 
     [Fact]

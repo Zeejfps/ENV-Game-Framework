@@ -149,9 +149,10 @@ internal sealed class DockWalker
         int TabCount);
 
     // Where a drop goes: into Node (Center, as a tab at Index) or beside it, taking Share of it; Rim when Node is the
-    // whole dock space docked against. Ghost is where the panel will be, and Caret the line between the tabs it goes
-    // between.
-    private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index, bool Rim, UiRect Ghost, UiRect? Caret);
+    // whole dock space docked against. Ghost is where the panel will be, Caret the line between the tabs it goes
+    // between, and TabSlot the part of the group's header from where its new tab goes.
+    private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index, bool Rim, UiRect Ghost, UiRect? Caret,
+        UiRect? TabSlot = null);
 
     private readonly List<Frame> _frames = new();
     private readonly List<GroupEntry> _groups = new();
@@ -369,6 +370,8 @@ internal sealed class DockWalker
         using (ui.Id(TabsSalt))
             return ui.GetId(panel);
     }
+
+    internal static int TitleId(int groupElementId) => HashCode.Combine(groupElementId, "title");
 
     internal static int NodeId(Ui ui, string dock, DockNode node)
     {
@@ -718,7 +721,7 @@ internal sealed class DockWalker
                 break;
             }
             var caret = new UiRect(caretX - 1f, strip.Y + 3f, 2f, strip.Height - 6f);
-            return new DockTarget(onStrip.Group, DockEdge.Center, GroupShare, index, false, rect, caret);
+            return AsTab(onStrip, rect, index, caret, caretX);
         }
 
         // Over a group's header, out of its tabs: a panel joins the group as its last tab.
@@ -727,7 +730,7 @@ internal sealed class DockWalker
             var entry = over.Value;
             var leaving = source == entry.Group && entry.Group.Panels.Count == 1;
             if (!leaving && TakesTabs(entry.Group) && InHeader(entry, pointer))
-                return new DockTarget(entry.Group, DockEdge.Center, GroupShare, -1, false, rect, null);
+                return AsTab(entry, rect, -1, null, null);
         }
 
         if (over is not { Window: not null } && _layout.Root is not DockGroup { Panels.Count: 0 })
@@ -746,9 +749,37 @@ internal sealed class DockWalker
         if (alone && _layout.NewPanel == null) return null;
         var edge = NearestEdge(rect, pointer, out var depth);
         if (group.Panels.Count == 0 || (TakesTabs(group) && !alone && depth > EdgeZone))
-            edge = DockEdge.Center;
+            return AsTab(over.Value, rect, -1, null, null);
         return new DockTarget(group, edge, GroupShare, -1, false, Part(rect, edge, GroupShare), null);
     }
+
+    // A panel joining entry's group as a tab at index (-1 last), shown as its body below the group's header and, in
+    // the header, its tab where it goes: at tabX, or after the group's last tab or its lone panel's title. A group
+    // showing no header is shown whole.
+    private DockTarget AsTab(GroupEntry entry, UiRect rect, int index, UiRect? caret, float? tabX)
+    {
+        if (entry.ContentId == 0 || !_ui.TryGetRect(entry.ContentId, out var content) || content.Y <= rect.Y)
+            return new DockTarget(entry.Group, DockEdge.Center, GroupShare, index, false, rect, caret);
+
+        var header = rect with { Height = content.Y - rect.Y };
+        var body = rect with { Y = content.Y, Height = rect.Bottom - content.Y };
+        var x = Math.Clamp(tabX ?? AfterLastTab(entry) ?? AfterTitle(entry) ?? header.X, header.X, header.Right);
+        var slot = header with { X = x, Width = header.Right - x };
+        return new DockTarget(entry.Group, DockEdge.Center, GroupShare, index, false, body, caret, slot);
+    }
+
+    private float? AfterLastTab(GroupEntry entry)
+    {
+        for (var i = entry.TabCount - 1; i >= 0; i--)
+        {
+            if (_ui.TryGetRect(_tabs[entry.FirstTab + i], out var tab))
+                return tab.Right;
+        }
+        return null;
+    }
+
+    private float? AfterTitle(GroupEntry entry) =>
+        _ui.TryGetRect(TitleId(entry.ElementId), out var title) ? title.Right + _theme.GapTight : null;
 
     // A group takes panels as tabs unless it is a panel that can't move, which takes others only beside it.
     private bool TakesTabs(DockGroup group) => !IsFixed(group);
@@ -843,15 +874,15 @@ internal sealed class DockWalker
         if (floating && drag.Panel != null)
         {
             var ghost = FloatingRect(drag, dock);
-            return new DockDrop(DockDropKind.Float, DockEdge.Center, ghost with { X = ghost.X + dock.X, Y = ghost.Y + dock.Y }, null, tab,
-                pointer);
+            return new DockDrop(DockDropKind.Float, DockEdge.Center, ghost with { X = ghost.X + dock.X, Y = ghost.Y + dock.Y }, null, null,
+                tab, pointer);
         }
         if (target == null)
-            return new DockDrop(DockDropKind.None, DockEdge.Center, default, null, tab, pointer);
+            return new DockDrop(DockDropKind.None, DockEdge.Center, default, null, null, tab, pointer);
 
         var t = target.Value;
         var kind = t.Edge == DockEdge.Center ? DockDropKind.Tab : t.Rim ? DockDropKind.Edge : DockDropKind.Split;
-        return new DockDrop(kind, t.Edge, t.Ghost, t.Caret, tab, pointer);
+        return new DockDrop(kind, t.Edge, t.Ghost, t.Caret, t.TabSlot, tab, pointer);
     }
 
     // The panel in front of the first group under node: the one a window's title names.
