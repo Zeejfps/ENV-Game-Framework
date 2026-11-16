@@ -55,30 +55,33 @@ public static partial class UiWidgets
     /// <summary>
     /// Panels docked into splits and tab groups that fill the space given (unless
     /// <paramref name="box"/> sizes it), plus floating windows over it, as <paramref name="layout"/>
-    /// arranges them. <paramref name="tab"/> names each panel's tab. The user drags a tab onto
-    /// another group's tabs, into a group's middle to join it, toward a group's side or the dock
-    /// space's rim to split there, or, holding Ctrl, off into a window of its own; drags a window by
+    /// arranges them. <paramref name="tab"/> names each panel's tab. The user drags a tab or a header's grip onto
+    /// another group's header or tabs, or into its middle, to join it as a tab; toward a group's side or the dock
+    /// space's rim to split there; or, holding Ctrl, off into a window of its own; drags a window by
     /// its title bar to dock it the same way, or to move it while Ctrl is held, and its edges to
-    /// resize it; and drags dividers. Pressing a group focuses its front panel
+    /// resize it; and drags dividers. The pointer is an open hand over a grip or title bar, closed while it is held,
+    /// and arrows to all sides while dragging. Pressing a group focuses its front panel
     /// (<see cref="DockLayout.Focused"/>). A tab right-clicked is named by <see cref="DockSpace.TabMenu"/>
     /// for the caller's context menu, and one double-clicked by <see cref="DockSpace.TabDoubleClicked"/>. Every change is written to <paramref name="layout"/> when
     /// the scope ends. Escape cancels a drag. <paramref name="tabListTooltip"/> names the button
     /// that lists a group's tabs while they overflow. <paramref name="header"/> records each group's header, calling the
     /// <see cref="DockHeader"/> parts it shows; the stock one, <see cref="PaintDockHeader"/>, is the group's tabs.
+    /// <paramref name="drop"/> records how a drag looks, over the dock space; the stock one is
+    /// <see cref="PaintDockDrop"/>.
     /// </summary>
     public static DockSpace DockSpace(this Ui ui, string id, DockLayout layout, Func<string, DockTab> tab, Box box = default,
-        string? tabListTooltip = null, DockHeaderPainter? header = null) =>
-        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box, tabListTooltip, header);
+        string? tabListTooltip = null, DockHeaderPainter? header = null, DockDropPainter? drop = null) =>
+        ui.DockSpace(id, layout, tab, static (tab, panel) => tab(panel), box, tabListTooltip, header, drop);
 
     /// <summary>A <see cref="DockSpace(Ui, string, DockLayout, Func{string, DockTab}, Box)"/> whose
     /// tabs are named by <paramref name="tab"/> from <paramref name="state"/>, so a static lambda
     /// can name them without allocating.</summary>
     public static DockSpace DockSpace<TState>(this Ui ui, string id, DockLayout layout, TState state, Func<TState, string, DockTab> tab, Box box = default,
-        string? tabListTooltip = null, DockHeaderPainter? header = null)
+        string? tabListTooltip = null, DockHeaderPainter? header = null, DockDropPainter? drop = null)
     {
         var dockId = ui.GetId(id);
         var walker = ui.GetState<DockWalker>(HashCode.Combine(dockId, DockWalkerSalt));
-        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box, tabListTooltip, header);
+        walker.Begin(ui, id, dockId, layout, walker.Tabs(state, tab), box, tabListTooltip, header, drop);
         return new DockSpace(walker);
     }
 }
@@ -141,9 +144,14 @@ internal sealed class DockWalker
         public Ui.Scope State;
     }
 
-    private readonly record struct GroupEntry(DockGroup Group, DockWindow? Window, int ElementId, int StripId, int FirstTab, int TabCount);
+    // ContentId is the group's front panel's content, below its header; 0 for a group showing none.
+    private readonly record struct GroupEntry(DockGroup Group, DockWindow? Window, int ElementId, int StripId, int ContentId, int FirstTab,
+        int TabCount);
 
-    private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index);
+    // Where a drop goes: into Node (Center, as a tab at Index) or beside it, taking Share of it; Rim when Node is the
+    // whole dock space docked against. Ghost is where the panel will be, and Caret the line between the tabs it goes
+    // between.
+    private readonly record struct DockTarget(DockNode Node, DockEdge Edge, float Share, int Index, bool Rim, UiRect Ghost, UiRect? Caret);
 
     private readonly List<Frame> _frames = new();
     private readonly List<GroupEntry> _groups = new();
@@ -156,6 +164,7 @@ internal sealed class DockWalker
     private IDockTabs _tab = null!;
     private string? _tabListTooltip;
     private DockHeaderPainter? _headerPainter;
+    private DockDropPainter? _dropPainter;
     private int _headerStrip;
     private IDockTabs? _source;
     private Ui.Scope _idScope;
@@ -163,8 +172,6 @@ internal sealed class DockWalker
     private int _dockId;
     private int _nextWindow;
     private bool _open;
-    private UiRect? _preview;
-    private UiRect? _caret;
 
     public DockTabMenu? TabMenu { get; private set; }
 
@@ -180,7 +187,7 @@ internal sealed class DockWalker
     }
 
     public void Begin(Ui ui, string id, int dockId, DockLayout layout, IDockTabs tab, Box box, string? tabListTooltip,
-        DockHeaderPainter? headerPainter)
+        DockHeaderPainter? headerPainter, DockDropPainter? dropPainter)
     {
         _ui = ui;
         _theme = ui.Theme;
@@ -188,13 +195,13 @@ internal sealed class DockWalker
         _tab = tab;
         _tabListTooltip = tabListTooltip;
         _headerPainter = headerPainter;
+        _dropPainter = dropPainter;
         _dockId = dockId;
         _frames.Clear();
         _groups.Clear();
         _tabs.Clear();
         _closed.Clear();
         _closedWindows.Clear();
-        _preview = _caret = null;
         TabMenu = null;
         TabDoubleClicked = null;
         _nextWindow = -1;
@@ -442,6 +449,7 @@ internal sealed class DockWalker
         });
 
         var stripId = HashCode.Combine(elementId, "tabs");
+        var contentId = HashCode.Combine(elementId, "content");
         var firstTab = _tabs.Count;
         var fixedPanel = IsFixed(group);
         _headerStrip = 0;
@@ -455,7 +463,8 @@ internal sealed class DockWalker
             else
                 _ui.PaintDockHeader(header);
         }
-        _groups.Add(new GroupEntry(group, frame.Window, elementId, _headerStrip, firstTab, _tabs.Count - firstTab));
+        _groups.Add(new GroupEntry(group, frame.Window, elementId, _headerStrip, group.Active == null ? 0 : contentId, firstTab,
+            _tabs.Count - firstTab));
 
         foreach (var panel in group.Panels)
         {
@@ -464,7 +473,7 @@ internal sealed class DockWalker
         }
         if (group.Active == null) return null;
 
-        frame.Inner = _ui.Column(new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Clip = true });
+        frame.Inner = _ui.Column(contentId, new Box { Width = Sizing.Grow(), Height = Sizing.Grow(), Clip = true });
         frame.State = _ui.StateScope(group.Active);
         return group.Active;
     }
@@ -504,6 +513,8 @@ internal sealed class DockWalker
         var panel = FrontOf(group);
         var movable = _tab.Tab(panel).Movable;
         var grip = _ui.Pressable(id, movable, out _, out _, hand: false, tabStop: false);
+        if (movable)
+            GrabCursor(grip);
         if (movable && _ui.ShouldBeginDrag(grip))
             BeginPanelDrag(panel, elementId, id);
         if (grip.ClickedWith(PointerButton.Right))
@@ -535,6 +546,16 @@ internal sealed class DockWalker
         if (close.Activated)
             _closed.Add(panel);
         return close;
+    }
+
+    // An open hand over a handle a panel or window is dragged by, closed while it is held; once the drag is under
+    // way, End shows arrows to all sides instead.
+    private void GrabCursor(Interaction handle)
+    {
+        if (handle.Held)
+            _ui.SetCursor(MouseCursor.Grabbing);
+        else if (handle.Hovered)
+            _ui.SetCursor(MouseCursor.Grab);
     }
 
     private static string FrontOf(DockGroup group) => group.Active ?? group.Panels[0];
@@ -580,6 +601,7 @@ internal sealed class DockWalker
     private void TitleBar(DockWindow window, int windowId)
     {
         var title = _ui.Interact(HashCode.Combine(windowId, "title"));
+        GrabCursor(title);
         if (_ui.ShouldBeginDrag(title) && _ui.TryGetRect(windowId, out var rect))
         {
             var press = _ui.PressPosition;
@@ -695,9 +717,17 @@ internal sealed class DockWalker
                 caretX = tab.X;
                 break;
             }
-            _caret = new UiRect(caretX - 1f, strip.Y + 3f, 2f, strip.Height - 6f);
-            _preview = rect;
-            return new DockTarget(onStrip.Group, DockEdge.Center, GroupShare, index);
+            var caret = new UiRect(caretX - 1f, strip.Y + 3f, 2f, strip.Height - 6f);
+            return new DockTarget(onStrip.Group, DockEdge.Center, GroupShare, index, false, rect, caret);
+        }
+
+        // Over a group's header, out of its tabs: a panel joins the group as its last tab.
+        if (over != null)
+        {
+            var entry = over.Value;
+            var leaving = source == entry.Group && entry.Group.Panels.Count == 1;
+            if (!leaving && TakesTabs(entry.Group) && InHeader(entry, pointer))
+                return new DockTarget(entry.Group, DockEdge.Center, GroupShare, -1, false, rect, null);
         }
 
         if (over is not { Window: not null } && _layout.Root is not DockGroup { Panels.Count: 0 })
@@ -706,21 +736,26 @@ internal sealed class DockWalker
             if (dock.Contains(pointer) && !inset.Contains(pointer))
             {
                 var rootEdge = NearestEdge(dock, pointer, out _);
-                _preview = Part(dock, rootEdge, RootShare);
-                return new DockTarget(_layout.Root, rootEdge, RootShare, -1);
+                return new DockTarget(_layout.Root, rootEdge, RootShare, -1, true, Part(dock, rootEdge, RootShare), null);
             }
         }
 
-        if (over is not { } entry) return null;
-        var group = entry.Group;
+        if (over == null) return null;
+        var group = over.Value.Group;
         var alone = source == group && group.Panels.Count == 1;
         if (alone && _layout.NewPanel == null) return null;
         var edge = NearestEdge(rect, pointer, out var depth);
-        if (group.Panels.Count == 0 || (entry.StripId != 0 && !alone && depth > EdgeZone))
+        if (group.Panels.Count == 0 || (TakesTabs(group) && !alone && depth > EdgeZone))
             edge = DockEdge.Center;
-        _preview = Part(rect, edge, GroupShare);
-        return new DockTarget(group, edge, GroupShare, -1);
+        return new DockTarget(group, edge, GroupShare, -1, false, Part(rect, edge, GroupShare), null);
     }
+
+    // A group takes panels as tabs unless it is a panel that can't move, which takes others only beside it.
+    private bool TakesTabs(DockGroup group) => !IsFixed(group);
+
+    // Whether the pointer is in the group's header: above its front panel's content.
+    private bool InHeader(GroupEntry entry, PointF pointer) =>
+        entry.ContentId != 0 && _ui.TryGetRect(entry.ContentId, out var content) && pointer.Y < content.Y;
 
     private static DockEdge NearestEdge(UiRect rect, PointF pointer, out float depth)
     {
@@ -771,8 +806,9 @@ internal sealed class DockWalker
 
     private void Drop(DockDrag drag, DockTarget? target, bool floating, UiRect dock)
     {
-        if (target is { } t)
+        if (target != null)
         {
+            var t = target.Value;
             if (drag.Window != null)
                 _layout.Dock(drag.Window, t.Node, t.Edge, t.Share, t.Index);
             else
@@ -787,22 +823,45 @@ internal sealed class DockWalker
 
     private void RecordOverlay(DockDrag drag, UiRect dock, DockTarget? target, bool floating)
     {
-        if (floating && drag.Panel != null)
-        {
-            var ghost = FloatingRect(drag, dock);
-            _preview = ghost with { X = ghost.X + dock.X, Y = ghost.Y + dock.Y };
-        }
+        var drop = DropOf(drag, dock, target, floating);
         using (_ui.Float(0f, 0f, 0f, 0f, new Box { Width = Sizing.Grow(), Height = Sizing.Grow() }, OverlayZ))
-            _ui.Paint(this, static (p, walker) => walker.PaintOverlay(p));
+        {
+            var painter = _dropPainter;
+            if (painter != null)
+                painter(_ui, drop);
+            else
+                _ui.PaintDockDrop(drop);
+        }
+        _ui.SetCursor(MouseCursor.Move);
         _ui.RequestAnimationFrame();
     }
 
-    private void PaintOverlay(UiPainter p)
+    private DockDrop DropOf(DockDrag drag, UiRect dock, DockTarget? target, bool floating)
     {
-        var accent = _theme.Accent;
-        if (_preview is { } preview)
-            p.FillRect(preview, (accent & 0x00FFFFFFu) | 0x40000000u, 0f, accent, _theme.BorderWidth);
-        if (_caret is { } caret)
-            p.FillRect(caret, accent);
+        var tab = _tab.Tab(drag.Panel ?? FrontPanel(drag.Window!.Root) ?? "");
+        var pointer = _ui.Input.Pointer;
+        if (floating && drag.Panel != null)
+        {
+            var ghost = FloatingRect(drag, dock);
+            return new DockDrop(DockDropKind.Float, DockEdge.Center, ghost with { X = ghost.X + dock.X, Y = ghost.Y + dock.Y }, null, tab,
+                pointer);
+        }
+        if (target == null)
+            return new DockDrop(DockDropKind.None, DockEdge.Center, default, null, tab, pointer);
+
+        var t = target.Value;
+        var kind = t.Edge == DockEdge.Center ? DockDropKind.Tab : t.Rim ? DockDropKind.Edge : DockDropKind.Split;
+        return new DockDrop(kind, t.Edge, t.Ghost, t.Caret, tab, pointer);
+    }
+
+    // The panel in front of the first group under node: the one a window's title names.
+    private static string? FrontPanel(DockNode node)
+    {
+        if (node is DockSplit split)
+            return FrontPanel(split.First) ?? FrontPanel(split.Second);
+        var group = (DockGroup)node;
+        if (group.Active != null)
+            return group.Active;
+        return group.Panels.Count > 0 ? group.Panels[0] : null;
     }
 }

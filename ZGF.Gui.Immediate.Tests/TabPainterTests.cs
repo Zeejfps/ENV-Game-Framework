@@ -84,15 +84,23 @@ public sealed class DockHeaderPainterTests
     private readonly Dictionary<string, int> _gripIds = new();
     private readonly UiFrames _frames;
     private DockTabMenu? _tabMenu;
+    private DockDrop? _drop;
 
     public DockHeaderPainterTests() => _frames = new UiFrames(new DefaultUiState(), width: 800f, height: 600f, body: Body);
 
     private void Body(Ui ui)
     {
-        using var dock = ui.DockSpace("dock", _layout, static p => new DockTab(p.ToUpperInvariant(), Closable: p != "c"), header: PaintHeader);
+        using var dock = ui.DockSpace("dock", _layout, static p => new DockTab(p.ToUpperInvariant(), Closable: p != "c"), header: PaintHeader,
+            drop: PaintDrop);
         while (dock.Next(out var panel))
             ui.Text("content:" + panel);
         _tabMenu = dock.TabMenu ?? _tabMenu;
+    }
+
+    private void PaintDrop(Ui ui, in DockDrop drop)
+    {
+        _drop = drop;
+        ui.PaintDockDrop(drop);
     }
 
     private void PaintHeader(Ui ui, in DockHeader header)
@@ -155,6 +163,84 @@ public sealed class DockHeaderPainterTests
 
         Assert.False(_layout.Contains("a"));
         Assert.True(_layout.Contains("b"));
+    }
+
+    private PointF Grip(string panel) => Center(_frames.RectOf(_ => _gripIds[panel]));
+
+    private UiRect GroupRect(string panel) => _frames.RectOf(ui => DockWalker.NodeId(ui, "dock", _layout.GroupOf(panel)!));
+
+    private void DragGrip(string panel, PointF to)
+    {
+        var grip = Grip(panel);
+        _frames.Drag(grip, [new PointF(grip.X + 20f, grip.Y + 20f), to, to with { X = to.X + 2f }]);
+    }
+
+    [Fact]
+    public void The_grip_shows_an_open_hand_closed_while_held_and_arrows_to_all_sides_while_dragging()
+    {
+        _frames.Frame(2);
+        var grip = Grip("c");
+
+        _frames.MovePointer(grip).Frame();
+        Assert.Equal(MouseCursor.Grab, _frames.Cursor);
+
+        _frames.Press().Frame();
+        Assert.Equal(MouseCursor.Grabbing, _frames.Cursor);
+
+        _frames.MovePointer(grip.X - 60f, grip.Y + 60f).Frame().MovePointer(200f, 300f).Frame();
+        Assert.Equal(MouseCursor.Move, _frames.Cursor);
+
+        _frames.Release().Frame(2);
+        Assert.Equal(MouseCursor.Default, _frames.Cursor);
+    }
+
+    [Fact]
+    public void Dropping_in_the_middle_of_a_panel_alone_makes_the_two_tabs_of_one_group()
+    {
+        _frames.Frame(2);
+
+        DragGrip("a", Center(GroupRect("c")));
+        Assert.Equal(DockDropKind.Tab, _drop!.Value.Kind);
+        Assert.Equal("Release to add as tab", _drop.Value.Hint);
+        Assert.Equal("A", _drop.Value.Tab.Title);
+        Assert.Equal(GroupRect("c"), _drop.Value.Ghost);
+        _frames.Release().Frame(2);
+
+        Assert.Equal(["c", "a"], _layout.GroupOf("c")!.Panels);
+        Assert.Equal("a", _layout.GroupOf("c")!.Active);
+        Assert.True(_frames.Drew("A"));
+        Assert.True(_frames.Drew("C"));
+    }
+
+    [Fact]
+    public void Dropping_on_the_title_of_a_panel_alone_adds_the_dragged_one_as_its_last_tab()
+    {
+        _frames.Frame(2);
+        var group = GroupRect("c");
+
+        DragGrip("a", new PointF(group.X + 60f, group.Y + 15f));
+        Assert.Equal(DockDropKind.Tab, _drop!.Value.Kind);
+        _frames.Release().Frame(2);
+
+        Assert.Equal(["c", "a"], _layout.GroupOf("c")!.Panels);
+    }
+
+    [Fact]
+    public void Dropping_near_a_side_of_a_panel_alone_splits_it_and_says_so_while_dragging()
+    {
+        _frames.Frame(2);
+        var group = GroupRect("c");
+
+        DragGrip("a", new PointF(group.Right - 50f, group.Y + group.Height / 2));
+        Assert.Equal(DockDropKind.Split, _drop!.Value.Kind);
+        Assert.Equal(DockEdge.Right, _drop.Value.Edge);
+        Assert.Equal("Release to split right", _drop.Value.Hint);
+        Assert.True(_frames.Drew("Release to split right"));
+        Assert.True(_frames.Drew("A"));
+        _frames.Release().Frame(2);
+
+        var split = Assert.IsType<DockSplit>(Assert.IsType<DockSplit>(_layout.Root).Second);
+        Assert.Equal(["a"], Assert.IsType<DockGroup>(split.Second).Panels);
     }
 
     [Fact]
