@@ -12,8 +12,8 @@ public sealed class FilePickerDispatcherTests
 
         public void PickFile(string title, string? initialDirectory, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) => Answer(onPicked);
 
-        public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked) =>
-            Answer(onPicked);
+        public void PickSaveFile(string title, string? initialDirectory, string? suggestedFileName, IReadOnlyList<FileFilter>? filters, Action<string> onPicked,
+            Action onCancelled) => Answer(onPicked);
 
         private void Answer(Action<string> onPicked) => Task.Run(() => post(() => onPicked("picked"))).Wait();
     }
